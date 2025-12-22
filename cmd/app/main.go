@@ -19,7 +19,9 @@ func main() {
 		}
 	}()
 
-	r := bootstrap.Init(cfg, client)
+	validate := config.NewValidator()
+
+	r := bootstrap.Init(cfg, client, validate)
 
 	addr := fmt.Sprintf(":%s", cfg.AppPort)
 	fmt.Printf("Starting AtoiTalkAPI on port %s...\n", cfg.AppPort)
