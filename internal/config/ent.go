@@ -4,7 +4,8 @@ import (
 	"AtoiTalkAPI/ent"
 	"context"
 	"fmt"
-	"log"
+	"log/slog"
+	"os"
 
 	_ "github.com/lib/pq"
 )
@@ -15,18 +16,20 @@ func InitEnt(cfg *AppConfig) *ent.Client {
 
 	client, err := ent.Open("postgres", dsn)
 	if err != nil {
-		log.Fatalf("failed opening connection to postgres: %v", err)
+		slog.Error("failed opening connection to postgres", "error", err)
+		os.Exit(1)
 	}
 
 	if cfg.DBMigrate {
 		if err := client.Schema.Create(context.Background()); err != nil {
-			log.Fatalf("failed creating schema resources: %v", err)
+			slog.Error("failed creating schema resources", "error", err)
+			os.Exit(1)
 		}
-		fmt.Println("Database schema migrated successfully (Ent)")
+		slog.Info("Database schema migrated successfully (Ent)")
 	} else {
-		fmt.Println("Database migration skipped (DB_MIGRATE=false)")
+		slog.Info("Database migration skipped (DB_MIGRATE=false)")
 	}
 
-	fmt.Println("Database connected successfully")
+	slog.Info("Database connected successfully")
 	return client
 }

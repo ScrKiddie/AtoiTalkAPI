@@ -2,17 +2,19 @@ package config
 
 import (
 	"fmt"
-	"log"
+	"log/slog"
 	"os"
 	"strconv"
+	"strings"
 
 	"github.com/joho/godotenv"
 )
 
 type AppConfig struct {
-	AppPort string
-	AppEnv  string
-	AppURL  string
+	AppPort              string
+	AppEnv               string
+	AppURL               string
+	AppCorsAllowedOrigins []string
 
 	DBHost     string
 	DBPort     string
@@ -43,13 +45,14 @@ type AppConfig struct {
 
 func LoadAppConfig() *AppConfig {
 	if err := godotenv.Load(); err != nil {
-		log.Println("No .env file found, reading from system environment variables")
+		slog.Info("No .env file found, reading from system environment variables")
 	}
 
 	return &AppConfig{
-		AppPort: mustGetEnv("APP_PORT"),
-		AppEnv:  mustGetEnv("APP_ENV"),
-		AppURL:  getEnv("APP_URL", "http://localhost:8080"),
+		AppPort:               mustGetEnv("APP_PORT"),
+		AppEnv:                mustGetEnv("APP_ENV"),
+		AppURL:                getEnv("APP_URL", "http://localhost:8080"),
+		AppCorsAllowedOrigins: strings.Split(getEnv("APP_CORS_ALLOWED_ORIGINS", "*"), ","),
 
 		DBHost:     mustGetEnv("DB_HOST"),
 		DBPort:     mustGetEnv("DB_PORT"),
@@ -87,7 +90,8 @@ func (c *AppConfig) DBConnectionString() string {
 func mustGetEnv(key string) string {
 	value, ok := os.LookupEnv(key)
 	if !ok || value == "" {
-		log.Fatalf("Environment variable %s is required but not set", key)
+		slog.Error("Environment variable is required but not set", "key", key)
+		os.Exit(1)
 	}
 	return value
 }
@@ -96,7 +100,8 @@ func mustGetEnvAsBool(key string) bool {
 	valStr := mustGetEnv(key)
 	val, err := strconv.ParseBool(valStr)
 	if err != nil {
-		log.Fatalf("Environment variable %s must be a boolean (true/false), got: %s", key, valStr)
+		slog.Error("Environment variable must be a boolean (true/false)", "key", key, "value", valStr)
+		os.Exit(1)
 	}
 	return val
 }
@@ -105,7 +110,8 @@ func mustGetEnvAsInt(key string) int {
 	valStr := mustGetEnv(key)
 	val, err := strconv.Atoi(valStr)
 	if err != nil {
-		log.Fatalf("Environment variable %s must be an integer, got: %s", key, valStr)
+		slog.Error("Environment variable must be an integer", "key", key, "value", valStr)
+		os.Exit(1)
 	}
 	return val
 }

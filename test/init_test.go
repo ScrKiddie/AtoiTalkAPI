@@ -37,6 +37,7 @@ func TestMain(m *testing.M) {
 	os.Setenv("STORAGE_MODE", "local")
 	os.Setenv("STORAGE_PROFILE", "test_profiles")
 	os.Setenv("STORAGE_ATTACHMENT", "test_attachments")
+	os.Setenv("APP_CORS_ALLOWED_ORIGINS", "*")
 
 	testConfig = config.LoadAppConfig()
 
@@ -50,9 +51,10 @@ func TestMain(m *testing.M) {
 
 	validator := config.NewValidator()
 	httpClient := config.NewHTTPClient()
+	testRouter = config.NewChi(testConfig)
 
 	var s3Client *s3.Client
-	testRouter = bootstrap.Init(testConfig, testClient, validator, s3Client, httpClient)
+	bootstrap.Init(testConfig, testClient, validator, s3Client, httpClient, testRouter)
 
 	code := m.Run()
 
