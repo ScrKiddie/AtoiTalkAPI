@@ -19,9 +19,15 @@ func main() {
 		}
 	}()
 
+	s3Client, err := config.NewS3Client(*cfg)
+	if err != nil {
+		log.Printf("Failed to initialize S3 client: %v", err)
+	}
+
+	httpClient := config.NewHTTPClient()
 	validate := config.NewValidator()
 
-	r := bootstrap.Init(cfg, client, validate)
+	r := bootstrap.Init(cfg, client, validate, s3Client, httpClient)
 
 	addr := fmt.Sprintf(":%s", cfg.AppPort)
 	fmt.Printf("Starting AtoiTalkAPI on port %s...\n", cfg.AppPort)

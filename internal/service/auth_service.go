@@ -4,11 +4,14 @@ import (
 	"AtoiTalkAPI/ent"
 	_ "AtoiTalkAPI/ent/runtime"
 	"AtoiTalkAPI/ent/user"
+	"AtoiTalkAPI/internal/adapter"
 	"AtoiTalkAPI/internal/config"
 	"AtoiTalkAPI/internal/helper"
 	"AtoiTalkAPI/internal/model"
+	"bytes"
 	"context"
 	"log/slog"
+	"path/filepath"
 	"strings"
 
 	"github.com/go-playground/validator/v10"
@@ -20,16 +23,18 @@ type AuthService interface {
 }
 
 type authService struct {
-	client    *ent.Client
-	cfg       *config.AppConfig
-	validator *validator.Validate
+	client         *ent.Client
+	cfg            *config.AppConfig
+	validator      *validator.Validate
+	storageAdapter *adapter.StorageAdapter
 }
 
-func NewAuthService(client *ent.Client, cfg *config.AppConfig, validator *validator.Validate) AuthService {
+func NewAuthService(client *ent.Client, cfg *config.AppConfig, validator *validator.Validate, storageAdapter *adapter.StorageAdapter) AuthService {
 	return &authService{
-		client:    client,
-		cfg:       cfg,
-		validator: validator,
+		client:         client,
+		cfg:            cfg,
+		validator:      validator,
+		storageAdapter: storageAdapter,
 	}
 }
 
@@ -53,14 +58,10 @@ func (s *authService) GoogleExchange(ctx context.Context, req model.GoogleLoginR
 
 	name, ok := payload.Claims["name"].(string)
 	if !ok || name == "" {
-
 		name = strings.Split(email, "@")[0]
 	}
 
-	picture, ok := payload.Claims["picture"].(string)
-	if !ok {
-		picture = ""
-	}
+	picture, _ := payload.Claims["picture"].(string)
 
 	u, err := s.client.User.Query().
 		Where(user.Email(email)).
@@ -71,12 +72,29 @@ func (s *authService) GoogleExchange(ctx context.Context, req model.GoogleLoginR
 		return nil, helper.NewInternalServerError("", err)
 	}
 
+	var avatarFileName string
 	if u == nil {
+		if picture != "" {
+			data, contentType, err := s.storageAdapter.Download(picture)
+			if err != nil {
+				slog.Error("Failed to download profile picture", "error", err)
+			} else {
+				fileName := helper.GenerateUniqueFileName(picture)
+				filePath := filepath.Join(s.cfg.StorageProfile, fileName)
+
+				err = s.storageAdapter.StoreFromReader(bytes.NewReader(data), contentType, filePath)
+				if err != nil {
+					slog.Error("Failed to store profile picture", "error", err)
+				} else {
+					avatarFileName = fileName
+				}
+			}
+		}
 
 		u, err = s.client.User.Create().
 			SetEmail(email).
 			SetFullName(name).
-			SetAvatarFileName(picture).
+			SetNillableAvatarFileName(&avatarFileName).
 			Save(ctx)
 
 		if err != nil {
@@ -85,10 +103,15 @@ func (s *authService) GoogleExchange(ctx context.Context, req model.GoogleLoginR
 		}
 	}
 
-	token, err := helper.GenerateJWT(s.cfg, u.ID, u.Email)
+	token, err := helper.GenerateJWT(s.cfg, u.ID)
 	if err != nil {
 		slog.Error("Failed to generate JWT token", "error", err)
 		return nil, helper.NewInternalServerError("", err)
+	}
+
+	avatarURL := ""
+	if u.AvatarFileName != nil && *u.AvatarFileName != "" {
+		avatarURL = helper.BuildImageURL(s.cfg, s.cfg.StorageProfile, *u.AvatarFileName)
 	}
 
 	return &model.AuthResponse{
@@ -97,7 +120,7 @@ func (s *authService) GoogleExchange(ctx context.Context, req model.GoogleLoginR
 			ID:       u.ID,
 			Email:    u.Email,
 			FullName: u.FullName,
-			Avatar:   *u.AvatarFileName,
+			Avatar:   avatarURL,
 		},
 	}, nil
 }

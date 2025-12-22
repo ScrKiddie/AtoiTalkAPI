@@ -9,6 +9,9 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"path/filepath"
+	"runtime"
+	"strings"
 	"testing"
 )
 
@@ -110,6 +113,25 @@ func TestGoogleExchange(t *testing.T) {
 
 			if _, ok := userMap["email"]; !ok {
 				t.Errorf("Expected email in user data")
+			}
+
+			avatarURL, ok := userMap["avatar"].(string)
+			if ok && avatarURL != "" {
+
+				parts := strings.Split(avatarURL, "/")
+				fileName := parts[len(parts)-1]
+
+				_, b, _, _ := runtime.Caller(0)
+				testDir := filepath.Dir(b)
+				physicalPath := filepath.Join(testDir, testConfig.StorageProfile, fileName)
+
+				if _, err := os.Stat(physicalPath); os.IsNotExist(err) {
+					t.Errorf("Profile picture file was not created at %s", physicalPath)
+				} else {
+					t.Logf("Profile picture successfully saved at %s", physicalPath)
+				}
+			} else {
+				t.Log("No avatar URL returned, skipping file check (maybe token has no picture)")
 			}
 		})
 
