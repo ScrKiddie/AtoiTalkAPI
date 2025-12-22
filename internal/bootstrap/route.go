@@ -2,13 +2,14 @@ package bootstrap
 
 import (
 	"AtoiTalkAPI/internal/config"
+	"AtoiTalkAPI/internal/controller"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 )
 
-func SetupRoutes(cfg *config.AppConfig) *chi.Mux {
+func SetupRoutes(cfg *config.AppConfig, authController *controller.AuthController) *chi.Mux {
 	r := chi.NewRouter()
 
 	r.Use(middleware.Logger)
@@ -19,9 +20,7 @@ func SetupRoutes(cfg *config.AppConfig) *chi.Mux {
 	})
 
 	r.Route("/api", func(r chi.Router) {
-		r.Route("/v1", func(r chi.Router) {
-
-		})
+		r.Post("/auth/google", authController.GoogleExchange)
 	})
 
 	return r

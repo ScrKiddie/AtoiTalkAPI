@@ -24,6 +24,9 @@ type AppConfig struct {
 	GoogleClientID     string
 	GoogleClientSecret string
 	GoogleRedirectURL  string
+
+	JWTSecret string
+	JWTExp    int
 }
 
 func LoadAppConfig() *AppConfig {
@@ -46,6 +49,9 @@ func LoadAppConfig() *AppConfig {
 		GoogleClientID:     mustGetEnv("GOOGLE_CLIENT_ID"),
 		GoogleClientSecret: mustGetEnv("GOOGLE_CLIENT_SECRET"),
 		GoogleRedirectURL:  mustGetEnv("GOOGLE_REDIRECT_URL"),
+
+		JWTSecret: mustGetEnv("JWT_SECRET"),
+		JWTExp:    mustGetEnvAsInt("JWT_EXP"),
 	}
 }
 
@@ -67,6 +73,15 @@ func mustGetEnvAsBool(key string) bool {
 	val, err := strconv.ParseBool(valStr)
 	if err != nil {
 		log.Fatalf("Environment variable %s must be a boolean (true/false), got: %s", key, valStr)
+	}
+	return val
+}
+
+func mustGetEnvAsInt(key string) int {
+	valStr := mustGetEnv(key)
+	val, err := strconv.Atoi(valStr)
+	if err != nil {
+		log.Fatalf("Environment variable %s must be an integer, got: %s", key, valStr)
 	}
 	return val
 }
