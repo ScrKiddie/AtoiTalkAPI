@@ -9,15 +9,13 @@ import (
 )
 
 type JWTClaims struct {
-	UserID int    `json:"user_id"`
-	Email  string `json:"email"`
+	UserID int `json:"user_id"`
 	jwt.RegisteredClaims
 }
 
-func GenerateJWT(cfg *config.AppConfig, userID int, email string) (string, error) {
+func GenerateJWT(cfg *config.AppConfig, userID int) (string, error) {
 	claims := JWTClaims{
 		UserID: userID,
-		Email:  email,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Duration(cfg.JWTExp) * time.Hour)),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
