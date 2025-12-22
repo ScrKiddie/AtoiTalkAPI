@@ -26,15 +26,15 @@ func NewAuthController(authService service.AuthService) *AuthController {
 // @Accept       json
 // @Produce      json
 // @Param        request body model.GoogleLoginRequest true "Google Login Request"
-// @Success      200  {object}  model.AuthResponse
-// @Failure      400  {object}  helper.Response
-// @Failure      500  {object}  helper.Response
+// @Success      200  {object}  helper.ResponseSuccess{data=model.AuthResponse}
+// @Failure      400  {object}  helper.ResponseError
+// @Failure      500  {object}  helper.ResponseError
 // @Router       /api/auth/google [post]
 func (c *AuthController) GoogleExchange(w http.ResponseWriter, r *http.Request) {
 	var req model.GoogleLoginRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		slog.Warn("Invalid request body", "error", err)
-		helper.WriteError(w, helper.NewBadRequestError("", err))
+		helper.WriteError(w, helper.NewBadRequestError(""))
 		return
 	}
 
@@ -44,5 +44,5 @@ func (c *AuthController) GoogleExchange(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	helper.WriteSuccess(w, "Login successful", resp)
+	helper.WriteSuccess(w, resp)
 }

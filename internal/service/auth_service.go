@@ -41,19 +41,19 @@ func NewAuthService(client *ent.Client, cfg *config.AppConfig, validator *valida
 func (s *authService) GoogleExchange(ctx context.Context, req model.GoogleLoginRequest) (*model.AuthResponse, error) {
 	if err := s.validator.Struct(req); err != nil {
 		slog.Warn("Validation failed", "error", err)
-		return nil, helper.NewBadRequestError("", err)
+		return nil, helper.NewBadRequestError("")
 	}
 
 	payload, err := idtoken.Validate(ctx, req.Code, s.cfg.GoogleClientID)
 	if err != nil {
 		slog.Error("Failed to validate google token", "error", err)
-		return nil, helper.NewUnauthorizedError("", err)
+		return nil, helper.NewUnauthorizedError("")
 	}
 
 	email, ok := payload.Claims["email"].(string)
 	if !ok {
 		slog.Warn("Email not found in token claims")
-		return nil, helper.NewBadRequestError("", nil)
+		return nil, helper.NewBadRequestError("")
 	}
 
 	name, ok := payload.Claims["name"].(string)
@@ -69,7 +69,7 @@ func (s *authService) GoogleExchange(ctx context.Context, req model.GoogleLoginR
 
 	if err != nil && !ent.IsNotFound(err) {
 		slog.Error("Failed to query user", "error", err)
-		return nil, helper.NewInternalServerError("", err)
+		return nil, helper.NewInternalServerError("")
 	}
 
 	var avatarFileName string
@@ -99,19 +99,19 @@ func (s *authService) GoogleExchange(ctx context.Context, req model.GoogleLoginR
 
 		if err != nil {
 			slog.Error("Failed to create user", "error", err)
-			return nil, helper.NewInternalServerError("", err)
+			return nil, helper.NewInternalServerError("")
 		}
 	}
 
-	token, err := helper.GenerateJWT(s.cfg, u.ID)
+	token, err := helper.GenerateJWT(s.cfg.JWTSecret, s.cfg.JWTExp, u.ID)
 	if err != nil {
 		slog.Error("Failed to generate JWT token", "error", err)
-		return nil, helper.NewInternalServerError("", err)
+		return nil, helper.NewInternalServerError("")
 	}
 
 	avatarURL := ""
 	if u.AvatarFileName != nil && *u.AvatarFileName != "" {
-		avatarURL = helper.BuildImageURL(s.cfg, s.cfg.StorageProfile, *u.AvatarFileName)
+		avatarURL = helper.BuildImageURL(s.cfg.StorageMode, s.cfg.AppURL, s.cfg.StorageCDNURL, s.cfg.StorageProfile, *u.AvatarFileName)
 	}
 
 	return &model.AuthResponse{

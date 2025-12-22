@@ -1,0 +1,74 @@
+definitions:
+  helper.ResponseError:
+    properties:
+      error:
+        type: string
+    type: object
+  helper.ResponseSuccess:
+    properties:
+      data: {}
+    type: object
+  model.AuthResponse:
+    properties:
+      token:
+        type: string
+      user:
+        $ref: '#/definitions/model.UserDTO'
+    type: object
+  model.GoogleLoginRequest:
+    properties:
+      code:
+        type: string
+    required:
+    - code
+    type: object
+  model.UserDTO:
+    properties:
+      avatar:
+        type: string
+      email:
+        type: string
+      full_name:
+        type: string
+      id:
+        type: integer
+    type: object
+info:
+  contact: {}
+paths:
+  /api/auth/google:
+    post:
+      consumes:
+      - application/json
+      description: Exchange Google ID Token for App Token and User Info
+      parameters:
+      - description: Google Login Request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.GoogleLoginRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/helper.ResponseSuccess'
+            - properties:
+                data:
+                  $ref: '#/definitions/model.AuthResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
+      summary: Google Exchange
+      tags:
+      - auth
+swagger: "2.0"

@@ -5,11 +5,12 @@ import (
 	"net/http"
 )
 
-type Response struct {
-	Status  bool        `json:"status"`
-	Message string      `json:"message"`
-	Data    interface{} `json:"data,omitempty"`
-	Errors  interface{} `json:"errors,omitempty"`
+type ResponseSuccess struct {
+	Data interface{} `json:"data"`
+}
+
+type ResponseError struct {
+	Error string `json:"error"`
 }
 
 func WriteJSON(w http.ResponseWriter, code int, payload interface{}) {
@@ -18,23 +19,19 @@ func WriteJSON(w http.ResponseWriter, code int, payload interface{}) {
 	json.NewEncoder(w).Encode(payload)
 }
 
-func WriteSuccess(w http.ResponseWriter, message string, data interface{}) {
-	WriteJSON(w, http.StatusOK, Response{
-		Status:  true,
-		Message: message,
-		Data:    data,
+func WriteSuccess(w http.ResponseWriter, data interface{}) {
+	WriteJSON(w, http.StatusOK, ResponseSuccess{
+		Data: data,
 	})
 }
 
 func WriteError(w http.ResponseWriter, err error) {
 	appErr, ok := err.(*AppError)
 	if !ok {
-		appErr = NewInternalServerError("Internal Server Error", err)
+		appErr = NewInternalServerError("Internal Server Error")
 	}
 
-	WriteJSON(w, appErr.Code, Response{
-		Status:  false,
-		Message: appErr.Message,
-		Errors:  appErr.Err,
+	WriteJSON(w, appErr.Code, ResponseError{
+		Error: appErr.Message,
 	})
 }

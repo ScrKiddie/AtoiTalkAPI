@@ -9,20 +9,28 @@ import (
 	"strings"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/go-chi/chi/v5/middleware"
 )
 
-func SetupRoutes(cfg *config.AppConfig, authController *controller.AuthController) *chi.Mux {
-	r := chi.NewRouter()
+type Route struct {
+	cfg            *config.AppConfig
+	chi            *chi.Mux
+	authController *controller.AuthController
+}
 
-	r.Use(middleware.Logger)
-	r.Use(middleware.Recoverer)
+func NewRoute(cfg *config.AppConfig, chi *chi.Mux, authController *controller.AuthController) *Route {
+	return &Route{
+		cfg:            cfg,
+		chi:            chi,
+		authController: authController,
+	}
+}
 
-	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
+func (route *Route) Register() {
+	route.chi.Get("/", func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("Welcome to AtoiTalkAPI"))
 	})
 
-	if cfg.StorageMode == "local" {
+	if route.cfg.StorageMode == "local" {
 		serveStatic := func(pathFromConfig string) {
 			if pathFromConfig == "" {
 				return
@@ -36,16 +44,14 @@ func SetupRoutes(cfg *config.AppConfig, authController *controller.AuthControlle
 			routePattern := fmt.Sprintf("/%s/*", urlPath)
 			prefix := fmt.Sprintf("/%s", urlPath)
 
-			r.Handle(routePattern, http.StripPrefix(prefix, http.FileServer(http.Dir(physicalPath))))
+			route.chi.Handle(routePattern, http.StripPrefix(prefix, http.FileServer(http.Dir(physicalPath))))
 		}
 
-		serveStatic(cfg.StorageAttachment)
-		serveStatic(cfg.StorageProfile)
+		serveStatic(route.cfg.StorageAttachment)
+		serveStatic(route.cfg.StorageProfile)
 	}
 
-	r.Route("/api", func(r chi.Router) {
-		r.Post("/auth/google", authController.GoogleExchange)
+	route.chi.Route("/api", func(r chi.Router) {
+		r.Post("/auth/google", route.authController.GoogleExchange)
 	})
-
-	return r
 }

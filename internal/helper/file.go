@@ -1,7 +1,6 @@
 package helper
 
 import (
-	"AtoiTalkAPI/internal/config"
 	"fmt"
 	"path/filepath"
 	"strings"
@@ -23,16 +22,16 @@ func GenerateUniqueFileName(originalName string) string {
 	return uniqueName
 }
 
-func BuildImageURL(cfg *config.AppConfig, folderPathFromConfig string, fileName string) string {
+func BuildImageURL(storageMode, appURL, storageCDNURL, folderPathFromConfig, fileName string) string {
 	if fileName == "" {
 		return ""
 	}
 
 	var baseURL string
-	if cfg.StorageMode == "local" {
-		baseURL = cfg.AppURL
+	if storageMode == "local" {
+		baseURL = appURL
 	} else {
-		baseURL = cfg.StorageCDNURL
+		baseURL = storageCDNURL
 	}
 
 	cleanInput := strings.TrimLeft(folderPathFromConfig, "/\\.")

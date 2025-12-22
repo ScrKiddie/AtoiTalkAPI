@@ -34,10 +34,10 @@ func TestGoogleExchange(t *testing.T) {
 			t.Errorf("Expected status code %d, got %d", http.StatusBadRequest, rr.Code)
 		}
 
-		var resp helper.Response
+		var resp helper.ResponseError
 		json.Unmarshal(rr.Body.Bytes(), &resp)
-		if resp.Status {
-			t.Errorf("Expected status false, got true")
+		if resp.Error == "" {
+			t.Errorf("Expected error message, got empty")
 		}
 	})
 
@@ -56,10 +56,10 @@ func TestGoogleExchange(t *testing.T) {
 			t.Errorf("Expected status code %d, got %d", http.StatusUnauthorized, rr.Code)
 		}
 
-		var resp helper.Response
+		var resp helper.ResponseError
 		json.Unmarshal(rr.Body.Bytes(), &resp)
-		if resp.Status {
-			t.Errorf("Expected status false, got true")
+		if resp.Error == "" {
+			t.Errorf("Expected error message, got empty")
 		}
 	})
 
@@ -88,12 +88,8 @@ func TestGoogleExchange(t *testing.T) {
 				t.Errorf("Expected status code %d, got %d. Body: %s", http.StatusOK, rr.Code, rr.Body.String())
 			}
 
-			var resp helper.Response
+			var resp helper.ResponseSuccess
 			json.Unmarshal(rr.Body.Bytes(), &resp)
-
-			if !resp.Status {
-				t.Errorf("Expected status true, got false")
-			}
 
 			dataMap, ok := resp.Data.(map[string]interface{})
 			if !ok {
@@ -142,11 +138,11 @@ func TestGoogleExchange(t *testing.T) {
 				t.Errorf("Expected status code %d, got %d. Body: %s", http.StatusOK, rr.Code, rr.Body.String())
 			}
 
-			var resp helper.Response
+			var resp helper.ResponseSuccess
 			json.Unmarshal(rr.Body.Bytes(), &resp)
 
-			if !resp.Status {
-				t.Errorf("Expected status true, got false")
+			if resp.Data == nil {
+				t.Errorf("Expected data, got nil")
 			}
 		})
 	})

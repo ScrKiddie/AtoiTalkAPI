@@ -13,13 +13,12 @@ import (
 	"github.com/go-playground/validator/v10"
 )
 
-func Init(appConfig *config.AppConfig, client *ent.Client, validator *validator.Validate, s3Client *s3.Client, httpClient *http.Client) *chi.Mux {
+func Init(appConfig *config.AppConfig, client *ent.Client, validator *validator.Validate, s3Client *s3.Client, httpClient *http.Client, chiMux *chi.Mux) {
 	storageAdapter := adapter.NewStorageAdapter(appConfig, s3Client, httpClient)
 
 	authService := service.NewAuthService(client, appConfig, validator, storageAdapter)
 	authController := controller.NewAuthController(authService)
 
-	r := SetupRoutes(appConfig, authController)
-
-	return r
+	route := NewRoute(appConfig, chiMux, authController)
+	route.Register()
 }
