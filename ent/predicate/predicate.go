@@ -24,6 +24,9 @@ type Message func(*sql.Selector)
 // PrivateChat is the predicate function for privatechat builders.
 type PrivateChat func(*sql.Selector)
 
+// TempCodes is the predicate function for tempcodes builders.
+type TempCodes func(*sql.Selector)
+
 // User is the predicate function for user builders.
 type User func(*sql.Selector)
 

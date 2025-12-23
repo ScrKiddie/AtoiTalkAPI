@@ -24,6 +24,8 @@ type Tx struct {
 	Message *MessageClient
 	// PrivateChat is the client for interacting with the PrivateChat builders.
 	PrivateChat *PrivateChatClient
+	// TempCodes is the client for interacting with the TempCodes builders.
+	TempCodes *TempCodesClient
 	// User is the client for interacting with the User builders.
 	User *UserClient
 	// UserIdentity is the client for interacting with the UserIdentity builders.
@@ -165,6 +167,7 @@ func (tx *Tx) init() {
 	tx.GroupMember = NewGroupMemberClient(tx.config)
 	tx.Message = NewMessageClient(tx.config)
 	tx.PrivateChat = NewPrivateChatClient(tx.config)
+	tx.TempCodes = NewTempCodesClient(tx.config)
 	tx.User = NewUserClient(tx.config)
 	tx.UserIdentity = NewUserIdentityClient(tx.config)
 }
