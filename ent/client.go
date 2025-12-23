@@ -17,6 +17,7 @@ import (
 	"AtoiTalkAPI/ent/groupmember"
 	"AtoiTalkAPI/ent/message"
 	"AtoiTalkAPI/ent/privatechat"
+	"AtoiTalkAPI/ent/tempcodes"
 	"AtoiTalkAPI/ent/user"
 	"AtoiTalkAPI/ent/useridentity"
 
@@ -43,6 +44,8 @@ type Client struct {
 	Message *MessageClient
 	// PrivateChat is the client for interacting with the PrivateChat builders.
 	PrivateChat *PrivateChatClient
+	// TempCodes is the client for interacting with the TempCodes builders.
+	TempCodes *TempCodesClient
 	// User is the client for interacting with the User builders.
 	User *UserClient
 	// UserIdentity is the client for interacting with the UserIdentity builders.
@@ -64,6 +67,7 @@ func (c *Client) init() {
 	c.GroupMember = NewGroupMemberClient(c.config)
 	c.Message = NewMessageClient(c.config)
 	c.PrivateChat = NewPrivateChatClient(c.config)
+	c.TempCodes = NewTempCodesClient(c.config)
 	c.User = NewUserClient(c.config)
 	c.UserIdentity = NewUserIdentityClient(c.config)
 }
@@ -164,6 +168,7 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 		GroupMember:  NewGroupMemberClient(cfg),
 		Message:      NewMessageClient(cfg),
 		PrivateChat:  NewPrivateChatClient(cfg),
+		TempCodes:    NewTempCodesClient(cfg),
 		User:         NewUserClient(cfg),
 		UserIdentity: NewUserIdentityClient(cfg),
 	}, nil
@@ -191,6 +196,7 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 		GroupMember:  NewGroupMemberClient(cfg),
 		Message:      NewMessageClient(cfg),
 		PrivateChat:  NewPrivateChatClient(cfg),
+		TempCodes:    NewTempCodesClient(cfg),
 		User:         NewUserClient(cfg),
 		UserIdentity: NewUserIdentityClient(cfg),
 	}, nil
@@ -223,7 +229,7 @@ func (c *Client) Close() error {
 func (c *Client) Use(hooks ...Hook) {
 	for _, n := range []interface{ Use(...Hook) }{
 		c.Attachment, c.Chat, c.GroupChat, c.GroupMember, c.Message, c.PrivateChat,
-		c.User, c.UserIdentity,
+		c.TempCodes, c.User, c.UserIdentity,
 	} {
 		n.Use(hooks...)
 	}
@@ -234,7 +240,7 @@ func (c *Client) Use(hooks ...Hook) {
 func (c *Client) Intercept(interceptors ...Interceptor) {
 	for _, n := range []interface{ Intercept(...Interceptor) }{
 		c.Attachment, c.Chat, c.GroupChat, c.GroupMember, c.Message, c.PrivateChat,
-		c.User, c.UserIdentity,
+		c.TempCodes, c.User, c.UserIdentity,
 	} {
 		n.Intercept(interceptors...)
 	}
@@ -255,6 +261,8 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.Message.mutate(ctx, m)
 	case *PrivateChatMutation:
 		return c.PrivateChat.mutate(ctx, m)
+	case *TempCodesMutation:
+		return c.TempCodes.mutate(ctx, m)
 	case *UserMutation:
 		return c.User.mutate(ctx, m)
 	case *UserIdentityMutation:
@@ -1367,6 +1375,139 @@ func (c *PrivateChatClient) mutate(ctx context.Context, m *PrivateChatMutation) 
 	}
 }
 
+// TempCodesClient is a client for the TempCodes schema.
+type TempCodesClient struct {
+	config
+}
+
+// NewTempCodesClient returns a client for the TempCodes from the given config.
+func NewTempCodesClient(c config) *TempCodesClient {
+	return &TempCodesClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `tempcodes.Hooks(f(g(h())))`.
+func (c *TempCodesClient) Use(hooks ...Hook) {
+	c.hooks.TempCodes = append(c.hooks.TempCodes, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `tempcodes.Intercept(f(g(h())))`.
+func (c *TempCodesClient) Intercept(interceptors ...Interceptor) {
+	c.inters.TempCodes = append(c.inters.TempCodes, interceptors...)
+}
+
+// Create returns a builder for creating a TempCodes entity.
+func (c *TempCodesClient) Create() *TempCodesCreate {
+	mutation := newTempCodesMutation(c.config, OpCreate)
+	return &TempCodesCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of TempCodes entities.
+func (c *TempCodesClient) CreateBulk(builders ...*TempCodesCreate) *TempCodesCreateBulk {
+	return &TempCodesCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *TempCodesClient) MapCreateBulk(slice any, setFunc func(*TempCodesCreate, int)) *TempCodesCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &TempCodesCreateBulk{err: fmt.Errorf("calling to TempCodesClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*TempCodesCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &TempCodesCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for TempCodes.
+func (c *TempCodesClient) Update() *TempCodesUpdate {
+	mutation := newTempCodesMutation(c.config, OpUpdate)
+	return &TempCodesUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *TempCodesClient) UpdateOne(_m *TempCodes) *TempCodesUpdateOne {
+	mutation := newTempCodesMutation(c.config, OpUpdateOne, withTempCodes(_m))
+	return &TempCodesUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *TempCodesClient) UpdateOneID(id int) *TempCodesUpdateOne {
+	mutation := newTempCodesMutation(c.config, OpUpdateOne, withTempCodesID(id))
+	return &TempCodesUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for TempCodes.
+func (c *TempCodesClient) Delete() *TempCodesDelete {
+	mutation := newTempCodesMutation(c.config, OpDelete)
+	return &TempCodesDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *TempCodesClient) DeleteOne(_m *TempCodes) *TempCodesDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *TempCodesClient) DeleteOneID(id int) *TempCodesDeleteOne {
+	builder := c.Delete().Where(tempcodes.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &TempCodesDeleteOne{builder}
+}
+
+// Query returns a query builder for TempCodes.
+func (c *TempCodesClient) Query() *TempCodesQuery {
+	return &TempCodesQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeTempCodes},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a TempCodes entity by its id.
+func (c *TempCodesClient) Get(ctx context.Context, id int) (*TempCodes, error) {
+	return c.Query().Where(tempcodes.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *TempCodesClient) GetX(ctx context.Context, id int) *TempCodes {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *TempCodesClient) Hooks() []Hook {
+	return c.hooks.TempCodes
+}
+
+// Interceptors returns the client interceptors.
+func (c *TempCodesClient) Interceptors() []Interceptor {
+	return c.inters.TempCodes
+}
+
+func (c *TempCodesClient) mutate(ctx context.Context, m *TempCodesMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&TempCodesCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&TempCodesUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&TempCodesUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&TempCodesDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown TempCodes mutation op: %q", m.Op())
+	}
+}
+
 // UserClient is a client for the User schema.
 type UserClient struct {
 	config
@@ -1748,11 +1889,11 @@ func (c *UserIdentityClient) mutate(ctx context.Context, m *UserIdentityMutation
 // hooks and interceptors per client, for fast access.
 type (
 	hooks struct {
-		Attachment, Chat, GroupChat, GroupMember, Message, PrivateChat, User,
+		Attachment, Chat, GroupChat, GroupMember, Message, PrivateChat, TempCodes, User,
 		UserIdentity []ent.Hook
 	}
 	inters struct {
-		Attachment, Chat, GroupChat, GroupMember, Message, PrivateChat, User,
+		Attachment, Chat, GroupChat, GroupMember, Message, PrivateChat, TempCodes, User,
 		UserIdentity []ent.Interceptor
 	}
 )

@@ -241,6 +241,38 @@ var (
 			},
 		},
 	}
+	// TempCodesColumns holds the columns for the "temp_codes" table.
+	TempCodesColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "created_at", Type: field.TypeTime, Default: "CURRENT_TIMESTAMP"},
+		{Name: "updated_at", Type: field.TypeTime, Default: "CURRENT_TIMESTAMP"},
+		{Name: "email", Type: field.TypeString, Unique: true, Size: 255},
+		{Name: "code", Type: field.TypeString, Size: 6},
+		{Name: "mode", Type: field.TypeEnum, Enums: []string{"register", "reset"}, Default: "register"},
+	}
+	// TempCodesTable holds the schema information for the "temp_codes" table.
+	TempCodesTable = &schema.Table{
+		Name:       "temp_codes",
+		Columns:    TempCodesColumns,
+		PrimaryKey: []*schema.Column{TempCodesColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "idx_temp_codes_email",
+				Unique:  false,
+				Columns: []*schema.Column{TempCodesColumns[3]},
+			},
+			{
+				Name:    "idx_temp_codes_mode_time",
+				Unique:  false,
+				Columns: []*schema.Column{TempCodesColumns[5], TempCodesColumns[1]},
+				Annotation: &entsql.IndexAnnotation{
+					DescColumns: map[string]bool{
+						TempCodesColumns[1].Name: true,
+					},
+				},
+			},
+		},
+	}
 	// UsersColumns holds the columns for the "users" table.
 	UsersColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt, Increment: true},
@@ -304,6 +336,7 @@ var (
 		GroupMembersTable,
 		MessagesTable,
 		PrivateChatsTable,
+		TempCodesTable,
 		UsersTable,
 		UserIdentitiesTable,
 	}

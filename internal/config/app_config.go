@@ -41,6 +41,13 @@ type AppConfig struct {
 	S3AccessKey string
 	S3SecretKey string
 	S3Endpoint  string
+
+	SMTPHost      string
+	SMTPPort      int
+	SMTPUser      string
+	SMTPPassword  string
+	SMTPFromEmail string
+	SMTPFromName  string
 }
 
 func LoadAppConfig() *AppConfig {
@@ -79,6 +86,13 @@ func LoadAppConfig() *AppConfig {
 		S3AccessKey: getEnv("S3_ACCESS_KEY", ""),
 		S3SecretKey: getEnv("S3_SECRET_KEY", ""),
 		S3Endpoint:  getEnv("S3_ENDPOINT", ""),
+
+		SMTPHost:      getEnv("SMTP_HOST", ""),
+		SMTPPort:      getEnvAsInt("SMTP_PORT", 587),
+		SMTPUser:      getEnv("SMTP_USER", ""),
+		SMTPPassword:  getEnv("SMTP_PASSWORD", ""),
+		SMTPFromEmail: getEnv("SMTP_FROM_EMAIL", ""),
+		SMTPFromName:  getEnv("SMTP_FROM_NAME", ""),
 	}
 }
 
@@ -121,4 +135,17 @@ func getEnv(key, fallback string) string {
 		return value
 	}
 	return fallback
+}
+
+func getEnvAsInt(key string, fallback int) int {
+	valStr, ok := os.LookupEnv(key)
+	if !ok {
+		return fallback
+	}
+	val, err := strconv.Atoi(valStr)
+	if err != nil {
+		slog.Warn("Environment variable must be an integer, using fallback", "key", key, "value", valStr, "fallback", fallback)
+		return fallback
+	}
+	return val
 }
