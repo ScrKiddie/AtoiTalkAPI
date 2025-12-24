@@ -76,6 +76,20 @@ func (_u *TempCodesUpdate) SetNillableMode(v *tempcodes.Mode) *TempCodesUpdate {
 	return _u
 }
 
+// SetExpiresAt sets the "expires_at" field.
+func (_u *TempCodesUpdate) SetExpiresAt(v time.Time) *TempCodesUpdate {
+	_u.mutation.SetExpiresAt(v)
+	return _u
+}
+
+// SetNillableExpiresAt sets the "expires_at" field if the given value is not nil.
+func (_u *TempCodesUpdate) SetNillableExpiresAt(v *time.Time) *TempCodesUpdate {
+	if v != nil {
+		_u.SetExpiresAt(*v)
+	}
+	return _u
+}
+
 // Mutation returns the TempCodesMutation object of the builder.
 func (_u *TempCodesUpdate) Mutation() *TempCodesMutation {
 	return _u.mutation
@@ -161,6 +175,9 @@ func (_u *TempCodesUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	if value, ok := _u.mutation.Mode(); ok {
 		_spec.SetField(tempcodes.FieldMode, field.TypeEnum, value)
 	}
+	if value, ok := _u.mutation.ExpiresAt(); ok {
+		_spec.SetField(tempcodes.FieldExpiresAt, field.TypeTime, value)
+	}
 	if _node, err = sqlgraph.UpdateNodes(ctx, _u.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{tempcodes.Label}
@@ -225,6 +242,20 @@ func (_u *TempCodesUpdateOne) SetMode(v tempcodes.Mode) *TempCodesUpdateOne {
 func (_u *TempCodesUpdateOne) SetNillableMode(v *tempcodes.Mode) *TempCodesUpdateOne {
 	if v != nil {
 		_u.SetMode(*v)
+	}
+	return _u
+}
+
+// SetExpiresAt sets the "expires_at" field.
+func (_u *TempCodesUpdateOne) SetExpiresAt(v time.Time) *TempCodesUpdateOne {
+	_u.mutation.SetExpiresAt(v)
+	return _u
+}
+
+// SetNillableExpiresAt sets the "expires_at" field if the given value is not nil.
+func (_u *TempCodesUpdateOne) SetNillableExpiresAt(v *time.Time) *TempCodesUpdateOne {
+	if v != nil {
+		_u.SetExpiresAt(*v)
 	}
 	return _u
 }
@@ -343,6 +374,9 @@ func (_u *TempCodesUpdateOne) sqlSave(ctx context.Context) (_node *TempCodes, er
 	}
 	if value, ok := _u.mutation.Mode(); ok {
 		_spec.SetField(tempcodes.FieldMode, field.TypeEnum, value)
+	}
+	if value, ok := _u.mutation.ExpiresAt(); ok {
+		_spec.SetField(tempcodes.FieldExpiresAt, field.TypeTime, value)
 	}
 	_node = &TempCodes{config: _u.config}
 	_spec.Assign = _node.assignValues

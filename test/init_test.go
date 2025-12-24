@@ -2,8 +2,11 @@ package test
 
 import (
 	"AtoiTalkAPI/ent"
+	"AtoiTalkAPI/internal/adapter"
 	"AtoiTalkAPI/internal/bootstrap"
 	"AtoiTalkAPI/internal/config"
+	"AtoiTalkAPI/internal/controller"
+	"AtoiTalkAPI/internal/service"
 	"context"
 	"log"
 	"net/http"
@@ -38,6 +41,10 @@ func TestMain(m *testing.M) {
 	os.Setenv("STORAGE_PROFILE", "test_profiles")
 	os.Setenv("STORAGE_ATTACHMENT", "test_attachments")
 	os.Setenv("APP_CORS_ALLOWED_ORIGINS", "*")
+	os.Setenv("TEMP_CODE_EXP", "300")
+	os.Setenv("TEMP_CODE_RATE_LIMIT_SECONDS", "2")
+	os.Setenv("TURNSTILE_SECRET_KEY", "1x0000000000000000000000000000000AA")
+	os.Setenv("SMTP_ASYNC", "false")
 
 	testConfig = config.LoadAppConfig()
 
@@ -53,8 +60,21 @@ func TestMain(m *testing.M) {
 	httpClient := config.NewHTTPClient()
 	testRouter = config.NewChi(testConfig)
 
+	emailAdapter := adapter.NewEmailAdapter(testConfig)
+
 	var s3Client *s3.Client
-	bootstrap.Init(testConfig, testClient, validator, s3Client, httpClient, testRouter)
+	captchaAdapter := adapter.NewCaptchaAdapter(testConfig, httpClient)
+	rateLimiter := config.NewRateLimiter(testConfig)
+	storageAdapter := adapter.NewStorageAdapter(testConfig, s3Client, httpClient)
+
+	authService := service.NewAuthService(testClient, testConfig, validator, storageAdapter)
+	authController := controller.NewAuthController(authService)
+
+	otpService := service.NewOTPService(testClient, testConfig, validator, emailAdapter, rateLimiter, captchaAdapter)
+	otpController := controller.NewOTPController(otpService)
+
+	route := bootstrap.NewRoute(testConfig, testRouter, authController, otpController)
+	route.Register()
 
 	code := m.Run()
 
@@ -71,6 +91,7 @@ func executeRequest(req *http.Request) *httptest.ResponseRecorder {
 
 func clearDatabase(ctx context.Context) {
 	testClient.User.Delete().Exec(ctx)
+	testClient.TempCodes.Delete().Exec(ctx)
 }
 
 func cleanupStorage(create bool) {

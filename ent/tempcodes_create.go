@@ -74,6 +74,12 @@ func (_c *TempCodesCreate) SetNillableMode(v *tempcodes.Mode) *TempCodesCreate {
 	return _c
 }
 
+// SetExpiresAt sets the "expires_at" field.
+func (_c *TempCodesCreate) SetExpiresAt(v time.Time) *TempCodesCreate {
+	_c.mutation.SetExpiresAt(v)
+	return _c
+}
+
 // Mutation returns the TempCodesMutation object of the builder.
 func (_c *TempCodesCreate) Mutation() *TempCodesMutation {
 	return _c.mutation
@@ -155,6 +161,9 @@ func (_c *TempCodesCreate) check() error {
 			return &ValidationError{Name: "mode", err: fmt.Errorf(`ent: validator failed for field "TempCodes.mode": %w`, err)}
 		}
 	}
+	if _, ok := _c.mutation.ExpiresAt(); !ok {
+		return &ValidationError{Name: "expires_at", err: errors.New(`ent: missing required field "TempCodes.expires_at"`)}
+	}
 	return nil
 }
 
@@ -200,6 +209,10 @@ func (_c *TempCodesCreate) createSpec() (*TempCodes, *sqlgraph.CreateSpec) {
 	if value, ok := _c.mutation.Mode(); ok {
 		_spec.SetField(tempcodes.FieldMode, field.TypeEnum, value)
 		_node.Mode = value
+	}
+	if value, ok := _c.mutation.ExpiresAt(); ok {
+		_spec.SetField(tempcodes.FieldExpiresAt, field.TypeTime, value)
+		_node.ExpiresAt = value
 	}
 	return _node, _spec
 }

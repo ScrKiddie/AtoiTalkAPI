@@ -247,8 +247,9 @@ var (
 		{Name: "created_at", Type: field.TypeTime, Default: "CURRENT_TIMESTAMP"},
 		{Name: "updated_at", Type: field.TypeTime, Default: "CURRENT_TIMESTAMP"},
 		{Name: "email", Type: field.TypeString, Unique: true, Size: 255},
-		{Name: "code", Type: field.TypeString, Size: 6},
+		{Name: "code", Type: field.TypeString, Size: 255},
 		{Name: "mode", Type: field.TypeEnum, Enums: []string{"register", "reset"}, Default: "register"},
+		{Name: "expires_at", Type: field.TypeTime},
 	}
 	// TempCodesTable holds the schema information for the "temp_codes" table.
 	TempCodesTable = &schema.Table{
@@ -270,6 +271,11 @@ var (
 						TempCodesColumns[1].Name: true,
 					},
 				},
+			},
+			{
+				Name:    "tempcodes_expires_at",
+				Unique:  false,
+				Columns: []*schema.Column{TempCodesColumns[6]},
 			},
 		},
 	}

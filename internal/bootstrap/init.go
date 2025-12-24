@@ -15,10 +15,17 @@ import (
 
 func Init(appConfig *config.AppConfig, client *ent.Client, validator *validator.Validate, s3Client *s3.Client, httpClient *http.Client, chiMux *chi.Mux) {
 	storageAdapter := adapter.NewStorageAdapter(appConfig, s3Client, httpClient)
+	emailAdapter := adapter.NewEmailAdapter(appConfig)
+	captchaAdapter := adapter.NewCaptchaAdapter(appConfig, httpClient)
+
+	rateLimiter := config.NewRateLimiter(appConfig)
 
 	authService := service.NewAuthService(client, appConfig, validator, storageAdapter)
 	authController := controller.NewAuthController(authService)
 
-	route := NewRoute(appConfig, chiMux, authController)
+	otpService := service.NewOTPService(client, appConfig, validator, emailAdapter, rateLimiter, captchaAdapter)
+	otpController := controller.NewOTPController(otpService)
+
+	route := NewRoute(appConfig, chiMux, authController, otpController)
 	route.Register()
 }

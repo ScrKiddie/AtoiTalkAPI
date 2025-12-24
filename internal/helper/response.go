@@ -20,6 +20,9 @@ func WriteJSON(w http.ResponseWriter, code int, payload interface{}) {
 }
 
 func WriteSuccess(w http.ResponseWriter, data interface{}) {
+	if data == nil {
+		data = ""
+	}
 	WriteJSON(w, http.StatusOK, ResponseSuccess{
 		Data: data,
 	})

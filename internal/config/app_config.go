@@ -48,6 +48,12 @@ type AppConfig struct {
 	SMTPPassword  string
 	SMTPFromEmail string
 	SMTPFromName  string
+	SMTPAsync     bool
+
+	TempCodeExp              int
+	TempCodeRateLimitSeconds int
+
+	TurnstileSecretKey string
 }
 
 func LoadAppConfig() *AppConfig {
@@ -93,6 +99,12 @@ func LoadAppConfig() *AppConfig {
 		SMTPPassword:  getEnv("SMTP_PASSWORD", ""),
 		SMTPFromEmail: getEnv("SMTP_FROM_EMAIL", ""),
 		SMTPFromName:  getEnv("SMTP_FROM_NAME", ""),
+		SMTPAsync:     getEnvAsBool("SMTP_ASYNC", true),
+
+		TempCodeExp:              getEnvAsInt("TEMP_CODE_EXP", 300),
+		TempCodeRateLimitSeconds: getEnvAsInt("TEMP_CODE_RATE_LIMIT_SECONDS", 60),
+
+		TurnstileSecretKey: getEnv("TURNSTILE_SECRET_KEY", ""),
 	}
 }
 
@@ -145,6 +157,19 @@ func getEnvAsInt(key string, fallback int) int {
 	val, err := strconv.Atoi(valStr)
 	if err != nil {
 		slog.Warn("Environment variable must be an integer, using fallback", "key", key, "value", valStr, "fallback", fallback)
+		return fallback
+	}
+	return val
+}
+
+func getEnvAsBool(key string, fallback bool) bool {
+	valStr, ok := os.LookupEnv(key)
+	if !ok {
+		return fallback
+	}
+	val, err := strconv.ParseBool(valStr)
+	if err != nil {
+		slog.Warn("Environment variable must be a boolean, using fallback", "key", key, "value", valStr, "fallback", fallback)
 		return fallback
 	}
 	return val
