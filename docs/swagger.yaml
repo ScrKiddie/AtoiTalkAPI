@@ -22,6 +22,19 @@ definitions:
     required:
     - code
     type: object
+  model.SendOTPRequest:
+    properties:
+      email:
+        type: string
+      mode:
+        type: string
+      token:
+        type: string
+    required:
+    - email
+    - mode
+    - token
+    type: object
   model.UserDTO:
     properties:
       avatar:
@@ -69,6 +82,41 @@ paths:
           schema:
             $ref: '#/definitions/helper.ResponseError'
       summary: Google Exchange
+      tags:
+      - auth
+  /api/auth/otp:
+    post:
+      consumes:
+      - application/json
+      description: Sends an OTP code to the user's email for registration or password
+        reset.
+      parameters:
+      - description: Send OTP Request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.SendOTPRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/helper.ResponseSuccess'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
+        "429":
+          description: Too Many Requests
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
+      summary: Send OTP
       tags:
       - auth
 swagger: "2.0"

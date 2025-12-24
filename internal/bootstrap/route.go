@@ -15,13 +15,15 @@ type Route struct {
 	cfg            *config.AppConfig
 	chi            *chi.Mux
 	authController *controller.AuthController
+	otpController  *controller.OTPController
 }
 
-func NewRoute(cfg *config.AppConfig, chi *chi.Mux, authController *controller.AuthController) *Route {
+func NewRoute(cfg *config.AppConfig, chi *chi.Mux, authController *controller.AuthController, otpController *controller.OTPController) *Route {
 	return &Route{
 		cfg:            cfg,
 		chi:            chi,
 		authController: authController,
+		otpController:  otpController,
 	}
 }
 
@@ -53,5 +55,6 @@ func (route *Route) Register() {
 
 	route.chi.Route("/api", func(r chi.Router) {
 		r.Post("/auth/google", route.authController.GoogleExchange)
+		r.Post("/otp/send", route.otpController.SendOTP)
 	})
 }

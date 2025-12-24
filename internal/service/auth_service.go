@@ -18,19 +18,15 @@ import (
 	"google.golang.org/api/idtoken"
 )
 
-type AuthService interface {
-	GoogleExchange(ctx context.Context, req model.GoogleLoginRequest) (*model.AuthResponse, error)
-}
-
-type authService struct {
+type AuthService struct {
 	client         *ent.Client
 	cfg            *config.AppConfig
 	validator      *validator.Validate
 	storageAdapter *adapter.StorageAdapter
 }
 
-func NewAuthService(client *ent.Client, cfg *config.AppConfig, validator *validator.Validate, storageAdapter *adapter.StorageAdapter) AuthService {
-	return &authService{
+func NewAuthService(client *ent.Client, cfg *config.AppConfig, validator *validator.Validate, storageAdapter *adapter.StorageAdapter) *AuthService {
+	return &AuthService{
 		client:         client,
 		cfg:            cfg,
 		validator:      validator,
@@ -38,7 +34,7 @@ func NewAuthService(client *ent.Client, cfg *config.AppConfig, validator *valida
 	}
 }
 
-func (s *authService) GoogleExchange(ctx context.Context, req model.GoogleLoginRequest) (*model.AuthResponse, error) {
+func (s *AuthService) GoogleExchange(ctx context.Context, req model.GoogleLoginRequest) (*model.AuthResponse, error) {
 	if err := s.validator.Struct(req); err != nil {
 		slog.Warn("Validation failed", "error", err)
 		return nil, helper.NewBadRequestError("")

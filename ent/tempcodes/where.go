@@ -74,6 +74,11 @@ func Code(v string) predicate.TempCodes {
 	return predicate.TempCodes(sql.FieldEQ(FieldCode, v))
 }
 
+// ExpiresAt applies equality check predicate on the "expires_at" field. It's identical to ExpiresAtEQ.
+func ExpiresAt(v time.Time) predicate.TempCodes {
+	return predicate.TempCodes(sql.FieldEQ(FieldExpiresAt, v))
+}
+
 // CreatedAtEQ applies the EQ predicate on the "created_at" field.
 func CreatedAtEQ(v time.Time) predicate.TempCodes {
 	return predicate.TempCodes(sql.FieldEQ(FieldCreatedAt, v))
@@ -302,6 +307,46 @@ func ModeIn(vs ...Mode) predicate.TempCodes {
 // ModeNotIn applies the NotIn predicate on the "mode" field.
 func ModeNotIn(vs ...Mode) predicate.TempCodes {
 	return predicate.TempCodes(sql.FieldNotIn(FieldMode, vs...))
+}
+
+// ExpiresAtEQ applies the EQ predicate on the "expires_at" field.
+func ExpiresAtEQ(v time.Time) predicate.TempCodes {
+	return predicate.TempCodes(sql.FieldEQ(FieldExpiresAt, v))
+}
+
+// ExpiresAtNEQ applies the NEQ predicate on the "expires_at" field.
+func ExpiresAtNEQ(v time.Time) predicate.TempCodes {
+	return predicate.TempCodes(sql.FieldNEQ(FieldExpiresAt, v))
+}
+
+// ExpiresAtIn applies the In predicate on the "expires_at" field.
+func ExpiresAtIn(vs ...time.Time) predicate.TempCodes {
+	return predicate.TempCodes(sql.FieldIn(FieldExpiresAt, vs...))
+}
+
+// ExpiresAtNotIn applies the NotIn predicate on the "expires_at" field.
+func ExpiresAtNotIn(vs ...time.Time) predicate.TempCodes {
+	return predicate.TempCodes(sql.FieldNotIn(FieldExpiresAt, vs...))
+}
+
+// ExpiresAtGT applies the GT predicate on the "expires_at" field.
+func ExpiresAtGT(v time.Time) predicate.TempCodes {
+	return predicate.TempCodes(sql.FieldGT(FieldExpiresAt, v))
+}
+
+// ExpiresAtGTE applies the GTE predicate on the "expires_at" field.
+func ExpiresAtGTE(v time.Time) predicate.TempCodes {
+	return predicate.TempCodes(sql.FieldGTE(FieldExpiresAt, v))
+}
+
+// ExpiresAtLT applies the LT predicate on the "expires_at" field.
+func ExpiresAtLT(v time.Time) predicate.TempCodes {
+	return predicate.TempCodes(sql.FieldLT(FieldExpiresAt, v))
+}
+
+// ExpiresAtLTE applies the LTE predicate on the "expires_at" field.
+func ExpiresAtLTE(v time.Time) predicate.TempCodes {
+	return predicate.TempCodes(sql.FieldLTE(FieldExpiresAt, v))
 }
 
 // And groups predicates with the AND operator between them.

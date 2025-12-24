@@ -24,22 +24,24 @@ func (TempCodes) Fields() []ent.Field {
 			MaxLen(255).
 			NotEmpty(),
 		field.String("code").
-			MaxLen(6).
+			MaxLen(255).
 			NotEmpty(),
 		field.Enum("mode").
 			Values("register", "reset").
 			Default("register"),
+		field.Time("expires_at"),
 	}
 }
 
 func (TempCodes) Indexes() []ent.Index {
 	return []ent.Index{
-
 		index.Fields("email").
 			StorageKey("idx_temp_codes_email"),
 
 		index.Fields("mode", "created_at").
 			Annotations(entsql.DescColumns("created_at")).
 			StorageKey("idx_temp_codes_mode_time"),
+
+		index.Fields("expires_at"),
 	}
 }

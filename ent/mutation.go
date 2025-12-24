@@ -4933,6 +4933,7 @@ type TempCodesMutation struct {
 	email         *string
 	code          *string
 	mode          *tempcodes.Mode
+	expires_at    *time.Time
 	clearedFields map[string]struct{}
 	done          bool
 	oldValue      func(context.Context) (*TempCodes, error)
@@ -5217,6 +5218,42 @@ func (m *TempCodesMutation) ResetMode() {
 	m.mode = nil
 }
 
+// SetExpiresAt sets the "expires_at" field.
+func (m *TempCodesMutation) SetExpiresAt(t time.Time) {
+	m.expires_at = &t
+}
+
+// ExpiresAt returns the value of the "expires_at" field in the mutation.
+func (m *TempCodesMutation) ExpiresAt() (r time.Time, exists bool) {
+	v := m.expires_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldExpiresAt returns the old "expires_at" field's value of the TempCodes entity.
+// If the TempCodes object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *TempCodesMutation) OldExpiresAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldExpiresAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldExpiresAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldExpiresAt: %w", err)
+	}
+	return oldValue.ExpiresAt, nil
+}
+
+// ResetExpiresAt resets all changes to the "expires_at" field.
+func (m *TempCodesMutation) ResetExpiresAt() {
+	m.expires_at = nil
+}
+
 // Where appends a list predicates to the TempCodesMutation builder.
 func (m *TempCodesMutation) Where(ps ...predicate.TempCodes) {
 	m.predicates = append(m.predicates, ps...)
@@ -5251,7 +5288,7 @@ func (m *TempCodesMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *TempCodesMutation) Fields() []string {
-	fields := make([]string, 0, 5)
+	fields := make([]string, 0, 6)
 	if m.created_at != nil {
 		fields = append(fields, tempcodes.FieldCreatedAt)
 	}
@@ -5266,6 +5303,9 @@ func (m *TempCodesMutation) Fields() []string {
 	}
 	if m.mode != nil {
 		fields = append(fields, tempcodes.FieldMode)
+	}
+	if m.expires_at != nil {
+		fields = append(fields, tempcodes.FieldExpiresAt)
 	}
 	return fields
 }
@@ -5285,6 +5325,8 @@ func (m *TempCodesMutation) Field(name string) (ent.Value, bool) {
 		return m.Code()
 	case tempcodes.FieldMode:
 		return m.Mode()
+	case tempcodes.FieldExpiresAt:
+		return m.ExpiresAt()
 	}
 	return nil, false
 }
@@ -5304,6 +5346,8 @@ func (m *TempCodesMutation) OldField(ctx context.Context, name string) (ent.Valu
 		return m.OldCode(ctx)
 	case tempcodes.FieldMode:
 		return m.OldMode(ctx)
+	case tempcodes.FieldExpiresAt:
+		return m.OldExpiresAt(ctx)
 	}
 	return nil, fmt.Errorf("unknown TempCodes field %s", name)
 }
@@ -5347,6 +5391,13 @@ func (m *TempCodesMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetMode(v)
+		return nil
+	case tempcodes.FieldExpiresAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetExpiresAt(v)
 		return nil
 	}
 	return fmt.Errorf("unknown TempCodes field %s", name)
@@ -5411,6 +5462,9 @@ func (m *TempCodesMutation) ResetField(name string) error {
 		return nil
 	case tempcodes.FieldMode:
 		m.ResetMode()
+		return nil
+	case tempcodes.FieldExpiresAt:
+		m.ResetExpiresAt()
 		return nil
 	}
 	return fmt.Errorf("unknown TempCodes field %s", name)
