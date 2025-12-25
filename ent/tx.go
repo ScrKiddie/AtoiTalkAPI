@@ -22,10 +22,10 @@ type Tx struct {
 	GroupMember *GroupMemberClient
 	// Message is the client for interacting with the Message builders.
 	Message *MessageClient
+	// OTP is the client for interacting with the OTP builders.
+	OTP *OTPClient
 	// PrivateChat is the client for interacting with the PrivateChat builders.
 	PrivateChat *PrivateChatClient
-	// TempCodes is the client for interacting with the TempCodes builders.
-	TempCodes *TempCodesClient
 	// User is the client for interacting with the User builders.
 	User *UserClient
 	// UserIdentity is the client for interacting with the UserIdentity builders.
@@ -166,8 +166,8 @@ func (tx *Tx) init() {
 	tx.GroupChat = NewGroupChatClient(tx.config)
 	tx.GroupMember = NewGroupMemberClient(tx.config)
 	tx.Message = NewMessageClient(tx.config)
+	tx.OTP = NewOTPClient(tx.config)
 	tx.PrivateChat = NewPrivateChatClient(tx.config)
-	tx.TempCodes = NewTempCodesClient(tx.config)
 	tx.User = NewUserClient(tx.config)
 	tx.UserIdentity = NewUserIdentityClient(tx.config)
 }

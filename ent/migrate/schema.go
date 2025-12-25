@@ -199,6 +199,44 @@ var (
 			},
 		},
 	}
+	// OtPsColumns holds the columns for the "ot_ps" table.
+	OtPsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "created_at", Type: field.TypeTime, Default: "CURRENT_TIMESTAMP"},
+		{Name: "updated_at", Type: field.TypeTime, Default: "CURRENT_TIMESTAMP"},
+		{Name: "email", Type: field.TypeString, Unique: true, Size: 255},
+		{Name: "code", Type: field.TypeString, Unique: true, Size: 255},
+		{Name: "mode", Type: field.TypeEnum, Enums: []string{"register", "reset"}, Default: "register"},
+		{Name: "expires_at", Type: field.TypeTime},
+	}
+	// OtPsTable holds the schema information for the "ot_ps" table.
+	OtPsTable = &schema.Table{
+		Name:       "ot_ps",
+		Columns:    OtPsColumns,
+		PrimaryKey: []*schema.Column{OtPsColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "idx_otp_email",
+				Unique:  false,
+				Columns: []*schema.Column{OtPsColumns[3]},
+			},
+			{
+				Name:    "idx_otp_mode_time",
+				Unique:  false,
+				Columns: []*schema.Column{OtPsColumns[5], OtPsColumns[1]},
+				Annotation: &entsql.IndexAnnotation{
+					DescColumns: map[string]bool{
+						OtPsColumns[1].Name: true,
+					},
+				},
+			},
+			{
+				Name:    "otp_expires_at",
+				Unique:  false,
+				Columns: []*schema.Column{OtPsColumns[6]},
+			},
+		},
+	}
 	// PrivateChatsColumns holds the columns for the "private_chats" table.
 	PrivateChatsColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt, Increment: true},
@@ -238,44 +276,6 @@ var (
 				Name:    "unique_user_pair",
 				Unique:  true,
 				Columns: []*schema.Column{PrivateChatsColumns[4], PrivateChatsColumns[5]},
-			},
-		},
-	}
-	// TempCodesColumns holds the columns for the "temp_codes" table.
-	TempCodesColumns = []*schema.Column{
-		{Name: "id", Type: field.TypeInt, Increment: true},
-		{Name: "created_at", Type: field.TypeTime, Default: "CURRENT_TIMESTAMP"},
-		{Name: "updated_at", Type: field.TypeTime, Default: "CURRENT_TIMESTAMP"},
-		{Name: "email", Type: field.TypeString, Unique: true, Size: 255},
-		{Name: "code", Type: field.TypeString, Size: 255},
-		{Name: "mode", Type: field.TypeEnum, Enums: []string{"register", "reset"}, Default: "register"},
-		{Name: "expires_at", Type: field.TypeTime},
-	}
-	// TempCodesTable holds the schema information for the "temp_codes" table.
-	TempCodesTable = &schema.Table{
-		Name:       "temp_codes",
-		Columns:    TempCodesColumns,
-		PrimaryKey: []*schema.Column{TempCodesColumns[0]},
-		Indexes: []*schema.Index{
-			{
-				Name:    "idx_temp_codes_email",
-				Unique:  false,
-				Columns: []*schema.Column{TempCodesColumns[3]},
-			},
-			{
-				Name:    "idx_temp_codes_mode_time",
-				Unique:  false,
-				Columns: []*schema.Column{TempCodesColumns[5], TempCodesColumns[1]},
-				Annotation: &entsql.IndexAnnotation{
-					DescColumns: map[string]bool{
-						TempCodesColumns[1].Name: true,
-					},
-				},
-			},
-			{
-				Name:    "tempcodes_expires_at",
-				Unique:  false,
-				Columns: []*schema.Column{TempCodesColumns[6]},
 			},
 		},
 	}
@@ -341,8 +341,8 @@ var (
 		GroupChatsTable,
 		GroupMembersTable,
 		MessagesTable,
+		OtPsTable,
 		PrivateChatsTable,
-		TempCodesTable,
 		UsersTable,
 		UserIdentitiesTable,
 	}

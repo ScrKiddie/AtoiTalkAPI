@@ -73,7 +73,71 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/auth/otp": {
+        "/api/auth/register": {
+            "post": {
+                "description": "Register a new user with email, password, and OTP verification.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Register User",
+                "parameters": [
+                    {
+                        "description": "Register User Request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.RegisterUserRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/helper.ResponseSuccess"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/model.AuthResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/otp/send": {
             "post": {
                 "description": "Sends an OTP code to the user's email for registration or password reset.",
                 "consumes": [
@@ -83,7 +147,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "auth"
+                    "otp"
                 ],
                 "summary": "Send OTP",
                 "parameters": [
@@ -106,6 +170,18 @@ const docTemplate = `{
                     },
                     "400": {
                         "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
                         "schema": {
                             "$ref": "#/definitions/helper.ResponseError"
                         }
@@ -163,21 +239,48 @@ const docTemplate = `{
                 }
             }
         },
+        "model.RegisterUserRequest": {
+            "type": "object",
+            "required": [
+                "captcha_token",
+                "code",
+                "full_name",
+                "password"
+            ],
+            "properties": {
+                "captcha_token": {
+                    "type": "string"
+                },
+                "code": {
+                    "type": "string"
+                },
+                "full_name": {
+                    "type": "string",
+                    "maxLength": 100,
+                    "minLength": 3
+                },
+                "password": {
+                    "type": "string",
+                    "maxLength": 72,
+                    "minLength": 8
+                }
+            }
+        },
         "model.SendOTPRequest": {
             "type": "object",
             "required": [
+                "captcha_token",
                 "email",
-                "mode",
-                "token"
+                "mode"
             ],
             "properties": {
+                "captcha_token": {
+                    "type": "string"
+                },
                 "email": {
                     "type": "string"
                 },
                 "mode": {
-                    "type": "string"
-                },
-                "token": {
                     "type": "string"
                 }
             }

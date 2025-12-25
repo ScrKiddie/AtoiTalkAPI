@@ -28,6 +28,8 @@ func NewOTPController(otpService *service.OTPService) *OTPController {
 // @Param        request body model.SendOTPRequest true "Send OTP Request"
 // @Success      200  {object}  helper.ResponseSuccess
 // @Failure      400  {object}  helper.ResponseError
+// @Failure      404  {object}  helper.ResponseError
+// @Failure      409  {object}  helper.ResponseError
 // @Failure      429  {object}  helper.ResponseError
 // @Failure      500  {object}  helper.ResponseError
 // @Router       /api/otp/send [post]

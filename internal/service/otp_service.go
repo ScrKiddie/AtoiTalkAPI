@@ -2,9 +2,11 @@ package service
 
 import (
 	"AtoiTalkAPI/ent"
-	"AtoiTalkAPI/ent/tempcodes"
+	"AtoiTalkAPI/ent/otp"
+	"AtoiTalkAPI/ent/user"
 	"AtoiTalkAPI/internal/adapter"
 	"AtoiTalkAPI/internal/config"
+	"AtoiTalkAPI/internal/constant"
 	"AtoiTalkAPI/internal/helper"
 	"AtoiTalkAPI/internal/model"
 	"context"
@@ -19,7 +21,7 @@ import (
 	"github.com/go-playground/validator/v10"
 )
 
-//go:embed template
+//go:embed template/*.html
 var templateFS embed.FS
 
 type OTPService struct {
@@ -45,8 +47,10 @@ func NewOTPService(client *ent.Client, cfg *config.AppConfig, validator *validat
 func (s *OTPService) SendOTP(ctx context.Context, req model.SendOTPRequest) error {
 	if err := s.validator.Struct(req); err != nil {
 		slog.Warn("Validation failed", "error", err)
-		return nil
+		return helper.NewBadRequestError("")
 	}
+
+	req.Email = helper.NormalizeEmail(req.Email)
 
 	allowed, retryAfter := s.rateLimiter.Allow(req.Email)
 	if !allowed {
@@ -54,52 +58,83 @@ func (s *OTPService) SendOTP(ctx context.Context, req model.SendOTPRequest) erro
 		return helper.NewTooManyRequestsError(fmt.Sprintf("Too many requests. Please try again in %d minutes.", minutes))
 	}
 
-	if err := s.captchaAdapter.Verify(req.Token, ""); err != nil {
+	if err := s.captchaAdapter.Verify(req.CaptchaToken, ""); err != nil {
 		slog.Warn("Captcha verification failed", "error", err)
-		return helper.NewBadRequestError("Invalid captcha")
+		return helper.NewBadRequestError("")
 	}
 
-	n, err := rand.Int(rand.Reader, big.NewInt(1000000))
+	userExists, err := s.client.User.Query().
+		Where(user.Email(req.Email)).
+		Exist(ctx)
 	if err != nil {
-		slog.Error("Failed to generate random number", "error", err)
-		return helper.NewInternalServerError("")
-	}
-	code := fmt.Sprintf("%06d", n.Int64())
-
-	hashedCode, err := helper.HashPassword(code)
-	if err != nil {
-		slog.Error("Failed to hash OTP code", "error", err)
+		slog.Error("Failed to check user existence", "error", err)
 		return helper.NewInternalServerError("")
 	}
 
-	existing, err := s.client.TempCodes.Query().
-		Where(tempcodes.Email(req.Email)).
+	if req.Mode == constant.OTPModeRegister && userExists {
+		return helper.NewConflictError("Email already registered")
+	}
+
+	if req.Mode == constant.OTPModeReset && !userExists {
+		return helper.NewNotFoundError("")
+	}
+
+	existing, err := s.client.OTP.Query().
+		Where(otp.Email(req.Email)).
 		Only(ctx)
 
-	if err != nil && !ent.IsNotFound(err) {
-		slog.Error("Failed to query temp code", "error", err)
-		return helper.NewInternalServerError("")
+	if err != nil {
+		if !ent.IsNotFound(err) {
+			slog.Error("Failed to query OTP", "error", err)
+			return helper.NewInternalServerError("")
+		}
+
+		err = nil
 	}
 
-	expiresAt := time.Now().Add(time.Duration(s.cfg.TempCodeExp) * time.Second)
+	expiresAt := time.Now().Add(time.Duration(s.cfg.OTPExp) * time.Second)
+	var code string
+	maxRetries := 3
 
-	if existing != nil {
-		err = s.client.TempCodes.UpdateOne(existing).
-			SetCode(hashedCode).
-			SetMode(tempcodes.Mode(req.Mode)).
-			SetExpiresAt(expiresAt).
-			Exec(ctx)
-	} else {
-		err = s.client.TempCodes.Create().
-			SetEmail(req.Email).
-			SetCode(hashedCode).
-			SetMode(tempcodes.Mode(req.Mode)).
-			SetExpiresAt(expiresAt).
-			Exec(ctx)
+	for i := 0; i < maxRetries; i++ {
+
+		var n *big.Int
+		n, err = rand.Int(rand.Reader, big.NewInt(1000000))
+		if err != nil {
+			slog.Error("Failed to generate random number", "error", err)
+			return helper.NewInternalServerError("")
+		}
+
+		code = fmt.Sprintf("%06d", n.Int64())
+		hashedCode := helper.HashOTP(code, s.cfg.OTPSecret)
+
+		if existing != nil {
+			err = s.client.OTP.UpdateOne(existing).
+				SetCode(hashedCode).
+				SetMode(otp.Mode(req.Mode)).
+				SetExpiresAt(expiresAt).
+				Exec(ctx)
+		} else {
+			err = s.client.OTP.Create().
+				SetEmail(req.Email).
+				SetCode(hashedCode).
+				SetMode(otp.Mode(req.Mode)).
+				SetExpiresAt(expiresAt).
+				Exec(ctx)
+		}
+
+		if err == nil {
+			break
+		}
+
+		if !ent.IsConstraintError(err) {
+			slog.Error("Failed to save OTP", "error", err)
+			return helper.NewInternalServerError("")
+		}
 	}
 
 	if err != nil {
-		slog.Error("Failed to save temp code", "error", err)
+		slog.Error("Failed to save OTP after retries", "error", err)
 		return helper.NewInternalServerError("")
 	}
 
@@ -110,7 +145,7 @@ func (s *OTPService) SendOTP(ctx context.Context, req model.SendOTPRequest) erro
 			Year    int
 		}{
 			Code:    code,
-			Expired: s.cfg.TempCodeExp / 60,
+			Expired: s.cfg.OTPExp / 60,
 			Year:    time.Now().Year(),
 		}
 
@@ -124,9 +159,9 @@ func (s *OTPService) SendOTP(ctx context.Context, req model.SendOTPRequest) erro
 		if err != nil {
 			slog.Error("Failed to send OTP email", "error", err)
 
-			_, delErr := s.client.TempCodes.Delete().Where(tempcodes.Email(req.Email)).Exec(context.TODO())
+			_, delErr := s.client.OTP.Delete().Where(otp.Email(req.Email)).Exec(context.TODO())
 			if delErr != nil {
-				slog.Error("Failed to delete temp code after email failure", "error", delErr)
+				slog.Error("Failed to delete OTP after email failure", "error", delErr)
 			}
 		}
 	}

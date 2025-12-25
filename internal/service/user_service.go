@@ -4,15 +4,12 @@ import (
 	"AtoiTalkAPI/ent"
 )
 
-type UserService interface {
-}
-
-type userService struct {
+type UserService struct {
 	client *ent.Client
 }
 
-func NewUserService(client *ent.Client) UserService {
-	return &userService{
+func NewUserService(client *ent.Client) *UserService {
+	return &UserService{
 		client: client,
 	}
 }

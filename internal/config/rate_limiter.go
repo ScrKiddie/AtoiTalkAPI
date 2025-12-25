@@ -22,10 +22,10 @@ type visitor struct {
 }
 
 func NewRateLimiter(cfg *AppConfig) *RateLimiter {
-	r := rate.Every(time.Duration(cfg.TempCodeRateLimitSeconds) * time.Second)
+	r := rate.Every(time.Duration(cfg.OTPRateLimitSeconds) * time.Second)
 	b := 1
 
-	ttl := time.Duration(cfg.TempCodeRateLimitSeconds)*time.Second + (5 * time.Second)
+	ttl := time.Duration(cfg.OTPRateLimitSeconds)*time.Second + (5 * time.Second)
 
 	rl := &RateLimiter{
 		visitors: make(map[string]*visitor),

@@ -8,8 +8,8 @@ import (
 	"AtoiTalkAPI/ent/groupchat"
 	"AtoiTalkAPI/ent/groupmember"
 	"AtoiTalkAPI/ent/message"
+	"AtoiTalkAPI/ent/otp"
 	"AtoiTalkAPI/ent/privatechat"
-	"AtoiTalkAPI/ent/tempcodes"
 	"AtoiTalkAPI/ent/user"
 	"AtoiTalkAPI/ent/useridentity"
 	"context"
@@ -86,8 +86,8 @@ func checkColumn(t, c string) error {
 			groupchat.Table:    groupchat.ValidColumn,
 			groupmember.Table:  groupmember.ValidColumn,
 			message.Table:      message.ValidColumn,
+			otp.Table:          otp.ValidColumn,
 			privatechat.Table:  privatechat.ValidColumn,
-			tempcodes.Table:    tempcodes.ValidColumn,
 			user.Table:         user.ValidColumn,
 			useridentity.Table: useridentity.ValidColumn,
 		})

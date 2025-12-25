@@ -3,8 +3,8 @@
 package ent
 
 import (
+	"AtoiTalkAPI/ent/otp"
 	"AtoiTalkAPI/ent/predicate"
-	"AtoiTalkAPI/ent/tempcodes"
 	"context"
 	"fmt"
 	"math"
@@ -15,64 +15,64 @@ import (
 	"entgo.io/ent/schema/field"
 )
 
-// TempCodesQuery is the builder for querying TempCodes entities.
-type TempCodesQuery struct {
+// OTPQuery is the builder for querying OTP entities.
+type OTPQuery struct {
 	config
 	ctx        *QueryContext
-	order      []tempcodes.OrderOption
+	order      []otp.OrderOption
 	inters     []Interceptor
-	predicates []predicate.TempCodes
+	predicates []predicate.OTP
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
 }
 
-// Where adds a new predicate for the TempCodesQuery builder.
-func (_q *TempCodesQuery) Where(ps ...predicate.TempCodes) *TempCodesQuery {
+// Where adds a new predicate for the OTPQuery builder.
+func (_q *OTPQuery) Where(ps ...predicate.OTP) *OTPQuery {
 	_q.predicates = append(_q.predicates, ps...)
 	return _q
 }
 
 // Limit the number of records to be returned by this query.
-func (_q *TempCodesQuery) Limit(limit int) *TempCodesQuery {
+func (_q *OTPQuery) Limit(limit int) *OTPQuery {
 	_q.ctx.Limit = &limit
 	return _q
 }
 
 // Offset to start from.
-func (_q *TempCodesQuery) Offset(offset int) *TempCodesQuery {
+func (_q *OTPQuery) Offset(offset int) *OTPQuery {
 	_q.ctx.Offset = &offset
 	return _q
 }
 
 // Unique configures the query builder to filter duplicate records on query.
 // By default, unique is set to true, and can be disabled using this method.
-func (_q *TempCodesQuery) Unique(unique bool) *TempCodesQuery {
+func (_q *OTPQuery) Unique(unique bool) *OTPQuery {
 	_q.ctx.Unique = &unique
 	return _q
 }
 
 // Order specifies how the records should be ordered.
-func (_q *TempCodesQuery) Order(o ...tempcodes.OrderOption) *TempCodesQuery {
+func (_q *OTPQuery) Order(o ...otp.OrderOption) *OTPQuery {
 	_q.order = append(_q.order, o...)
 	return _q
 }
 
-// First returns the first TempCodes entity from the query.
-// Returns a *NotFoundError when no TempCodes was found.
-func (_q *TempCodesQuery) First(ctx context.Context) (*TempCodes, error) {
+// First returns the first OTP entity from the query.
+// Returns a *NotFoundError when no OTP was found.
+func (_q *OTPQuery) First(ctx context.Context) (*OTP, error) {
 	nodes, err := _q.Limit(1).All(setContextOp(ctx, _q.ctx, ent.OpQueryFirst))
 	if err != nil {
 		return nil, err
 	}
 	if len(nodes) == 0 {
-		return nil, &NotFoundError{tempcodes.Label}
+		return nil, &NotFoundError{otp.Label}
 	}
 	return nodes[0], nil
 }
 
 // FirstX is like First, but panics if an error occurs.
-func (_q *TempCodesQuery) FirstX(ctx context.Context) *TempCodes {
+func (_q *OTPQuery) FirstX(ctx context.Context) *OTP {
 	node, err := _q.First(ctx)
 	if err != nil && !IsNotFound(err) {
 		panic(err)
@@ -80,22 +80,22 @@ func (_q *TempCodesQuery) FirstX(ctx context.Context) *TempCodes {
 	return node
 }
 
-// FirstID returns the first TempCodes ID from the query.
-// Returns a *NotFoundError when no TempCodes ID was found.
-func (_q *TempCodesQuery) FirstID(ctx context.Context) (id int, err error) {
+// FirstID returns the first OTP ID from the query.
+// Returns a *NotFoundError when no OTP ID was found.
+func (_q *OTPQuery) FirstID(ctx context.Context) (id int, err error) {
 	var ids []int
 	if ids, err = _q.Limit(1).IDs(setContextOp(ctx, _q.ctx, ent.OpQueryFirstID)); err != nil {
 		return
 	}
 	if len(ids) == 0 {
-		err = &NotFoundError{tempcodes.Label}
+		err = &NotFoundError{otp.Label}
 		return
 	}
 	return ids[0], nil
 }
 
 // FirstIDX is like FirstID, but panics if an error occurs.
-func (_q *TempCodesQuery) FirstIDX(ctx context.Context) int {
+func (_q *OTPQuery) FirstIDX(ctx context.Context) int {
 	id, err := _q.FirstID(ctx)
 	if err != nil && !IsNotFound(err) {
 		panic(err)
@@ -103,10 +103,10 @@ func (_q *TempCodesQuery) FirstIDX(ctx context.Context) int {
 	return id
 }
 
-// Only returns a single TempCodes entity found by the query, ensuring it only returns one.
-// Returns a *NotSingularError when more than one TempCodes entity is found.
-// Returns a *NotFoundError when no TempCodes entities are found.
-func (_q *TempCodesQuery) Only(ctx context.Context) (*TempCodes, error) {
+// Only returns a single OTP entity found by the query, ensuring it only returns one.
+// Returns a *NotSingularError when more than one OTP entity is found.
+// Returns a *NotFoundError when no OTP entities are found.
+func (_q *OTPQuery) Only(ctx context.Context) (*OTP, error) {
 	nodes, err := _q.Limit(2).All(setContextOp(ctx, _q.ctx, ent.OpQueryOnly))
 	if err != nil {
 		return nil, err
@@ -115,14 +115,14 @@ func (_q *TempCodesQuery) Only(ctx context.Context) (*TempCodes, error) {
 	case 1:
 		return nodes[0], nil
 	case 0:
-		return nil, &NotFoundError{tempcodes.Label}
+		return nil, &NotFoundError{otp.Label}
 	default:
-		return nil, &NotSingularError{tempcodes.Label}
+		return nil, &NotSingularError{otp.Label}
 	}
 }
 
 // OnlyX is like Only, but panics if an error occurs.
-func (_q *TempCodesQuery) OnlyX(ctx context.Context) *TempCodes {
+func (_q *OTPQuery) OnlyX(ctx context.Context) *OTP {
 	node, err := _q.Only(ctx)
 	if err != nil {
 		panic(err)
@@ -130,10 +130,10 @@ func (_q *TempCodesQuery) OnlyX(ctx context.Context) *TempCodes {
 	return node
 }
 
-// OnlyID is like Only, but returns the only TempCodes ID in the query.
-// Returns a *NotSingularError when more than one TempCodes ID is found.
+// OnlyID is like Only, but returns the only OTP ID in the query.
+// Returns a *NotSingularError when more than one OTP ID is found.
 // Returns a *NotFoundError when no entities are found.
-func (_q *TempCodesQuery) OnlyID(ctx context.Context) (id int, err error) {
+func (_q *OTPQuery) OnlyID(ctx context.Context) (id int, err error) {
 	var ids []int
 	if ids, err = _q.Limit(2).IDs(setContextOp(ctx, _q.ctx, ent.OpQueryOnlyID)); err != nil {
 		return
@@ -142,15 +142,15 @@ func (_q *TempCodesQuery) OnlyID(ctx context.Context) (id int, err error) {
 	case 1:
 		id = ids[0]
 	case 0:
-		err = &NotFoundError{tempcodes.Label}
+		err = &NotFoundError{otp.Label}
 	default:
-		err = &NotSingularError{tempcodes.Label}
+		err = &NotSingularError{otp.Label}
 	}
 	return
 }
 
 // OnlyIDX is like OnlyID, but panics if an error occurs.
-func (_q *TempCodesQuery) OnlyIDX(ctx context.Context) int {
+func (_q *OTPQuery) OnlyIDX(ctx context.Context) int {
 	id, err := _q.OnlyID(ctx)
 	if err != nil {
 		panic(err)
@@ -158,18 +158,18 @@ func (_q *TempCodesQuery) OnlyIDX(ctx context.Context) int {
 	return id
 }
 
-// All executes the query and returns a list of TempCodesSlice.
-func (_q *TempCodesQuery) All(ctx context.Context) ([]*TempCodes, error) {
+// All executes the query and returns a list of OTPs.
+func (_q *OTPQuery) All(ctx context.Context) ([]*OTP, error) {
 	ctx = setContextOp(ctx, _q.ctx, ent.OpQueryAll)
 	if err := _q.prepareQuery(ctx); err != nil {
 		return nil, err
 	}
-	qr := querierAll[[]*TempCodes, *TempCodesQuery]()
-	return withInterceptors[[]*TempCodes](ctx, _q, qr, _q.inters)
+	qr := querierAll[[]*OTP, *OTPQuery]()
+	return withInterceptors[[]*OTP](ctx, _q, qr, _q.inters)
 }
 
 // AllX is like All, but panics if an error occurs.
-func (_q *TempCodesQuery) AllX(ctx context.Context) []*TempCodes {
+func (_q *OTPQuery) AllX(ctx context.Context) []*OTP {
 	nodes, err := _q.All(ctx)
 	if err != nil {
 		panic(err)
@@ -177,20 +177,20 @@ func (_q *TempCodesQuery) AllX(ctx context.Context) []*TempCodes {
 	return nodes
 }
 
-// IDs executes the query and returns a list of TempCodes IDs.
-func (_q *TempCodesQuery) IDs(ctx context.Context) (ids []int, err error) {
+// IDs executes the query and returns a list of OTP IDs.
+func (_q *OTPQuery) IDs(ctx context.Context) (ids []int, err error) {
 	if _q.ctx.Unique == nil && _q.path != nil {
 		_q.Unique(true)
 	}
 	ctx = setContextOp(ctx, _q.ctx, ent.OpQueryIDs)
-	if err = _q.Select(tempcodes.FieldID).Scan(ctx, &ids); err != nil {
+	if err = _q.Select(otp.FieldID).Scan(ctx, &ids); err != nil {
 		return nil, err
 	}
 	return ids, nil
 }
 
 // IDsX is like IDs, but panics if an error occurs.
-func (_q *TempCodesQuery) IDsX(ctx context.Context) []int {
+func (_q *OTPQuery) IDsX(ctx context.Context) []int {
 	ids, err := _q.IDs(ctx)
 	if err != nil {
 		panic(err)
@@ -199,16 +199,16 @@ func (_q *TempCodesQuery) IDsX(ctx context.Context) []int {
 }
 
 // Count returns the count of the given query.
-func (_q *TempCodesQuery) Count(ctx context.Context) (int, error) {
+func (_q *OTPQuery) Count(ctx context.Context) (int, error) {
 	ctx = setContextOp(ctx, _q.ctx, ent.OpQueryCount)
 	if err := _q.prepareQuery(ctx); err != nil {
 		return 0, err
 	}
-	return withInterceptors[int](ctx, _q, querierCount[*TempCodesQuery](), _q.inters)
+	return withInterceptors[int](ctx, _q, querierCount[*OTPQuery](), _q.inters)
 }
 
 // CountX is like Count, but panics if an error occurs.
-func (_q *TempCodesQuery) CountX(ctx context.Context) int {
+func (_q *OTPQuery) CountX(ctx context.Context) int {
 	count, err := _q.Count(ctx)
 	if err != nil {
 		panic(err)
@@ -217,7 +217,7 @@ func (_q *TempCodesQuery) CountX(ctx context.Context) int {
 }
 
 // Exist returns true if the query has elements in the graph.
-func (_q *TempCodesQuery) Exist(ctx context.Context) (bool, error) {
+func (_q *OTPQuery) Exist(ctx context.Context) (bool, error) {
 	ctx = setContextOp(ctx, _q.ctx, ent.OpQueryExist)
 	switch _, err := _q.FirstID(ctx); {
 	case IsNotFound(err):
@@ -230,7 +230,7 @@ func (_q *TempCodesQuery) Exist(ctx context.Context) (bool, error) {
 }
 
 // ExistX is like Exist, but panics if an error occurs.
-func (_q *TempCodesQuery) ExistX(ctx context.Context) bool {
+func (_q *OTPQuery) ExistX(ctx context.Context) bool {
 	exist, err := _q.Exist(ctx)
 	if err != nil {
 		panic(err)
@@ -238,18 +238,18 @@ func (_q *TempCodesQuery) ExistX(ctx context.Context) bool {
 	return exist
 }
 
-// Clone returns a duplicate of the TempCodesQuery builder, including all associated steps. It can be
+// Clone returns a duplicate of the OTPQuery builder, including all associated steps. It can be
 // used to prepare common query builders and use them differently after the clone is made.
-func (_q *TempCodesQuery) Clone() *TempCodesQuery {
+func (_q *OTPQuery) Clone() *OTPQuery {
 	if _q == nil {
 		return nil
 	}
-	return &TempCodesQuery{
+	return &OTPQuery{
 		config:     _q.config,
 		ctx:        _q.ctx.Clone(),
-		order:      append([]tempcodes.OrderOption{}, _q.order...),
+		order:      append([]otp.OrderOption{}, _q.order...),
 		inters:     append([]Interceptor{}, _q.inters...),
-		predicates: append([]predicate.TempCodes{}, _q.predicates...),
+		predicates: append([]predicate.OTP{}, _q.predicates...),
 		// clone intermediate query.
 		sql:  _q.sql.Clone(),
 		path: _q.path,
@@ -266,15 +266,15 @@ func (_q *TempCodesQuery) Clone() *TempCodesQuery {
 //		Count int `json:"count,omitempty"`
 //	}
 //
-//	client.TempCodes.Query().
-//		GroupBy(tempcodes.FieldCreatedAt).
+//	client.OTP.Query().
+//		GroupBy(otp.FieldCreatedAt).
 //		Aggregate(ent.Count()).
 //		Scan(ctx, &v)
-func (_q *TempCodesQuery) GroupBy(field string, fields ...string) *TempCodesGroupBy {
+func (_q *OTPQuery) GroupBy(field string, fields ...string) *OTPGroupBy {
 	_q.ctx.Fields = append([]string{field}, fields...)
-	grbuild := &TempCodesGroupBy{build: _q}
+	grbuild := &OTPGroupBy{build: _q}
 	grbuild.flds = &_q.ctx.Fields
-	grbuild.label = tempcodes.Label
+	grbuild.label = otp.Label
 	grbuild.scan = grbuild.Scan
 	return grbuild
 }
@@ -288,23 +288,23 @@ func (_q *TempCodesQuery) GroupBy(field string, fields ...string) *TempCodesGrou
 //		CreatedAt time.Time `json:"created_at,omitempty"`
 //	}
 //
-//	client.TempCodes.Query().
-//		Select(tempcodes.FieldCreatedAt).
+//	client.OTP.Query().
+//		Select(otp.FieldCreatedAt).
 //		Scan(ctx, &v)
-func (_q *TempCodesQuery) Select(fields ...string) *TempCodesSelect {
+func (_q *OTPQuery) Select(fields ...string) *OTPSelect {
 	_q.ctx.Fields = append(_q.ctx.Fields, fields...)
-	sbuild := &TempCodesSelect{TempCodesQuery: _q}
-	sbuild.label = tempcodes.Label
+	sbuild := &OTPSelect{OTPQuery: _q}
+	sbuild.label = otp.Label
 	sbuild.flds, sbuild.scan = &_q.ctx.Fields, sbuild.Scan
 	return sbuild
 }
 
-// Aggregate returns a TempCodesSelect configured with the given aggregations.
-func (_q *TempCodesQuery) Aggregate(fns ...AggregateFunc) *TempCodesSelect {
+// Aggregate returns a OTPSelect configured with the given aggregations.
+func (_q *OTPQuery) Aggregate(fns ...AggregateFunc) *OTPSelect {
 	return _q.Select().Aggregate(fns...)
 }
 
-func (_q *TempCodesQuery) prepareQuery(ctx context.Context) error {
+func (_q *OTPQuery) prepareQuery(ctx context.Context) error {
 	for _, inter := range _q.inters {
 		if inter == nil {
 			return fmt.Errorf("ent: uninitialized interceptor (forgotten import ent/runtime?)")
@@ -316,7 +316,7 @@ func (_q *TempCodesQuery) prepareQuery(ctx context.Context) error {
 		}
 	}
 	for _, f := range _q.ctx.Fields {
-		if !tempcodes.ValidColumn(f) {
+		if !otp.ValidColumn(f) {
 			return &ValidationError{Name: f, err: fmt.Errorf("ent: invalid field %q for query", f)}
 		}
 	}
@@ -330,16 +330,16 @@ func (_q *TempCodesQuery) prepareQuery(ctx context.Context) error {
 	return nil
 }
 
-func (_q *TempCodesQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*TempCodes, error) {
+func (_q *OTPQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*OTP, error) {
 	var (
-		nodes = []*TempCodes{}
+		nodes = []*OTP{}
 		_spec = _q.querySpec()
 	)
 	_spec.ScanValues = func(columns []string) ([]any, error) {
-		return (*TempCodes).scanValues(nil, columns)
+		return (*OTP).scanValues(nil, columns)
 	}
 	_spec.Assign = func(columns []string, values []any) error {
-		node := &TempCodes{config: _q.config}
+		node := &OTP{config: _q.config}
 		nodes = append(nodes, node)
 		return node.assignValues(columns, values)
 	}
@@ -355,7 +355,7 @@ func (_q *TempCodesQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Te
 	return nodes, nil
 }
 
-func (_q *TempCodesQuery) sqlCount(ctx context.Context) (int, error) {
+func (_q *OTPQuery) sqlCount(ctx context.Context) (int, error) {
 	_spec := _q.querySpec()
 	_spec.Node.Columns = _q.ctx.Fields
 	if len(_q.ctx.Fields) > 0 {
@@ -364,8 +364,8 @@ func (_q *TempCodesQuery) sqlCount(ctx context.Context) (int, error) {
 	return sqlgraph.CountNodes(ctx, _q.driver, _spec)
 }
 
-func (_q *TempCodesQuery) querySpec() *sqlgraph.QuerySpec {
-	_spec := sqlgraph.NewQuerySpec(tempcodes.Table, tempcodes.Columns, sqlgraph.NewFieldSpec(tempcodes.FieldID, field.TypeInt))
+func (_q *OTPQuery) querySpec() *sqlgraph.QuerySpec {
+	_spec := sqlgraph.NewQuerySpec(otp.Table, otp.Columns, sqlgraph.NewFieldSpec(otp.FieldID, field.TypeInt))
 	_spec.From = _q.sql
 	if unique := _q.ctx.Unique; unique != nil {
 		_spec.Unique = *unique
@@ -374,9 +374,9 @@ func (_q *TempCodesQuery) querySpec() *sqlgraph.QuerySpec {
 	}
 	if fields := _q.ctx.Fields; len(fields) > 0 {
 		_spec.Node.Columns = make([]string, 0, len(fields))
-		_spec.Node.Columns = append(_spec.Node.Columns, tempcodes.FieldID)
+		_spec.Node.Columns = append(_spec.Node.Columns, otp.FieldID)
 		for i := range fields {
-			if fields[i] != tempcodes.FieldID {
+			if fields[i] != otp.FieldID {
 				_spec.Node.Columns = append(_spec.Node.Columns, fields[i])
 			}
 		}
@@ -404,12 +404,12 @@ func (_q *TempCodesQuery) querySpec() *sqlgraph.QuerySpec {
 	return _spec
 }
 
-func (_q *TempCodesQuery) sqlQuery(ctx context.Context) *sql.Selector {
+func (_q *OTPQuery) sqlQuery(ctx context.Context) *sql.Selector {
 	builder := sql.Dialect(_q.driver.Dialect())
-	t1 := builder.Table(tempcodes.Table)
+	t1 := builder.Table(otp.Table)
 	columns := _q.ctx.Fields
 	if len(columns) == 0 {
-		columns = tempcodes.Columns
+		columns = otp.Columns
 	}
 	selector := builder.Select(t1.Columns(columns...)...).From(t1)
 	if _q.sql != nil {
@@ -436,28 +436,28 @@ func (_q *TempCodesQuery) sqlQuery(ctx context.Context) *sql.Selector {
 	return selector
 }
 
-// TempCodesGroupBy is the group-by builder for TempCodes entities.
-type TempCodesGroupBy struct {
+// OTPGroupBy is the group-by builder for OTP entities.
+type OTPGroupBy struct {
 	selector
-	build *TempCodesQuery
+	build *OTPQuery
 }
 
 // Aggregate adds the given aggregation functions to the group-by query.
-func (_g *TempCodesGroupBy) Aggregate(fns ...AggregateFunc) *TempCodesGroupBy {
+func (_g *OTPGroupBy) Aggregate(fns ...AggregateFunc) *OTPGroupBy {
 	_g.fns = append(_g.fns, fns...)
 	return _g
 }
 
 // Scan applies the selector query and scans the result into the given value.
-func (_g *TempCodesGroupBy) Scan(ctx context.Context, v any) error {
+func (_g *OTPGroupBy) Scan(ctx context.Context, v any) error {
 	ctx = setContextOp(ctx, _g.build.ctx, ent.OpQueryGroupBy)
 	if err := _g.build.prepareQuery(ctx); err != nil {
 		return err
 	}
-	return scanWithInterceptors[*TempCodesQuery, *TempCodesGroupBy](ctx, _g.build, _g, _g.build.inters, v)
+	return scanWithInterceptors[*OTPQuery, *OTPGroupBy](ctx, _g.build, _g, _g.build.inters, v)
 }
 
-func (_g *TempCodesGroupBy) sqlScan(ctx context.Context, root *TempCodesQuery, v any) error {
+func (_g *OTPGroupBy) sqlScan(ctx context.Context, root *OTPQuery, v any) error {
 	selector := root.sqlQuery(ctx).Select()
 	aggregation := make([]string, 0, len(_g.fns))
 	for _, fn := range _g.fns {
@@ -484,28 +484,28 @@ func (_g *TempCodesGroupBy) sqlScan(ctx context.Context, root *TempCodesQuery, v
 	return sql.ScanSlice(rows, v)
 }
 
-// TempCodesSelect is the builder for selecting fields of TempCodes entities.
-type TempCodesSelect struct {
-	*TempCodesQuery
+// OTPSelect is the builder for selecting fields of OTP entities.
+type OTPSelect struct {
+	*OTPQuery
 	selector
 }
 
 // Aggregate adds the given aggregation functions to the selector query.
-func (_s *TempCodesSelect) Aggregate(fns ...AggregateFunc) *TempCodesSelect {
+func (_s *OTPSelect) Aggregate(fns ...AggregateFunc) *OTPSelect {
 	_s.fns = append(_s.fns, fns...)
 	return _s
 }
 
 // Scan applies the selector query and scans the result into the given value.
-func (_s *TempCodesSelect) Scan(ctx context.Context, v any) error {
+func (_s *OTPSelect) Scan(ctx context.Context, v any) error {
 	ctx = setContextOp(ctx, _s.ctx, ent.OpQuerySelect)
 	if err := _s.prepareQuery(ctx); err != nil {
 		return err
 	}
-	return scanWithInterceptors[*TempCodesQuery, *TempCodesSelect](ctx, _s.TempCodesQuery, _s, _s.inters, v)
+	return scanWithInterceptors[*OTPQuery, *OTPSelect](ctx, _s.OTPQuery, _s, _s.inters, v)
 }
 
-func (_s *TempCodesSelect) sqlScan(ctx context.Context, root *TempCodesQuery, v any) error {
+func (_s *OTPSelect) sqlScan(ctx context.Context, root *OTPQuery, v any) error {
 	selector := root.sqlQuery(ctx)
 	aggregation := make([]string, 0, len(_s.fns))
 	for _, fn := range _s.fns {

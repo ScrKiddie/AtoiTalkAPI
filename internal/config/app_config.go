@@ -11,9 +11,9 @@ import (
 )
 
 type AppConfig struct {
-	AppPort              string
-	AppEnv               string
-	AppURL               string
+	AppPort               string
+	AppEnv                string
+	AppURL                string
 	AppCorsAllowedOrigins []string
 
 	DBHost     string
@@ -50,8 +50,9 @@ type AppConfig struct {
 	SMTPFromName  string
 	SMTPAsync     bool
 
-	TempCodeExp              int
-	TempCodeRateLimitSeconds int
+	OTPExp              int
+	OTPRateLimitSeconds int
+	OTPSecret           string
 
 	TurnstileSecretKey string
 }
@@ -101,8 +102,9 @@ func LoadAppConfig() *AppConfig {
 		SMTPFromName:  getEnv("SMTP_FROM_NAME", ""),
 		SMTPAsync:     getEnvAsBool("SMTP_ASYNC", true),
 
-		TempCodeExp:              getEnvAsInt("TEMP_CODE_EXP", 300),
-		TempCodeRateLimitSeconds: getEnvAsInt("TEMP_CODE_RATE_LIMIT_SECONDS", 60),
+		OTPExp:              getEnvAsInt("OTP_EXP", 300),
+		OTPRateLimitSeconds: getEnvAsInt("OTP_RATE_LIMIT_SECONDS", 60),
+		OTPSecret:           mustGetEnv("OTP_SECRET"),
 
 		TurnstileSecretKey: getEnv("TURNSTILE_SECRET_KEY", ""),
 	}
