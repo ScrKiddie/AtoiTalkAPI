@@ -75,3 +75,32 @@ func (c *AuthController) Register(w http.ResponseWriter, r *http.Request) {
 
 	helper.WriteSuccess(w, resp)
 }
+
+// ResetPassword godoc
+// @Summary      Reset Password
+// @Description  Reset user password using OTP verification.
+// @Tags         auth
+// @Accept       json
+// @Produce      json
+// @Param        request body model.ResetPasswordRequest true "Reset Password Request"
+// @Success      200  {object}  helper.ResponseSuccess
+// @Failure      400  {object}  helper.ResponseError
+// @Failure      404  {object}  helper.ResponseError
+// @Failure      500  {object}  helper.ResponseError
+// @Router       /api/auth/reset-password [post]
+func (c *AuthController) ResetPassword(w http.ResponseWriter, r *http.Request) {
+	var req model.ResetPasswordRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		slog.Warn("Invalid request body", "error", err)
+		helper.WriteError(w, helper.NewBadRequestError(""))
+		return
+	}
+
+	err := c.authService.ResetPassword(r.Context(), req)
+	if err != nil {
+		helper.WriteError(w, err)
+		return
+	}
+
+	helper.WriteSuccess(w, nil)
+}

@@ -199,41 +199,41 @@ var (
 			},
 		},
 	}
-	// OtPsColumns holds the columns for the "ot_ps" table.
-	OtPsColumns = []*schema.Column{
+	// OtpsColumns holds the columns for the "otps" table.
+	OtpsColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt, Increment: true},
 		{Name: "created_at", Type: field.TypeTime, Default: "CURRENT_TIMESTAMP"},
 		{Name: "updated_at", Type: field.TypeTime, Default: "CURRENT_TIMESTAMP"},
 		{Name: "email", Type: field.TypeString, Unique: true, Size: 255},
-		{Name: "code", Type: field.TypeString, Unique: true, Size: 255},
+		{Name: "code", Type: field.TypeString, Size: 255},
 		{Name: "mode", Type: field.TypeEnum, Enums: []string{"register", "reset"}, Default: "register"},
 		{Name: "expires_at", Type: field.TypeTime},
 	}
-	// OtPsTable holds the schema information for the "ot_ps" table.
-	OtPsTable = &schema.Table{
-		Name:       "ot_ps",
-		Columns:    OtPsColumns,
-		PrimaryKey: []*schema.Column{OtPsColumns[0]},
+	// OtpsTable holds the schema information for the "otps" table.
+	OtpsTable = &schema.Table{
+		Name:       "otps",
+		Columns:    OtpsColumns,
+		PrimaryKey: []*schema.Column{OtpsColumns[0]},
 		Indexes: []*schema.Index{
 			{
 				Name:    "idx_otp_email",
 				Unique:  false,
-				Columns: []*schema.Column{OtPsColumns[3]},
+				Columns: []*schema.Column{OtpsColumns[3]},
 			},
 			{
 				Name:    "idx_otp_mode_time",
 				Unique:  false,
-				Columns: []*schema.Column{OtPsColumns[5], OtPsColumns[1]},
+				Columns: []*schema.Column{OtpsColumns[5], OtpsColumns[1]},
 				Annotation: &entsql.IndexAnnotation{
 					DescColumns: map[string]bool{
-						OtPsColumns[1].Name: true,
+						OtpsColumns[1].Name: true,
 					},
 				},
 			},
 			{
 				Name:    "otp_expires_at",
 				Unique:  false,
-				Columns: []*schema.Column{OtPsColumns[6]},
+				Columns: []*schema.Column{OtpsColumns[6]},
 			},
 		},
 	}
@@ -341,7 +341,7 @@ var (
 		GroupChatsTable,
 		GroupMembersTable,
 		MessagesTable,
-		OtPsTable,
+		OtpsTable,
 		PrivateChatsTable,
 		UsersTable,
 		UserIdentitiesTable,
@@ -358,6 +358,9 @@ func init() {
 	MessagesTable.ForeignKeys[0].RefTable = ChatsTable
 	MessagesTable.ForeignKeys[1].RefTable = MessagesTable
 	MessagesTable.ForeignKeys[2].RefTable = UsersTable
+	OtpsTable.Annotation = &entsql.Annotation{
+		Table: "otps",
+	}
 	PrivateChatsTable.ForeignKeys[0].RefTable = ChatsTable
 	PrivateChatsTable.ForeignKeys[1].RefTable = UsersTable
 	PrivateChatsTable.ForeignKeys[2].RefTable = UsersTable

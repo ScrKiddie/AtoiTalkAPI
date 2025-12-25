@@ -27,7 +27,7 @@ const (
 	// FieldExpiresAt holds the string denoting the expires_at field in the database.
 	FieldExpiresAt = "expires_at"
 	// Table holds the table name of the otp in the database.
-	Table = "ot_ps"
+	Table = "otps"
 )
 
 // Columns holds all SQL columns for otp fields.

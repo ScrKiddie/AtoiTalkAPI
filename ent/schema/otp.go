@@ -3,6 +3,7 @@ package schema
 import (
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/entsql"
+	"entgo.io/ent/schema"
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/index"
 )
@@ -24,7 +25,6 @@ func (OTP) Fields() []ent.Field {
 			MaxLen(255).
 			NotEmpty(),
 		field.String("code").
-			Unique().
 			MaxLen(255).
 			NotEmpty(),
 		field.Enum("mode").
@@ -44,5 +44,11 @@ func (OTP) Indexes() []ent.Index {
 			StorageKey("idx_otp_mode_time"),
 
 		index.Fields("expires_at"),
+	}
+}
+
+func (OTP) Annotations() []schema.Annotation {
+	return []schema.Annotation{
+		entsql.Annotation{Table: "otps"},
 	}
 }
