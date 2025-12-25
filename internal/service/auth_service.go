@@ -133,6 +133,8 @@ func (s *AuthService) Register(ctx context.Context, req model.RegisterUserReques
 		return nil, helper.NewBadRequestError("")
 	}
 
+	req.Email = helper.NormalizeEmail(req.Email)
+
 	if err := s.captchaAdapter.Verify(req.CaptchaToken, ""); err != nil {
 		slog.Warn("Captcha verification failed", "error", err)
 		return nil, helper.NewBadRequestError("")
@@ -155,6 +157,7 @@ func (s *AuthService) Register(ctx context.Context, req model.RegisterUserReques
 
 	otpRecord, err := tx.OTP.Query().
 		Where(
+			otp.EmailEQ(req.Email),
 			otp.CodeEQ(hashedCode),
 			otp.ModeEQ(constant.OTPModeRegister),
 			otp.ExpiresAtGT(time.Now()),
@@ -169,8 +172,6 @@ func (s *AuthService) Register(ctx context.Context, req model.RegisterUserReques
 		return nil, helper.NewInternalServerError("")
 	}
 
-	email := otpRecord.Email
-
 	err = tx.OTP.DeleteOne(otpRecord).Exec(ctx)
 	if err != nil {
 		slog.Error("Failed to delete OTP", "error", err)
@@ -178,7 +179,7 @@ func (s *AuthService) Register(ctx context.Context, req model.RegisterUserReques
 	}
 
 	exists, err := tx.User.Query().
-		Where(user.Email(email)).
+		Where(user.Email(req.Email)).
 		Exist(ctx)
 	if err != nil {
 		slog.Error("Failed to check user existence", "error", err)
@@ -195,7 +196,7 @@ func (s *AuthService) Register(ctx context.Context, req model.RegisterUserReques
 	}
 
 	newUser, err := tx.User.Create().
-		SetEmail(email).
+		SetEmail(req.Email).
 		SetFullName(req.FullName).
 		SetPasswordHash(hashedPassword).
 		Save(ctx)
@@ -223,4 +224,88 @@ func (s *AuthService) Register(ctx context.Context, req model.RegisterUserReques
 			FullName: newUser.FullName,
 		},
 	}, nil
+}
+
+func (s *AuthService) ResetPassword(ctx context.Context, req model.ResetPasswordRequest) error {
+	if err := s.validator.Struct(req); err != nil {
+		slog.Warn("Validation failed", "error", err)
+		return helper.NewBadRequestError("")
+	}
+
+	req.Email = helper.NormalizeEmail(req.Email)
+
+	if err := s.captchaAdapter.Verify(req.CaptchaToken, ""); err != nil {
+		slog.Warn("Captcha verification failed", "error", err)
+		return helper.NewBadRequestError("")
+	}
+
+	tx, err := s.client.Tx(ctx)
+	if err != nil {
+		slog.Error("Failed to start transaction", "error", err)
+		return helper.NewInternalServerError("")
+	}
+
+	defer func() {
+		_ = tx.Rollback()
+		if v := recover(); v != nil {
+			panic(v)
+		}
+	}()
+
+	hashedCode := helper.HashOTP(req.Code, s.cfg.OTPSecret)
+
+	otpRecord, err := tx.OTP.Query().
+		Where(
+			otp.EmailEQ(req.Email),
+			otp.CodeEQ(hashedCode),
+			otp.ModeEQ(constant.OTPModeReset),
+			otp.ExpiresAtGT(time.Now()),
+		).
+		Only(ctx)
+
+	if err != nil {
+		if ent.IsNotFound(err) {
+			return helper.NewBadRequestError("Invalid or expired OTP")
+		}
+		slog.Error("Failed to query OTP", "error", err)
+		return helper.NewInternalServerError("")
+	}
+
+	err = tx.OTP.DeleteOne(otpRecord).Exec(ctx)
+	if err != nil {
+		slog.Error("Failed to delete OTP", "error", err)
+		return helper.NewInternalServerError("")
+	}
+
+	u, err := tx.User.Query().
+		Where(user.Email(req.Email)).
+		Only(ctx)
+	if err != nil {
+		if ent.IsNotFound(err) {
+			return helper.NewNotFoundError("")
+		}
+		slog.Error("Failed to query user", "error", err)
+		return helper.NewInternalServerError("")
+	}
+
+	hashedPassword, err := helper.HashPassword(req.Password)
+	if err != nil {
+		slog.Error("Failed to hash password", "error", err)
+		return helper.NewInternalServerError("")
+	}
+
+	err = tx.User.UpdateOne(u).
+		SetPasswordHash(hashedPassword).
+		Exec(ctx)
+	if err != nil {
+		slog.Error("Failed to update password", "error", err)
+		return helper.NewInternalServerError("")
+	}
+
+	if err := tx.Commit(); err != nil {
+		slog.Error("Failed to commit transaction", "error", err)
+		return helper.NewInternalServerError("")
+	}
+
+	return nil
 }

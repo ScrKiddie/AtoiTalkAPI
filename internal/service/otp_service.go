@@ -93,48 +93,33 @@ func (s *OTPService) SendOTP(ctx context.Context, req model.SendOTPRequest) erro
 	}
 
 	expiresAt := time.Now().Add(time.Duration(s.cfg.OTPExp) * time.Second)
-	var code string
-	maxRetries := 3
+	
+	n, err := rand.Int(rand.Reader, big.NewInt(1000000))
+	if err != nil {
+		slog.Error("Failed to generate random number", "error", err)
+		return helper.NewInternalServerError("")
+	}
 
-	for i := 0; i < maxRetries; i++ {
+	code := fmt.Sprintf("%06d", n.Int64())
+	hashedCode := helper.HashOTP(code, s.cfg.OTPSecret)
 
-		var n *big.Int
-		n, err = rand.Int(rand.Reader, big.NewInt(1000000))
-		if err != nil {
-			slog.Error("Failed to generate random number", "error", err)
-			return helper.NewInternalServerError("")
-		}
-
-		code = fmt.Sprintf("%06d", n.Int64())
-		hashedCode := helper.HashOTP(code, s.cfg.OTPSecret)
-
-		if existing != nil {
-			err = s.client.OTP.UpdateOne(existing).
-				SetCode(hashedCode).
-				SetMode(otp.Mode(req.Mode)).
-				SetExpiresAt(expiresAt).
-				Exec(ctx)
-		} else {
-			err = s.client.OTP.Create().
-				SetEmail(req.Email).
-				SetCode(hashedCode).
-				SetMode(otp.Mode(req.Mode)).
-				SetExpiresAt(expiresAt).
-				Exec(ctx)
-		}
-
-		if err == nil {
-			break
-		}
-
-		if !ent.IsConstraintError(err) {
-			slog.Error("Failed to save OTP", "error", err)
-			return helper.NewInternalServerError("")
-		}
+	if existing != nil {
+		err = s.client.OTP.UpdateOne(existing).
+			SetCode(hashedCode).
+			SetMode(otp.Mode(req.Mode)).
+			SetExpiresAt(expiresAt).
+			Exec(ctx)
+	} else {
+		err = s.client.OTP.Create().
+			SetEmail(req.Email).
+			SetCode(hashedCode).
+			SetMode(otp.Mode(req.Mode)).
+			SetExpiresAt(expiresAt).
+			Exec(ctx)
 	}
 
 	if err != nil {
-		slog.Error("Failed to save OTP after retries", "error", err)
+		slog.Error("Failed to save OTP", "error", err)
 		return helper.NewInternalServerError("")
 	}
 

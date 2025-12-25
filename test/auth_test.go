@@ -1,6 +1,9 @@
 package test
 
 import (
+	"AtoiTalkAPI/ent/otp"
+	"AtoiTalkAPI/ent/user"
+	"AtoiTalkAPI/internal/constant"
 	"AtoiTalkAPI/internal/helper"
 	"AtoiTalkAPI/internal/model"
 	"bytes"
@@ -120,6 +123,7 @@ func TestRegister(t *testing.T) {
 		createOTP(validEmail, validCode, time.Now().Add(5*time.Minute))
 
 		reqBody := model.RegisterUserRequest{
+			Email:        validEmail,
 			Code:         validCode,
 			FullName:     "Test User",
 			Password:     "Password123!",
@@ -155,6 +159,7 @@ func TestRegister(t *testing.T) {
 		createOTP(validEmail, validCode, time.Now().Add(5*time.Minute))
 
 		reqBody := model.RegisterUserRequest{
+			Email:        validEmail,
 			Code:         validCode,
 			FullName:     "Test User",
 			Password:     "Password123!",
@@ -182,6 +187,7 @@ func TestRegister(t *testing.T) {
 		createOTP(validEmail, validCode, time.Now().Add(5*time.Minute))
 
 		reqBody := model.RegisterUserRequest{
+			Email:        validEmail,
 			Code:         "000000",
 			FullName:     "Test User",
 			Password:     "Password123!",
@@ -206,6 +212,7 @@ func TestRegister(t *testing.T) {
 		createOTP("expired@example.com", validCode, time.Now().Add(-5*time.Minute))
 
 		reqBody := model.RegisterUserRequest{
+			Email:        "expired@example.com",
 			Code:         validCode,
 			FullName:     "Test User",
 			Password:     "Password123!",
@@ -237,6 +244,7 @@ func TestRegister(t *testing.T) {
 		createOTP("existing@example.com", validCode, time.Now().Add(5*time.Minute))
 
 		reqBody := model.RegisterUserRequest{
+			Email:        "existing@example.com",
 			Code:         validCode,
 			FullName:     "Test User",
 			Password:     "Password123!",
@@ -249,5 +257,142 @@ func TestRegister(t *testing.T) {
 		rr := executeRequest(req)
 
 		assert.Equal(t, http.StatusConflict, rr.Code)
+	})
+}
+
+func TestResetPassword(t *testing.T) {
+	validEmail := "reset@example.com"
+	validCode := "123456"
+	newPassword := "NewPassword123!"
+
+	t.Run("Success", func(t *testing.T) {
+		clearDatabase(context.Background())
+
+		originalSecret := testConfig.TurnstileSecretKey
+		testConfig.TurnstileSecretKey = cfTurnstileAlwaysPasses
+		defer func() { testConfig.TurnstileSecretKey = originalSecret }()
+
+		hashedPassword, _ := helper.HashPassword("OldPassword123!")
+		testClient.User.Create().
+			SetEmail(validEmail).
+			SetFullName("Reset User").
+			SetPasswordHash(hashedPassword).
+			Save(context.Background())
+
+		createOTP(validEmail, validCode, time.Now().Add(5*time.Minute))
+
+		hashedCode := helper.HashOTP(validCode, testConfig.OTPSecret)
+		testClient.OTP.Update().
+			Where(otp.Email(validEmail)).
+			SetMode(otp.Mode(constant.OTPModeReset)).
+			SetCode(hashedCode).
+			Exec(context.Background())
+
+		reqBody := model.ResetPasswordRequest{
+			Email:           validEmail,
+			Code:            validCode,
+			Password:        newPassword,
+			ConfirmPassword: newPassword,
+			CaptchaToken:    dummyTurnstileToken,
+		}
+		body, _ := json.Marshal(reqBody)
+		req, _ := http.NewRequest("POST", "/api/auth/reset-password", bytes.NewBuffer(body))
+		req.Header.Set("Content-Type", "application/json")
+
+		rr := executeRequest(req)
+
+		assert.Equal(t, http.StatusOK, rr.Code)
+
+		u, _ := testClient.User.Query().Where(user.Email(validEmail)).Only(context.Background())
+		assert.NotNil(t, u.PasswordHash)
+		assert.True(t, helper.CheckPasswordHash(newPassword, *u.PasswordHash))
+	})
+
+	t.Run("User Not Found", func(t *testing.T) {
+		clearDatabase(context.Background())
+
+		originalSecret := testConfig.TurnstileSecretKey
+		testConfig.TurnstileSecretKey = cfTurnstileAlwaysPasses
+		defer func() { testConfig.TurnstileSecretKey = originalSecret }()
+
+		createOTP("nonexistent@example.com", validCode, time.Now().Add(5*time.Minute))
+		hashedCode := helper.HashOTP(validCode, testConfig.OTPSecret)
+		testClient.OTP.Update().
+			Where(otp.Email("nonexistent@example.com")).
+			SetMode(otp.Mode(constant.OTPModeReset)).
+			SetCode(hashedCode).
+			Exec(context.Background())
+
+		reqBody := model.ResetPasswordRequest{
+			Email:           "nonexistent@example.com",
+			Code:            validCode,
+			Password:        newPassword,
+			ConfirmPassword: newPassword,
+			CaptchaToken:    dummyTurnstileToken,
+		}
+		body, _ := json.Marshal(reqBody)
+		req, _ := http.NewRequest("POST", "/api/auth/reset-password", bytes.NewBuffer(body))
+		req.Header.Set("Content-Type", "application/json")
+
+		rr := executeRequest(req)
+
+		assert.Equal(t, http.StatusNotFound, rr.Code)
+	})
+
+	t.Run("Invalid OTP", func(t *testing.T) {
+		clearDatabase(context.Background())
+
+		originalSecret := testConfig.TurnstileSecretKey
+		testConfig.TurnstileSecretKey = cfTurnstileAlwaysPasses
+		defer func() { testConfig.TurnstileSecretKey = originalSecret }()
+
+		hashedPassword, _ := helper.HashPassword("OldPassword123!")
+		testClient.User.Create().
+			SetEmail(validEmail).
+			SetFullName("Reset User").
+			SetPasswordHash(hashedPassword).
+			Save(context.Background())
+
+		createOTP(validEmail, validCode, time.Now().Add(5*time.Minute))
+		hashedCode := helper.HashOTP(validCode, testConfig.OTPSecret)
+		testClient.OTP.Update().
+			Where(otp.Email(validEmail)).
+			SetMode(otp.Mode(constant.OTPModeReset)).
+			SetCode(hashedCode).
+			Exec(context.Background())
+
+		reqBody := model.ResetPasswordRequest{
+			Email:           validEmail,
+			Code:            "000000",
+			Password:        newPassword,
+			ConfirmPassword: newPassword,
+			CaptchaToken:    dummyTurnstileToken,
+		}
+		body, _ := json.Marshal(reqBody)
+		req, _ := http.NewRequest("POST", "/api/auth/reset-password", bytes.NewBuffer(body))
+		req.Header.Set("Content-Type", "application/json")
+
+		rr := executeRequest(req)
+
+		assert.Equal(t, http.StatusBadRequest, rr.Code)
+	})
+
+	t.Run("Password Mismatch", func(t *testing.T) {
+		clearDatabase(context.Background())
+
+		reqBody := model.ResetPasswordRequest{
+			Email:           validEmail,
+			Code:            validCode,
+			Password:        newPassword,
+			ConfirmPassword: "DifferentPassword123!",
+			CaptchaToken:    dummyTurnstileToken,
+		}
+		body, _ := json.Marshal(reqBody)
+		req, _ := http.NewRequest("POST", "/api/auth/reset-password", bytes.NewBuffer(body))
+		req.Header.Set("Content-Type", "application/json")
+
+		rr := executeRequest(req)
+
+		assert.Equal(t, http.StatusBadRequest, rr.Code)
 	})
 }
