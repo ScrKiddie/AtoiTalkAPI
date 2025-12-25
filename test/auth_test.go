@@ -13,6 +13,7 @@ import (
 	"runtime"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -63,6 +64,7 @@ func TestGoogleExchange(t *testing.T) {
 		}
 
 		t.Run("Register", func(t *testing.T) {
+			clearDatabase(context.Background())
 			rr := makeRequest()
 			assert.Equal(t, http.StatusOK, rr.Code, "Response body: %s", rr.Body.String())
 
@@ -91,6 +93,7 @@ func TestGoogleExchange(t *testing.T) {
 		})
 
 		t.Run("Login Existing User", func(t *testing.T) {
+
 			rr := makeRequest()
 			assert.Equal(t, http.StatusOK, rr.Code, "Response body: %s", rr.Body.String())
 
@@ -99,5 +102,152 @@ func TestGoogleExchange(t *testing.T) {
 			assert.NoError(t, err)
 			assert.NotNil(t, resp.Data)
 		})
+	})
+}
+
+func TestRegister(t *testing.T) {
+
+	validEmail := "test@example.com"
+	validCode := "123456"
+
+	t.Run("Success", func(t *testing.T) {
+		clearDatabase(context.Background())
+
+		originalSecret := testConfig.TurnstileSecretKey
+		testConfig.TurnstileSecretKey = cfTurnstileAlwaysPasses
+		defer func() { testConfig.TurnstileSecretKey = originalSecret }()
+
+		createOTP(validEmail, validCode, time.Now().Add(5*time.Minute))
+
+		reqBody := model.RegisterUserRequest{
+			Code:         validCode,
+			FullName:     "Test User",
+			Password:     "Password123!",
+			CaptchaToken: dummyTurnstileToken,
+		}
+		body, _ := json.Marshal(reqBody)
+		req, _ := http.NewRequest("POST", "/api/auth/register", bytes.NewBuffer(body))
+		req.Header.Set("Content-Type", "application/json")
+
+		rr := executeRequest(req)
+
+		assert.Equal(t, http.StatusOK, rr.Code)
+		var resp helper.ResponseSuccess
+		json.Unmarshal(rr.Body.Bytes(), &resp)
+
+		dataMap, ok := resp.Data.(map[string]interface{})
+		assert.True(t, ok)
+		assert.Contains(t, dataMap, "token")
+
+		userMap, ok := dataMap["user"].(map[string]interface{})
+		assert.True(t, ok)
+		assert.Equal(t, validEmail, userMap["email"])
+		assert.Contains(t, userMap, "avatar")
+	})
+
+	t.Run("Invalid Captcha", func(t *testing.T) {
+		clearDatabase(context.Background())
+
+		originalSecret := testConfig.TurnstileSecretKey
+		testConfig.TurnstileSecretKey = cfTurnstileAlwaysFails
+		defer func() { testConfig.TurnstileSecretKey = originalSecret }()
+
+		createOTP(validEmail, validCode, time.Now().Add(5*time.Minute))
+
+		reqBody := model.RegisterUserRequest{
+			Code:         validCode,
+			FullName:     "Test User",
+			Password:     "Password123!",
+			CaptchaToken: dummyTurnstileToken,
+		}
+		body, _ := json.Marshal(reqBody)
+		req, _ := http.NewRequest("POST", "/api/auth/register", bytes.NewBuffer(body))
+		req.Header.Set("Content-Type", "application/json")
+
+		rr := executeRequest(req)
+
+		assert.Equal(t, http.StatusBadRequest, rr.Code)
+		var resp helper.ResponseError
+		json.Unmarshal(rr.Body.Bytes(), &resp)
+		assert.Equal(t, helper.MsgBadRequest, resp.Error)
+	})
+
+	t.Run("Invalid OTP", func(t *testing.T) {
+		clearDatabase(context.Background())
+
+		originalSecret := testConfig.TurnstileSecretKey
+		testConfig.TurnstileSecretKey = cfTurnstileAlwaysPasses
+		defer func() { testConfig.TurnstileSecretKey = originalSecret }()
+
+		createOTP(validEmail, validCode, time.Now().Add(5*time.Minute))
+
+		reqBody := model.RegisterUserRequest{
+			Code:         "000000",
+			FullName:     "Test User",
+			Password:     "Password123!",
+			CaptchaToken: dummyTurnstileToken,
+		}
+		body, _ := json.Marshal(reqBody)
+		req, _ := http.NewRequest("POST", "/api/auth/register", bytes.NewBuffer(body))
+		req.Header.Set("Content-Type", "application/json")
+
+		rr := executeRequest(req)
+
+		assert.Equal(t, http.StatusBadRequest, rr.Code)
+	})
+
+	t.Run("Expired OTP", func(t *testing.T) {
+		clearDatabase(context.Background())
+
+		originalSecret := testConfig.TurnstileSecretKey
+		testConfig.TurnstileSecretKey = cfTurnstileAlwaysPasses
+		defer func() { testConfig.TurnstileSecretKey = originalSecret }()
+
+		createOTP("expired@example.com", validCode, time.Now().Add(-5*time.Minute))
+
+		reqBody := model.RegisterUserRequest{
+			Code:         validCode,
+			FullName:     "Test User",
+			Password:     "Password123!",
+			CaptchaToken: dummyTurnstileToken,
+		}
+		body, _ := json.Marshal(reqBody)
+		req, _ := http.NewRequest("POST", "/api/auth/register", bytes.NewBuffer(body))
+		req.Header.Set("Content-Type", "application/json")
+
+		rr := executeRequest(req)
+
+		assert.Equal(t, http.StatusBadRequest, rr.Code)
+	})
+
+	t.Run("Email Already Registered", func(t *testing.T) {
+		clearDatabase(context.Background())
+
+		originalSecret := testConfig.TurnstileSecretKey
+		testConfig.TurnstileSecretKey = cfTurnstileAlwaysPasses
+		defer func() { testConfig.TurnstileSecretKey = originalSecret }()
+
+		hashedPassword, _ := helper.HashPassword("Password123!")
+		testClient.User.Create().
+			SetEmail("existing@example.com").
+			SetFullName("Existing User").
+			SetPasswordHash(hashedPassword).
+			Save(context.Background())
+
+		createOTP("existing@example.com", validCode, time.Now().Add(5*time.Minute))
+
+		reqBody := model.RegisterUserRequest{
+			Code:         validCode,
+			FullName:     "Test User",
+			Password:     "Password123!",
+			CaptchaToken: dummyTurnstileToken,
+		}
+		body, _ := json.Marshal(reqBody)
+		req, _ := http.NewRequest("POST", "/api/auth/register", bytes.NewBuffer(body))
+		req.Header.Set("Content-Type", "application/json")
+
+		rr := executeRequest(req)
+
+		assert.Equal(t, http.StatusConflict, rr.Code)
 	})
 }

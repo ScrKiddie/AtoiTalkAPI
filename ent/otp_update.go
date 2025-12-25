@@ -3,8 +3,8 @@
 package ent
 
 import (
+	"AtoiTalkAPI/ent/otp"
 	"AtoiTalkAPI/ent/predicate"
-	"AtoiTalkAPI/ent/tempcodes"
 	"context"
 	"errors"
 	"fmt"
@@ -15,33 +15,33 @@ import (
 	"entgo.io/ent/schema/field"
 )
 
-// TempCodesUpdate is the builder for updating TempCodes entities.
-type TempCodesUpdate struct {
+// OTPUpdate is the builder for updating OTP entities.
+type OTPUpdate struct {
 	config
 	hooks    []Hook
-	mutation *TempCodesMutation
+	mutation *OTPMutation
 }
 
-// Where appends a list predicates to the TempCodesUpdate builder.
-func (_u *TempCodesUpdate) Where(ps ...predicate.TempCodes) *TempCodesUpdate {
+// Where appends a list predicates to the OTPUpdate builder.
+func (_u *OTPUpdate) Where(ps ...predicate.OTP) *OTPUpdate {
 	_u.mutation.Where(ps...)
 	return _u
 }
 
 // SetUpdatedAt sets the "updated_at" field.
-func (_u *TempCodesUpdate) SetUpdatedAt(v time.Time) *TempCodesUpdate {
+func (_u *OTPUpdate) SetUpdatedAt(v time.Time) *OTPUpdate {
 	_u.mutation.SetUpdatedAt(v)
 	return _u
 }
 
 // SetEmail sets the "email" field.
-func (_u *TempCodesUpdate) SetEmail(v string) *TempCodesUpdate {
+func (_u *OTPUpdate) SetEmail(v string) *OTPUpdate {
 	_u.mutation.SetEmail(v)
 	return _u
 }
 
 // SetNillableEmail sets the "email" field if the given value is not nil.
-func (_u *TempCodesUpdate) SetNillableEmail(v *string) *TempCodesUpdate {
+func (_u *OTPUpdate) SetNillableEmail(v *string) *OTPUpdate {
 	if v != nil {
 		_u.SetEmail(*v)
 	}
@@ -49,13 +49,13 @@ func (_u *TempCodesUpdate) SetNillableEmail(v *string) *TempCodesUpdate {
 }
 
 // SetCode sets the "code" field.
-func (_u *TempCodesUpdate) SetCode(v string) *TempCodesUpdate {
+func (_u *OTPUpdate) SetCode(v string) *OTPUpdate {
 	_u.mutation.SetCode(v)
 	return _u
 }
 
 // SetNillableCode sets the "code" field if the given value is not nil.
-func (_u *TempCodesUpdate) SetNillableCode(v *string) *TempCodesUpdate {
+func (_u *OTPUpdate) SetNillableCode(v *string) *OTPUpdate {
 	if v != nil {
 		_u.SetCode(*v)
 	}
@@ -63,13 +63,13 @@ func (_u *TempCodesUpdate) SetNillableCode(v *string) *TempCodesUpdate {
 }
 
 // SetMode sets the "mode" field.
-func (_u *TempCodesUpdate) SetMode(v tempcodes.Mode) *TempCodesUpdate {
+func (_u *OTPUpdate) SetMode(v otp.Mode) *OTPUpdate {
 	_u.mutation.SetMode(v)
 	return _u
 }
 
 // SetNillableMode sets the "mode" field if the given value is not nil.
-func (_u *TempCodesUpdate) SetNillableMode(v *tempcodes.Mode) *TempCodesUpdate {
+func (_u *OTPUpdate) SetNillableMode(v *otp.Mode) *OTPUpdate {
 	if v != nil {
 		_u.SetMode(*v)
 	}
@@ -77,32 +77,32 @@ func (_u *TempCodesUpdate) SetNillableMode(v *tempcodes.Mode) *TempCodesUpdate {
 }
 
 // SetExpiresAt sets the "expires_at" field.
-func (_u *TempCodesUpdate) SetExpiresAt(v time.Time) *TempCodesUpdate {
+func (_u *OTPUpdate) SetExpiresAt(v time.Time) *OTPUpdate {
 	_u.mutation.SetExpiresAt(v)
 	return _u
 }
 
 // SetNillableExpiresAt sets the "expires_at" field if the given value is not nil.
-func (_u *TempCodesUpdate) SetNillableExpiresAt(v *time.Time) *TempCodesUpdate {
+func (_u *OTPUpdate) SetNillableExpiresAt(v *time.Time) *OTPUpdate {
 	if v != nil {
 		_u.SetExpiresAt(*v)
 	}
 	return _u
 }
 
-// Mutation returns the TempCodesMutation object of the builder.
-func (_u *TempCodesUpdate) Mutation() *TempCodesMutation {
+// Mutation returns the OTPMutation object of the builder.
+func (_u *OTPUpdate) Mutation() *OTPMutation {
 	return _u.mutation
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
-func (_u *TempCodesUpdate) Save(ctx context.Context) (int, error) {
+func (_u *OTPUpdate) Save(ctx context.Context) (int, error) {
 	_u.defaults()
 	return withHooks(ctx, _u.sqlSave, _u.mutation, _u.hooks)
 }
 
 // SaveX is like Save, but panics if an error occurs.
-func (_u *TempCodesUpdate) SaveX(ctx context.Context) int {
+func (_u *OTPUpdate) SaveX(ctx context.Context) int {
 	affected, err := _u.Save(ctx)
 	if err != nil {
 		panic(err)
@@ -111,51 +111,51 @@ func (_u *TempCodesUpdate) SaveX(ctx context.Context) int {
 }
 
 // Exec executes the query.
-func (_u *TempCodesUpdate) Exec(ctx context.Context) error {
+func (_u *OTPUpdate) Exec(ctx context.Context) error {
 	_, err := _u.Save(ctx)
 	return err
 }
 
 // ExecX is like Exec, but panics if an error occurs.
-func (_u *TempCodesUpdate) ExecX(ctx context.Context) {
+func (_u *OTPUpdate) ExecX(ctx context.Context) {
 	if err := _u.Exec(ctx); err != nil {
 		panic(err)
 	}
 }
 
 // defaults sets the default values of the builder before save.
-func (_u *TempCodesUpdate) defaults() {
+func (_u *OTPUpdate) defaults() {
 	if _, ok := _u.mutation.UpdatedAt(); !ok {
-		v := tempcodes.UpdateDefaultUpdatedAt()
+		v := otp.UpdateDefaultUpdatedAt()
 		_u.mutation.SetUpdatedAt(v)
 	}
 }
 
 // check runs all checks and user-defined validators on the builder.
-func (_u *TempCodesUpdate) check() error {
+func (_u *OTPUpdate) check() error {
 	if v, ok := _u.mutation.Email(); ok {
-		if err := tempcodes.EmailValidator(v); err != nil {
-			return &ValidationError{Name: "email", err: fmt.Errorf(`ent: validator failed for field "TempCodes.email": %w`, err)}
+		if err := otp.EmailValidator(v); err != nil {
+			return &ValidationError{Name: "email", err: fmt.Errorf(`ent: validator failed for field "OTP.email": %w`, err)}
 		}
 	}
 	if v, ok := _u.mutation.Code(); ok {
-		if err := tempcodes.CodeValidator(v); err != nil {
-			return &ValidationError{Name: "code", err: fmt.Errorf(`ent: validator failed for field "TempCodes.code": %w`, err)}
+		if err := otp.CodeValidator(v); err != nil {
+			return &ValidationError{Name: "code", err: fmt.Errorf(`ent: validator failed for field "OTP.code": %w`, err)}
 		}
 	}
 	if v, ok := _u.mutation.Mode(); ok {
-		if err := tempcodes.ModeValidator(v); err != nil {
-			return &ValidationError{Name: "mode", err: fmt.Errorf(`ent: validator failed for field "TempCodes.mode": %w`, err)}
+		if err := otp.ModeValidator(v); err != nil {
+			return &ValidationError{Name: "mode", err: fmt.Errorf(`ent: validator failed for field "OTP.mode": %w`, err)}
 		}
 	}
 	return nil
 }
 
-func (_u *TempCodesUpdate) sqlSave(ctx context.Context) (_node int, err error) {
+func (_u *OTPUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	if err := _u.check(); err != nil {
 		return _node, err
 	}
-	_spec := sqlgraph.NewUpdateSpec(tempcodes.Table, tempcodes.Columns, sqlgraph.NewFieldSpec(tempcodes.FieldID, field.TypeInt))
+	_spec := sqlgraph.NewUpdateSpec(otp.Table, otp.Columns, sqlgraph.NewFieldSpec(otp.FieldID, field.TypeInt))
 	if ps := _u.mutation.predicates; len(ps) > 0 {
 		_spec.Predicate = func(selector *sql.Selector) {
 			for i := range ps {
@@ -164,23 +164,23 @@ func (_u *TempCodesUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 		}
 	}
 	if value, ok := _u.mutation.UpdatedAt(); ok {
-		_spec.SetField(tempcodes.FieldUpdatedAt, field.TypeTime, value)
+		_spec.SetField(otp.FieldUpdatedAt, field.TypeTime, value)
 	}
 	if value, ok := _u.mutation.Email(); ok {
-		_spec.SetField(tempcodes.FieldEmail, field.TypeString, value)
+		_spec.SetField(otp.FieldEmail, field.TypeString, value)
 	}
 	if value, ok := _u.mutation.Code(); ok {
-		_spec.SetField(tempcodes.FieldCode, field.TypeString, value)
+		_spec.SetField(otp.FieldCode, field.TypeString, value)
 	}
 	if value, ok := _u.mutation.Mode(); ok {
-		_spec.SetField(tempcodes.FieldMode, field.TypeEnum, value)
+		_spec.SetField(otp.FieldMode, field.TypeEnum, value)
 	}
 	if value, ok := _u.mutation.ExpiresAt(); ok {
-		_spec.SetField(tempcodes.FieldExpiresAt, field.TypeTime, value)
+		_spec.SetField(otp.FieldExpiresAt, field.TypeTime, value)
 	}
 	if _node, err = sqlgraph.UpdateNodes(ctx, _u.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
-			err = &NotFoundError{tempcodes.Label}
+			err = &NotFoundError{otp.Label}
 		} else if sqlgraph.IsConstraintError(err) {
 			err = &ConstraintError{msg: err.Error(), wrap: err}
 		}
@@ -190,28 +190,28 @@ func (_u *TempCodesUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	return _node, nil
 }
 
-// TempCodesUpdateOne is the builder for updating a single TempCodes entity.
-type TempCodesUpdateOne struct {
+// OTPUpdateOne is the builder for updating a single OTP entity.
+type OTPUpdateOne struct {
 	config
 	fields   []string
 	hooks    []Hook
-	mutation *TempCodesMutation
+	mutation *OTPMutation
 }
 
 // SetUpdatedAt sets the "updated_at" field.
-func (_u *TempCodesUpdateOne) SetUpdatedAt(v time.Time) *TempCodesUpdateOne {
+func (_u *OTPUpdateOne) SetUpdatedAt(v time.Time) *OTPUpdateOne {
 	_u.mutation.SetUpdatedAt(v)
 	return _u
 }
 
 // SetEmail sets the "email" field.
-func (_u *TempCodesUpdateOne) SetEmail(v string) *TempCodesUpdateOne {
+func (_u *OTPUpdateOne) SetEmail(v string) *OTPUpdateOne {
 	_u.mutation.SetEmail(v)
 	return _u
 }
 
 // SetNillableEmail sets the "email" field if the given value is not nil.
-func (_u *TempCodesUpdateOne) SetNillableEmail(v *string) *TempCodesUpdateOne {
+func (_u *OTPUpdateOne) SetNillableEmail(v *string) *OTPUpdateOne {
 	if v != nil {
 		_u.SetEmail(*v)
 	}
@@ -219,13 +219,13 @@ func (_u *TempCodesUpdateOne) SetNillableEmail(v *string) *TempCodesUpdateOne {
 }
 
 // SetCode sets the "code" field.
-func (_u *TempCodesUpdateOne) SetCode(v string) *TempCodesUpdateOne {
+func (_u *OTPUpdateOne) SetCode(v string) *OTPUpdateOne {
 	_u.mutation.SetCode(v)
 	return _u
 }
 
 // SetNillableCode sets the "code" field if the given value is not nil.
-func (_u *TempCodesUpdateOne) SetNillableCode(v *string) *TempCodesUpdateOne {
+func (_u *OTPUpdateOne) SetNillableCode(v *string) *OTPUpdateOne {
 	if v != nil {
 		_u.SetCode(*v)
 	}
@@ -233,13 +233,13 @@ func (_u *TempCodesUpdateOne) SetNillableCode(v *string) *TempCodesUpdateOne {
 }
 
 // SetMode sets the "mode" field.
-func (_u *TempCodesUpdateOne) SetMode(v tempcodes.Mode) *TempCodesUpdateOne {
+func (_u *OTPUpdateOne) SetMode(v otp.Mode) *OTPUpdateOne {
 	_u.mutation.SetMode(v)
 	return _u
 }
 
 // SetNillableMode sets the "mode" field if the given value is not nil.
-func (_u *TempCodesUpdateOne) SetNillableMode(v *tempcodes.Mode) *TempCodesUpdateOne {
+func (_u *OTPUpdateOne) SetNillableMode(v *otp.Mode) *OTPUpdateOne {
 	if v != nil {
 		_u.SetMode(*v)
 	}
@@ -247,45 +247,45 @@ func (_u *TempCodesUpdateOne) SetNillableMode(v *tempcodes.Mode) *TempCodesUpdat
 }
 
 // SetExpiresAt sets the "expires_at" field.
-func (_u *TempCodesUpdateOne) SetExpiresAt(v time.Time) *TempCodesUpdateOne {
+func (_u *OTPUpdateOne) SetExpiresAt(v time.Time) *OTPUpdateOne {
 	_u.mutation.SetExpiresAt(v)
 	return _u
 }
 
 // SetNillableExpiresAt sets the "expires_at" field if the given value is not nil.
-func (_u *TempCodesUpdateOne) SetNillableExpiresAt(v *time.Time) *TempCodesUpdateOne {
+func (_u *OTPUpdateOne) SetNillableExpiresAt(v *time.Time) *OTPUpdateOne {
 	if v != nil {
 		_u.SetExpiresAt(*v)
 	}
 	return _u
 }
 
-// Mutation returns the TempCodesMutation object of the builder.
-func (_u *TempCodesUpdateOne) Mutation() *TempCodesMutation {
+// Mutation returns the OTPMutation object of the builder.
+func (_u *OTPUpdateOne) Mutation() *OTPMutation {
 	return _u.mutation
 }
 
-// Where appends a list predicates to the TempCodesUpdate builder.
-func (_u *TempCodesUpdateOne) Where(ps ...predicate.TempCodes) *TempCodesUpdateOne {
+// Where appends a list predicates to the OTPUpdate builder.
+func (_u *OTPUpdateOne) Where(ps ...predicate.OTP) *OTPUpdateOne {
 	_u.mutation.Where(ps...)
 	return _u
 }
 
 // Select allows selecting one or more fields (columns) of the returned entity.
 // The default is selecting all fields defined in the entity schema.
-func (_u *TempCodesUpdateOne) Select(field string, fields ...string) *TempCodesUpdateOne {
+func (_u *OTPUpdateOne) Select(field string, fields ...string) *OTPUpdateOne {
 	_u.fields = append([]string{field}, fields...)
 	return _u
 }
 
-// Save executes the query and returns the updated TempCodes entity.
-func (_u *TempCodesUpdateOne) Save(ctx context.Context) (*TempCodes, error) {
+// Save executes the query and returns the updated OTP entity.
+func (_u *OTPUpdateOne) Save(ctx context.Context) (*OTP, error) {
 	_u.defaults()
 	return withHooks(ctx, _u.sqlSave, _u.mutation, _u.hooks)
 }
 
 // SaveX is like Save, but panics if an error occurs.
-func (_u *TempCodesUpdateOne) SaveX(ctx context.Context) *TempCodes {
+func (_u *OTPUpdateOne) SaveX(ctx context.Context) *OTP {
 	node, err := _u.Save(ctx)
 	if err != nil {
 		panic(err)
@@ -294,64 +294,64 @@ func (_u *TempCodesUpdateOne) SaveX(ctx context.Context) *TempCodes {
 }
 
 // Exec executes the query on the entity.
-func (_u *TempCodesUpdateOne) Exec(ctx context.Context) error {
+func (_u *OTPUpdateOne) Exec(ctx context.Context) error {
 	_, err := _u.Save(ctx)
 	return err
 }
 
 // ExecX is like Exec, but panics if an error occurs.
-func (_u *TempCodesUpdateOne) ExecX(ctx context.Context) {
+func (_u *OTPUpdateOne) ExecX(ctx context.Context) {
 	if err := _u.Exec(ctx); err != nil {
 		panic(err)
 	}
 }
 
 // defaults sets the default values of the builder before save.
-func (_u *TempCodesUpdateOne) defaults() {
+func (_u *OTPUpdateOne) defaults() {
 	if _, ok := _u.mutation.UpdatedAt(); !ok {
-		v := tempcodes.UpdateDefaultUpdatedAt()
+		v := otp.UpdateDefaultUpdatedAt()
 		_u.mutation.SetUpdatedAt(v)
 	}
 }
 
 // check runs all checks and user-defined validators on the builder.
-func (_u *TempCodesUpdateOne) check() error {
+func (_u *OTPUpdateOne) check() error {
 	if v, ok := _u.mutation.Email(); ok {
-		if err := tempcodes.EmailValidator(v); err != nil {
-			return &ValidationError{Name: "email", err: fmt.Errorf(`ent: validator failed for field "TempCodes.email": %w`, err)}
+		if err := otp.EmailValidator(v); err != nil {
+			return &ValidationError{Name: "email", err: fmt.Errorf(`ent: validator failed for field "OTP.email": %w`, err)}
 		}
 	}
 	if v, ok := _u.mutation.Code(); ok {
-		if err := tempcodes.CodeValidator(v); err != nil {
-			return &ValidationError{Name: "code", err: fmt.Errorf(`ent: validator failed for field "TempCodes.code": %w`, err)}
+		if err := otp.CodeValidator(v); err != nil {
+			return &ValidationError{Name: "code", err: fmt.Errorf(`ent: validator failed for field "OTP.code": %w`, err)}
 		}
 	}
 	if v, ok := _u.mutation.Mode(); ok {
-		if err := tempcodes.ModeValidator(v); err != nil {
-			return &ValidationError{Name: "mode", err: fmt.Errorf(`ent: validator failed for field "TempCodes.mode": %w`, err)}
+		if err := otp.ModeValidator(v); err != nil {
+			return &ValidationError{Name: "mode", err: fmt.Errorf(`ent: validator failed for field "OTP.mode": %w`, err)}
 		}
 	}
 	return nil
 }
 
-func (_u *TempCodesUpdateOne) sqlSave(ctx context.Context) (_node *TempCodes, err error) {
+func (_u *OTPUpdateOne) sqlSave(ctx context.Context) (_node *OTP, err error) {
 	if err := _u.check(); err != nil {
 		return _node, err
 	}
-	_spec := sqlgraph.NewUpdateSpec(tempcodes.Table, tempcodes.Columns, sqlgraph.NewFieldSpec(tempcodes.FieldID, field.TypeInt))
+	_spec := sqlgraph.NewUpdateSpec(otp.Table, otp.Columns, sqlgraph.NewFieldSpec(otp.FieldID, field.TypeInt))
 	id, ok := _u.mutation.ID()
 	if !ok {
-		return nil, &ValidationError{Name: "id", err: errors.New(`ent: missing "TempCodes.id" for update`)}
+		return nil, &ValidationError{Name: "id", err: errors.New(`ent: missing "OTP.id" for update`)}
 	}
 	_spec.Node.ID.Value = id
 	if fields := _u.fields; len(fields) > 0 {
 		_spec.Node.Columns = make([]string, 0, len(fields))
-		_spec.Node.Columns = append(_spec.Node.Columns, tempcodes.FieldID)
+		_spec.Node.Columns = append(_spec.Node.Columns, otp.FieldID)
 		for _, f := range fields {
-			if !tempcodes.ValidColumn(f) {
+			if !otp.ValidColumn(f) {
 				return nil, &ValidationError{Name: f, err: fmt.Errorf("ent: invalid field %q for query", f)}
 			}
-			if f != tempcodes.FieldID {
+			if f != otp.FieldID {
 				_spec.Node.Columns = append(_spec.Node.Columns, f)
 			}
 		}
@@ -364,26 +364,26 @@ func (_u *TempCodesUpdateOne) sqlSave(ctx context.Context) (_node *TempCodes, er
 		}
 	}
 	if value, ok := _u.mutation.UpdatedAt(); ok {
-		_spec.SetField(tempcodes.FieldUpdatedAt, field.TypeTime, value)
+		_spec.SetField(otp.FieldUpdatedAt, field.TypeTime, value)
 	}
 	if value, ok := _u.mutation.Email(); ok {
-		_spec.SetField(tempcodes.FieldEmail, field.TypeString, value)
+		_spec.SetField(otp.FieldEmail, field.TypeString, value)
 	}
 	if value, ok := _u.mutation.Code(); ok {
-		_spec.SetField(tempcodes.FieldCode, field.TypeString, value)
+		_spec.SetField(otp.FieldCode, field.TypeString, value)
 	}
 	if value, ok := _u.mutation.Mode(); ok {
-		_spec.SetField(tempcodes.FieldMode, field.TypeEnum, value)
+		_spec.SetField(otp.FieldMode, field.TypeEnum, value)
 	}
 	if value, ok := _u.mutation.ExpiresAt(); ok {
-		_spec.SetField(tempcodes.FieldExpiresAt, field.TypeTime, value)
+		_spec.SetField(otp.FieldExpiresAt, field.TypeTime, value)
 	}
-	_node = &TempCodes{config: _u.config}
+	_node = &OTP{config: _u.config}
 	_spec.Assign = _node.assignValues
 	_spec.ScanValues = _node.scanValues
 	if err = sqlgraph.UpdateNode(ctx, _u.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
-			err = &NotFoundError{tempcodes.Label}
+			err = &NotFoundError{otp.Label}
 		} else if sqlgraph.IsConstraintError(err) {
 			err = &ConstraintError{msg: err.Error(), wrap: err}
 		}

@@ -3,7 +3,7 @@
 package ent
 
 import (
-	"AtoiTalkAPI/ent/tempcodes"
+	"AtoiTalkAPI/ent/otp"
 	"fmt"
 	"strings"
 	"time"
@@ -12,8 +12,8 @@ import (
 	"entgo.io/ent/dialect/sql"
 )
 
-// TempCodes is the model entity for the TempCodes schema.
-type TempCodes struct {
+// OTP is the model entity for the OTP schema.
+type OTP struct {
 	config `json:"-"`
 	// ID of the ent.
 	ID int `json:"id,omitempty"`
@@ -26,22 +26,22 @@ type TempCodes struct {
 	// Code holds the value of the "code" field.
 	Code string `json:"code,omitempty"`
 	// Mode holds the value of the "mode" field.
-	Mode tempcodes.Mode `json:"mode,omitempty"`
+	Mode otp.Mode `json:"mode,omitempty"`
 	// ExpiresAt holds the value of the "expires_at" field.
 	ExpiresAt    time.Time `json:"expires_at,omitempty"`
 	selectValues sql.SelectValues
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
-func (*TempCodes) scanValues(columns []string) ([]any, error) {
+func (*OTP) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case tempcodes.FieldID:
+		case otp.FieldID:
 			values[i] = new(sql.NullInt64)
-		case tempcodes.FieldEmail, tempcodes.FieldCode, tempcodes.FieldMode:
+		case otp.FieldEmail, otp.FieldCode, otp.FieldMode:
 			values[i] = new(sql.NullString)
-		case tempcodes.FieldCreatedAt, tempcodes.FieldUpdatedAt, tempcodes.FieldExpiresAt:
+		case otp.FieldCreatedAt, otp.FieldUpdatedAt, otp.FieldExpiresAt:
 			values[i] = new(sql.NullTime)
 		default:
 			values[i] = new(sql.UnknownType)
@@ -51,50 +51,50 @@ func (*TempCodes) scanValues(columns []string) ([]any, error) {
 }
 
 // assignValues assigns the values that were returned from sql.Rows (after scanning)
-// to the TempCodes fields.
-func (_m *TempCodes) assignValues(columns []string, values []any) error {
+// to the OTP fields.
+func (_m *OTP) assignValues(columns []string, values []any) error {
 	if m, n := len(values), len(columns); m < n {
 		return fmt.Errorf("mismatch number of scan values: %d != %d", m, n)
 	}
 	for i := range columns {
 		switch columns[i] {
-		case tempcodes.FieldID:
+		case otp.FieldID:
 			value, ok := values[i].(*sql.NullInt64)
 			if !ok {
 				return fmt.Errorf("unexpected type %T for field id", value)
 			}
 			_m.ID = int(value.Int64)
-		case tempcodes.FieldCreatedAt:
+		case otp.FieldCreatedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field created_at", values[i])
 			} else if value.Valid {
 				_m.CreatedAt = value.Time
 			}
-		case tempcodes.FieldUpdatedAt:
+		case otp.FieldUpdatedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field updated_at", values[i])
 			} else if value.Valid {
 				_m.UpdatedAt = value.Time
 			}
-		case tempcodes.FieldEmail:
+		case otp.FieldEmail:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field email", values[i])
 			} else if value.Valid {
 				_m.Email = value.String
 			}
-		case tempcodes.FieldCode:
+		case otp.FieldCode:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field code", values[i])
 			} else if value.Valid {
 				_m.Code = value.String
 			}
-		case tempcodes.FieldMode:
+		case otp.FieldMode:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field mode", values[i])
 			} else if value.Valid {
-				_m.Mode = tempcodes.Mode(value.String)
+				_m.Mode = otp.Mode(value.String)
 			}
-		case tempcodes.FieldExpiresAt:
+		case otp.FieldExpiresAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field expires_at", values[i])
 			} else if value.Valid {
@@ -107,34 +107,34 @@ func (_m *TempCodes) assignValues(columns []string, values []any) error {
 	return nil
 }
 
-// Value returns the ent.Value that was dynamically selected and assigned to the TempCodes.
+// Value returns the ent.Value that was dynamically selected and assigned to the OTP.
 // This includes values selected through modifiers, order, etc.
-func (_m *TempCodes) Value(name string) (ent.Value, error) {
+func (_m *OTP) Value(name string) (ent.Value, error) {
 	return _m.selectValues.Get(name)
 }
 
-// Update returns a builder for updating this TempCodes.
-// Note that you need to call TempCodes.Unwrap() before calling this method if this TempCodes
+// Update returns a builder for updating this OTP.
+// Note that you need to call OTP.Unwrap() before calling this method if this OTP
 // was returned from a transaction, and the transaction was committed or rolled back.
-func (_m *TempCodes) Update() *TempCodesUpdateOne {
-	return NewTempCodesClient(_m.config).UpdateOne(_m)
+func (_m *OTP) Update() *OTPUpdateOne {
+	return NewOTPClient(_m.config).UpdateOne(_m)
 }
 
-// Unwrap unwraps the TempCodes entity that was returned from a transaction after it was closed,
+// Unwrap unwraps the OTP entity that was returned from a transaction after it was closed,
 // so that all future queries will be executed through the driver which created the transaction.
-func (_m *TempCodes) Unwrap() *TempCodes {
+func (_m *OTP) Unwrap() *OTP {
 	_tx, ok := _m.config.driver.(*txDriver)
 	if !ok {
-		panic("ent: TempCodes is not a transactional entity")
+		panic("ent: OTP is not a transactional entity")
 	}
 	_m.config.driver = _tx.drv
 	return _m
 }
 
 // String implements the fmt.Stringer.
-func (_m *TempCodes) String() string {
+func (_m *OTP) String() string {
 	var builder strings.Builder
-	builder.WriteString("TempCodes(")
+	builder.WriteString("OTP(")
 	builder.WriteString(fmt.Sprintf("id=%v, ", _m.ID))
 	builder.WriteString("created_at=")
 	builder.WriteString(_m.CreatedAt.Format(time.ANSIC))
@@ -157,5 +157,5 @@ func (_m *TempCodes) String() string {
 	return builder.String()
 }
 
-// TempCodesSlice is a parsable slice of TempCodes.
-type TempCodesSlice []*TempCodes
+// OTPs is a parsable slice of OTP.
+type OTPs []*OTP

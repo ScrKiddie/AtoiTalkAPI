@@ -8,9 +8,9 @@ import (
 	"AtoiTalkAPI/ent/groupchat"
 	"AtoiTalkAPI/ent/groupmember"
 	"AtoiTalkAPI/ent/message"
+	"AtoiTalkAPI/ent/otp"
 	"AtoiTalkAPI/ent/privatechat"
 	"AtoiTalkAPI/ent/schema"
-	"AtoiTalkAPI/ent/tempcodes"
 	"AtoiTalkAPI/ent/user"
 	"AtoiTalkAPI/ent/useridentity"
 	"time"
@@ -139,28 +139,26 @@ func init() {
 	messageDescIsEdited := messageFields[5].Descriptor()
 	// message.DefaultIsEdited holds the default value on creation for the is_edited field.
 	message.DefaultIsEdited = messageDescIsEdited.Default.(bool)
-	privatechatHooks := schema.PrivateChat{}.Hooks()
-	privatechat.Hooks[0] = privatechatHooks[0]
-	tempcodesMixin := schema.TempCodes{}.Mixin()
-	tempcodesMixinFields0 := tempcodesMixin[0].Fields()
-	_ = tempcodesMixinFields0
-	tempcodesFields := schema.TempCodes{}.Fields()
-	_ = tempcodesFields
-	// tempcodesDescCreatedAt is the schema descriptor for created_at field.
-	tempcodesDescCreatedAt := tempcodesMixinFields0[0].Descriptor()
-	// tempcodes.DefaultCreatedAt holds the default value on creation for the created_at field.
-	tempcodes.DefaultCreatedAt = tempcodesDescCreatedAt.Default.(func() time.Time)
-	// tempcodesDescUpdatedAt is the schema descriptor for updated_at field.
-	tempcodesDescUpdatedAt := tempcodesMixinFields0[1].Descriptor()
-	// tempcodes.DefaultUpdatedAt holds the default value on creation for the updated_at field.
-	tempcodes.DefaultUpdatedAt = tempcodesDescUpdatedAt.Default.(func() time.Time)
-	// tempcodes.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
-	tempcodes.UpdateDefaultUpdatedAt = tempcodesDescUpdatedAt.UpdateDefault.(func() time.Time)
-	// tempcodesDescEmail is the schema descriptor for email field.
-	tempcodesDescEmail := tempcodesFields[0].Descriptor()
-	// tempcodes.EmailValidator is a validator for the "email" field. It is called by the builders before save.
-	tempcodes.EmailValidator = func() func(string) error {
-		validators := tempcodesDescEmail.Validators
+	otpMixin := schema.OTP{}.Mixin()
+	otpMixinFields0 := otpMixin[0].Fields()
+	_ = otpMixinFields0
+	otpFields := schema.OTP{}.Fields()
+	_ = otpFields
+	// otpDescCreatedAt is the schema descriptor for created_at field.
+	otpDescCreatedAt := otpMixinFields0[0].Descriptor()
+	// otp.DefaultCreatedAt holds the default value on creation for the created_at field.
+	otp.DefaultCreatedAt = otpDescCreatedAt.Default.(func() time.Time)
+	// otpDescUpdatedAt is the schema descriptor for updated_at field.
+	otpDescUpdatedAt := otpMixinFields0[1].Descriptor()
+	// otp.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	otp.DefaultUpdatedAt = otpDescUpdatedAt.Default.(func() time.Time)
+	// otp.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	otp.UpdateDefaultUpdatedAt = otpDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// otpDescEmail is the schema descriptor for email field.
+	otpDescEmail := otpFields[0].Descriptor()
+	// otp.EmailValidator is a validator for the "email" field. It is called by the builders before save.
+	otp.EmailValidator = func() func(string) error {
+		validators := otpDescEmail.Validators
 		fns := [...]func(string) error{
 			validators[0].(func(string) error),
 			validators[1].(func(string) error),
@@ -174,11 +172,11 @@ func init() {
 			return nil
 		}
 	}()
-	// tempcodesDescCode is the schema descriptor for code field.
-	tempcodesDescCode := tempcodesFields[1].Descriptor()
-	// tempcodes.CodeValidator is a validator for the "code" field. It is called by the builders before save.
-	tempcodes.CodeValidator = func() func(string) error {
-		validators := tempcodesDescCode.Validators
+	// otpDescCode is the schema descriptor for code field.
+	otpDescCode := otpFields[1].Descriptor()
+	// otp.CodeValidator is a validator for the "code" field. It is called by the builders before save.
+	otp.CodeValidator = func() func(string) error {
+		validators := otpDescCode.Validators
 		fns := [...]func(string) error{
 			validators[0].(func(string) error),
 			validators[1].(func(string) error),
@@ -192,6 +190,8 @@ func init() {
 			return nil
 		}
 	}()
+	privatechatHooks := schema.PrivateChat{}.Hooks()
+	privatechat.Hooks[0] = privatechatHooks[0]
 	userMixin := schema.User{}.Mixin()
 	userMixinFields0 := userMixin[0].Fields()
 	_ = userMixinFields0

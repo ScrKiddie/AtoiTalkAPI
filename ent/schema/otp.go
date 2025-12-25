@@ -7,23 +7,24 @@ import (
 	"entgo.io/ent/schema/index"
 )
 
-type TempCodes struct {
+type OTP struct {
 	ent.Schema
 }
 
-func (TempCodes) Mixin() []ent.Mixin {
+func (OTP) Mixin() []ent.Mixin {
 	return []ent.Mixin{
 		TimeMixin{},
 	}
 }
 
-func (TempCodes) Fields() []ent.Field {
+func (OTP) Fields() []ent.Field {
 	return []ent.Field{
 		field.String("email").
 			Unique().
 			MaxLen(255).
 			NotEmpty(),
 		field.String("code").
+			Unique().
 			MaxLen(255).
 			NotEmpty(),
 		field.Enum("mode").
@@ -33,14 +34,14 @@ func (TempCodes) Fields() []ent.Field {
 	}
 }
 
-func (TempCodes) Indexes() []ent.Index {
+func (OTP) Indexes() []ent.Index {
 	return []ent.Index{
 		index.Fields("email").
-			StorageKey("idx_temp_codes_email"),
+			StorageKey("idx_otp_email"),
 
 		index.Fields("mode", "created_at").
 			Annotations(entsql.DescColumns("created_at")).
-			StorageKey("idx_temp_codes_mode_time"),
+			StorageKey("idx_otp_mode_time"),
 
 		index.Fields("expires_at"),
 	}

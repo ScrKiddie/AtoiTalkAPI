@@ -9,6 +9,7 @@ const (
 	MsgUnauthorized        = "Unauthorized"
 	MsgMethodNotAllowed    = "Method Not Allowed"
 	MsgTooManyRequests     = "Too Many Requests"
+	MsgConflict            = "Conflict"
 )
 
 type AppError struct {
@@ -67,4 +68,11 @@ func NewTooManyRequestsError(message string) *AppError {
 		message = MsgTooManyRequests
 	}
 	return NewAppError(http.StatusTooManyRequests, message)
+}
+
+func NewConflictError(message string) *AppError {
+	if message == "" {
+		message = MsgConflict
+	}
+	return NewAppError(http.StatusConflict, message)
 }

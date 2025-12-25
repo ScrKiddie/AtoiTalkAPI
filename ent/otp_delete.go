@@ -3,8 +3,8 @@
 package ent
 
 import (
+	"AtoiTalkAPI/ent/otp"
 	"AtoiTalkAPI/ent/predicate"
-	"AtoiTalkAPI/ent/tempcodes"
 	"context"
 
 	"entgo.io/ent/dialect/sql"
@@ -12,26 +12,26 @@ import (
 	"entgo.io/ent/schema/field"
 )
 
-// TempCodesDelete is the builder for deleting a TempCodes entity.
-type TempCodesDelete struct {
+// OTPDelete is the builder for deleting a OTP entity.
+type OTPDelete struct {
 	config
 	hooks    []Hook
-	mutation *TempCodesMutation
+	mutation *OTPMutation
 }
 
-// Where appends a list predicates to the TempCodesDelete builder.
-func (_d *TempCodesDelete) Where(ps ...predicate.TempCodes) *TempCodesDelete {
+// Where appends a list predicates to the OTPDelete builder.
+func (_d *OTPDelete) Where(ps ...predicate.OTP) *OTPDelete {
 	_d.mutation.Where(ps...)
 	return _d
 }
 
 // Exec executes the deletion query and returns how many vertices were deleted.
-func (_d *TempCodesDelete) Exec(ctx context.Context) (int, error) {
+func (_d *OTPDelete) Exec(ctx context.Context) (int, error) {
 	return withHooks(ctx, _d.sqlExec, _d.mutation, _d.hooks)
 }
 
 // ExecX is like Exec, but panics if an error occurs.
-func (_d *TempCodesDelete) ExecX(ctx context.Context) int {
+func (_d *OTPDelete) ExecX(ctx context.Context) int {
 	n, err := _d.Exec(ctx)
 	if err != nil {
 		panic(err)
@@ -39,8 +39,8 @@ func (_d *TempCodesDelete) ExecX(ctx context.Context) int {
 	return n
 }
 
-func (_d *TempCodesDelete) sqlExec(ctx context.Context) (int, error) {
-	_spec := sqlgraph.NewDeleteSpec(tempcodes.Table, sqlgraph.NewFieldSpec(tempcodes.FieldID, field.TypeInt))
+func (_d *OTPDelete) sqlExec(ctx context.Context) (int, error) {
+	_spec := sqlgraph.NewDeleteSpec(otp.Table, sqlgraph.NewFieldSpec(otp.FieldID, field.TypeInt))
 	if ps := _d.mutation.predicates; len(ps) > 0 {
 		_spec.Predicate = func(selector *sql.Selector) {
 			for i := range ps {
@@ -56,32 +56,32 @@ func (_d *TempCodesDelete) sqlExec(ctx context.Context) (int, error) {
 	return affected, err
 }
 
-// TempCodesDeleteOne is the builder for deleting a single TempCodes entity.
-type TempCodesDeleteOne struct {
-	_d *TempCodesDelete
+// OTPDeleteOne is the builder for deleting a single OTP entity.
+type OTPDeleteOne struct {
+	_d *OTPDelete
 }
 
-// Where appends a list predicates to the TempCodesDelete builder.
-func (_d *TempCodesDeleteOne) Where(ps ...predicate.TempCodes) *TempCodesDeleteOne {
+// Where appends a list predicates to the OTPDelete builder.
+func (_d *OTPDeleteOne) Where(ps ...predicate.OTP) *OTPDeleteOne {
 	_d._d.mutation.Where(ps...)
 	return _d
 }
 
 // Exec executes the deletion query.
-func (_d *TempCodesDeleteOne) Exec(ctx context.Context) error {
+func (_d *OTPDeleteOne) Exec(ctx context.Context) error {
 	n, err := _d._d.Exec(ctx)
 	switch {
 	case err != nil:
 		return err
 	case n == 0:
-		return &NotFoundError{tempcodes.Label}
+		return &NotFoundError{otp.Label}
 	default:
 		return nil
 	}
 }
 
 // ExecX is like Exec, but panics if an error occurs.
-func (_d *TempCodesDeleteOne) ExecX(ctx context.Context) {
+func (_d *OTPDeleteOne) ExecX(ctx context.Context) {
 	if err := _d.Exec(ctx); err != nil {
 		panic(err)
 	}

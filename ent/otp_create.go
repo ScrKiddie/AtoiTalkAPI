@@ -3,7 +3,7 @@
 package ent
 
 import (
-	"AtoiTalkAPI/ent/tempcodes"
+	"AtoiTalkAPI/ent/otp"
 	"context"
 	"errors"
 	"fmt"
@@ -13,21 +13,21 @@ import (
 	"entgo.io/ent/schema/field"
 )
 
-// TempCodesCreate is the builder for creating a TempCodes entity.
-type TempCodesCreate struct {
+// OTPCreate is the builder for creating a OTP entity.
+type OTPCreate struct {
 	config
-	mutation *TempCodesMutation
+	mutation *OTPMutation
 	hooks    []Hook
 }
 
 // SetCreatedAt sets the "created_at" field.
-func (_c *TempCodesCreate) SetCreatedAt(v time.Time) *TempCodesCreate {
+func (_c *OTPCreate) SetCreatedAt(v time.Time) *OTPCreate {
 	_c.mutation.SetCreatedAt(v)
 	return _c
 }
 
 // SetNillableCreatedAt sets the "created_at" field if the given value is not nil.
-func (_c *TempCodesCreate) SetNillableCreatedAt(v *time.Time) *TempCodesCreate {
+func (_c *OTPCreate) SetNillableCreatedAt(v *time.Time) *OTPCreate {
 	if v != nil {
 		_c.SetCreatedAt(*v)
 	}
@@ -35,13 +35,13 @@ func (_c *TempCodesCreate) SetNillableCreatedAt(v *time.Time) *TempCodesCreate {
 }
 
 // SetUpdatedAt sets the "updated_at" field.
-func (_c *TempCodesCreate) SetUpdatedAt(v time.Time) *TempCodesCreate {
+func (_c *OTPCreate) SetUpdatedAt(v time.Time) *OTPCreate {
 	_c.mutation.SetUpdatedAt(v)
 	return _c
 }
 
 // SetNillableUpdatedAt sets the "updated_at" field if the given value is not nil.
-func (_c *TempCodesCreate) SetNillableUpdatedAt(v *time.Time) *TempCodesCreate {
+func (_c *OTPCreate) SetNillableUpdatedAt(v *time.Time) *OTPCreate {
 	if v != nil {
 		_c.SetUpdatedAt(*v)
 	}
@@ -49,25 +49,25 @@ func (_c *TempCodesCreate) SetNillableUpdatedAt(v *time.Time) *TempCodesCreate {
 }
 
 // SetEmail sets the "email" field.
-func (_c *TempCodesCreate) SetEmail(v string) *TempCodesCreate {
+func (_c *OTPCreate) SetEmail(v string) *OTPCreate {
 	_c.mutation.SetEmail(v)
 	return _c
 }
 
 // SetCode sets the "code" field.
-func (_c *TempCodesCreate) SetCode(v string) *TempCodesCreate {
+func (_c *OTPCreate) SetCode(v string) *OTPCreate {
 	_c.mutation.SetCode(v)
 	return _c
 }
 
 // SetMode sets the "mode" field.
-func (_c *TempCodesCreate) SetMode(v tempcodes.Mode) *TempCodesCreate {
+func (_c *OTPCreate) SetMode(v otp.Mode) *OTPCreate {
 	_c.mutation.SetMode(v)
 	return _c
 }
 
 // SetNillableMode sets the "mode" field if the given value is not nil.
-func (_c *TempCodesCreate) SetNillableMode(v *tempcodes.Mode) *TempCodesCreate {
+func (_c *OTPCreate) SetNillableMode(v *otp.Mode) *OTPCreate {
 	if v != nil {
 		_c.SetMode(*v)
 	}
@@ -75,24 +75,24 @@ func (_c *TempCodesCreate) SetNillableMode(v *tempcodes.Mode) *TempCodesCreate {
 }
 
 // SetExpiresAt sets the "expires_at" field.
-func (_c *TempCodesCreate) SetExpiresAt(v time.Time) *TempCodesCreate {
+func (_c *OTPCreate) SetExpiresAt(v time.Time) *OTPCreate {
 	_c.mutation.SetExpiresAt(v)
 	return _c
 }
 
-// Mutation returns the TempCodesMutation object of the builder.
-func (_c *TempCodesCreate) Mutation() *TempCodesMutation {
+// Mutation returns the OTPMutation object of the builder.
+func (_c *OTPCreate) Mutation() *OTPMutation {
 	return _c.mutation
 }
 
-// Save creates the TempCodes in the database.
-func (_c *TempCodesCreate) Save(ctx context.Context) (*TempCodes, error) {
+// Save creates the OTP in the database.
+func (_c *OTPCreate) Save(ctx context.Context) (*OTP, error) {
 	_c.defaults()
 	return withHooks(ctx, _c.sqlSave, _c.mutation, _c.hooks)
 }
 
 // SaveX calls Save and panics if Save returns an error.
-func (_c *TempCodesCreate) SaveX(ctx context.Context) *TempCodes {
+func (_c *OTPCreate) SaveX(ctx context.Context) *OTP {
 	v, err := _c.Save(ctx)
 	if err != nil {
 		panic(err)
@@ -101,73 +101,73 @@ func (_c *TempCodesCreate) SaveX(ctx context.Context) *TempCodes {
 }
 
 // Exec executes the query.
-func (_c *TempCodesCreate) Exec(ctx context.Context) error {
+func (_c *OTPCreate) Exec(ctx context.Context) error {
 	_, err := _c.Save(ctx)
 	return err
 }
 
 // ExecX is like Exec, but panics if an error occurs.
-func (_c *TempCodesCreate) ExecX(ctx context.Context) {
+func (_c *OTPCreate) ExecX(ctx context.Context) {
 	if err := _c.Exec(ctx); err != nil {
 		panic(err)
 	}
 }
 
 // defaults sets the default values of the builder before save.
-func (_c *TempCodesCreate) defaults() {
+func (_c *OTPCreate) defaults() {
 	if _, ok := _c.mutation.CreatedAt(); !ok {
-		v := tempcodes.DefaultCreatedAt()
+		v := otp.DefaultCreatedAt()
 		_c.mutation.SetCreatedAt(v)
 	}
 	if _, ok := _c.mutation.UpdatedAt(); !ok {
-		v := tempcodes.DefaultUpdatedAt()
+		v := otp.DefaultUpdatedAt()
 		_c.mutation.SetUpdatedAt(v)
 	}
 	if _, ok := _c.mutation.Mode(); !ok {
-		v := tempcodes.DefaultMode
+		v := otp.DefaultMode
 		_c.mutation.SetMode(v)
 	}
 }
 
 // check runs all checks and user-defined validators on the builder.
-func (_c *TempCodesCreate) check() error {
+func (_c *OTPCreate) check() error {
 	if _, ok := _c.mutation.CreatedAt(); !ok {
-		return &ValidationError{Name: "created_at", err: errors.New(`ent: missing required field "TempCodes.created_at"`)}
+		return &ValidationError{Name: "created_at", err: errors.New(`ent: missing required field "OTP.created_at"`)}
 	}
 	if _, ok := _c.mutation.UpdatedAt(); !ok {
-		return &ValidationError{Name: "updated_at", err: errors.New(`ent: missing required field "TempCodes.updated_at"`)}
+		return &ValidationError{Name: "updated_at", err: errors.New(`ent: missing required field "OTP.updated_at"`)}
 	}
 	if _, ok := _c.mutation.Email(); !ok {
-		return &ValidationError{Name: "email", err: errors.New(`ent: missing required field "TempCodes.email"`)}
+		return &ValidationError{Name: "email", err: errors.New(`ent: missing required field "OTP.email"`)}
 	}
 	if v, ok := _c.mutation.Email(); ok {
-		if err := tempcodes.EmailValidator(v); err != nil {
-			return &ValidationError{Name: "email", err: fmt.Errorf(`ent: validator failed for field "TempCodes.email": %w`, err)}
+		if err := otp.EmailValidator(v); err != nil {
+			return &ValidationError{Name: "email", err: fmt.Errorf(`ent: validator failed for field "OTP.email": %w`, err)}
 		}
 	}
 	if _, ok := _c.mutation.Code(); !ok {
-		return &ValidationError{Name: "code", err: errors.New(`ent: missing required field "TempCodes.code"`)}
+		return &ValidationError{Name: "code", err: errors.New(`ent: missing required field "OTP.code"`)}
 	}
 	if v, ok := _c.mutation.Code(); ok {
-		if err := tempcodes.CodeValidator(v); err != nil {
-			return &ValidationError{Name: "code", err: fmt.Errorf(`ent: validator failed for field "TempCodes.code": %w`, err)}
+		if err := otp.CodeValidator(v); err != nil {
+			return &ValidationError{Name: "code", err: fmt.Errorf(`ent: validator failed for field "OTP.code": %w`, err)}
 		}
 	}
 	if _, ok := _c.mutation.Mode(); !ok {
-		return &ValidationError{Name: "mode", err: errors.New(`ent: missing required field "TempCodes.mode"`)}
+		return &ValidationError{Name: "mode", err: errors.New(`ent: missing required field "OTP.mode"`)}
 	}
 	if v, ok := _c.mutation.Mode(); ok {
-		if err := tempcodes.ModeValidator(v); err != nil {
-			return &ValidationError{Name: "mode", err: fmt.Errorf(`ent: validator failed for field "TempCodes.mode": %w`, err)}
+		if err := otp.ModeValidator(v); err != nil {
+			return &ValidationError{Name: "mode", err: fmt.Errorf(`ent: validator failed for field "OTP.mode": %w`, err)}
 		}
 	}
 	if _, ok := _c.mutation.ExpiresAt(); !ok {
-		return &ValidationError{Name: "expires_at", err: errors.New(`ent: missing required field "TempCodes.expires_at"`)}
+		return &ValidationError{Name: "expires_at", err: errors.New(`ent: missing required field "OTP.expires_at"`)}
 	}
 	return nil
 }
 
-func (_c *TempCodesCreate) sqlSave(ctx context.Context) (*TempCodes, error) {
+func (_c *OTPCreate) sqlSave(ctx context.Context) (*OTP, error) {
 	if err := _c.check(); err != nil {
 		return nil, err
 	}
@@ -185,59 +185,59 @@ func (_c *TempCodesCreate) sqlSave(ctx context.Context) (*TempCodes, error) {
 	return _node, nil
 }
 
-func (_c *TempCodesCreate) createSpec() (*TempCodes, *sqlgraph.CreateSpec) {
+func (_c *OTPCreate) createSpec() (*OTP, *sqlgraph.CreateSpec) {
 	var (
-		_node = &TempCodes{config: _c.config}
-		_spec = sqlgraph.NewCreateSpec(tempcodes.Table, sqlgraph.NewFieldSpec(tempcodes.FieldID, field.TypeInt))
+		_node = &OTP{config: _c.config}
+		_spec = sqlgraph.NewCreateSpec(otp.Table, sqlgraph.NewFieldSpec(otp.FieldID, field.TypeInt))
 	)
 	if value, ok := _c.mutation.CreatedAt(); ok {
-		_spec.SetField(tempcodes.FieldCreatedAt, field.TypeTime, value)
+		_spec.SetField(otp.FieldCreatedAt, field.TypeTime, value)
 		_node.CreatedAt = value
 	}
 	if value, ok := _c.mutation.UpdatedAt(); ok {
-		_spec.SetField(tempcodes.FieldUpdatedAt, field.TypeTime, value)
+		_spec.SetField(otp.FieldUpdatedAt, field.TypeTime, value)
 		_node.UpdatedAt = value
 	}
 	if value, ok := _c.mutation.Email(); ok {
-		_spec.SetField(tempcodes.FieldEmail, field.TypeString, value)
+		_spec.SetField(otp.FieldEmail, field.TypeString, value)
 		_node.Email = value
 	}
 	if value, ok := _c.mutation.Code(); ok {
-		_spec.SetField(tempcodes.FieldCode, field.TypeString, value)
+		_spec.SetField(otp.FieldCode, field.TypeString, value)
 		_node.Code = value
 	}
 	if value, ok := _c.mutation.Mode(); ok {
-		_spec.SetField(tempcodes.FieldMode, field.TypeEnum, value)
+		_spec.SetField(otp.FieldMode, field.TypeEnum, value)
 		_node.Mode = value
 	}
 	if value, ok := _c.mutation.ExpiresAt(); ok {
-		_spec.SetField(tempcodes.FieldExpiresAt, field.TypeTime, value)
+		_spec.SetField(otp.FieldExpiresAt, field.TypeTime, value)
 		_node.ExpiresAt = value
 	}
 	return _node, _spec
 }
 
-// TempCodesCreateBulk is the builder for creating many TempCodes entities in bulk.
-type TempCodesCreateBulk struct {
+// OTPCreateBulk is the builder for creating many OTP entities in bulk.
+type OTPCreateBulk struct {
 	config
 	err      error
-	builders []*TempCodesCreate
+	builders []*OTPCreate
 }
 
-// Save creates the TempCodes entities in the database.
-func (_c *TempCodesCreateBulk) Save(ctx context.Context) ([]*TempCodes, error) {
+// Save creates the OTP entities in the database.
+func (_c *OTPCreateBulk) Save(ctx context.Context) ([]*OTP, error) {
 	if _c.err != nil {
 		return nil, _c.err
 	}
 	specs := make([]*sqlgraph.CreateSpec, len(_c.builders))
-	nodes := make([]*TempCodes, len(_c.builders))
+	nodes := make([]*OTP, len(_c.builders))
 	mutators := make([]Mutator, len(_c.builders))
 	for i := range _c.builders {
 		func(i int, root context.Context) {
 			builder := _c.builders[i]
 			builder.defaults()
 			var mut Mutator = MutateFunc(func(ctx context.Context, m Mutation) (Value, error) {
-				mutation, ok := m.(*TempCodesMutation)
+				mutation, ok := m.(*OTPMutation)
 				if !ok {
 					return nil, fmt.Errorf("unexpected mutation type %T", m)
 				}
@@ -284,7 +284,7 @@ func (_c *TempCodesCreateBulk) Save(ctx context.Context) ([]*TempCodes, error) {
 }
 
 // SaveX is like Save, but panics if an error occurs.
-func (_c *TempCodesCreateBulk) SaveX(ctx context.Context) []*TempCodes {
+func (_c *OTPCreateBulk) SaveX(ctx context.Context) []*OTP {
 	v, err := _c.Save(ctx)
 	if err != nil {
 		panic(err)
@@ -293,13 +293,13 @@ func (_c *TempCodesCreateBulk) SaveX(ctx context.Context) []*TempCodes {
 }
 
 // Exec executes the query.
-func (_c *TempCodesCreateBulk) Exec(ctx context.Context) error {
+func (_c *OTPCreateBulk) Exec(ctx context.Context) error {
 	_, err := _c.Save(ctx)
 	return err
 }
 
 // ExecX is like Exec, but panics if an error occurs.
-func (_c *TempCodesCreateBulk) ExecX(ctx context.Context) {
+func (_c *OTPCreateBulk) ExecX(ctx context.Context) {
 	if err := _c.Exec(ctx); err != nil {
 		panic(err)
 	}

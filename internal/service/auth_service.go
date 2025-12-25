@@ -2,10 +2,12 @@ package service
 
 import (
 	"AtoiTalkAPI/ent"
+	"AtoiTalkAPI/ent/otp"
 	_ "AtoiTalkAPI/ent/runtime"
 	"AtoiTalkAPI/ent/user"
 	"AtoiTalkAPI/internal/adapter"
 	"AtoiTalkAPI/internal/config"
+	"AtoiTalkAPI/internal/constant"
 	"AtoiTalkAPI/internal/helper"
 	"AtoiTalkAPI/internal/model"
 	"bytes"
@@ -13,6 +15,7 @@ import (
 	"log/slog"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/go-playground/validator/v10"
 	"google.golang.org/api/idtoken"
@@ -23,14 +26,16 @@ type AuthService struct {
 	cfg            *config.AppConfig
 	validator      *validator.Validate
 	storageAdapter *adapter.StorageAdapter
+	captchaAdapter *adapter.CaptchaAdapter
 }
 
-func NewAuthService(client *ent.Client, cfg *config.AppConfig, validator *validator.Validate, storageAdapter *adapter.StorageAdapter) *AuthService {
+func NewAuthService(client *ent.Client, cfg *config.AppConfig, validator *validator.Validate, storageAdapter *adapter.StorageAdapter, captchaAdapter *adapter.CaptchaAdapter) *AuthService {
 	return &AuthService{
 		client:         client,
 		cfg:            cfg,
 		validator:      validator,
 		storageAdapter: storageAdapter,
+		captchaAdapter: captchaAdapter,
 	}
 }
 
@@ -51,6 +56,7 @@ func (s *AuthService) GoogleExchange(ctx context.Context, req model.GoogleLoginR
 		slog.Warn("Email not found in token claims")
 		return nil, helper.NewBadRequestError("")
 	}
+	email = helper.NormalizeEmail(email)
 
 	name, ok := payload.Claims["name"].(string)
 	if !ok || name == "" {
@@ -117,6 +123,104 @@ func (s *AuthService) GoogleExchange(ctx context.Context, req model.GoogleLoginR
 			Email:    u.Email,
 			FullName: u.FullName,
 			Avatar:   avatarURL,
+		},
+	}, nil
+}
+
+func (s *AuthService) Register(ctx context.Context, req model.RegisterUserRequest) (*model.AuthResponse, error) {
+	if err := s.validator.Struct(req); err != nil {
+		slog.Warn("Validation failed", "error", err)
+		return nil, helper.NewBadRequestError("")
+	}
+
+	if err := s.captchaAdapter.Verify(req.CaptchaToken, ""); err != nil {
+		slog.Warn("Captcha verification failed", "error", err)
+		return nil, helper.NewBadRequestError("")
+	}
+
+	tx, err := s.client.Tx(ctx)
+	if err != nil {
+		slog.Error("Failed to start transaction", "error", err)
+		return nil, helper.NewInternalServerError("")
+	}
+
+	defer func() {
+		_ = tx.Rollback()
+		if v := recover(); v != nil {
+			panic(v)
+		}
+	}()
+
+	hashedCode := helper.HashOTP(req.Code, s.cfg.OTPSecret)
+
+	otpRecord, err := tx.OTP.Query().
+		Where(
+			otp.CodeEQ(hashedCode),
+			otp.ModeEQ(constant.OTPModeRegister),
+			otp.ExpiresAtGT(time.Now()),
+		).
+		Only(ctx)
+
+	if err != nil {
+		if ent.IsNotFound(err) {
+			return nil, helper.NewBadRequestError("Invalid or expired OTP")
+		}
+		slog.Error("Failed to query OTP", "error", err)
+		return nil, helper.NewInternalServerError("")
+	}
+
+	email := otpRecord.Email
+
+	err = tx.OTP.DeleteOne(otpRecord).Exec(ctx)
+	if err != nil {
+		slog.Error("Failed to delete OTP", "error", err)
+		return nil, helper.NewInternalServerError("")
+	}
+
+	exists, err := tx.User.Query().
+		Where(user.Email(email)).
+		Exist(ctx)
+	if err != nil {
+		slog.Error("Failed to check user existence", "error", err)
+		return nil, helper.NewInternalServerError("")
+	}
+	if exists {
+		return nil, helper.NewConflictError("Email already registered")
+	}
+
+	hashedPassword, err := helper.HashPassword(req.Password)
+	if err != nil {
+		slog.Error("Failed to hash password", "error", err)
+		return nil, helper.NewInternalServerError("")
+	}
+
+	newUser, err := tx.User.Create().
+		SetEmail(email).
+		SetFullName(req.FullName).
+		SetPasswordHash(hashedPassword).
+		Save(ctx)
+	if err != nil {
+		slog.Error("Failed to create user", "error", err)
+		return nil, helper.NewInternalServerError("")
+	}
+
+	if err := tx.Commit(); err != nil {
+		slog.Error("Failed to commit transaction", "error", err)
+		return nil, helper.NewInternalServerError("")
+	}
+
+	token, err := helper.GenerateJWT(s.cfg.JWTSecret, s.cfg.JWTExp, newUser.ID)
+	if err != nil {
+		slog.Error("Failed to generate JWT token", "error", err)
+		return nil, helper.NewInternalServerError("")
+	}
+
+	return &model.AuthResponse{
+		Token: token,
+		User: model.UserDTO{
+			ID:       newUser.ID,
+			Email:    newUser.Email,
+			FullName: newUser.FullName,
 		},
 	}, nil
 }

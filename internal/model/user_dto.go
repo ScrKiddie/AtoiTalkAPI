@@ -4,7 +4,7 @@ type UserDTO struct {
 	ID       int    `json:"id"`
 	Email    string `json:"email"`
 	FullName string `json:"full_name"`
-	Avatar   string `json:"avatar,omitempty"`
+	Avatar   string `json:"avatar"`
 }
 
 type CreateUserDTO struct {
