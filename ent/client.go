@@ -11,10 +11,10 @@ import (
 
 	"AtoiTalkAPI/ent/migrate"
 
-	"AtoiTalkAPI/ent/attachment"
 	"AtoiTalkAPI/ent/chat"
 	"AtoiTalkAPI/ent/groupchat"
 	"AtoiTalkAPI/ent/groupmember"
+	"AtoiTalkAPI/ent/media"
 	"AtoiTalkAPI/ent/message"
 	"AtoiTalkAPI/ent/otp"
 	"AtoiTalkAPI/ent/privatechat"
@@ -32,14 +32,14 @@ type Client struct {
 	config
 	// Schema is the client for creating, migrating and dropping schema.
 	Schema *migrate.Schema
-	// Attachment is the client for interacting with the Attachment builders.
-	Attachment *AttachmentClient
 	// Chat is the client for interacting with the Chat builders.
 	Chat *ChatClient
 	// GroupChat is the client for interacting with the GroupChat builders.
 	GroupChat *GroupChatClient
 	// GroupMember is the client for interacting with the GroupMember builders.
 	GroupMember *GroupMemberClient
+	// Media is the client for interacting with the Media builders.
+	Media *MediaClient
 	// Message is the client for interacting with the Message builders.
 	Message *MessageClient
 	// OTP is the client for interacting with the OTP builders.
@@ -61,10 +61,10 @@ func NewClient(opts ...Option) *Client {
 
 func (c *Client) init() {
 	c.Schema = migrate.NewSchema(c.driver)
-	c.Attachment = NewAttachmentClient(c.config)
 	c.Chat = NewChatClient(c.config)
 	c.GroupChat = NewGroupChatClient(c.config)
 	c.GroupMember = NewGroupMemberClient(c.config)
+	c.Media = NewMediaClient(c.config)
 	c.Message = NewMessageClient(c.config)
 	c.OTP = NewOTPClient(c.config)
 	c.PrivateChat = NewPrivateChatClient(c.config)
@@ -162,10 +162,10 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 	return &Tx{
 		ctx:          ctx,
 		config:       cfg,
-		Attachment:   NewAttachmentClient(cfg),
 		Chat:         NewChatClient(cfg),
 		GroupChat:    NewGroupChatClient(cfg),
 		GroupMember:  NewGroupMemberClient(cfg),
+		Media:        NewMediaClient(cfg),
 		Message:      NewMessageClient(cfg),
 		OTP:          NewOTPClient(cfg),
 		PrivateChat:  NewPrivateChatClient(cfg),
@@ -190,10 +190,10 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 	return &Tx{
 		ctx:          ctx,
 		config:       cfg,
-		Attachment:   NewAttachmentClient(cfg),
 		Chat:         NewChatClient(cfg),
 		GroupChat:    NewGroupChatClient(cfg),
 		GroupMember:  NewGroupMemberClient(cfg),
+		Media:        NewMediaClient(cfg),
 		Message:      NewMessageClient(cfg),
 		OTP:          NewOTPClient(cfg),
 		PrivateChat:  NewPrivateChatClient(cfg),
@@ -205,7 +205,7 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 // Debug returns a new debug-client. It's used to get verbose logging on specific operations.
 //
 //	client.Debug().
-//		Attachment.
+//		Chat.
 //		Query().
 //		Count(ctx)
 func (c *Client) Debug() *Client {
@@ -228,8 +228,8 @@ func (c *Client) Close() error {
 // In order to add hooks to a specific client, call: `client.Node.Use(...)`.
 func (c *Client) Use(hooks ...Hook) {
 	for _, n := range []interface{ Use(...Hook) }{
-		c.Attachment, c.Chat, c.GroupChat, c.GroupMember, c.Message, c.OTP,
-		c.PrivateChat, c.User, c.UserIdentity,
+		c.Chat, c.GroupChat, c.GroupMember, c.Media, c.Message, c.OTP, c.PrivateChat,
+		c.User, c.UserIdentity,
 	} {
 		n.Use(hooks...)
 	}
@@ -239,8 +239,8 @@ func (c *Client) Use(hooks ...Hook) {
 // In order to add interceptors to a specific client, call: `client.Node.Intercept(...)`.
 func (c *Client) Intercept(interceptors ...Interceptor) {
 	for _, n := range []interface{ Intercept(...Interceptor) }{
-		c.Attachment, c.Chat, c.GroupChat, c.GroupMember, c.Message, c.OTP,
-		c.PrivateChat, c.User, c.UserIdentity,
+		c.Chat, c.GroupChat, c.GroupMember, c.Media, c.Message, c.OTP, c.PrivateChat,
+		c.User, c.UserIdentity,
 	} {
 		n.Intercept(interceptors...)
 	}
@@ -249,14 +249,14 @@ func (c *Client) Intercept(interceptors ...Interceptor) {
 // Mutate implements the ent.Mutator interface.
 func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 	switch m := m.(type) {
-	case *AttachmentMutation:
-		return c.Attachment.mutate(ctx, m)
 	case *ChatMutation:
 		return c.Chat.mutate(ctx, m)
 	case *GroupChatMutation:
 		return c.GroupChat.mutate(ctx, m)
 	case *GroupMemberMutation:
 		return c.GroupMember.mutate(ctx, m)
+	case *MediaMutation:
+		return c.Media.mutate(ctx, m)
 	case *MessageMutation:
 		return c.Message.mutate(ctx, m)
 	case *OTPMutation:
@@ -269,155 +269,6 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.UserIdentity.mutate(ctx, m)
 	default:
 		return nil, fmt.Errorf("ent: unknown mutation type %T", m)
-	}
-}
-
-// AttachmentClient is a client for the Attachment schema.
-type AttachmentClient struct {
-	config
-}
-
-// NewAttachmentClient returns a client for the Attachment from the given config.
-func NewAttachmentClient(c config) *AttachmentClient {
-	return &AttachmentClient{config: c}
-}
-
-// Use adds a list of mutation hooks to the hooks stack.
-// A call to `Use(f, g, h)` equals to `attachment.Hooks(f(g(h())))`.
-func (c *AttachmentClient) Use(hooks ...Hook) {
-	c.hooks.Attachment = append(c.hooks.Attachment, hooks...)
-}
-
-// Intercept adds a list of query interceptors to the interceptors stack.
-// A call to `Intercept(f, g, h)` equals to `attachment.Intercept(f(g(h())))`.
-func (c *AttachmentClient) Intercept(interceptors ...Interceptor) {
-	c.inters.Attachment = append(c.inters.Attachment, interceptors...)
-}
-
-// Create returns a builder for creating a Attachment entity.
-func (c *AttachmentClient) Create() *AttachmentCreate {
-	mutation := newAttachmentMutation(c.config, OpCreate)
-	return &AttachmentCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
-}
-
-// CreateBulk returns a builder for creating a bulk of Attachment entities.
-func (c *AttachmentClient) CreateBulk(builders ...*AttachmentCreate) *AttachmentCreateBulk {
-	return &AttachmentCreateBulk{config: c.config, builders: builders}
-}
-
-// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
-// a builder and applies setFunc on it.
-func (c *AttachmentClient) MapCreateBulk(slice any, setFunc func(*AttachmentCreate, int)) *AttachmentCreateBulk {
-	rv := reflect.ValueOf(slice)
-	if rv.Kind() != reflect.Slice {
-		return &AttachmentCreateBulk{err: fmt.Errorf("calling to AttachmentClient.MapCreateBulk with wrong type %T, need slice", slice)}
-	}
-	builders := make([]*AttachmentCreate, rv.Len())
-	for i := 0; i < rv.Len(); i++ {
-		builders[i] = c.Create()
-		setFunc(builders[i], i)
-	}
-	return &AttachmentCreateBulk{config: c.config, builders: builders}
-}
-
-// Update returns an update builder for Attachment.
-func (c *AttachmentClient) Update() *AttachmentUpdate {
-	mutation := newAttachmentMutation(c.config, OpUpdate)
-	return &AttachmentUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
-}
-
-// UpdateOne returns an update builder for the given entity.
-func (c *AttachmentClient) UpdateOne(_m *Attachment) *AttachmentUpdateOne {
-	mutation := newAttachmentMutation(c.config, OpUpdateOne, withAttachment(_m))
-	return &AttachmentUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
-}
-
-// UpdateOneID returns an update builder for the given id.
-func (c *AttachmentClient) UpdateOneID(id int) *AttachmentUpdateOne {
-	mutation := newAttachmentMutation(c.config, OpUpdateOne, withAttachmentID(id))
-	return &AttachmentUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
-}
-
-// Delete returns a delete builder for Attachment.
-func (c *AttachmentClient) Delete() *AttachmentDelete {
-	mutation := newAttachmentMutation(c.config, OpDelete)
-	return &AttachmentDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
-}
-
-// DeleteOne returns a builder for deleting the given entity.
-func (c *AttachmentClient) DeleteOne(_m *Attachment) *AttachmentDeleteOne {
-	return c.DeleteOneID(_m.ID)
-}
-
-// DeleteOneID returns a builder for deleting the given entity by its id.
-func (c *AttachmentClient) DeleteOneID(id int) *AttachmentDeleteOne {
-	builder := c.Delete().Where(attachment.ID(id))
-	builder.mutation.id = &id
-	builder.mutation.op = OpDeleteOne
-	return &AttachmentDeleteOne{builder}
-}
-
-// Query returns a query builder for Attachment.
-func (c *AttachmentClient) Query() *AttachmentQuery {
-	return &AttachmentQuery{
-		config: c.config,
-		ctx:    &QueryContext{Type: TypeAttachment},
-		inters: c.Interceptors(),
-	}
-}
-
-// Get returns a Attachment entity by its id.
-func (c *AttachmentClient) Get(ctx context.Context, id int) (*Attachment, error) {
-	return c.Query().Where(attachment.ID(id)).Only(ctx)
-}
-
-// GetX is like Get, but panics if an error occurs.
-func (c *AttachmentClient) GetX(ctx context.Context, id int) *Attachment {
-	obj, err := c.Get(ctx, id)
-	if err != nil {
-		panic(err)
-	}
-	return obj
-}
-
-// QueryMessage queries the message edge of a Attachment.
-func (c *AttachmentClient) QueryMessage(_m *Attachment) *MessageQuery {
-	query := (&MessageClient{config: c.config}).Query()
-	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
-		id := _m.ID
-		step := sqlgraph.NewStep(
-			sqlgraph.From(attachment.Table, attachment.FieldID, id),
-			sqlgraph.To(message.Table, message.FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, true, attachment.MessageTable, attachment.MessageColumn),
-		)
-		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
-		return fromV, nil
-	}
-	return query
-}
-
-// Hooks returns the client hooks.
-func (c *AttachmentClient) Hooks() []Hook {
-	return c.hooks.Attachment
-}
-
-// Interceptors returns the client interceptors.
-func (c *AttachmentClient) Interceptors() []Interceptor {
-	return c.inters.Attachment
-}
-
-func (c *AttachmentClient) mutate(ctx context.Context, m *AttachmentMutation) (Value, error) {
-	switch m.Op() {
-	case OpCreate:
-		return (&AttachmentCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
-	case OpUpdate:
-		return (&AttachmentUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
-	case OpUpdateOne:
-		return (&AttachmentUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
-	case OpDelete, OpDeleteOne:
-		return (&AttachmentDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
-	default:
-		return nil, fmt.Errorf("ent: unknown Attachment mutation op: %q", m.Op())
 	}
 }
 
@@ -726,6 +577,22 @@ func (c *GroupChatClient) GetX(ctx context.Context, id int) *GroupChat {
 	return obj
 }
 
+// QueryAvatar queries the avatar edge of a GroupChat.
+func (c *GroupChatClient) QueryAvatar(_m *GroupChat) *MediaQuery {
+	query := (&MediaClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(groupchat.Table, groupchat.FieldID, id),
+			sqlgraph.To(media.Table, media.FieldID),
+			sqlgraph.Edge(sqlgraph.O2O, true, groupchat.AvatarTable, groupchat.AvatarColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
 // QueryChat queries the chat edge of a GroupChat.
 func (c *GroupChatClient) QueryChat(_m *GroupChat) *ChatQuery {
 	query := (&ChatClient{config: c.config}).Query()
@@ -964,6 +831,187 @@ func (c *GroupMemberClient) mutate(ctx context.Context, m *GroupMemberMutation) 
 	}
 }
 
+// MediaClient is a client for the Media schema.
+type MediaClient struct {
+	config
+}
+
+// NewMediaClient returns a client for the Media from the given config.
+func NewMediaClient(c config) *MediaClient {
+	return &MediaClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `media.Hooks(f(g(h())))`.
+func (c *MediaClient) Use(hooks ...Hook) {
+	c.hooks.Media = append(c.hooks.Media, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `media.Intercept(f(g(h())))`.
+func (c *MediaClient) Intercept(interceptors ...Interceptor) {
+	c.inters.Media = append(c.inters.Media, interceptors...)
+}
+
+// Create returns a builder for creating a Media entity.
+func (c *MediaClient) Create() *MediaCreate {
+	mutation := newMediaMutation(c.config, OpCreate)
+	return &MediaCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of Media entities.
+func (c *MediaClient) CreateBulk(builders ...*MediaCreate) *MediaCreateBulk {
+	return &MediaCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *MediaClient) MapCreateBulk(slice any, setFunc func(*MediaCreate, int)) *MediaCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &MediaCreateBulk{err: fmt.Errorf("calling to MediaClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*MediaCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &MediaCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for Media.
+func (c *MediaClient) Update() *MediaUpdate {
+	mutation := newMediaMutation(c.config, OpUpdate)
+	return &MediaUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *MediaClient) UpdateOne(_m *Media) *MediaUpdateOne {
+	mutation := newMediaMutation(c.config, OpUpdateOne, withMedia(_m))
+	return &MediaUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *MediaClient) UpdateOneID(id int) *MediaUpdateOne {
+	mutation := newMediaMutation(c.config, OpUpdateOne, withMediaID(id))
+	return &MediaUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for Media.
+func (c *MediaClient) Delete() *MediaDelete {
+	mutation := newMediaMutation(c.config, OpDelete)
+	return &MediaDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *MediaClient) DeleteOne(_m *Media) *MediaDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *MediaClient) DeleteOneID(id int) *MediaDeleteOne {
+	builder := c.Delete().Where(media.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &MediaDeleteOne{builder}
+}
+
+// Query returns a query builder for Media.
+func (c *MediaClient) Query() *MediaQuery {
+	return &MediaQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeMedia},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a Media entity by its id.
+func (c *MediaClient) Get(ctx context.Context, id int) (*Media, error) {
+	return c.Query().Where(media.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *MediaClient) GetX(ctx context.Context, id int) *Media {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QueryMessage queries the message edge of a Media.
+func (c *MediaClient) QueryMessage(_m *Media) *MessageQuery {
+	query := (&MessageClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(media.Table, media.FieldID, id),
+			sqlgraph.To(message.Table, message.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, media.MessageTable, media.MessageColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryUserAvatar queries the user_avatar edge of a Media.
+func (c *MediaClient) QueryUserAvatar(_m *Media) *UserQuery {
+	query := (&UserClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(media.Table, media.FieldID, id),
+			sqlgraph.To(user.Table, user.FieldID),
+			sqlgraph.Edge(sqlgraph.O2O, false, media.UserAvatarTable, media.UserAvatarColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryGroupAvatar queries the group_avatar edge of a Media.
+func (c *MediaClient) QueryGroupAvatar(_m *Media) *GroupChatQuery {
+	query := (&GroupChatClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(media.Table, media.FieldID, id),
+			sqlgraph.To(groupchat.Table, groupchat.FieldID),
+			sqlgraph.Edge(sqlgraph.O2O, false, media.GroupAvatarTable, media.GroupAvatarColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *MediaClient) Hooks() []Hook {
+	return c.hooks.Media
+}
+
+// Interceptors returns the client interceptors.
+func (c *MediaClient) Interceptors() []Interceptor {
+	return c.inters.Media
+}
+
+func (c *MediaClient) mutate(ctx context.Context, m *MediaMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&MediaCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&MediaUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&MediaUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&MediaDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown Media mutation op: %q", m.Op())
+	}
+}
+
 // MessageClient is a client for the Message schema.
 type MessageClient struct {
 	config
@@ -1137,13 +1185,13 @@ func (c *MessageClient) QueryReplyTo(_m *Message) *MessageQuery {
 }
 
 // QueryAttachments queries the attachments edge of a Message.
-func (c *MessageClient) QueryAttachments(_m *Message) *AttachmentQuery {
-	query := (&AttachmentClient{config: c.config}).Query()
+func (c *MessageClient) QueryAttachments(_m *Message) *MediaQuery {
+	query := (&MediaClient{config: c.config}).Query()
 	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
 		id := _m.ID
 		step := sqlgraph.NewStep(
 			sqlgraph.From(message.Table, message.FieldID, id),
-			sqlgraph.To(attachment.Table, attachment.FieldID),
+			sqlgraph.To(media.Table, media.FieldID),
 			sqlgraph.Edge(sqlgraph.O2M, false, message.AttachmentsTable, message.AttachmentsColumn),
 		)
 		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
@@ -1616,6 +1664,22 @@ func (c *UserClient) GetX(ctx context.Context, id int) *User {
 	return obj
 }
 
+// QueryAvatar queries the avatar edge of a User.
+func (c *UserClient) QueryAvatar(_m *User) *MediaQuery {
+	query := (&MediaClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(user.Table, user.FieldID, id),
+			sqlgraph.To(media.Table, media.FieldID),
+			sqlgraph.Edge(sqlgraph.O2O, true, user.AvatarTable, user.AvatarColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
 // QueryIdentities queries the identities edge of a User.
 func (c *UserClient) QueryIdentities(_m *User) *UserIdentityQuery {
 	query := (&UserIdentityClient{config: c.config}).Query()
@@ -1889,11 +1953,11 @@ func (c *UserIdentityClient) mutate(ctx context.Context, m *UserIdentityMutation
 // hooks and interceptors per client, for fast access.
 type (
 	hooks struct {
-		Attachment, Chat, GroupChat, GroupMember, Message, OTP, PrivateChat, User,
+		Chat, GroupChat, GroupMember, Media, Message, OTP, PrivateChat, User,
 		UserIdentity []ent.Hook
 	}
 	inters struct {
-		Attachment, Chat, GroupChat, GroupMember, Message, OTP, PrivateChat, User,
+		Chat, GroupChat, GroupMember, Media, Message, OTP, PrivateChat, User,
 		UserIdentity []ent.Interceptor
 	}
 )

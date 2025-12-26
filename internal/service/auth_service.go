@@ -51,36 +51,29 @@ func (s *AuthService) VerifyUser(ctx context.Context, tokenString string) (*mode
 
 	if err != nil {
 		slog.Warn("Failed to parse JWT token", "error", err)
-		return nil, helper.NewUnauthorizedError("Invalid or expired token")
+		return nil, helper.NewUnauthorizedError("")
 	}
 
 	claims, ok := token.Claims.(*helper.JWTClaims)
 	if !ok || !token.Valid {
-		return nil, helper.NewUnauthorizedError("Invalid token claims")
+		return nil, helper.NewUnauthorizedError("")
 	}
 
-	u, err := s.client.User.Query().
+	exists, err := s.client.User.Query().
 		Where(user.ID(claims.UserID)).
-		Only(ctx)
+		Exist(ctx)
 
 	if err != nil {
-		if ent.IsNotFound(err) {
-			return nil, helper.NewUnauthorizedError("User not found")
-		}
-		slog.Error("Failed to query user", "error", err)
+		slog.Error("Failed to check user existence", "error", err)
 		return nil, helper.NewInternalServerError("")
 	}
 
-	avatarURL := ""
-	if u.AvatarFileName != nil && *u.AvatarFileName != "" {
-		avatarURL = helper.BuildImageURL(s.cfg.StorageMode, s.cfg.AppURL, s.cfg.StorageCDNURL, s.cfg.StorageProfile, *u.AvatarFileName)
+	if !exists {
+		return nil, helper.NewUnauthorizedError("")
 	}
 
 	return &model.UserDTO{
-		ID:       u.ID,
-		Email:    u.Email,
-		FullName: u.FullName,
-		Avatar:   avatarURL,
+		ID: claims.UserID,
 	}, nil
 }
 
@@ -99,18 +92,19 @@ func (s *AuthService) Login(ctx context.Context, req model.LoginRequest) (*model
 
 	u, err := s.client.User.Query().
 		Where(user.Email(req.Email)).
+		WithAvatar().
 		Only(ctx)
 
 	if err != nil {
 		if ent.IsNotFound(err) {
-			return nil, helper.NewUnauthorizedError("Invalid email or password")
+			return nil, helper.NewUnauthorizedError("")
 		}
 		slog.Error("Failed to query user", "error", err)
 		return nil, helper.NewInternalServerError("")
 	}
 
 	if !helper.CheckPasswordHash(req.Password, *u.PasswordHash) {
-		return nil, helper.NewUnauthorizedError("Invalid email or password")
+		return nil, helper.NewUnauthorizedError("")
 	}
 
 	token, err := helper.GenerateJWT(s.cfg.JWTSecret, s.cfg.JWTExp, u.ID)
@@ -120,8 +114,8 @@ func (s *AuthService) Login(ctx context.Context, req model.LoginRequest) (*model
 	}
 
 	avatarURL := ""
-	if u.AvatarFileName != nil && *u.AvatarFileName != "" {
-		avatarURL = helper.BuildImageURL(s.cfg.StorageMode, s.cfg.AppURL, s.cfg.StorageCDNURL, s.cfg.StorageProfile, *u.AvatarFileName)
+	if u.Edges.Avatar != nil {
+		avatarURL = helper.BuildImageURL(s.cfg.StorageMode, s.cfg.AppURL, s.cfg.StorageCDNURL, s.cfg.StorageProfile, u.Edges.Avatar.FileName)
 	}
 
 	return &model.AuthResponse{
@@ -163,6 +157,7 @@ func (s *AuthService) GoogleExchange(ctx context.Context, req model.GoogleLoginR
 
 	u, err := s.client.User.Query().
 		Where(user.Email(email)).
+		WithAvatar().
 		Only(ctx)
 
 	if err != nil && !ent.IsNotFound(err) {
@@ -171,6 +166,9 @@ func (s *AuthService) GoogleExchange(ctx context.Context, req model.GoogleLoginR
 	}
 
 	var avatarFileName string
+	var fileSize int64
+	var mimeType string
+
 	if u == nil {
 		if picture != "" {
 			data, contentType, err := s.storageAdapter.Download(picture)
@@ -185,19 +183,46 @@ func (s *AuthService) GoogleExchange(ctx context.Context, req model.GoogleLoginR
 					slog.Error("Failed to store profile picture", "error", err)
 				} else {
 					avatarFileName = fileName
+					fileSize = int64(len(data))
+					mimeType = contentType
 				}
 			}
 		}
 
-		u, err = s.client.User.Create().
+		create := s.client.User.Create().
 			SetEmail(email).
-			SetFullName(name).
-			SetNillableAvatarFileName(&avatarFileName).
-			Save(ctx)
+			SetFullName(name)
 
+		if avatarFileName != "" {
+
+			if mimeType == "" {
+				mimeType = "image/jpeg"
+			}
+
+			media, err := s.client.Media.Create().
+				SetFileName(avatarFileName).
+				SetOriginalName(filepath.Base(picture)).
+				SetFileSize(fileSize).
+				SetMimeType(mimeType).
+				Save(ctx)
+
+			if err != nil {
+				slog.Error("Failed to create media record for google avatar", "error", err)
+			} else {
+				create.SetAvatar(media)
+			}
+		}
+
+		u, err = create.Save(ctx)
 		if err != nil {
 			slog.Error("Failed to create user", "error", err)
 			return nil, helper.NewInternalServerError("")
+		}
+
+	} else {
+
+		if u.Edges.Avatar != nil {
+			avatarFileName = u.Edges.Avatar.FileName
 		}
 	}
 
@@ -208,8 +233,8 @@ func (s *AuthService) GoogleExchange(ctx context.Context, req model.GoogleLoginR
 	}
 
 	avatarURL := ""
-	if u.AvatarFileName != nil && *u.AvatarFileName != "" {
-		avatarURL = helper.BuildImageURL(s.cfg.StorageMode, s.cfg.AppURL, s.cfg.StorageCDNURL, s.cfg.StorageProfile, *u.AvatarFileName)
+	if avatarFileName != "" {
+		avatarURL = helper.BuildImageURL(s.cfg.StorageMode, s.cfg.AppURL, s.cfg.StorageCDNURL, s.cfg.StorageProfile, avatarFileName)
 	}
 
 	return &model.AuthResponse{

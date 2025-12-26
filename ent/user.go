@@ -3,6 +3,7 @@
 package ent
 
 import (
+	"AtoiTalkAPI/ent/media"
 	"AtoiTalkAPI/ent/user"
 	"fmt"
 	"strings"
@@ -29,8 +30,8 @@ type User struct {
 	FullName string `json:"full_name,omitempty"`
 	// Bio holds the value of the "bio" field.
 	Bio *string `json:"bio,omitempty"`
-	// AvatarFileName holds the value of the "avatar_file_name" field.
-	AvatarFileName *string `json:"avatar_file_name,omitempty"`
+	// AvatarID holds the value of the "avatar_id" field.
+	AvatarID *int `json:"avatar_id,omitempty"`
 	// IsOnline holds the value of the "is_online" field.
 	IsOnline bool `json:"is_online,omitempty"`
 	// LastSeenAt holds the value of the "last_seen_at" field.
@@ -43,6 +44,8 @@ type User struct {
 
 // UserEdges holds the relations/edges for other nodes in the graph.
 type UserEdges struct {
+	// Avatar holds the value of the avatar edge.
+	Avatar *Media `json:"avatar,omitempty"`
 	// Identities holds the value of the identities edge.
 	Identities []*UserIdentity `json:"identities,omitempty"`
 	// SentMessages holds the value of the sent_messages edge.
@@ -57,13 +60,24 @@ type UserEdges struct {
 	PrivateChatsAsUser2 []*PrivateChat `json:"private_chats_as_user2,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [6]bool
+	loadedTypes [7]bool
+}
+
+// AvatarOrErr returns the Avatar value or an error if the edge
+// was not loaded in eager-loading, or loaded but was not found.
+func (e UserEdges) AvatarOrErr() (*Media, error) {
+	if e.Avatar != nil {
+		return e.Avatar, nil
+	} else if e.loadedTypes[0] {
+		return nil, &NotFoundError{label: media.Label}
+	}
+	return nil, &NotLoadedError{edge: "avatar"}
 }
 
 // IdentitiesOrErr returns the Identities value or an error if the edge
 // was not loaded in eager-loading.
 func (e UserEdges) IdentitiesOrErr() ([]*UserIdentity, error) {
-	if e.loadedTypes[0] {
+	if e.loadedTypes[1] {
 		return e.Identities, nil
 	}
 	return nil, &NotLoadedError{edge: "identities"}
@@ -72,7 +86,7 @@ func (e UserEdges) IdentitiesOrErr() ([]*UserIdentity, error) {
 // SentMessagesOrErr returns the SentMessages value or an error if the edge
 // was not loaded in eager-loading.
 func (e UserEdges) SentMessagesOrErr() ([]*Message, error) {
-	if e.loadedTypes[1] {
+	if e.loadedTypes[2] {
 		return e.SentMessages, nil
 	}
 	return nil, &NotLoadedError{edge: "sent_messages"}
@@ -81,7 +95,7 @@ func (e UserEdges) SentMessagesOrErr() ([]*Message, error) {
 // CreatedGroupsOrErr returns the CreatedGroups value or an error if the edge
 // was not loaded in eager-loading.
 func (e UserEdges) CreatedGroupsOrErr() ([]*GroupChat, error) {
-	if e.loadedTypes[2] {
+	if e.loadedTypes[3] {
 		return e.CreatedGroups, nil
 	}
 	return nil, &NotLoadedError{edge: "created_groups"}
@@ -90,7 +104,7 @@ func (e UserEdges) CreatedGroupsOrErr() ([]*GroupChat, error) {
 // GroupMembershipsOrErr returns the GroupMemberships value or an error if the edge
 // was not loaded in eager-loading.
 func (e UserEdges) GroupMembershipsOrErr() ([]*GroupMember, error) {
-	if e.loadedTypes[3] {
+	if e.loadedTypes[4] {
 		return e.GroupMemberships, nil
 	}
 	return nil, &NotLoadedError{edge: "group_memberships"}
@@ -99,7 +113,7 @@ func (e UserEdges) GroupMembershipsOrErr() ([]*GroupMember, error) {
 // PrivateChatsAsUser1OrErr returns the PrivateChatsAsUser1 value or an error if the edge
 // was not loaded in eager-loading.
 func (e UserEdges) PrivateChatsAsUser1OrErr() ([]*PrivateChat, error) {
-	if e.loadedTypes[4] {
+	if e.loadedTypes[5] {
 		return e.PrivateChatsAsUser1, nil
 	}
 	return nil, &NotLoadedError{edge: "private_chats_as_user1"}
@@ -108,7 +122,7 @@ func (e UserEdges) PrivateChatsAsUser1OrErr() ([]*PrivateChat, error) {
 // PrivateChatsAsUser2OrErr returns the PrivateChatsAsUser2 value or an error if the edge
 // was not loaded in eager-loading.
 func (e UserEdges) PrivateChatsAsUser2OrErr() ([]*PrivateChat, error) {
-	if e.loadedTypes[5] {
+	if e.loadedTypes[6] {
 		return e.PrivateChatsAsUser2, nil
 	}
 	return nil, &NotLoadedError{edge: "private_chats_as_user2"}
@@ -121,9 +135,9 @@ func (*User) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case user.FieldIsOnline:
 			values[i] = new(sql.NullBool)
-		case user.FieldID:
+		case user.FieldID, user.FieldAvatarID:
 			values[i] = new(sql.NullInt64)
-		case user.FieldEmail, user.FieldPasswordHash, user.FieldFullName, user.FieldBio, user.FieldAvatarFileName:
+		case user.FieldEmail, user.FieldPasswordHash, user.FieldFullName, user.FieldBio:
 			values[i] = new(sql.NullString)
 		case user.FieldCreatedAt, user.FieldUpdatedAt, user.FieldLastSeenAt:
 			values[i] = new(sql.NullTime)
@@ -186,12 +200,12 @@ func (_m *User) assignValues(columns []string, values []any) error {
 				_m.Bio = new(string)
 				*_m.Bio = value.String
 			}
-		case user.FieldAvatarFileName:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field avatar_file_name", values[i])
+		case user.FieldAvatarID:
+			if value, ok := values[i].(*sql.NullInt64); !ok {
+				return fmt.Errorf("unexpected type %T for field avatar_id", values[i])
 			} else if value.Valid {
-				_m.AvatarFileName = new(string)
-				*_m.AvatarFileName = value.String
+				_m.AvatarID = new(int)
+				*_m.AvatarID = int(value.Int64)
 			}
 		case user.FieldIsOnline:
 			if value, ok := values[i].(*sql.NullBool); !ok {
@@ -217,6 +231,11 @@ func (_m *User) assignValues(columns []string, values []any) error {
 // This includes values selected through modifiers, order, etc.
 func (_m *User) Value(name string) (ent.Value, error) {
 	return _m.selectValues.Get(name)
+}
+
+// QueryAvatar queries the "avatar" edge of the User entity.
+func (_m *User) QueryAvatar() *MediaQuery {
+	return NewUserClient(_m.config).QueryAvatar(_m)
 }
 
 // QueryIdentities queries the "identities" edge of the User entity.
@@ -291,9 +310,9 @@ func (_m *User) String() string {
 		builder.WriteString(*v)
 	}
 	builder.WriteString(", ")
-	if v := _m.AvatarFileName; v != nil {
-		builder.WriteString("avatar_file_name=")
-		builder.WriteString(*v)
+	if v := _m.AvatarID; v != nil {
+		builder.WriteString("avatar_id=")
+		builder.WriteString(fmt.Sprintf("%v", *v))
 	}
 	builder.WriteString(", ")
 	builder.WriteString("is_online=")

@@ -31,7 +31,8 @@ func (Message) Edges() []ent.Edge {
 		edge.From("sender", User.Type).Ref("sent_messages").Field("sender_id").Unique().Required(),
 		edge.To("reply_to", Message.Type).Field("reply_to_id").Unique().From("replies").
 			Annotations(entsql.OnDelete(entsql.SetNull)),
-		edge.To("attachments", Attachment.Type).Annotations(entsql.OnDelete(entsql.Cascade)),
+
+		edge.To("attachments", Media.Type).Annotations(entsql.OnDelete(entsql.Cascade)),
 		edge.From("chats_with_last_message", Chat.Type).Ref("last_message"),
 	}
 }

@@ -3,10 +3,10 @@
 package runtime
 
 import (
-	"AtoiTalkAPI/ent/attachment"
 	"AtoiTalkAPI/ent/chat"
 	"AtoiTalkAPI/ent/groupchat"
 	"AtoiTalkAPI/ent/groupmember"
+	"AtoiTalkAPI/ent/media"
 	"AtoiTalkAPI/ent/message"
 	"AtoiTalkAPI/ent/otp"
 	"AtoiTalkAPI/ent/privatechat"
@@ -20,61 +20,6 @@ import (
 // (default values, validators, hooks and policies) and stitches it
 // to their package variables.
 func init() {
-	attachmentMixin := schema.Attachment{}.Mixin()
-	attachmentMixinFields0 := attachmentMixin[0].Fields()
-	_ = attachmentMixinFields0
-	attachmentFields := schema.Attachment{}.Fields()
-	_ = attachmentFields
-	// attachmentDescCreatedAt is the schema descriptor for created_at field.
-	attachmentDescCreatedAt := attachmentMixinFields0[0].Descriptor()
-	// attachment.DefaultCreatedAt holds the default value on creation for the created_at field.
-	attachment.DefaultCreatedAt = attachmentDescCreatedAt.Default.(func() time.Time)
-	// attachmentDescUpdatedAt is the schema descriptor for updated_at field.
-	attachmentDescUpdatedAt := attachmentMixinFields0[1].Descriptor()
-	// attachment.DefaultUpdatedAt holds the default value on creation for the updated_at field.
-	attachment.DefaultUpdatedAt = attachmentDescUpdatedAt.Default.(func() time.Time)
-	// attachment.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
-	attachment.UpdateDefaultUpdatedAt = attachmentDescUpdatedAt.UpdateDefault.(func() time.Time)
-	// attachmentDescFileName is the schema descriptor for file_name field.
-	attachmentDescFileName := attachmentFields[1].Descriptor()
-	// attachment.FileNameValidator is a validator for the "file_name" field. It is called by the builders before save.
-	attachment.FileNameValidator = func() func(string) error {
-		validators := attachmentDescFileName.Validators
-		fns := [...]func(string) error{
-			validators[0].(func(string) error),
-			validators[1].(func(string) error),
-		}
-		return func(file_name string) error {
-			for _, fn := range fns {
-				if err := fn(file_name); err != nil {
-					return err
-				}
-			}
-			return nil
-		}
-	}()
-	// attachmentDescOriginalName is the schema descriptor for original_name field.
-	attachmentDescOriginalName := attachmentFields[3].Descriptor()
-	// attachment.OriginalNameValidator is a validator for the "original_name" field. It is called by the builders before save.
-	attachment.OriginalNameValidator = func() func(string) error {
-		validators := attachmentDescOriginalName.Validators
-		fns := [...]func(string) error{
-			validators[0].(func(string) error),
-			validators[1].(func(string) error),
-		}
-		return func(original_name string) error {
-			for _, fn := range fns {
-				if err := fn(original_name); err != nil {
-					return err
-				}
-			}
-			return nil
-		}
-	}()
-	// attachmentDescFileSize is the schema descriptor for file_size field.
-	attachmentDescFileSize := attachmentFields[4].Descriptor()
-	// attachment.FileSizeValidator is a validator for the "file_size" field. It is called by the builders before save.
-	attachment.FileSizeValidator = attachmentDescFileSize.Validators[0].(func(int64) error)
 	chatMixin := schema.Chat{}.Mixin()
 	chatMixinFields0 := chatMixin[0].Fields()
 	_ = chatMixinFields0
@@ -110,16 +55,85 @@ func init() {
 			return nil
 		}
 	}()
-	// groupchatDescAvatarFileName is the schema descriptor for avatar_file_name field.
-	groupchatDescAvatarFileName := groupchatFields[4].Descriptor()
-	// groupchat.AvatarFileNameValidator is a validator for the "avatar_file_name" field. It is called by the builders before save.
-	groupchat.AvatarFileNameValidator = groupchatDescAvatarFileName.Validators[0].(func(string) error)
 	groupmemberFields := schema.GroupMember{}.Fields()
 	_ = groupmemberFields
 	// groupmemberDescJoinedAt is the schema descriptor for joined_at field.
 	groupmemberDescJoinedAt := groupmemberFields[4].Descriptor()
 	// groupmember.DefaultJoinedAt holds the default value on creation for the joined_at field.
 	groupmember.DefaultJoinedAt = groupmemberDescJoinedAt.Default.(func() time.Time)
+	mediaMixin := schema.Media{}.Mixin()
+	mediaMixinFields0 := mediaMixin[0].Fields()
+	_ = mediaMixinFields0
+	mediaFields := schema.Media{}.Fields()
+	_ = mediaFields
+	// mediaDescCreatedAt is the schema descriptor for created_at field.
+	mediaDescCreatedAt := mediaMixinFields0[0].Descriptor()
+	// media.DefaultCreatedAt holds the default value on creation for the created_at field.
+	media.DefaultCreatedAt = mediaDescCreatedAt.Default.(func() time.Time)
+	// mediaDescUpdatedAt is the schema descriptor for updated_at field.
+	mediaDescUpdatedAt := mediaMixinFields0[1].Descriptor()
+	// media.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	media.DefaultUpdatedAt = mediaDescUpdatedAt.Default.(func() time.Time)
+	// media.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	media.UpdateDefaultUpdatedAt = mediaDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// mediaDescFileName is the schema descriptor for file_name field.
+	mediaDescFileName := mediaFields[0].Descriptor()
+	// media.FileNameValidator is a validator for the "file_name" field. It is called by the builders before save.
+	media.FileNameValidator = func() func(string) error {
+		validators := mediaDescFileName.Validators
+		fns := [...]func(string) error{
+			validators[0].(func(string) error),
+			validators[1].(func(string) error),
+		}
+		return func(file_name string) error {
+			for _, fn := range fns {
+				if err := fn(file_name); err != nil {
+					return err
+				}
+			}
+			return nil
+		}
+	}()
+	// mediaDescOriginalName is the schema descriptor for original_name field.
+	mediaDescOriginalName := mediaFields[1].Descriptor()
+	// media.OriginalNameValidator is a validator for the "original_name" field. It is called by the builders before save.
+	media.OriginalNameValidator = func() func(string) error {
+		validators := mediaDescOriginalName.Validators
+		fns := [...]func(string) error{
+			validators[0].(func(string) error),
+			validators[1].(func(string) error),
+		}
+		return func(original_name string) error {
+			for _, fn := range fns {
+				if err := fn(original_name); err != nil {
+					return err
+				}
+			}
+			return nil
+		}
+	}()
+	// mediaDescFileSize is the schema descriptor for file_size field.
+	mediaDescFileSize := mediaFields[2].Descriptor()
+	// media.FileSizeValidator is a validator for the "file_size" field. It is called by the builders before save.
+	media.FileSizeValidator = mediaDescFileSize.Validators[0].(func(int64) error)
+	// mediaDescMimeType is the schema descriptor for mime_type field.
+	mediaDescMimeType := mediaFields[3].Descriptor()
+	// media.MimeTypeValidator is a validator for the "mime_type" field. It is called by the builders before save.
+	media.MimeTypeValidator = func() func(string) error {
+		validators := mediaDescMimeType.Validators
+		fns := [...]func(string) error{
+			validators[0].(func(string) error),
+			validators[1].(func(string) error),
+		}
+		return func(mime_type string) error {
+			for _, fn := range fns {
+				if err := fn(mime_type); err != nil {
+					return err
+				}
+			}
+			return nil
+		}
+	}()
 	messageMixin := schema.Message{}.Mixin()
 	messageMixinFields0 := messageMixin[0].Fields()
 	_ = messageMixinFields0
@@ -251,10 +265,6 @@ func init() {
 	userDescBio := userFields[3].Descriptor()
 	// user.BioValidator is a validator for the "bio" field. It is called by the builders before save.
 	user.BioValidator = userDescBio.Validators[0].(func(string) error)
-	// userDescAvatarFileName is the schema descriptor for avatar_file_name field.
-	userDescAvatarFileName := userFields[4].Descriptor()
-	// user.AvatarFileNameValidator is a validator for the "avatar_file_name" field. It is called by the builders before save.
-	user.AvatarFileNameValidator = userDescAvatarFileName.Validators[0].(func(string) error)
 	// userDescIsOnline is the schema descriptor for is_online field.
 	userDescIsOnline := userFields[5].Descriptor()
 	// user.DefaultIsOnline holds the default value on creation for the is_online field.

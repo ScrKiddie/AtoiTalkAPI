@@ -8,18 +8,6 @@ import (
 	"fmt"
 )
 
-// The AttachmentFunc type is an adapter to allow the use of ordinary
-// function as Attachment mutator.
-type AttachmentFunc func(context.Context, *ent.AttachmentMutation) (ent.Value, error)
-
-// Mutate calls f(ctx, m).
-func (f AttachmentFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
-	if mv, ok := m.(*ent.AttachmentMutation); ok {
-		return f(ctx, mv)
-	}
-	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.AttachmentMutation", m)
-}
-
 // The ChatFunc type is an adapter to allow the use of ordinary
 // function as Chat mutator.
 type ChatFunc func(context.Context, *ent.ChatMutation) (ent.Value, error)
@@ -54,6 +42,18 @@ func (f GroupMemberFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value,
 		return f(ctx, mv)
 	}
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.GroupMemberMutation", m)
+}
+
+// The MediaFunc type is an adapter to allow the use of ordinary
+// function as Media mutator.
+type MediaFunc func(context.Context, *ent.MediaMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f MediaFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.MediaMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.MediaMutation", m)
 }
 
 // The MessageFunc type is an adapter to allow the use of ordinary

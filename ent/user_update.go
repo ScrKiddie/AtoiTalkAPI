@@ -5,6 +5,7 @@ package ent
 import (
 	"AtoiTalkAPI/ent/groupchat"
 	"AtoiTalkAPI/ent/groupmember"
+	"AtoiTalkAPI/ent/media"
 	"AtoiTalkAPI/ent/message"
 	"AtoiTalkAPI/ent/predicate"
 	"AtoiTalkAPI/ent/privatechat"
@@ -107,23 +108,23 @@ func (_u *UserUpdate) ClearBio() *UserUpdate {
 	return _u
 }
 
-// SetAvatarFileName sets the "avatar_file_name" field.
-func (_u *UserUpdate) SetAvatarFileName(v string) *UserUpdate {
-	_u.mutation.SetAvatarFileName(v)
+// SetAvatarID sets the "avatar_id" field.
+func (_u *UserUpdate) SetAvatarID(v int) *UserUpdate {
+	_u.mutation.SetAvatarID(v)
 	return _u
 }
 
-// SetNillableAvatarFileName sets the "avatar_file_name" field if the given value is not nil.
-func (_u *UserUpdate) SetNillableAvatarFileName(v *string) *UserUpdate {
+// SetNillableAvatarID sets the "avatar_id" field if the given value is not nil.
+func (_u *UserUpdate) SetNillableAvatarID(v *int) *UserUpdate {
 	if v != nil {
-		_u.SetAvatarFileName(*v)
+		_u.SetAvatarID(*v)
 	}
 	return _u
 }
 
-// ClearAvatarFileName clears the value of the "avatar_file_name" field.
-func (_u *UserUpdate) ClearAvatarFileName() *UserUpdate {
-	_u.mutation.ClearAvatarFileName()
+// ClearAvatarID clears the value of the "avatar_id" field.
+func (_u *UserUpdate) ClearAvatarID() *UserUpdate {
+	_u.mutation.ClearAvatarID()
 	return _u
 }
 
@@ -159,6 +160,11 @@ func (_u *UserUpdate) SetNillableLastSeenAt(v *time.Time) *UserUpdate {
 func (_u *UserUpdate) ClearLastSeenAt() *UserUpdate {
 	_u.mutation.ClearLastSeenAt()
 	return _u
+}
+
+// SetAvatar sets the "avatar" edge to the Media entity.
+func (_u *UserUpdate) SetAvatar(v *Media) *UserUpdate {
+	return _u.SetAvatarID(v.ID)
 }
 
 // AddIdentityIDs adds the "identities" edge to the UserIdentity entity by IDs.
@@ -254,6 +260,12 @@ func (_u *UserUpdate) AddPrivateChatsAsUser2(v ...*PrivateChat) *UserUpdate {
 // Mutation returns the UserMutation object of the builder.
 func (_u *UserUpdate) Mutation() *UserMutation {
 	return _u.mutation
+}
+
+// ClearAvatar clears the "avatar" edge to the Media entity.
+func (_u *UserUpdate) ClearAvatar() *UserUpdate {
+	_u.mutation.ClearAvatar()
+	return _u
 }
 
 // ClearIdentities clears all "identities" edges to the UserIdentity entity.
@@ -440,11 +452,6 @@ func (_u *UserUpdate) check() error {
 			return &ValidationError{Name: "bio", err: fmt.Errorf(`ent: validator failed for field "User.bio": %w`, err)}
 		}
 	}
-	if v, ok := _u.mutation.AvatarFileName(); ok {
-		if err := user.AvatarFileNameValidator(v); err != nil {
-			return &ValidationError{Name: "avatar_file_name", err: fmt.Errorf(`ent: validator failed for field "User.avatar_file_name": %w`, err)}
-		}
-	}
 	return nil
 }
 
@@ -481,12 +488,6 @@ func (_u *UserUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	if _u.mutation.BioCleared() {
 		_spec.ClearField(user.FieldBio, field.TypeString)
 	}
-	if value, ok := _u.mutation.AvatarFileName(); ok {
-		_spec.SetField(user.FieldAvatarFileName, field.TypeString, value)
-	}
-	if _u.mutation.AvatarFileNameCleared() {
-		_spec.ClearField(user.FieldAvatarFileName, field.TypeString)
-	}
 	if value, ok := _u.mutation.IsOnline(); ok {
 		_spec.SetField(user.FieldIsOnline, field.TypeBool, value)
 	}
@@ -495,6 +496,35 @@ func (_u *UserUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	}
 	if _u.mutation.LastSeenAtCleared() {
 		_spec.ClearField(user.FieldLastSeenAt, field.TypeTime)
+	}
+	if _u.mutation.AvatarCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: true,
+			Table:   user.AvatarTable,
+			Columns: []string{user.AvatarColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(media.FieldID, field.TypeInt),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.AvatarIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: true,
+			Table:   user.AvatarTable,
+			Columns: []string{user.AvatarColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(media.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
 	if _u.mutation.IdentitiesCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -860,23 +890,23 @@ func (_u *UserUpdateOne) ClearBio() *UserUpdateOne {
 	return _u
 }
 
-// SetAvatarFileName sets the "avatar_file_name" field.
-func (_u *UserUpdateOne) SetAvatarFileName(v string) *UserUpdateOne {
-	_u.mutation.SetAvatarFileName(v)
+// SetAvatarID sets the "avatar_id" field.
+func (_u *UserUpdateOne) SetAvatarID(v int) *UserUpdateOne {
+	_u.mutation.SetAvatarID(v)
 	return _u
 }
 
-// SetNillableAvatarFileName sets the "avatar_file_name" field if the given value is not nil.
-func (_u *UserUpdateOne) SetNillableAvatarFileName(v *string) *UserUpdateOne {
+// SetNillableAvatarID sets the "avatar_id" field if the given value is not nil.
+func (_u *UserUpdateOne) SetNillableAvatarID(v *int) *UserUpdateOne {
 	if v != nil {
-		_u.SetAvatarFileName(*v)
+		_u.SetAvatarID(*v)
 	}
 	return _u
 }
 
-// ClearAvatarFileName clears the value of the "avatar_file_name" field.
-func (_u *UserUpdateOne) ClearAvatarFileName() *UserUpdateOne {
-	_u.mutation.ClearAvatarFileName()
+// ClearAvatarID clears the value of the "avatar_id" field.
+func (_u *UserUpdateOne) ClearAvatarID() *UserUpdateOne {
+	_u.mutation.ClearAvatarID()
 	return _u
 }
 
@@ -912,6 +942,11 @@ func (_u *UserUpdateOne) SetNillableLastSeenAt(v *time.Time) *UserUpdateOne {
 func (_u *UserUpdateOne) ClearLastSeenAt() *UserUpdateOne {
 	_u.mutation.ClearLastSeenAt()
 	return _u
+}
+
+// SetAvatar sets the "avatar" edge to the Media entity.
+func (_u *UserUpdateOne) SetAvatar(v *Media) *UserUpdateOne {
+	return _u.SetAvatarID(v.ID)
 }
 
 // AddIdentityIDs adds the "identities" edge to the UserIdentity entity by IDs.
@@ -1007,6 +1042,12 @@ func (_u *UserUpdateOne) AddPrivateChatsAsUser2(v ...*PrivateChat) *UserUpdateOn
 // Mutation returns the UserMutation object of the builder.
 func (_u *UserUpdateOne) Mutation() *UserMutation {
 	return _u.mutation
+}
+
+// ClearAvatar clears the "avatar" edge to the Media entity.
+func (_u *UserUpdateOne) ClearAvatar() *UserUpdateOne {
+	_u.mutation.ClearAvatar()
+	return _u
 }
 
 // ClearIdentities clears all "identities" edges to the UserIdentity entity.
@@ -1206,11 +1247,6 @@ func (_u *UserUpdateOne) check() error {
 			return &ValidationError{Name: "bio", err: fmt.Errorf(`ent: validator failed for field "User.bio": %w`, err)}
 		}
 	}
-	if v, ok := _u.mutation.AvatarFileName(); ok {
-		if err := user.AvatarFileNameValidator(v); err != nil {
-			return &ValidationError{Name: "avatar_file_name", err: fmt.Errorf(`ent: validator failed for field "User.avatar_file_name": %w`, err)}
-		}
-	}
 	return nil
 }
 
@@ -1264,12 +1300,6 @@ func (_u *UserUpdateOne) sqlSave(ctx context.Context) (_node *User, err error) {
 	if _u.mutation.BioCleared() {
 		_spec.ClearField(user.FieldBio, field.TypeString)
 	}
-	if value, ok := _u.mutation.AvatarFileName(); ok {
-		_spec.SetField(user.FieldAvatarFileName, field.TypeString, value)
-	}
-	if _u.mutation.AvatarFileNameCleared() {
-		_spec.ClearField(user.FieldAvatarFileName, field.TypeString)
-	}
 	if value, ok := _u.mutation.IsOnline(); ok {
 		_spec.SetField(user.FieldIsOnline, field.TypeBool, value)
 	}
@@ -1278,6 +1308,35 @@ func (_u *UserUpdateOne) sqlSave(ctx context.Context) (_node *User, err error) {
 	}
 	if _u.mutation.LastSeenAtCleared() {
 		_spec.ClearField(user.FieldLastSeenAt, field.TypeTime)
+	}
+	if _u.mutation.AvatarCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: true,
+			Table:   user.AvatarTable,
+			Columns: []string{user.AvatarColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(media.FieldID, field.TypeInt),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.AvatarIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: true,
+			Table:   user.AvatarTable,
+			Columns: []string{user.AvatarColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(media.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
 	if _u.mutation.IdentitiesCleared() {
 		edge := &sqlgraph.EdgeSpec{

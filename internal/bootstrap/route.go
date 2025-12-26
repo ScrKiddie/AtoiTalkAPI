@@ -13,22 +13,24 @@ import (
 )
 
 type Route struct {
-	cfg            *config.AppConfig
-	chi            *chi.Mux
-	authController *controller.AuthController
-	otpController  *controller.OTPController
-	userController *controller.UserController
-	authMiddleware *middleware.AuthMiddleware
+	cfg               *config.AppConfig
+	chi               *chi.Mux
+	authController    *controller.AuthController
+	otpController     *controller.OTPController
+	userController    *controller.UserController
+	accountController *controller.AccountController
+	authMiddleware    *middleware.AuthMiddleware
 }
 
-func NewRoute(cfg *config.AppConfig, chi *chi.Mux, authController *controller.AuthController, otpController *controller.OTPController, userController *controller.UserController, authMiddleware *middleware.AuthMiddleware) *Route {
+func NewRoute(cfg *config.AppConfig, chi *chi.Mux, authController *controller.AuthController, otpController *controller.OTPController, userController *controller.UserController, accountController *controller.AccountController, authMiddleware *middleware.AuthMiddleware) *Route {
 	return &Route{
-		cfg:            cfg,
-		chi:            chi,
-		authController: authController,
-		otpController:  otpController,
-		userController: userController,
-		authMiddleware: authMiddleware,
+		cfg:               cfg,
+		chi:               chi,
+		authController:    authController,
+		otpController:     otpController,
+		userController:    userController,
+		accountController: accountController,
+		authMiddleware:    authMiddleware,
 	}
 }
 
@@ -64,5 +66,12 @@ func (route *Route) Register() {
 		r.Post("/auth/register", route.authController.Register)
 		r.Post("/auth/reset-password", route.authController.ResetPassword)
 		r.Post("/otp/send", route.otpController.SendOTP)
+
+		r.Group(func(r chi.Router) {
+			r.Use(route.authMiddleware.VerifyToken)
+			r.Put("/user/profile", route.userController.UpdateProfile)
+			r.Put("/account/password", route.accountController.ChangePassword)
+			r.Put("/account/email", route.accountController.ChangeEmail)
+		})
 	})
 }

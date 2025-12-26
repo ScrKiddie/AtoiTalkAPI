@@ -85,9 +85,9 @@ func Bio(v string) predicate.User {
 	return predicate.User(sql.FieldEQ(FieldBio, v))
 }
 
-// AvatarFileName applies equality check predicate on the "avatar_file_name" field. It's identical to AvatarFileNameEQ.
-func AvatarFileName(v string) predicate.User {
-	return predicate.User(sql.FieldEQ(FieldAvatarFileName, v))
+// AvatarID applies equality check predicate on the "avatar_id" field. It's identical to AvatarIDEQ.
+func AvatarID(v int) predicate.User {
+	return predicate.User(sql.FieldEQ(FieldAvatarID, v))
 }
 
 // IsOnline applies equality check predicate on the "is_online" field. It's identical to IsOnlineEQ.
@@ -460,79 +460,34 @@ func BioContainsFold(v string) predicate.User {
 	return predicate.User(sql.FieldContainsFold(FieldBio, v))
 }
 
-// AvatarFileNameEQ applies the EQ predicate on the "avatar_file_name" field.
-func AvatarFileNameEQ(v string) predicate.User {
-	return predicate.User(sql.FieldEQ(FieldAvatarFileName, v))
+// AvatarIDEQ applies the EQ predicate on the "avatar_id" field.
+func AvatarIDEQ(v int) predicate.User {
+	return predicate.User(sql.FieldEQ(FieldAvatarID, v))
 }
 
-// AvatarFileNameNEQ applies the NEQ predicate on the "avatar_file_name" field.
-func AvatarFileNameNEQ(v string) predicate.User {
-	return predicate.User(sql.FieldNEQ(FieldAvatarFileName, v))
+// AvatarIDNEQ applies the NEQ predicate on the "avatar_id" field.
+func AvatarIDNEQ(v int) predicate.User {
+	return predicate.User(sql.FieldNEQ(FieldAvatarID, v))
 }
 
-// AvatarFileNameIn applies the In predicate on the "avatar_file_name" field.
-func AvatarFileNameIn(vs ...string) predicate.User {
-	return predicate.User(sql.FieldIn(FieldAvatarFileName, vs...))
+// AvatarIDIn applies the In predicate on the "avatar_id" field.
+func AvatarIDIn(vs ...int) predicate.User {
+	return predicate.User(sql.FieldIn(FieldAvatarID, vs...))
 }
 
-// AvatarFileNameNotIn applies the NotIn predicate on the "avatar_file_name" field.
-func AvatarFileNameNotIn(vs ...string) predicate.User {
-	return predicate.User(sql.FieldNotIn(FieldAvatarFileName, vs...))
+// AvatarIDNotIn applies the NotIn predicate on the "avatar_id" field.
+func AvatarIDNotIn(vs ...int) predicate.User {
+	return predicate.User(sql.FieldNotIn(FieldAvatarID, vs...))
 }
 
-// AvatarFileNameGT applies the GT predicate on the "avatar_file_name" field.
-func AvatarFileNameGT(v string) predicate.User {
-	return predicate.User(sql.FieldGT(FieldAvatarFileName, v))
+// AvatarIDIsNil applies the IsNil predicate on the "avatar_id" field.
+func AvatarIDIsNil() predicate.User {
+	return predicate.User(sql.FieldIsNull(FieldAvatarID))
 }
 
-// AvatarFileNameGTE applies the GTE predicate on the "avatar_file_name" field.
-func AvatarFileNameGTE(v string) predicate.User {
-	return predicate.User(sql.FieldGTE(FieldAvatarFileName, v))
-}
-
-// AvatarFileNameLT applies the LT predicate on the "avatar_file_name" field.
-func AvatarFileNameLT(v string) predicate.User {
-	return predicate.User(sql.FieldLT(FieldAvatarFileName, v))
-}
-
-// AvatarFileNameLTE applies the LTE predicate on the "avatar_file_name" field.
-func AvatarFileNameLTE(v string) predicate.User {
-	return predicate.User(sql.FieldLTE(FieldAvatarFileName, v))
-}
-
-// AvatarFileNameContains applies the Contains predicate on the "avatar_file_name" field.
-func AvatarFileNameContains(v string) predicate.User {
-	return predicate.User(sql.FieldContains(FieldAvatarFileName, v))
-}
-
-// AvatarFileNameHasPrefix applies the HasPrefix predicate on the "avatar_file_name" field.
-func AvatarFileNameHasPrefix(v string) predicate.User {
-	return predicate.User(sql.FieldHasPrefix(FieldAvatarFileName, v))
-}
-
-// AvatarFileNameHasSuffix applies the HasSuffix predicate on the "avatar_file_name" field.
-func AvatarFileNameHasSuffix(v string) predicate.User {
-	return predicate.User(sql.FieldHasSuffix(FieldAvatarFileName, v))
-}
-
-// AvatarFileNameIsNil applies the IsNil predicate on the "avatar_file_name" field.
-func AvatarFileNameIsNil() predicate.User {
-	return predicate.User(sql.FieldIsNull(FieldAvatarFileName))
-}
-
-// AvatarFileNameNotNil applies the NotNil predicate on the "avatar_file_name" field.
-func AvatarFileNameNotNil() predicate.User {
-	return predicate.User(sql.FieldNotNull(FieldAvatarFileName))
-}
-
-// AvatarFileNameEqualFold applies the EqualFold predicate on the "avatar_file_name" field.
-func AvatarFileNameEqualFold(v string) predicate.User {
-	return predicate.User(sql.FieldEqualFold(FieldAvatarFileName, v))
-}
-
-// AvatarFileNameContainsFold applies the ContainsFold predicate on the "avatar_file_name" field.
-func AvatarFileNameContainsFold(v string) predicate.User {
-	return predicate.User(sql.FieldContainsFold(FieldAvatarFileName, v))
+// AvatarIDNotNil applies the NotNil predicate on the "avatar_id" field.
+func AvatarIDNotNil() predicate.User {
+	return predicate.User(sql.FieldNotNull(FieldAvatarID))
 }
 
 // IsOnlineEQ applies the EQ predicate on the "is_online" field.
@@ -593,6 +548,29 @@ func LastSeenAtIsNil() predicate.User {
 // LastSeenAtNotNil applies the NotNil predicate on the "last_seen_at" field.
 func LastSeenAtNotNil() predicate.User {
 	return predicate.User(sql.FieldNotNull(FieldLastSeenAt))
+}
+
+// HasAvatar applies the HasEdge predicate on the "avatar" edge.
+func HasAvatar() predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2O, true, AvatarTable, AvatarColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasAvatarWith applies the HasEdge predicate on the "avatar" edge with a given conditions (other predicates).
+func HasAvatarWith(preds ...predicate.Media) predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		step := newAvatarStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
 }
 
 // HasIdentities applies the HasEdge predicate on the "identities" edge.

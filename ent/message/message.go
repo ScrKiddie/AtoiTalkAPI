@@ -67,10 +67,10 @@ const (
 	// ReplyToColumn is the table column denoting the reply_to relation/edge.
 	ReplyToColumn = "reply_to_id"
 	// AttachmentsTable is the table that holds the attachments relation/edge.
-	AttachmentsTable = "attachments"
-	// AttachmentsInverseTable is the table name for the Attachment entity.
-	// It exists in this package in order to avoid circular dependency with the "attachment" package.
-	AttachmentsInverseTable = "attachments"
+	AttachmentsTable = "media"
+	// AttachmentsInverseTable is the table name for the Media entity.
+	// It exists in this package in order to avoid circular dependency with the "media" package.
+	AttachmentsInverseTable = "media"
 	// AttachmentsColumn is the table column denoting the attachments relation/edge.
 	AttachmentsColumn = "message_id"
 	// ChatsWithLastMessageTable is the table that holds the chats_with_last_message relation/edge.

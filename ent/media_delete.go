@@ -3,7 +3,7 @@
 package ent
 
 import (
-	"AtoiTalkAPI/ent/attachment"
+	"AtoiTalkAPI/ent/media"
 	"AtoiTalkAPI/ent/predicate"
 	"context"
 
@@ -12,26 +12,26 @@ import (
 	"entgo.io/ent/schema/field"
 )
 
-// AttachmentDelete is the builder for deleting a Attachment entity.
-type AttachmentDelete struct {
+// MediaDelete is the builder for deleting a Media entity.
+type MediaDelete struct {
 	config
 	hooks    []Hook
-	mutation *AttachmentMutation
+	mutation *MediaMutation
 }
 
-// Where appends a list predicates to the AttachmentDelete builder.
-func (_d *AttachmentDelete) Where(ps ...predicate.Attachment) *AttachmentDelete {
+// Where appends a list predicates to the MediaDelete builder.
+func (_d *MediaDelete) Where(ps ...predicate.Media) *MediaDelete {
 	_d.mutation.Where(ps...)
 	return _d
 }
 
 // Exec executes the deletion query and returns how many vertices were deleted.
-func (_d *AttachmentDelete) Exec(ctx context.Context) (int, error) {
+func (_d *MediaDelete) Exec(ctx context.Context) (int, error) {
 	return withHooks(ctx, _d.sqlExec, _d.mutation, _d.hooks)
 }
 
 // ExecX is like Exec, but panics if an error occurs.
-func (_d *AttachmentDelete) ExecX(ctx context.Context) int {
+func (_d *MediaDelete) ExecX(ctx context.Context) int {
 	n, err := _d.Exec(ctx)
 	if err != nil {
 		panic(err)
@@ -39,8 +39,8 @@ func (_d *AttachmentDelete) ExecX(ctx context.Context) int {
 	return n
 }
 
-func (_d *AttachmentDelete) sqlExec(ctx context.Context) (int, error) {
-	_spec := sqlgraph.NewDeleteSpec(attachment.Table, sqlgraph.NewFieldSpec(attachment.FieldID, field.TypeInt))
+func (_d *MediaDelete) sqlExec(ctx context.Context) (int, error) {
+	_spec := sqlgraph.NewDeleteSpec(media.Table, sqlgraph.NewFieldSpec(media.FieldID, field.TypeInt))
 	if ps := _d.mutation.predicates; len(ps) > 0 {
 		_spec.Predicate = func(selector *sql.Selector) {
 			for i := range ps {
@@ -56,32 +56,32 @@ func (_d *AttachmentDelete) sqlExec(ctx context.Context) (int, error) {
 	return affected, err
 }
 
-// AttachmentDeleteOne is the builder for deleting a single Attachment entity.
-type AttachmentDeleteOne struct {
-	_d *AttachmentDelete
+// MediaDeleteOne is the builder for deleting a single Media entity.
+type MediaDeleteOne struct {
+	_d *MediaDelete
 }
 
-// Where appends a list predicates to the AttachmentDelete builder.
-func (_d *AttachmentDeleteOne) Where(ps ...predicate.Attachment) *AttachmentDeleteOne {
+// Where appends a list predicates to the MediaDelete builder.
+func (_d *MediaDeleteOne) Where(ps ...predicate.Media) *MediaDeleteOne {
 	_d._d.mutation.Where(ps...)
 	return _d
 }
 
 // Exec executes the deletion query.
-func (_d *AttachmentDeleteOne) Exec(ctx context.Context) error {
+func (_d *MediaDeleteOne) Exec(ctx context.Context) error {
 	n, err := _d._d.Exec(ctx)
 	switch {
 	case err != nil:
 		return err
 	case n == 0:
-		return &NotFoundError{attachment.Label}
+		return &NotFoundError{media.Label}
 	default:
 		return nil
 	}
 }
 
 // ExecX is like Exec, but panics if an error occurs.
-func (_d *AttachmentDeleteOne) ExecX(ctx context.Context) {
+func (_d *MediaDeleteOne) ExecX(ctx context.Context) {
 	if err := _d.Exec(ctx); err != nil {
 		panic(err)
 	}

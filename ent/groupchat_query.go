@@ -6,6 +6,7 @@ import (
 	"AtoiTalkAPI/ent/chat"
 	"AtoiTalkAPI/ent/groupchat"
 	"AtoiTalkAPI/ent/groupmember"
+	"AtoiTalkAPI/ent/media"
 	"AtoiTalkAPI/ent/predicate"
 	"AtoiTalkAPI/ent/user"
 	"context"
@@ -26,6 +27,7 @@ type GroupChatQuery struct {
 	order       []groupchat.OrderOption
 	inters      []Interceptor
 	predicates  []predicate.GroupChat
+	withAvatar  *MediaQuery
 	withChat    *ChatQuery
 	withCreator *UserQuery
 	withMembers *GroupMemberQuery
@@ -63,6 +65,28 @@ func (_q *GroupChatQuery) Unique(unique bool) *GroupChatQuery {
 func (_q *GroupChatQuery) Order(o ...groupchat.OrderOption) *GroupChatQuery {
 	_q.order = append(_q.order, o...)
 	return _q
+}
+
+// QueryAvatar chains the current query on the "avatar" edge.
+func (_q *GroupChatQuery) QueryAvatar() *MediaQuery {
+	query := (&MediaClient{config: _q.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := _q.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := _q.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(groupchat.Table, groupchat.FieldID, selector),
+			sqlgraph.To(media.Table, media.FieldID),
+			sqlgraph.Edge(sqlgraph.O2O, true, groupchat.AvatarTable, groupchat.AvatarColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
 }
 
 // QueryChat chains the current query on the "chat" edge.
@@ -323,6 +347,7 @@ func (_q *GroupChatQuery) Clone() *GroupChatQuery {
 		order:       append([]groupchat.OrderOption{}, _q.order...),
 		inters:      append([]Interceptor{}, _q.inters...),
 		predicates:  append([]predicate.GroupChat{}, _q.predicates...),
+		withAvatar:  _q.withAvatar.Clone(),
 		withChat:    _q.withChat.Clone(),
 		withCreator: _q.withCreator.Clone(),
 		withMembers: _q.withMembers.Clone(),
@@ -330,6 +355,17 @@ func (_q *GroupChatQuery) Clone() *GroupChatQuery {
 		sql:  _q.sql.Clone(),
 		path: _q.path,
 	}
+}
+
+// WithAvatar tells the query-builder to eager-load the nodes that are connected to
+// the "avatar" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *GroupChatQuery) WithAvatar(opts ...func(*MediaQuery)) *GroupChatQuery {
+	query := (&MediaClient{config: _q.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	_q.withAvatar = query
+	return _q
 }
 
 // WithChat tells the query-builder to eager-load the nodes that are connected to
@@ -443,7 +479,8 @@ func (_q *GroupChatQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Gr
 	var (
 		nodes       = []*GroupChat{}
 		_spec       = _q.querySpec()
-		loadedTypes = [3]bool{
+		loadedTypes = [4]bool{
+			_q.withAvatar != nil,
 			_q.withChat != nil,
 			_q.withCreator != nil,
 			_q.withMembers != nil,
@@ -467,6 +504,12 @@ func (_q *GroupChatQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Gr
 	if len(nodes) == 0 {
 		return nodes, nil
 	}
+	if query := _q.withAvatar; query != nil {
+		if err := _q.loadAvatar(ctx, query, nodes, nil,
+			func(n *GroupChat, e *Media) { n.Edges.Avatar = e }); err != nil {
+			return nil, err
+		}
+	}
 	if query := _q.withChat; query != nil {
 		if err := _q.loadChat(ctx, query, nodes, nil,
 			func(n *GroupChat, e *Chat) { n.Edges.Chat = e }); err != nil {
@@ -489,6 +532,38 @@ func (_q *GroupChatQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Gr
 	return nodes, nil
 }
 
+func (_q *GroupChatQuery) loadAvatar(ctx context.Context, query *MediaQuery, nodes []*GroupChat, init func(*GroupChat), assign func(*GroupChat, *Media)) error {
+	ids := make([]int, 0, len(nodes))
+	nodeids := make(map[int][]*GroupChat)
+	for i := range nodes {
+		if nodes[i].AvatarID == nil {
+			continue
+		}
+		fk := *nodes[i].AvatarID
+		if _, ok := nodeids[fk]; !ok {
+			ids = append(ids, fk)
+		}
+		nodeids[fk] = append(nodeids[fk], nodes[i])
+	}
+	if len(ids) == 0 {
+		return nil
+	}
+	query.Where(media.IDIn(ids...))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		nodes, ok := nodeids[n.ID]
+		if !ok {
+			return fmt.Errorf(`unexpected foreign-key "avatar_id" returned %v`, n.ID)
+		}
+		for i := range nodes {
+			assign(nodes[i], n)
+		}
+	}
+	return nil
+}
 func (_q *GroupChatQuery) loadChat(ctx context.Context, query *ChatQuery, nodes []*GroupChat, init func(*GroupChat), assign func(*GroupChat, *Chat)) error {
 	ids := make([]int, 0, len(nodes))
 	nodeids := make(map[int][]*GroupChat)
@@ -602,6 +677,9 @@ func (_q *GroupChatQuery) querySpec() *sqlgraph.QuerySpec {
 			if fields[i] != groupchat.FieldID {
 				_spec.Node.Columns = append(_spec.Node.Columns, fields[i])
 			}
+		}
+		if _q.withAvatar != nil {
+			_spec.Node.AddColumnOnce(groupchat.FieldAvatarID)
 		}
 		if _q.withChat != nil {
 			_spec.Node.AddColumnOnce(groupchat.FieldChatID)

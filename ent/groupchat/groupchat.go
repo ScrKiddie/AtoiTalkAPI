@@ -20,8 +20,10 @@ const (
 	FieldName = "name"
 	// FieldDescription holds the string denoting the description field in the database.
 	FieldDescription = "description"
-	// FieldAvatarFileName holds the string denoting the avatar_file_name field in the database.
-	FieldAvatarFileName = "avatar_file_name"
+	// FieldAvatarID holds the string denoting the avatar_id field in the database.
+	FieldAvatarID = "avatar_id"
+	// EdgeAvatar holds the string denoting the avatar edge name in mutations.
+	EdgeAvatar = "avatar"
 	// EdgeChat holds the string denoting the chat edge name in mutations.
 	EdgeChat = "chat"
 	// EdgeCreator holds the string denoting the creator edge name in mutations.
@@ -30,6 +32,13 @@ const (
 	EdgeMembers = "members"
 	// Table holds the table name of the groupchat in the database.
 	Table = "group_chats"
+	// AvatarTable is the table that holds the avatar relation/edge.
+	AvatarTable = "group_chats"
+	// AvatarInverseTable is the table name for the Media entity.
+	// It exists in this package in order to avoid circular dependency with the "media" package.
+	AvatarInverseTable = "media"
+	// AvatarColumn is the table column denoting the avatar relation/edge.
+	AvatarColumn = "avatar_id"
 	// ChatTable is the table that holds the chat relation/edge.
 	ChatTable = "group_chats"
 	// ChatInverseTable is the table name for the Chat entity.
@@ -60,7 +69,7 @@ var Columns = []string{
 	FieldCreatedBy,
 	FieldName,
 	FieldDescription,
-	FieldAvatarFileName,
+	FieldAvatarID,
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
@@ -76,8 +85,6 @@ func ValidColumn(column string) bool {
 var (
 	// NameValidator is a validator for the "name" field. It is called by the builders before save.
 	NameValidator func(string) error
-	// AvatarFileNameValidator is a validator for the "avatar_file_name" field. It is called by the builders before save.
-	AvatarFileNameValidator func(string) error
 )
 
 // OrderOption defines the ordering options for the GroupChat queries.
@@ -108,9 +115,16 @@ func ByDescription(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldDescription, opts...).ToFunc()
 }
 
-// ByAvatarFileName orders the results by the avatar_file_name field.
-func ByAvatarFileName(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldAvatarFileName, opts...).ToFunc()
+// ByAvatarID orders the results by the avatar_id field.
+func ByAvatarID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldAvatarID, opts...).ToFunc()
+}
+
+// ByAvatarField orders the results by avatar field.
+func ByAvatarField(field string, opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newAvatarStep(), sql.OrderByField(field, opts...))
+	}
 }
 
 // ByChatField orders the results by chat field.
@@ -139,6 +153,13 @@ func ByMembers(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
 	return func(s *sql.Selector) {
 		sqlgraph.OrderByNeighborTerms(s, newMembersStep(), append([]sql.OrderTerm{term}, terms...)...)
 	}
+}
+func newAvatarStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(AvatarInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2O, true, AvatarTable, AvatarColumn),
+	)
 }
 func newChatStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(

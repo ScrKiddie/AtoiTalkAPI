@@ -19,7 +19,7 @@ func (User) Fields() []ent.Field {
 		field.String("password_hash").MaxLen(255).Optional().Nillable().Sensitive(),
 		field.String("full_name").MaxLen(100).NotEmpty(),
 		field.String("bio").MaxLen(255).Optional().Nillable(),
-		field.String("avatar_file_name").MaxLen(255).Optional().Nillable(),
+		field.Int("avatar_id").Optional().Nillable(),
 		field.Bool("is_online").Default(false),
 		field.Time("last_seen_at").Optional().Nillable(),
 	}
@@ -27,6 +27,10 @@ func (User) Fields() []ent.Field {
 
 func (User) Edges() []ent.Edge {
 	return []ent.Edge{
+		edge.From("avatar", Media.Type).
+			Ref("user_avatar").
+			Unique().
+			Field("avatar_id"),
 
 		edge.To("identities", UserIdentity.Type).
 			Annotations(entsql.OnDelete(entsql.Cascade)),

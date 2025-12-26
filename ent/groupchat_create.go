@@ -6,6 +6,7 @@ import (
 	"AtoiTalkAPI/ent/chat"
 	"AtoiTalkAPI/ent/groupchat"
 	"AtoiTalkAPI/ent/groupmember"
+	"AtoiTalkAPI/ent/media"
 	"AtoiTalkAPI/ent/user"
 	"context"
 	"errors"
@@ -54,18 +55,23 @@ func (_c *GroupChatCreate) SetNillableDescription(v *string) *GroupChatCreate {
 	return _c
 }
 
-// SetAvatarFileName sets the "avatar_file_name" field.
-func (_c *GroupChatCreate) SetAvatarFileName(v string) *GroupChatCreate {
-	_c.mutation.SetAvatarFileName(v)
+// SetAvatarID sets the "avatar_id" field.
+func (_c *GroupChatCreate) SetAvatarID(v int) *GroupChatCreate {
+	_c.mutation.SetAvatarID(v)
 	return _c
 }
 
-// SetNillableAvatarFileName sets the "avatar_file_name" field if the given value is not nil.
-func (_c *GroupChatCreate) SetNillableAvatarFileName(v *string) *GroupChatCreate {
+// SetNillableAvatarID sets the "avatar_id" field if the given value is not nil.
+func (_c *GroupChatCreate) SetNillableAvatarID(v *int) *GroupChatCreate {
 	if v != nil {
-		_c.SetAvatarFileName(*v)
+		_c.SetAvatarID(*v)
 	}
 	return _c
+}
+
+// SetAvatar sets the "avatar" edge to the Media entity.
+func (_c *GroupChatCreate) SetAvatar(v *Media) *GroupChatCreate {
+	return _c.SetAvatarID(v.ID)
 }
 
 // SetChat sets the "chat" edge to the Chat entity.
@@ -147,11 +153,6 @@ func (_c *GroupChatCreate) check() error {
 			return &ValidationError{Name: "name", err: fmt.Errorf(`ent: validator failed for field "GroupChat.name": %w`, err)}
 		}
 	}
-	if v, ok := _c.mutation.AvatarFileName(); ok {
-		if err := groupchat.AvatarFileNameValidator(v); err != nil {
-			return &ValidationError{Name: "avatar_file_name", err: fmt.Errorf(`ent: validator failed for field "GroupChat.avatar_file_name": %w`, err)}
-		}
-	}
 	if len(_c.mutation.ChatIDs()) == 0 {
 		return &ValidationError{Name: "chat", err: errors.New(`ent: missing required edge "GroupChat.chat"`)}
 	}
@@ -192,9 +193,22 @@ func (_c *GroupChatCreate) createSpec() (*GroupChat, *sqlgraph.CreateSpec) {
 		_spec.SetField(groupchat.FieldDescription, field.TypeString, value)
 		_node.Description = &value
 	}
-	if value, ok := _c.mutation.AvatarFileName(); ok {
-		_spec.SetField(groupchat.FieldAvatarFileName, field.TypeString, value)
-		_node.AvatarFileName = &value
+	if nodes := _c.mutation.AvatarIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: true,
+			Table:   groupchat.AvatarTable,
+			Columns: []string{groupchat.AvatarColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(media.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_node.AvatarID = &nodes[0]
+		_spec.Edges = append(_spec.Edges, edge)
 	}
 	if nodes := _c.mutation.ChatIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{

@@ -5,6 +5,7 @@ package ent
 import (
 	"AtoiTalkAPI/ent/groupchat"
 	"AtoiTalkAPI/ent/groupmember"
+	"AtoiTalkAPI/ent/media"
 	"AtoiTalkAPI/ent/message"
 	"AtoiTalkAPI/ent/predicate"
 	"AtoiTalkAPI/ent/privatechat"
@@ -28,6 +29,7 @@ type UserQuery struct {
 	order                   []user.OrderOption
 	inters                  []Interceptor
 	predicates              []predicate.User
+	withAvatar              *MediaQuery
 	withIdentities          *UserIdentityQuery
 	withSentMessages        *MessageQuery
 	withCreatedGroups       *GroupChatQuery
@@ -68,6 +70,28 @@ func (_q *UserQuery) Unique(unique bool) *UserQuery {
 func (_q *UserQuery) Order(o ...user.OrderOption) *UserQuery {
 	_q.order = append(_q.order, o...)
 	return _q
+}
+
+// QueryAvatar chains the current query on the "avatar" edge.
+func (_q *UserQuery) QueryAvatar() *MediaQuery {
+	query := (&MediaClient{config: _q.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := _q.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := _q.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(user.Table, user.FieldID, selector),
+			sqlgraph.To(media.Table, media.FieldID),
+			sqlgraph.Edge(sqlgraph.O2O, true, user.AvatarTable, user.AvatarColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
 }
 
 // QueryIdentities chains the current query on the "identities" edge.
@@ -394,6 +418,7 @@ func (_q *UserQuery) Clone() *UserQuery {
 		order:                   append([]user.OrderOption{}, _q.order...),
 		inters:                  append([]Interceptor{}, _q.inters...),
 		predicates:              append([]predicate.User{}, _q.predicates...),
+		withAvatar:              _q.withAvatar.Clone(),
 		withIdentities:          _q.withIdentities.Clone(),
 		withSentMessages:        _q.withSentMessages.Clone(),
 		withCreatedGroups:       _q.withCreatedGroups.Clone(),
@@ -404,6 +429,17 @@ func (_q *UserQuery) Clone() *UserQuery {
 		sql:  _q.sql.Clone(),
 		path: _q.path,
 	}
+}
+
+// WithAvatar tells the query-builder to eager-load the nodes that are connected to
+// the "avatar" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *UserQuery) WithAvatar(opts ...func(*MediaQuery)) *UserQuery {
+	query := (&MediaClient{config: _q.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	_q.withAvatar = query
+	return _q
 }
 
 // WithIdentities tells the query-builder to eager-load the nodes that are connected to
@@ -550,7 +586,8 @@ func (_q *UserQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*User, e
 	var (
 		nodes       = []*User{}
 		_spec       = _q.querySpec()
-		loadedTypes = [6]bool{
+		loadedTypes = [7]bool{
+			_q.withAvatar != nil,
 			_q.withIdentities != nil,
 			_q.withSentMessages != nil,
 			_q.withCreatedGroups != nil,
@@ -576,6 +613,12 @@ func (_q *UserQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*User, e
 	}
 	if len(nodes) == 0 {
 		return nodes, nil
+	}
+	if query := _q.withAvatar; query != nil {
+		if err := _q.loadAvatar(ctx, query, nodes, nil,
+			func(n *User, e *Media) { n.Edges.Avatar = e }); err != nil {
+			return nil, err
+		}
 	}
 	if query := _q.withIdentities; query != nil {
 		if err := _q.loadIdentities(ctx, query, nodes,
@@ -622,6 +665,38 @@ func (_q *UserQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*User, e
 	return nodes, nil
 }
 
+func (_q *UserQuery) loadAvatar(ctx context.Context, query *MediaQuery, nodes []*User, init func(*User), assign func(*User, *Media)) error {
+	ids := make([]int, 0, len(nodes))
+	nodeids := make(map[int][]*User)
+	for i := range nodes {
+		if nodes[i].AvatarID == nil {
+			continue
+		}
+		fk := *nodes[i].AvatarID
+		if _, ok := nodeids[fk]; !ok {
+			ids = append(ids, fk)
+		}
+		nodeids[fk] = append(nodeids[fk], nodes[i])
+	}
+	if len(ids) == 0 {
+		return nil
+	}
+	query.Where(media.IDIn(ids...))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		nodes, ok := nodeids[n.ID]
+		if !ok {
+			return fmt.Errorf(`unexpected foreign-key "avatar_id" returned %v`, n.ID)
+		}
+		for i := range nodes {
+			assign(nodes[i], n)
+		}
+	}
+	return nil
+}
 func (_q *UserQuery) loadIdentities(ctx context.Context, query *UserIdentityQuery, nodes []*User, init func(*User), assign func(*User, *UserIdentity)) error {
 	fks := make([]driver.Value, 0, len(nodes))
 	nodeids := make(map[int]*User)
@@ -827,6 +902,9 @@ func (_q *UserQuery) querySpec() *sqlgraph.QuerySpec {
 			if fields[i] != user.FieldID {
 				_spec.Node.Columns = append(_spec.Node.Columns, fields[i])
 			}
+		}
+		if _q.withAvatar != nil {
+			_spec.Node.AddColumnOnce(user.FieldAvatarID)
 		}
 	}
 	if ps := _q.predicates; len(ps) > 0 {

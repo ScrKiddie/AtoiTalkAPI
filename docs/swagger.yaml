@@ -15,6 +15,20 @@ definitions:
       user:
         $ref: '#/definitions/model.UserDTO'
     type: object
+  model.ChangePasswordRequest:
+    properties:
+      confirm_password:
+        type: string
+      new_password:
+        maxLength: 72
+        minLength: 8
+        type: string
+      old_password:
+        type: string
+    required:
+    - confirm_password
+    - new_password
+    type: object
   model.GoogleLoginRequest:
     properties:
       code:
@@ -108,6 +122,46 @@ definitions:
 info:
   contact: {}
 paths:
+  /api/account/password:
+    put:
+      consumes:
+      - application/json
+      description: Change user password. Requires old password if one is set.
+      parameters:
+      - description: Change Password Request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.ChangePasswordRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/helper.ResponseSuccess'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
+      security:
+      - BearerAuth: []
+      summary: Change Password
+      tags:
+      - account
   /api/auth/google:
     post:
       consumes:
@@ -298,4 +352,60 @@ paths:
       summary: Send OTP
       tags:
       - otp
+  /api/user/profile:
+    put:
+      consumes:
+      - multipart/form-data
+      description: Update user's full name, bio, and avatar.
+      parameters:
+      - description: Full Name
+        in: formData
+        name: full_name
+        required: true
+        type: string
+      - description: Bio
+        in: formData
+        name: bio
+        type: string
+      - description: Avatar Image
+        in: formData
+        name: avatar
+        type: file
+      - description: Delete Avatar
+        in: formData
+        name: delete_avatar
+        type: boolean
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/helper.ResponseSuccess'
+            - properties:
+                data:
+                  $ref: '#/definitions/model.UserDTO'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
+      security:
+      - BearerAuth: []
+      summary: Update User Profile
+      tags:
+      - user
 swagger: "2.0"
