@@ -8,6 +8,7 @@ import (
 	"AtoiTalkAPI/internal/constant"
 	"AtoiTalkAPI/internal/controller"
 	"AtoiTalkAPI/internal/helper"
+	"AtoiTalkAPI/internal/middleware"
 	"AtoiTalkAPI/internal/service"
 	"context"
 	"log"
@@ -101,10 +102,12 @@ func TestMain(m *testing.M) {
 	otpService := service.NewOTPService(testClient, testConfig, validator, emailAdapter, rateLimiter, captchaAdapter)
 	otpController := controller.NewOTPController(otpService)
 
-	userService := service.NewUserService(testClient)
+	userService := service.NewUserService(testClient, testConfig)
 	userController := controller.NewUserController(userService)
 
-	route := bootstrap.NewRoute(testConfig, testRouter, authController, otpController, userController)
+	authMiddleware := middleware.NewAuthMiddleware(authService)
+
+	route := bootstrap.NewRoute(testConfig, testRouter, authController, otpController, userController, authMiddleware)
 	route.Register()
 
 	code := m.Run()

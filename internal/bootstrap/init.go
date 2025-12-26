@@ -5,6 +5,7 @@ import (
 	"AtoiTalkAPI/internal/adapter"
 	"AtoiTalkAPI/internal/config"
 	"AtoiTalkAPI/internal/controller"
+	"AtoiTalkAPI/internal/middleware"
 	"AtoiTalkAPI/internal/service"
 	"net/http"
 
@@ -24,9 +25,11 @@ func Init(appConfig *config.AppConfig, client *ent.Client, validator *validator.
 	otpService := service.NewOTPService(client, appConfig, validator, emailAdapter, rateLimiter, captchaAdapter)
 	otpController := controller.NewOTPController(otpService)
 
-	userService := service.NewUserService(client)
+	userService := service.NewUserService(client, appConfig)
 	userController := controller.NewUserController(userService)
 
-	route := NewRoute(appConfig, chiMux, authController, otpController, userController)
+	authMiddleware := middleware.NewAuthMiddleware(authService)
+
+	route := NewRoute(appConfig, chiMux, authController, otpController, userController, authMiddleware)
 	route.Register()
 }
