@@ -4,6 +4,12 @@ type GoogleLoginRequest struct {
 	Code string `json:"code" validate:"required"`
 }
 
+type LoginRequest struct {
+	Email        string `json:"email" validate:"required,email"`
+	Password     string `json:"password" validate:"required,min=8,max=72,password_complexity"`
+	CaptchaToken string `json:"captcha_token" validate:"required"`
+}
+
 type AuthResponse struct {
 	Token string  `json:"token"`
 	User  UserDTO `json:"user"`

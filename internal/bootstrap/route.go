@@ -56,6 +56,7 @@ func (route *Route) Register() {
 	}
 
 	route.chi.Route("/api", func(r chi.Router) {
+		r.Post("/auth/login", route.authController.Login)
 		r.Post("/auth/google", route.authController.GoogleExchange)
 		r.Post("/auth/register", route.authController.Register)
 		r.Post("/auth/reset-password", route.authController.ResetPassword)

@@ -39,6 +39,57 @@ func NewAuthService(client *ent.Client, cfg *config.AppConfig, validator *valida
 	}
 }
 
+func (s *AuthService) Login(ctx context.Context, req model.LoginRequest) (*model.AuthResponse, error) {
+	if err := s.validator.Struct(req); err != nil {
+		slog.Warn("Validation failed", "error", err)
+		return nil, helper.NewBadRequestError("")
+	}
+
+	if err := s.captchaAdapter.Verify(req.CaptchaToken, ""); err != nil {
+		slog.Warn("Captcha verification failed", "error", err)
+		return nil, helper.NewBadRequestError("")
+	}
+
+	req.Email = helper.NormalizeEmail(req.Email)
+
+	u, err := s.client.User.Query().
+		Where(user.Email(req.Email)).
+		Only(ctx)
+
+	if err != nil {
+		if ent.IsNotFound(err) {
+			return nil, helper.NewUnauthorizedError("Invalid email or password")
+		}
+		slog.Error("Failed to query user", "error", err)
+		return nil, helper.NewInternalServerError("")
+	}
+
+	if !helper.CheckPasswordHash(req.Password, *u.PasswordHash) {
+		return nil, helper.NewUnauthorizedError("Invalid email or password")
+	}
+
+	token, err := helper.GenerateJWT(s.cfg.JWTSecret, s.cfg.JWTExp, u.ID)
+	if err != nil {
+		slog.Error("Failed to generate JWT token", "error", err)
+		return nil, helper.NewInternalServerError("")
+	}
+
+	avatarURL := ""
+	if u.AvatarFileName != nil && *u.AvatarFileName != "" {
+		avatarURL = helper.BuildImageURL(s.cfg.StorageMode, s.cfg.AppURL, s.cfg.StorageCDNURL, s.cfg.StorageProfile, *u.AvatarFileName)
+	}
+
+	return &model.AuthResponse{
+		Token: token,
+		User: model.UserDTO{
+			ID:       u.ID,
+			Email:    u.Email,
+			FullName: u.FullName,
+			Avatar:   avatarURL,
+		},
+	}, nil
+}
+
 func (s *AuthService) GoogleExchange(ctx context.Context, req model.GoogleLoginRequest) (*model.AuthResponse, error) {
 	if err := s.validator.Struct(req); err != nil {
 		slog.Warn("Validation failed", "error", err)
@@ -133,12 +184,12 @@ func (s *AuthService) Register(ctx context.Context, req model.RegisterUserReques
 		return nil, helper.NewBadRequestError("")
 	}
 
-	req.Email = helper.NormalizeEmail(req.Email)
-
 	if err := s.captchaAdapter.Verify(req.CaptchaToken, ""); err != nil {
 		slog.Warn("Captcha verification failed", "error", err)
 		return nil, helper.NewBadRequestError("")
 	}
+
+	req.Email = helper.NormalizeEmail(req.Email)
 
 	tx, err := s.client.Tx(ctx)
 	if err != nil {
@@ -232,12 +283,12 @@ func (s *AuthService) ResetPassword(ctx context.Context, req model.ResetPassword
 		return helper.NewBadRequestError("")
 	}
 
-	req.Email = helper.NormalizeEmail(req.Email)
-
 	if err := s.captchaAdapter.Verify(req.CaptchaToken, ""); err != nil {
 		slog.Warn("Captcha verification failed", "error", err)
 		return helper.NewBadRequestError("")
 	}
+
+	req.Email = helper.NormalizeEmail(req.Email)
 
 	tx, err := s.client.Tx(ctx)
 	if err != nil {

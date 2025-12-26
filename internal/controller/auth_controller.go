@@ -19,6 +19,35 @@ func NewAuthController(authService *service.AuthService) *AuthController {
 	}
 }
 
+// Login godoc
+// @Summary      Login
+// @Description  Login with email and password
+// @Tags         auth
+// @Accept       json
+// @Produce      json
+// @Param        request body model.LoginRequest true "Login Request"
+// @Success      200  {object}  helper.ResponseSuccess{data=model.AuthResponse}
+// @Failure      400  {object}  helper.ResponseError
+// @Failure      401  {object}  helper.ResponseError
+// @Failure      500  {object}  helper.ResponseError
+// @Router       /api/auth/login [post]
+func (c *AuthController) Login(w http.ResponseWriter, r *http.Request) {
+	var req model.LoginRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		slog.Warn("Invalid request body", "error", err)
+		helper.WriteError(w, helper.NewBadRequestError(""))
+		return
+	}
+
+	resp, err := c.authService.Login(r.Context(), req)
+	if err != nil {
+		helper.WriteError(w, err)
+		return
+	}
+
+	helper.WriteSuccess(w, resp)
+}
+
 // GoogleExchange godoc
 // @Summary      Google Exchange
 // @Description  Exchange Google ID Token for App Token and User Info

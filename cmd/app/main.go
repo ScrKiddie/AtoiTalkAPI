@@ -30,8 +30,9 @@ func main() {
 	httpClient := config.NewHTTPClient()
 	validate := config.NewValidator()
 	chiMux := config.NewChi(cfg)
+	rateLimiter := config.NewRateLimiter(cfg)
 
-	bootstrap.Init(cfg, client, validate, s3Client, httpClient, chiMux)
+	bootstrap.Init(cfg, client, validate, s3Client, httpClient, chiMux, rateLimiter)
 
 	addr := fmt.Sprintf(":%s", cfg.AppPort)
 	slog.Info("Starting AtoiTalkAPI", "port", cfg.AppPort)
