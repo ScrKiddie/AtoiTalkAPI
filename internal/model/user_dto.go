@@ -3,10 +3,12 @@ package model
 import "mime/multipart"
 
 type UserDTO struct {
-	ID       int    `json:"id"`
-	Email    string `json:"email"`
-	FullName string `json:"full_name"`
-	Avatar   string `json:"avatar"`
+	ID          int    `json:"id"`
+	Email       string `json:"email"`
+	FullName    string `json:"full_name"`
+	Avatar      string `json:"avatar"`
+	Bio         string `json:"bio"`
+	HasPassword bool   `json:"has_password"`
 }
 
 type CreateUserDTO struct {

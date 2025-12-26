@@ -30,6 +30,40 @@ func NewUserService(client *ent.Client, cfg *config.AppConfig, validator *valida
 	}
 }
 
+func (s *UserService) GetCurrentUser(ctx context.Context, userID int) (*model.UserDTO, error) {
+	u, err := s.client.User.Query().
+		Where(user.ID(userID)).
+		WithAvatar().
+		Only(ctx)
+
+	if err != nil {
+		if ent.IsNotFound(err) {
+			return nil, helper.NewNotFoundError("")
+		}
+		slog.Error("Failed to query user", "error", err, "userID", userID)
+		return nil, helper.NewInternalServerError("")
+	}
+
+	avatarURL := ""
+	if u.Edges.Avatar != nil {
+		avatarURL = helper.BuildImageURL(s.cfg.StorageMode, s.cfg.AppURL, s.cfg.StorageCDNURL, s.cfg.StorageProfile, u.Edges.Avatar.FileName)
+	}
+
+	bio := ""
+	if u.Bio != nil {
+		bio = *u.Bio
+	}
+
+	return &model.UserDTO{
+		ID:          u.ID,
+		Email:       u.Email,
+		FullName:    u.FullName,
+		Avatar:      avatarURL,
+		Bio:         bio,
+		HasPassword: u.PasswordHash != nil,
+	}, nil
+}
+
 func (s *UserService) UpdateProfile(ctx context.Context, userID int, req model.UpdateProfileRequest) (*model.UserDTO, error) {
 	if req.DeleteAvatar && req.Avatar != nil {
 		return nil, helper.NewBadRequestError("")
@@ -116,8 +150,17 @@ func (s *UserService) UpdateProfile(ctx context.Context, userID int, req model.U
 		avatarURL = helper.BuildImageURL(s.cfg.StorageMode, s.cfg.AppURL, s.cfg.StorageCDNURL, s.cfg.StorageProfile, avatarFileName)
 	}
 
+	bio := ""
+	if updatedUser.Bio != nil {
+		bio = *updatedUser.Bio
+	}
+
 	return &model.UserDTO{
-		ID: updatedUser.ID, Email: updatedUser.Email,
-		FullName: updatedUser.FullName, Avatar: avatarURL,
+		ID:          updatedUser.ID,
+		Email:       updatedUser.Email,
+		FullName:    updatedUser.FullName,
+		Avatar:      avatarURL,
+		Bio:         bio,
+		HasPassword: updatedUser.PasswordHash != nil,
 	}, nil
 }

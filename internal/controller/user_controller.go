@@ -20,6 +20,33 @@ func NewUserController(userService *service.UserService) *UserController {
 	}
 }
 
+// GetCurrentUser godoc
+// @Summary      Get Current User
+// @Description  Get the currently logged-in user's profile.
+// @Tags         user
+// @Accept       json
+// @Produce      json
+// @Success      200  {object}  helper.ResponseSuccess{data=model.UserDTO}
+// @Failure      401  {object}  helper.ResponseError
+// @Failure      500  {object}  helper.ResponseError
+// @Security     BearerAuth
+// @Router       /api/user/current [get]
+func (c *UserController) GetCurrentUser(w http.ResponseWriter, r *http.Request) {
+	userContext, ok := r.Context().Value(middleware.UserContextKey).(*model.UserDTO)
+	if !ok {
+		helper.WriteError(w, helper.NewUnauthorizedError(""))
+		return
+	}
+
+	resp, err := c.userService.GetCurrentUser(r.Context(), userContext.ID)
+	if err != nil {
+		helper.WriteError(w, err)
+		return
+	}
+
+	helper.WriteSuccess(w, resp)
+}
+
 // UpdateProfile godoc
 // @Summary      Update User Profile
 // @Description  Update user's full name, bio, and avatar.
