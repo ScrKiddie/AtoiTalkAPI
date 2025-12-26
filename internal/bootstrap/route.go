@@ -3,6 +3,7 @@ package bootstrap
 import (
 	"AtoiTalkAPI/internal/config"
 	"AtoiTalkAPI/internal/controller"
+	"AtoiTalkAPI/internal/middleware"
 	"fmt"
 	"net/http"
 	"path/filepath"
@@ -17,15 +18,17 @@ type Route struct {
 	authController *controller.AuthController
 	otpController  *controller.OTPController
 	userController *controller.UserController
+	authMiddleware *middleware.AuthMiddleware
 }
 
-func NewRoute(cfg *config.AppConfig, chi *chi.Mux, authController *controller.AuthController, otpController *controller.OTPController, userController *controller.UserController) *Route {
+func NewRoute(cfg *config.AppConfig, chi *chi.Mux, authController *controller.AuthController, otpController *controller.OTPController, userController *controller.UserController, authMiddleware *middleware.AuthMiddleware) *Route {
 	return &Route{
 		cfg:            cfg,
 		chi:            chi,
 		authController: authController,
 		otpController:  otpController,
 		userController: userController,
+		authMiddleware: authMiddleware,
 	}
 }
 

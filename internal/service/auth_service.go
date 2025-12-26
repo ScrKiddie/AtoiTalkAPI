@@ -12,12 +12,14 @@ import (
 	"AtoiTalkAPI/internal/model"
 	"bytes"
 	"context"
+	"fmt"
 	"log/slog"
 	"path/filepath"
 	"strings"
 	"time"
 
 	"github.com/go-playground/validator/v10"
+	"github.com/golang-jwt/jwt/v5"
 	"google.golang.org/api/idtoken"
 )
 
@@ -37,6 +39,49 @@ func NewAuthService(client *ent.Client, cfg *config.AppConfig, validator *valida
 		storageAdapter: storageAdapter,
 		captchaAdapter: captchaAdapter,
 	}
+}
+
+func (s *AuthService) VerifyUser(ctx context.Context, tokenString string) (*model.UserDTO, error) {
+	token, err := jwt.ParseWithClaims(tokenString, &helper.JWTClaims{}, func(token *jwt.Token) (interface{}, error) {
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
+		}
+		return []byte(s.cfg.JWTSecret), nil
+	})
+
+	if err != nil {
+		slog.Warn("Failed to parse JWT token", "error", err)
+		return nil, helper.NewUnauthorizedError("Invalid or expired token")
+	}
+
+	claims, ok := token.Claims.(*helper.JWTClaims)
+	if !ok || !token.Valid {
+		return nil, helper.NewUnauthorizedError("Invalid token claims")
+	}
+
+	u, err := s.client.User.Query().
+		Where(user.ID(claims.UserID)).
+		Only(ctx)
+
+	if err != nil {
+		if ent.IsNotFound(err) {
+			return nil, helper.NewUnauthorizedError("User not found")
+		}
+		slog.Error("Failed to query user", "error", err)
+		return nil, helper.NewInternalServerError("")
+	}
+
+	avatarURL := ""
+	if u.AvatarFileName != nil && *u.AvatarFileName != "" {
+		avatarURL = helper.BuildImageURL(s.cfg.StorageMode, s.cfg.AppURL, s.cfg.StorageCDNURL, s.cfg.StorageProfile, *u.AvatarFileName)
+	}
+
+	return &model.UserDTO{
+		ID:       u.ID,
+		Email:    u.Email,
+		FullName: u.FullName,
+		Avatar:   avatarURL,
+	}, nil
 }
 
 func (s *AuthService) Login(ctx context.Context, req model.LoginRequest) (*model.AuthResponse, error) {
