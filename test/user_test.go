@@ -34,6 +34,48 @@ func createTestImage(t *testing.T, width, height int) []byte {
 	return buf.Bytes()
 }
 
+func TestGetCurrentUser(t *testing.T) {
+	validEmail := "current@example.com"
+	validName := "Current User"
+	validBio := "I am current user"
+
+	t.Run("Success", func(t *testing.T) {
+		clearDatabase(context.Background())
+
+		u, err := testClient.User.Create().
+			SetEmail(validEmail).
+			SetFullName(validName).
+			SetBio(validBio).
+			Save(context.Background())
+		assert.NoError(t, err)
+
+		token, _ := helper.GenerateJWT(testConfig.JWTSecret, testConfig.JWTExp, u.ID)
+
+		req, _ := http.NewRequest("GET", "/api/user/current", nil)
+		req.Header.Set("Authorization", "Bearer "+token)
+
+		rr := executeRequest(req)
+
+		assert.Equal(t, http.StatusOK, rr.Code)
+		var resp helper.ResponseSuccess
+		json.Unmarshal(rr.Body.Bytes(), &resp)
+
+		dataMap, ok := resp.Data.(map[string]interface{})
+		assert.True(t, ok)
+		assert.Equal(t, validEmail, dataMap["email"])
+		assert.Equal(t, validName, dataMap["full_name"])
+		assert.Equal(t, validBio, dataMap["bio"])
+	})
+
+	t.Run("Unauthorized", func(t *testing.T) {
+		req, _ := http.NewRequest("GET", "/api/user/current", nil)
+
+		rr := executeRequest(req)
+
+		assert.Equal(t, http.StatusUnauthorized, rr.Code)
+	})
+}
+
 func TestUpdateProfile(t *testing.T) {
 	if testConfig.StorageMode != "local" {
 		t.Skip("Skipping Update Profile test: Storage mode is not local")
