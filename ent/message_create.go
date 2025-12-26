@@ -3,8 +3,8 @@
 package ent
 
 import (
-	"AtoiTalkAPI/ent/attachment"
 	"AtoiTalkAPI/ent/chat"
+	"AtoiTalkAPI/ent/media"
 	"AtoiTalkAPI/ent/message"
 	"AtoiTalkAPI/ent/user"
 	"context"
@@ -149,14 +149,14 @@ func (_c *MessageCreate) SetReplyTo(v *Message) *MessageCreate {
 	return _c.SetReplyToID(v.ID)
 }
 
-// AddAttachmentIDs adds the "attachments" edge to the Attachment entity by IDs.
+// AddAttachmentIDs adds the "attachments" edge to the Media entity by IDs.
 func (_c *MessageCreate) AddAttachmentIDs(ids ...int) *MessageCreate {
 	_c.mutation.AddAttachmentIDs(ids...)
 	return _c
 }
 
-// AddAttachments adds the "attachments" edges to the Attachment entity.
-func (_c *MessageCreate) AddAttachments(v ...*Attachment) *MessageCreate {
+// AddAttachments adds the "attachments" edges to the Media entity.
+func (_c *MessageCreate) AddAttachments(v ...*Media) *MessageCreate {
 	ids := make([]int, len(v))
 	for i := range v {
 		ids[i] = v[i].ID
@@ -372,7 +372,7 @@ func (_c *MessageCreate) createSpec() (*Message, *sqlgraph.CreateSpec) {
 			Columns: []string{message.AttachmentsColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(attachment.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(media.FieldID, field.TypeInt),
 			},
 		}
 		for _, k := range nodes {

@@ -25,11 +25,14 @@ func Init(appConfig *config.AppConfig, client *ent.Client, validator *validator.
 	otpService := service.NewOTPService(client, appConfig, validator, emailAdapter, rateLimiter, captchaAdapter)
 	otpController := controller.NewOTPController(otpService)
 
-	userService := service.NewUserService(client, appConfig)
+	userService := service.NewUserService(client, appConfig, validator, storageAdapter)
 	userController := controller.NewUserController(userService)
+
+	accountService := service.NewAccountService(client, appConfig, validator)
+	accountController := controller.NewAccountController(accountService)
 
 	authMiddleware := middleware.NewAuthMiddleware(authService)
 
-	route := NewRoute(appConfig, chiMux, authController, otpController, userController, authMiddleware)
+	route := NewRoute(appConfig, chiMux, authController, otpController, userController, accountController, authMiddleware)
 	route.Register()
 }

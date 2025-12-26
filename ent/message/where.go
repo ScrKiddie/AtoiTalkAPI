@@ -484,7 +484,7 @@ func HasAttachments() predicate.Message {
 }
 
 // HasAttachmentsWith applies the HasEdge predicate on the "attachments" edge with a given conditions (other predicates).
-func HasAttachmentsWith(preds ...predicate.Attachment) predicate.Message {
+func HasAttachmentsWith(preds ...predicate.Media) predicate.Message {
 	return predicate.Message(func(s *sql.Selector) {
 		step := newAttachmentsStep()
 		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {

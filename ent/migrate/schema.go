@@ -9,41 +9,6 @@ import (
 )
 
 var (
-	// AttachmentsColumns holds the columns for the "attachments" table.
-	AttachmentsColumns = []*schema.Column{
-		{Name: "id", Type: field.TypeInt, Increment: true},
-		{Name: "created_at", Type: field.TypeTime, Default: "CURRENT_TIMESTAMP"},
-		{Name: "updated_at", Type: field.TypeTime, Default: "CURRENT_TIMESTAMP"},
-		{Name: "file_name", Type: field.TypeString, Size: 255},
-		{Name: "file_type", Type: field.TypeEnum, Enums: []string{"image", "video", "audio", "document", "code", "archive", "executable", "other"}},
-		{Name: "original_name", Type: field.TypeString, Size: 255},
-		{Name: "file_size", Type: field.TypeInt64},
-		{Name: "message_id", Type: field.TypeInt, Nullable: true},
-	}
-	// AttachmentsTable holds the schema information for the "attachments" table.
-	AttachmentsTable = &schema.Table{
-		Name:       "attachments",
-		Columns:    AttachmentsColumns,
-		PrimaryKey: []*schema.Column{AttachmentsColumns[0]},
-		ForeignKeys: []*schema.ForeignKey{
-			{
-				Symbol:     "attachments_messages_attachments",
-				Columns:    []*schema.Column{AttachmentsColumns[7]},
-				RefColumns: []*schema.Column{MessagesColumns[0]},
-				OnDelete:   schema.Cascade,
-			},
-		},
-		Indexes: []*schema.Index{
-			{
-				Name:    "attachment_message_id",
-				Unique:  false,
-				Columns: []*schema.Column{AttachmentsColumns[7]},
-				Annotation: &entsql.IndexAnnotation{
-					Where: "message_id IS NOT NULL",
-				},
-			},
-		},
-	}
 	// ChatsColumns holds the columns for the "chats" table.
 	ChatsColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt, Increment: true},
@@ -82,8 +47,8 @@ var (
 		{Name: "id", Type: field.TypeInt, Increment: true},
 		{Name: "name", Type: field.TypeString, Size: 100},
 		{Name: "description", Type: field.TypeString, Nullable: true, Size: 2147483647},
-		{Name: "avatar_file_name", Type: field.TypeString, Nullable: true, Size: 255},
 		{Name: "chat_id", Type: field.TypeInt, Unique: true},
+		{Name: "avatar_id", Type: field.TypeInt, Unique: true, Nullable: true},
 		{Name: "created_by", Type: field.TypeInt},
 	}
 	// GroupChatsTable holds the schema information for the "group_chats" table.
@@ -94,9 +59,15 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "group_chats_chats_group_chat",
-				Columns:    []*schema.Column{GroupChatsColumns[4]},
+				Columns:    []*schema.Column{GroupChatsColumns[3]},
 				RefColumns: []*schema.Column{ChatsColumns[0]},
 				OnDelete:   schema.Cascade,
+			},
+			{
+				Symbol:     "group_chats_media_group_avatar",
+				Columns:    []*schema.Column{GroupChatsColumns[4]},
+				RefColumns: []*schema.Column{MediaColumns[0]},
+				OnDelete:   schema.SetNull,
 			},
 			{
 				Symbol:     "group_chats_users_created_groups",
@@ -139,6 +110,31 @@ var (
 				Name:    "pk_group_member",
 				Unique:  true,
 				Columns: []*schema.Column{GroupMembersColumns[4], GroupMembersColumns[5]},
+			},
+		},
+	}
+	// MediaColumns holds the columns for the "media" table.
+	MediaColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "created_at", Type: field.TypeTime, Default: "CURRENT_TIMESTAMP"},
+		{Name: "updated_at", Type: field.TypeTime, Default: "CURRENT_TIMESTAMP"},
+		{Name: "file_name", Type: field.TypeString, Unique: true, Size: 255},
+		{Name: "original_name", Type: field.TypeString, Size: 255},
+		{Name: "file_size", Type: field.TypeInt64},
+		{Name: "mime_type", Type: field.TypeString, Size: 100},
+		{Name: "message_id", Type: field.TypeInt, Nullable: true},
+	}
+	// MediaTable holds the schema information for the "media" table.
+	MediaTable = &schema.Table{
+		Name:       "media",
+		Columns:    MediaColumns,
+		PrimaryKey: []*schema.Column{MediaColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "media_messages_attachments",
+				Columns:    []*schema.Column{MediaColumns[7]},
+				RefColumns: []*schema.Column{MessagesColumns[0]},
+				OnDelete:   schema.Cascade,
 			},
 		},
 	}
@@ -206,7 +202,7 @@ var (
 		{Name: "updated_at", Type: field.TypeTime, Default: "CURRENT_TIMESTAMP"},
 		{Name: "email", Type: field.TypeString, Unique: true, Size: 255},
 		{Name: "code", Type: field.TypeString, Size: 255},
-		{Name: "mode", Type: field.TypeEnum, Enums: []string{"register", "reset"}, Default: "register"},
+		{Name: "mode", Type: field.TypeEnum, Enums: []string{"register", "reset", "change_email"}, Default: "register"},
 		{Name: "expires_at", Type: field.TypeTime},
 	}
 	// OtpsTable holds the schema information for the "otps" table.
@@ -288,15 +284,23 @@ var (
 		{Name: "password_hash", Type: field.TypeString, Nullable: true, Size: 255},
 		{Name: "full_name", Type: field.TypeString, Size: 100},
 		{Name: "bio", Type: field.TypeString, Nullable: true, Size: 255},
-		{Name: "avatar_file_name", Type: field.TypeString, Nullable: true, Size: 255},
 		{Name: "is_online", Type: field.TypeBool, Default: false},
 		{Name: "last_seen_at", Type: field.TypeTime, Nullable: true},
+		{Name: "avatar_id", Type: field.TypeInt, Unique: true, Nullable: true},
 	}
 	// UsersTable holds the schema information for the "users" table.
 	UsersTable = &schema.Table{
 		Name:       "users",
 		Columns:    UsersColumns,
 		PrimaryKey: []*schema.Column{UsersColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "users_media_user_avatar",
+				Columns:    []*schema.Column{UsersColumns[9]},
+				RefColumns: []*schema.Column{MediaColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
+		},
 	}
 	// UserIdentitiesColumns holds the columns for the "user_identities" table.
 	UserIdentitiesColumns = []*schema.Column{
@@ -336,10 +340,10 @@ var (
 	}
 	// Tables holds all the tables in the schema.
 	Tables = []*schema.Table{
-		AttachmentsTable,
 		ChatsTable,
 		GroupChatsTable,
 		GroupMembersTable,
+		MediaTable,
 		MessagesTable,
 		OtpsTable,
 		PrivateChatsTable,
@@ -349,12 +353,13 @@ var (
 )
 
 func init() {
-	AttachmentsTable.ForeignKeys[0].RefTable = MessagesTable
 	ChatsTable.ForeignKeys[0].RefTable = MessagesTable
 	GroupChatsTable.ForeignKeys[0].RefTable = ChatsTable
-	GroupChatsTable.ForeignKeys[1].RefTable = UsersTable
+	GroupChatsTable.ForeignKeys[1].RefTable = MediaTable
+	GroupChatsTable.ForeignKeys[2].RefTable = UsersTable
 	GroupMembersTable.ForeignKeys[0].RefTable = GroupChatsTable
 	GroupMembersTable.ForeignKeys[1].RefTable = UsersTable
+	MediaTable.ForeignKeys[0].RefTable = MessagesTable
 	MessagesTable.ForeignKeys[0].RefTable = ChatsTable
 	MessagesTable.ForeignKeys[1].RefTable = MessagesTable
 	MessagesTable.ForeignKeys[2].RefTable = UsersTable
@@ -364,5 +369,6 @@ func init() {
 	PrivateChatsTable.ForeignKeys[0].RefTable = ChatsTable
 	PrivateChatsTable.ForeignKeys[1].RefTable = UsersTable
 	PrivateChatsTable.ForeignKeys[2].RefTable = UsersTable
+	UsersTable.ForeignKeys[0].RefTable = MediaTable
 	UserIdentitiesTable.ForeignKeys[0].RefTable = UsersTable
 }

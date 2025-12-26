@@ -3,8 +3,10 @@
 package ent
 
 import (
-	"AtoiTalkAPI/ent/attachment"
+	"AtoiTalkAPI/ent/groupchat"
+	"AtoiTalkAPI/ent/media"
 	"AtoiTalkAPI/ent/message"
+	"AtoiTalkAPI/ent/user"
 	"fmt"
 	"strings"
 	"time"
@@ -13,8 +15,8 @@ import (
 	"entgo.io/ent/dialect/sql"
 )
 
-// Attachment is the model entity for the Attachment schema.
-type Attachment struct {
+// Media is the model entity for the Media schema.
+type Media struct {
 	config `json:"-"`
 	// ID of the ent.
 	ID int `json:"id,omitempty"`
@@ -22,34 +24,38 @@ type Attachment struct {
 	CreatedAt time.Time `json:"created_at,omitempty"`
 	// UpdatedAt holds the value of the "updated_at" field.
 	UpdatedAt time.Time `json:"updated_at,omitempty"`
-	// MessageID holds the value of the "message_id" field.
-	MessageID *int `json:"message_id,omitempty"`
 	// FileName holds the value of the "file_name" field.
 	FileName string `json:"file_name,omitempty"`
-	// FileType holds the value of the "file_type" field.
-	FileType attachment.FileType `json:"file_type,omitempty"`
 	// OriginalName holds the value of the "original_name" field.
 	OriginalName string `json:"original_name,omitempty"`
 	// FileSize holds the value of the "file_size" field.
 	FileSize int64 `json:"file_size,omitempty"`
+	// MimeType holds the value of the "mime_type" field.
+	MimeType string `json:"mime_type,omitempty"`
+	// MessageID holds the value of the "message_id" field.
+	MessageID *int `json:"message_id,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
-	// The values are being populated by the AttachmentQuery when eager-loading is set.
-	Edges        AttachmentEdges `json:"edges"`
+	// The values are being populated by the MediaQuery when eager-loading is set.
+	Edges        MediaEdges `json:"edges"`
 	selectValues sql.SelectValues
 }
 
-// AttachmentEdges holds the relations/edges for other nodes in the graph.
-type AttachmentEdges struct {
+// MediaEdges holds the relations/edges for other nodes in the graph.
+type MediaEdges struct {
 	// Message holds the value of the message edge.
 	Message *Message `json:"message,omitempty"`
+	// UserAvatar holds the value of the user_avatar edge.
+	UserAvatar *User `json:"user_avatar,omitempty"`
+	// GroupAvatar holds the value of the group_avatar edge.
+	GroupAvatar *GroupChat `json:"group_avatar,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [1]bool
+	loadedTypes [3]bool
 }
 
 // MessageOrErr returns the Message value or an error if the edge
 // was not loaded in eager-loading, or loaded but was not found.
-func (e AttachmentEdges) MessageOrErr() (*Message, error) {
+func (e MediaEdges) MessageOrErr() (*Message, error) {
 	if e.Message != nil {
 		return e.Message, nil
 	} else if e.loadedTypes[0] {
@@ -58,16 +64,38 @@ func (e AttachmentEdges) MessageOrErr() (*Message, error) {
 	return nil, &NotLoadedError{edge: "message"}
 }
 
+// UserAvatarOrErr returns the UserAvatar value or an error if the edge
+// was not loaded in eager-loading, or loaded but was not found.
+func (e MediaEdges) UserAvatarOrErr() (*User, error) {
+	if e.UserAvatar != nil {
+		return e.UserAvatar, nil
+	} else if e.loadedTypes[1] {
+		return nil, &NotFoundError{label: user.Label}
+	}
+	return nil, &NotLoadedError{edge: "user_avatar"}
+}
+
+// GroupAvatarOrErr returns the GroupAvatar value or an error if the edge
+// was not loaded in eager-loading, or loaded but was not found.
+func (e MediaEdges) GroupAvatarOrErr() (*GroupChat, error) {
+	if e.GroupAvatar != nil {
+		return e.GroupAvatar, nil
+	} else if e.loadedTypes[2] {
+		return nil, &NotFoundError{label: groupchat.Label}
+	}
+	return nil, &NotLoadedError{edge: "group_avatar"}
+}
+
 // scanValues returns the types for scanning values from sql.Rows.
-func (*Attachment) scanValues(columns []string) ([]any, error) {
+func (*Media) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case attachment.FieldID, attachment.FieldMessageID, attachment.FieldFileSize:
+		case media.FieldID, media.FieldFileSize, media.FieldMessageID:
 			values[i] = new(sql.NullInt64)
-		case attachment.FieldFileName, attachment.FieldFileType, attachment.FieldOriginalName:
+		case media.FieldFileName, media.FieldOriginalName, media.FieldMimeType:
 			values[i] = new(sql.NullString)
-		case attachment.FieldCreatedAt, attachment.FieldUpdatedAt:
+		case media.FieldCreatedAt, media.FieldUpdatedAt:
 			values[i] = new(sql.NullTime)
 		default:
 			values[i] = new(sql.UnknownType)
@@ -77,61 +105,61 @@ func (*Attachment) scanValues(columns []string) ([]any, error) {
 }
 
 // assignValues assigns the values that were returned from sql.Rows (after scanning)
-// to the Attachment fields.
-func (_m *Attachment) assignValues(columns []string, values []any) error {
+// to the Media fields.
+func (_m *Media) assignValues(columns []string, values []any) error {
 	if m, n := len(values), len(columns); m < n {
 		return fmt.Errorf("mismatch number of scan values: %d != %d", m, n)
 	}
 	for i := range columns {
 		switch columns[i] {
-		case attachment.FieldID:
+		case media.FieldID:
 			value, ok := values[i].(*sql.NullInt64)
 			if !ok {
 				return fmt.Errorf("unexpected type %T for field id", value)
 			}
 			_m.ID = int(value.Int64)
-		case attachment.FieldCreatedAt:
+		case media.FieldCreatedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field created_at", values[i])
 			} else if value.Valid {
 				_m.CreatedAt = value.Time
 			}
-		case attachment.FieldUpdatedAt:
+		case media.FieldUpdatedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field updated_at", values[i])
 			} else if value.Valid {
 				_m.UpdatedAt = value.Time
 			}
-		case attachment.FieldMessageID:
-			if value, ok := values[i].(*sql.NullInt64); !ok {
-				return fmt.Errorf("unexpected type %T for field message_id", values[i])
-			} else if value.Valid {
-				_m.MessageID = new(int)
-				*_m.MessageID = int(value.Int64)
-			}
-		case attachment.FieldFileName:
+		case media.FieldFileName:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field file_name", values[i])
 			} else if value.Valid {
 				_m.FileName = value.String
 			}
-		case attachment.FieldFileType:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field file_type", values[i])
-			} else if value.Valid {
-				_m.FileType = attachment.FileType(value.String)
-			}
-		case attachment.FieldOriginalName:
+		case media.FieldOriginalName:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field original_name", values[i])
 			} else if value.Valid {
 				_m.OriginalName = value.String
 			}
-		case attachment.FieldFileSize:
+		case media.FieldFileSize:
 			if value, ok := values[i].(*sql.NullInt64); !ok {
 				return fmt.Errorf("unexpected type %T for field file_size", values[i])
 			} else if value.Valid {
 				_m.FileSize = value.Int64
+			}
+		case media.FieldMimeType:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field mime_type", values[i])
+			} else if value.Valid {
+				_m.MimeType = value.String
+			}
+		case media.FieldMessageID:
+			if value, ok := values[i].(*sql.NullInt64); !ok {
+				return fmt.Errorf("unexpected type %T for field message_id", values[i])
+			} else if value.Valid {
+				_m.MessageID = new(int)
+				*_m.MessageID = int(value.Int64)
 			}
 		default:
 			_m.selectValues.Set(columns[i], values[i])
@@ -140,39 +168,49 @@ func (_m *Attachment) assignValues(columns []string, values []any) error {
 	return nil
 }
 
-// Value returns the ent.Value that was dynamically selected and assigned to the Attachment.
+// Value returns the ent.Value that was dynamically selected and assigned to the Media.
 // This includes values selected through modifiers, order, etc.
-func (_m *Attachment) Value(name string) (ent.Value, error) {
+func (_m *Media) Value(name string) (ent.Value, error) {
 	return _m.selectValues.Get(name)
 }
 
-// QueryMessage queries the "message" edge of the Attachment entity.
-func (_m *Attachment) QueryMessage() *MessageQuery {
-	return NewAttachmentClient(_m.config).QueryMessage(_m)
+// QueryMessage queries the "message" edge of the Media entity.
+func (_m *Media) QueryMessage() *MessageQuery {
+	return NewMediaClient(_m.config).QueryMessage(_m)
 }
 
-// Update returns a builder for updating this Attachment.
-// Note that you need to call Attachment.Unwrap() before calling this method if this Attachment
+// QueryUserAvatar queries the "user_avatar" edge of the Media entity.
+func (_m *Media) QueryUserAvatar() *UserQuery {
+	return NewMediaClient(_m.config).QueryUserAvatar(_m)
+}
+
+// QueryGroupAvatar queries the "group_avatar" edge of the Media entity.
+func (_m *Media) QueryGroupAvatar() *GroupChatQuery {
+	return NewMediaClient(_m.config).QueryGroupAvatar(_m)
+}
+
+// Update returns a builder for updating this Media.
+// Note that you need to call Media.Unwrap() before calling this method if this Media
 // was returned from a transaction, and the transaction was committed or rolled back.
-func (_m *Attachment) Update() *AttachmentUpdateOne {
-	return NewAttachmentClient(_m.config).UpdateOne(_m)
+func (_m *Media) Update() *MediaUpdateOne {
+	return NewMediaClient(_m.config).UpdateOne(_m)
 }
 
-// Unwrap unwraps the Attachment entity that was returned from a transaction after it was closed,
+// Unwrap unwraps the Media entity that was returned from a transaction after it was closed,
 // so that all future queries will be executed through the driver which created the transaction.
-func (_m *Attachment) Unwrap() *Attachment {
+func (_m *Media) Unwrap() *Media {
 	_tx, ok := _m.config.driver.(*txDriver)
 	if !ok {
-		panic("ent: Attachment is not a transactional entity")
+		panic("ent: Media is not a transactional entity")
 	}
 	_m.config.driver = _tx.drv
 	return _m
 }
 
 // String implements the fmt.Stringer.
-func (_m *Attachment) String() string {
+func (_m *Media) String() string {
 	var builder strings.Builder
-	builder.WriteString("Attachment(")
+	builder.WriteString("Media(")
 	builder.WriteString(fmt.Sprintf("id=%v, ", _m.ID))
 	builder.WriteString("created_at=")
 	builder.WriteString(_m.CreatedAt.Format(time.ANSIC))
@@ -180,25 +218,25 @@ func (_m *Attachment) String() string {
 	builder.WriteString("updated_at=")
 	builder.WriteString(_m.UpdatedAt.Format(time.ANSIC))
 	builder.WriteString(", ")
-	if v := _m.MessageID; v != nil {
-		builder.WriteString("message_id=")
-		builder.WriteString(fmt.Sprintf("%v", *v))
-	}
-	builder.WriteString(", ")
 	builder.WriteString("file_name=")
 	builder.WriteString(_m.FileName)
-	builder.WriteString(", ")
-	builder.WriteString("file_type=")
-	builder.WriteString(fmt.Sprintf("%v", _m.FileType))
 	builder.WriteString(", ")
 	builder.WriteString("original_name=")
 	builder.WriteString(_m.OriginalName)
 	builder.WriteString(", ")
 	builder.WriteString("file_size=")
 	builder.WriteString(fmt.Sprintf("%v", _m.FileSize))
+	builder.WriteString(", ")
+	builder.WriteString("mime_type=")
+	builder.WriteString(_m.MimeType)
+	builder.WriteString(", ")
+	if v := _m.MessageID; v != nil {
+		builder.WriteString("message_id=")
+		builder.WriteString(fmt.Sprintf("%v", *v))
+	}
 	builder.WriteByte(')')
 	return builder.String()
 }
 
-// Attachments is a parsable slice of Attachment.
-type Attachments []*Attachment
+// MediaSlice is a parsable slice of Media.
+type MediaSlice []*Media

@@ -28,7 +28,7 @@ func (OTP) Fields() []ent.Field {
 			MaxLen(255).
 			NotEmpty(),
 		field.Enum("mode").
-			Values("register", "reset").
+			Values("register", "reset", "change_email").
 			Default("register"),
 		field.Time("expires_at"),
 	}

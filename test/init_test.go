@@ -102,12 +102,15 @@ func TestMain(m *testing.M) {
 	otpService := service.NewOTPService(testClient, testConfig, validator, emailAdapter, rateLimiter, captchaAdapter)
 	otpController := controller.NewOTPController(otpService)
 
-	userService := service.NewUserService(testClient, testConfig)
+	userService := service.NewUserService(testClient, testConfig, validator, storageAdapter)
 	userController := controller.NewUserController(userService)
+
+	accountService := service.NewAccountService(testClient, testConfig, validator)
+	accountController := controller.NewAccountController(accountService)
 
 	authMiddleware := middleware.NewAuthMiddleware(authService)
 
-	route := bootstrap.NewRoute(testConfig, testRouter, authController, otpController, userController, authMiddleware)
+	route := bootstrap.NewRoute(testConfig, testRouter, authController, otpController, userController, accountController, authMiddleware)
 	route.Register()
 
 	code := m.Run()
@@ -124,6 +127,7 @@ func executeRequest(req *http.Request) *httptest.ResponseRecorder {
 }
 
 func clearDatabase(ctx context.Context) {
+	testClient.Media.Delete().Exec(ctx)
 	testClient.User.Delete().Exec(ctx)
 	testClient.OTP.Delete().Exec(ctx)
 }

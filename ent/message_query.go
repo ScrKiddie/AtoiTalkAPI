@@ -3,8 +3,8 @@
 package ent
 
 import (
-	"AtoiTalkAPI/ent/attachment"
 	"AtoiTalkAPI/ent/chat"
+	"AtoiTalkAPI/ent/media"
 	"AtoiTalkAPI/ent/message"
 	"AtoiTalkAPI/ent/predicate"
 	"AtoiTalkAPI/ent/user"
@@ -30,7 +30,7 @@ type MessageQuery struct {
 	withSender               *UserQuery
 	withReplies              *MessageQuery
 	withReplyTo              *MessageQuery
-	withAttachments          *AttachmentQuery
+	withAttachments          *MediaQuery
 	withChatsWithLastMessage *ChatQuery
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
@@ -157,8 +157,8 @@ func (_q *MessageQuery) QueryReplyTo() *MessageQuery {
 }
 
 // QueryAttachments chains the current query on the "attachments" edge.
-func (_q *MessageQuery) QueryAttachments() *AttachmentQuery {
-	query := (&AttachmentClient{config: _q.config}).Query()
+func (_q *MessageQuery) QueryAttachments() *MediaQuery {
+	query := (&MediaClient{config: _q.config}).Query()
 	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
 		if err := _q.prepareQuery(ctx); err != nil {
 			return nil, err
@@ -169,7 +169,7 @@ func (_q *MessageQuery) QueryAttachments() *AttachmentQuery {
 		}
 		step := sqlgraph.NewStep(
 			sqlgraph.From(message.Table, message.FieldID, selector),
-			sqlgraph.To(attachment.Table, attachment.FieldID),
+			sqlgraph.To(media.Table, media.FieldID),
 			sqlgraph.Edge(sqlgraph.O2M, false, message.AttachmentsTable, message.AttachmentsColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
@@ -450,8 +450,8 @@ func (_q *MessageQuery) WithReplyTo(opts ...func(*MessageQuery)) *MessageQuery {
 
 // WithAttachments tells the query-builder to eager-load the nodes that are connected to
 // the "attachments" edge. The optional arguments are used to configure the query builder of the edge.
-func (_q *MessageQuery) WithAttachments(opts ...func(*AttachmentQuery)) *MessageQuery {
-	query := (&AttachmentClient{config: _q.config}).Query()
+func (_q *MessageQuery) WithAttachments(opts ...func(*MediaQuery)) *MessageQuery {
+	query := (&MediaClient{config: _q.config}).Query()
 	for _, opt := range opts {
 		opt(query)
 	}
@@ -602,8 +602,8 @@ func (_q *MessageQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Mess
 	}
 	if query := _q.withAttachments; query != nil {
 		if err := _q.loadAttachments(ctx, query, nodes,
-			func(n *Message) { n.Edges.Attachments = []*Attachment{} },
-			func(n *Message, e *Attachment) { n.Edges.Attachments = append(n.Edges.Attachments, e) }); err != nil {
+			func(n *Message) { n.Edges.Attachments = []*Media{} },
+			func(n *Message, e *Media) { n.Edges.Attachments = append(n.Edges.Attachments, e) }); err != nil {
 			return nil, err
 		}
 	}
@@ -740,7 +740,7 @@ func (_q *MessageQuery) loadReplyTo(ctx context.Context, query *MessageQuery, no
 	}
 	return nil
 }
-func (_q *MessageQuery) loadAttachments(ctx context.Context, query *AttachmentQuery, nodes []*Message, init func(*Message), assign func(*Message, *Attachment)) error {
+func (_q *MessageQuery) loadAttachments(ctx context.Context, query *MediaQuery, nodes []*Message, init func(*Message), assign func(*Message, *Media)) error {
 	fks := make([]driver.Value, 0, len(nodes))
 	nodeids := make(map[int]*Message)
 	for i := range nodes {
@@ -751,9 +751,9 @@ func (_q *MessageQuery) loadAttachments(ctx context.Context, query *AttachmentQu
 		}
 	}
 	if len(query.ctx.Fields) > 0 {
-		query.ctx.AppendFieldOnce(attachment.FieldMessageID)
+		query.ctx.AppendFieldOnce(media.FieldMessageID)
 	}
-	query.Where(predicate.Attachment(func(s *sql.Selector) {
+	query.Where(predicate.Media(func(s *sql.Selector) {
 		s.Where(sql.InValues(s.C(message.AttachmentsColumn), fks...))
 	}))
 	neighbors, err := query.All(ctx)

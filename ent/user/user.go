@@ -26,12 +26,14 @@ const (
 	FieldFullName = "full_name"
 	// FieldBio holds the string denoting the bio field in the database.
 	FieldBio = "bio"
-	// FieldAvatarFileName holds the string denoting the avatar_file_name field in the database.
-	FieldAvatarFileName = "avatar_file_name"
+	// FieldAvatarID holds the string denoting the avatar_id field in the database.
+	FieldAvatarID = "avatar_id"
 	// FieldIsOnline holds the string denoting the is_online field in the database.
 	FieldIsOnline = "is_online"
 	// FieldLastSeenAt holds the string denoting the last_seen_at field in the database.
 	FieldLastSeenAt = "last_seen_at"
+	// EdgeAvatar holds the string denoting the avatar edge name in mutations.
+	EdgeAvatar = "avatar"
 	// EdgeIdentities holds the string denoting the identities edge name in mutations.
 	EdgeIdentities = "identities"
 	// EdgeSentMessages holds the string denoting the sent_messages edge name in mutations.
@@ -46,6 +48,13 @@ const (
 	EdgePrivateChatsAsUser2 = "private_chats_as_user2"
 	// Table holds the table name of the user in the database.
 	Table = "users"
+	// AvatarTable is the table that holds the avatar relation/edge.
+	AvatarTable = "users"
+	// AvatarInverseTable is the table name for the Media entity.
+	// It exists in this package in order to avoid circular dependency with the "media" package.
+	AvatarInverseTable = "media"
+	// AvatarColumn is the table column denoting the avatar relation/edge.
+	AvatarColumn = "avatar_id"
 	// IdentitiesTable is the table that holds the identities relation/edge.
 	IdentitiesTable = "user_identities"
 	// IdentitiesInverseTable is the table name for the UserIdentity entity.
@@ -99,7 +108,7 @@ var Columns = []string{
 	FieldPasswordHash,
 	FieldFullName,
 	FieldBio,
-	FieldAvatarFileName,
+	FieldAvatarID,
 	FieldIsOnline,
 	FieldLastSeenAt,
 }
@@ -129,8 +138,6 @@ var (
 	FullNameValidator func(string) error
 	// BioValidator is a validator for the "bio" field. It is called by the builders before save.
 	BioValidator func(string) error
-	// AvatarFileNameValidator is a validator for the "avatar_file_name" field. It is called by the builders before save.
-	AvatarFileNameValidator func(string) error
 	// DefaultIsOnline holds the default value on creation for the "is_online" field.
 	DefaultIsOnline bool
 )
@@ -173,9 +180,9 @@ func ByBio(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldBio, opts...).ToFunc()
 }
 
-// ByAvatarFileName orders the results by the avatar_file_name field.
-func ByAvatarFileName(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldAvatarFileName, opts...).ToFunc()
+// ByAvatarID orders the results by the avatar_id field.
+func ByAvatarID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldAvatarID, opts...).ToFunc()
 }
 
 // ByIsOnline orders the results by the is_online field.
@@ -186,6 +193,13 @@ func ByIsOnline(opts ...sql.OrderTermOption) OrderOption {
 // ByLastSeenAt orders the results by the last_seen_at field.
 func ByLastSeenAt(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldLastSeenAt, opts...).ToFunc()
+}
+
+// ByAvatarField orders the results by avatar field.
+func ByAvatarField(field string, opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newAvatarStep(), sql.OrderByField(field, opts...))
+	}
 }
 
 // ByIdentitiesCount orders the results by identities count.
@@ -270,6 +284,13 @@ func ByPrivateChatsAsUser2(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOpti
 	return func(s *sql.Selector) {
 		sqlgraph.OrderByNeighborTerms(s, newPrivateChatsAsUser2Step(), append([]sql.OrderTerm{term}, terms...)...)
 	}
+}
+func newAvatarStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(AvatarInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2O, true, AvatarTable, AvatarColumn),
+	)
 }
 func newIdentitiesStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(

@@ -12,14 +12,14 @@ import (
 // Tx is a transactional client that is created by calling Client.Tx().
 type Tx struct {
 	config
-	// Attachment is the client for interacting with the Attachment builders.
-	Attachment *AttachmentClient
 	// Chat is the client for interacting with the Chat builders.
 	Chat *ChatClient
 	// GroupChat is the client for interacting with the GroupChat builders.
 	GroupChat *GroupChatClient
 	// GroupMember is the client for interacting with the GroupMember builders.
 	GroupMember *GroupMemberClient
+	// Media is the client for interacting with the Media builders.
+	Media *MediaClient
 	// Message is the client for interacting with the Message builders.
 	Message *MessageClient
 	// OTP is the client for interacting with the OTP builders.
@@ -161,10 +161,10 @@ func (tx *Tx) Client() *Client {
 }
 
 func (tx *Tx) init() {
-	tx.Attachment = NewAttachmentClient(tx.config)
 	tx.Chat = NewChatClient(tx.config)
 	tx.GroupChat = NewGroupChatClient(tx.config)
 	tx.GroupMember = NewGroupMemberClient(tx.config)
+	tx.Media = NewMediaClient(tx.config)
 	tx.Message = NewMessageClient(tx.config)
 	tx.OTP = NewOTPClient(tx.config)
 	tx.PrivateChat = NewPrivateChatClient(tx.config)
@@ -179,7 +179,7 @@ func (tx *Tx) init() {
 // of them in order to commit or rollback the transaction.
 //
 // If a closed transaction is embedded in one of the generated entities, and the entity
-// applies a query, for example: Attachment.QueryXXX(), the query will be executed
+// applies a query, for example: Chat.QueryXXX(), the query will be executed
 // through the driver which created this transaction.
 //
 // Note that txDriver is not goroutine safe.

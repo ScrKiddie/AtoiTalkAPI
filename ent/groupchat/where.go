@@ -74,9 +74,9 @@ func Description(v string) predicate.GroupChat {
 	return predicate.GroupChat(sql.FieldEQ(FieldDescription, v))
 }
 
-// AvatarFileName applies equality check predicate on the "avatar_file_name" field. It's identical to AvatarFileNameEQ.
-func AvatarFileName(v string) predicate.GroupChat {
-	return predicate.GroupChat(sql.FieldEQ(FieldAvatarFileName, v))
+// AvatarID applies equality check predicate on the "avatar_id" field. It's identical to AvatarIDEQ.
+func AvatarID(v int) predicate.GroupChat {
+	return predicate.GroupChat(sql.FieldEQ(FieldAvatarID, v))
 }
 
 // ChatIDEQ applies the EQ predicate on the "chat_id" field.
@@ -259,79 +259,57 @@ func DescriptionContainsFold(v string) predicate.GroupChat {
 	return predicate.GroupChat(sql.FieldContainsFold(FieldDescription, v))
 }
 
-// AvatarFileNameEQ applies the EQ predicate on the "avatar_file_name" field.
-func AvatarFileNameEQ(v string) predicate.GroupChat {
-	return predicate.GroupChat(sql.FieldEQ(FieldAvatarFileName, v))
+// AvatarIDEQ applies the EQ predicate on the "avatar_id" field.
+func AvatarIDEQ(v int) predicate.GroupChat {
+	return predicate.GroupChat(sql.FieldEQ(FieldAvatarID, v))
 }
 
-// AvatarFileNameNEQ applies the NEQ predicate on the "avatar_file_name" field.
-func AvatarFileNameNEQ(v string) predicate.GroupChat {
-	return predicate.GroupChat(sql.FieldNEQ(FieldAvatarFileName, v))
+// AvatarIDNEQ applies the NEQ predicate on the "avatar_id" field.
+func AvatarIDNEQ(v int) predicate.GroupChat {
+	return predicate.GroupChat(sql.FieldNEQ(FieldAvatarID, v))
 }
 
-// AvatarFileNameIn applies the In predicate on the "avatar_file_name" field.
-func AvatarFileNameIn(vs ...string) predicate.GroupChat {
-	return predicate.GroupChat(sql.FieldIn(FieldAvatarFileName, vs...))
+// AvatarIDIn applies the In predicate on the "avatar_id" field.
+func AvatarIDIn(vs ...int) predicate.GroupChat {
+	return predicate.GroupChat(sql.FieldIn(FieldAvatarID, vs...))
 }
 
-// AvatarFileNameNotIn applies the NotIn predicate on the "avatar_file_name" field.
-func AvatarFileNameNotIn(vs ...string) predicate.GroupChat {
-	return predicate.GroupChat(sql.FieldNotIn(FieldAvatarFileName, vs...))
+// AvatarIDNotIn applies the NotIn predicate on the "avatar_id" field.
+func AvatarIDNotIn(vs ...int) predicate.GroupChat {
+	return predicate.GroupChat(sql.FieldNotIn(FieldAvatarID, vs...))
 }
 
-// AvatarFileNameGT applies the GT predicate on the "avatar_file_name" field.
-func AvatarFileNameGT(v string) predicate.GroupChat {
-	return predicate.GroupChat(sql.FieldGT(FieldAvatarFileName, v))
+// AvatarIDIsNil applies the IsNil predicate on the "avatar_id" field.
+func AvatarIDIsNil() predicate.GroupChat {
+	return predicate.GroupChat(sql.FieldIsNull(FieldAvatarID))
 }
 
-// AvatarFileNameGTE applies the GTE predicate on the "avatar_file_name" field.
-func AvatarFileNameGTE(v string) predicate.GroupChat {
-	return predicate.GroupChat(sql.FieldGTE(FieldAvatarFileName, v))
+// AvatarIDNotNil applies the NotNil predicate on the "avatar_id" field.
+func AvatarIDNotNil() predicate.GroupChat {
+	return predicate.GroupChat(sql.FieldNotNull(FieldAvatarID))
 }
 
-// AvatarFileNameLT applies the LT predicate on the "avatar_file_name" field.
-func AvatarFileNameLT(v string) predicate.GroupChat {
-	return predicate.GroupChat(sql.FieldLT(FieldAvatarFileName, v))
+// HasAvatar applies the HasEdge predicate on the "avatar" edge.
+func HasAvatar() predicate.GroupChat {
+	return predicate.GroupChat(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2O, true, AvatarTable, AvatarColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
 }
 
-// AvatarFileNameLTE applies the LTE predicate on the "avatar_file_name" field.
-func AvatarFileNameLTE(v string) predicate.GroupChat {
-	return predicate.GroupChat(sql.FieldLTE(FieldAvatarFileName, v))
-}
-
-// AvatarFileNameContains applies the Contains predicate on the "avatar_file_name" field.
-func AvatarFileNameContains(v string) predicate.GroupChat {
-	return predicate.GroupChat(sql.FieldContains(FieldAvatarFileName, v))
-}
-
-// AvatarFileNameHasPrefix applies the HasPrefix predicate on the "avatar_file_name" field.
-func AvatarFileNameHasPrefix(v string) predicate.GroupChat {
-	return predicate.GroupChat(sql.FieldHasPrefix(FieldAvatarFileName, v))
-}
-
-// AvatarFileNameHasSuffix applies the HasSuffix predicate on the "avatar_file_name" field.
-func AvatarFileNameHasSuffix(v string) predicate.GroupChat {
-	return predicate.GroupChat(sql.FieldHasSuffix(FieldAvatarFileName, v))
-}
-
-// AvatarFileNameIsNil applies the IsNil predicate on the "avatar_file_name" field.
-func AvatarFileNameIsNil() predicate.GroupChat {
-	return predicate.GroupChat(sql.FieldIsNull(FieldAvatarFileName))
-}
-
-// AvatarFileNameNotNil applies the NotNil predicate on the "avatar_file_name" field.
-func AvatarFileNameNotNil() predicate.GroupChat {
-	return predicate.GroupChat(sql.FieldNotNull(FieldAvatarFileName))
-}
-
-// AvatarFileNameEqualFold applies the EqualFold predicate on the "avatar_file_name" field.
-func AvatarFileNameEqualFold(v string) predicate.GroupChat {
-	return predicate.GroupChat(sql.FieldEqualFold(FieldAvatarFileName, v))
-}
-
-// AvatarFileNameContainsFold applies the ContainsFold predicate on the "avatar_file_name" field.
-func AvatarFileNameContainsFold(v string) predicate.GroupChat {
-	return predicate.GroupChat(sql.FieldContainsFold(FieldAvatarFileName, v))
+// HasAvatarWith applies the HasEdge predicate on the "avatar" edge with a given conditions (other predicates).
+func HasAvatarWith(preds ...predicate.Media) predicate.GroupChat {
+	return predicate.GroupChat(func(s *sql.Selector) {
+		step := newAvatarStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
 }
 
 // HasChat applies the HasEdge predicate on the "chat" edge.

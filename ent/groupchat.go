@@ -5,6 +5,7 @@ package ent
 import (
 	"AtoiTalkAPI/ent/chat"
 	"AtoiTalkAPI/ent/groupchat"
+	"AtoiTalkAPI/ent/media"
 	"AtoiTalkAPI/ent/user"
 	"fmt"
 	"strings"
@@ -26,8 +27,8 @@ type GroupChat struct {
 	Name string `json:"name,omitempty"`
 	// Description holds the value of the "description" field.
 	Description *string `json:"description,omitempty"`
-	// AvatarFileName holds the value of the "avatar_file_name" field.
-	AvatarFileName *string `json:"avatar_file_name,omitempty"`
+	// AvatarID holds the value of the "avatar_id" field.
+	AvatarID *int `json:"avatar_id,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the GroupChatQuery when eager-loading is set.
 	Edges        GroupChatEdges `json:"edges"`
@@ -36,6 +37,8 @@ type GroupChat struct {
 
 // GroupChatEdges holds the relations/edges for other nodes in the graph.
 type GroupChatEdges struct {
+	// Avatar holds the value of the avatar edge.
+	Avatar *Media `json:"avatar,omitempty"`
 	// Chat holds the value of the chat edge.
 	Chat *Chat `json:"chat,omitempty"`
 	// Creator holds the value of the creator edge.
@@ -44,7 +47,18 @@ type GroupChatEdges struct {
 	Members []*GroupMember `json:"members,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [3]bool
+	loadedTypes [4]bool
+}
+
+// AvatarOrErr returns the Avatar value or an error if the edge
+// was not loaded in eager-loading, or loaded but was not found.
+func (e GroupChatEdges) AvatarOrErr() (*Media, error) {
+	if e.Avatar != nil {
+		return e.Avatar, nil
+	} else if e.loadedTypes[0] {
+		return nil, &NotFoundError{label: media.Label}
+	}
+	return nil, &NotLoadedError{edge: "avatar"}
 }
 
 // ChatOrErr returns the Chat value or an error if the edge
@@ -52,7 +66,7 @@ type GroupChatEdges struct {
 func (e GroupChatEdges) ChatOrErr() (*Chat, error) {
 	if e.Chat != nil {
 		return e.Chat, nil
-	} else if e.loadedTypes[0] {
+	} else if e.loadedTypes[1] {
 		return nil, &NotFoundError{label: chat.Label}
 	}
 	return nil, &NotLoadedError{edge: "chat"}
@@ -63,7 +77,7 @@ func (e GroupChatEdges) ChatOrErr() (*Chat, error) {
 func (e GroupChatEdges) CreatorOrErr() (*User, error) {
 	if e.Creator != nil {
 		return e.Creator, nil
-	} else if e.loadedTypes[1] {
+	} else if e.loadedTypes[2] {
 		return nil, &NotFoundError{label: user.Label}
 	}
 	return nil, &NotLoadedError{edge: "creator"}
@@ -72,7 +86,7 @@ func (e GroupChatEdges) CreatorOrErr() (*User, error) {
 // MembersOrErr returns the Members value or an error if the edge
 // was not loaded in eager-loading.
 func (e GroupChatEdges) MembersOrErr() ([]*GroupMember, error) {
-	if e.loadedTypes[2] {
+	if e.loadedTypes[3] {
 		return e.Members, nil
 	}
 	return nil, &NotLoadedError{edge: "members"}
@@ -83,9 +97,9 @@ func (*GroupChat) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case groupchat.FieldID, groupchat.FieldChatID, groupchat.FieldCreatedBy:
+		case groupchat.FieldID, groupchat.FieldChatID, groupchat.FieldCreatedBy, groupchat.FieldAvatarID:
 			values[i] = new(sql.NullInt64)
-		case groupchat.FieldName, groupchat.FieldDescription, groupchat.FieldAvatarFileName:
+		case groupchat.FieldName, groupchat.FieldDescription:
 			values[i] = new(sql.NullString)
 		default:
 			values[i] = new(sql.UnknownType)
@@ -133,12 +147,12 @@ func (_m *GroupChat) assignValues(columns []string, values []any) error {
 				_m.Description = new(string)
 				*_m.Description = value.String
 			}
-		case groupchat.FieldAvatarFileName:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field avatar_file_name", values[i])
+		case groupchat.FieldAvatarID:
+			if value, ok := values[i].(*sql.NullInt64); !ok {
+				return fmt.Errorf("unexpected type %T for field avatar_id", values[i])
 			} else if value.Valid {
-				_m.AvatarFileName = new(string)
-				*_m.AvatarFileName = value.String
+				_m.AvatarID = new(int)
+				*_m.AvatarID = int(value.Int64)
 			}
 		default:
 			_m.selectValues.Set(columns[i], values[i])
@@ -151,6 +165,11 @@ func (_m *GroupChat) assignValues(columns []string, values []any) error {
 // This includes values selected through modifiers, order, etc.
 func (_m *GroupChat) Value(name string) (ent.Value, error) {
 	return _m.selectValues.Get(name)
+}
+
+// QueryAvatar queries the "avatar" edge of the GroupChat entity.
+func (_m *GroupChat) QueryAvatar() *MediaQuery {
+	return NewGroupChatClient(_m.config).QueryAvatar(_m)
 }
 
 // QueryChat queries the "chat" edge of the GroupChat entity.
@@ -205,9 +224,9 @@ func (_m *GroupChat) String() string {
 		builder.WriteString(*v)
 	}
 	builder.WriteString(", ")
-	if v := _m.AvatarFileName; v != nil {
-		builder.WriteString("avatar_file_name=")
-		builder.WriteString(*v)
+	if v := _m.AvatarID; v != nil {
+		builder.WriteString("avatar_id=")
+		builder.WriteString(fmt.Sprintf("%v", *v))
 	}
 	builder.WriteByte(')')
 	return builder.String()

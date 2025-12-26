@@ -6,9 +6,6 @@ import (
 	"entgo.io/ent/dialect/sql"
 )
 
-// Attachment is the predicate function for attachment builders.
-type Attachment func(*sql.Selector)
-
 // Chat is the predicate function for chat builders.
 type Chat func(*sql.Selector)
 
@@ -17,6 +14,9 @@ type GroupChat func(*sql.Selector)
 
 // GroupMember is the predicate function for groupmember builders.
 type GroupMember func(*sql.Selector)
+
+// Media is the predicate function for media builders.
+type Media func(*sql.Selector)
 
 // Message is the predicate function for message builders.
 type Message func(*sql.Selector)

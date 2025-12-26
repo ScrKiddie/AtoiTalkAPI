@@ -3,10 +3,13 @@
 package ent
 
 import (
-	"AtoiTalkAPI/ent/attachment"
+	"AtoiTalkAPI/ent/groupchat"
+	"AtoiTalkAPI/ent/media"
 	"AtoiTalkAPI/ent/message"
 	"AtoiTalkAPI/ent/predicate"
+	"AtoiTalkAPI/ent/user"
 	"context"
+	"database/sql/driver"
 	"fmt"
 	"math"
 
@@ -16,52 +19,54 @@ import (
 	"entgo.io/ent/schema/field"
 )
 
-// AttachmentQuery is the builder for querying Attachment entities.
-type AttachmentQuery struct {
+// MediaQuery is the builder for querying Media entities.
+type MediaQuery struct {
 	config
-	ctx         *QueryContext
-	order       []attachment.OrderOption
-	inters      []Interceptor
-	predicates  []predicate.Attachment
-	withMessage *MessageQuery
+	ctx             *QueryContext
+	order           []media.OrderOption
+	inters          []Interceptor
+	predicates      []predicate.Media
+	withMessage     *MessageQuery
+	withUserAvatar  *UserQuery
+	withGroupAvatar *GroupChatQuery
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
 }
 
-// Where adds a new predicate for the AttachmentQuery builder.
-func (_q *AttachmentQuery) Where(ps ...predicate.Attachment) *AttachmentQuery {
+// Where adds a new predicate for the MediaQuery builder.
+func (_q *MediaQuery) Where(ps ...predicate.Media) *MediaQuery {
 	_q.predicates = append(_q.predicates, ps...)
 	return _q
 }
 
 // Limit the number of records to be returned by this query.
-func (_q *AttachmentQuery) Limit(limit int) *AttachmentQuery {
+func (_q *MediaQuery) Limit(limit int) *MediaQuery {
 	_q.ctx.Limit = &limit
 	return _q
 }
 
 // Offset to start from.
-func (_q *AttachmentQuery) Offset(offset int) *AttachmentQuery {
+func (_q *MediaQuery) Offset(offset int) *MediaQuery {
 	_q.ctx.Offset = &offset
 	return _q
 }
 
 // Unique configures the query builder to filter duplicate records on query.
 // By default, unique is set to true, and can be disabled using this method.
-func (_q *AttachmentQuery) Unique(unique bool) *AttachmentQuery {
+func (_q *MediaQuery) Unique(unique bool) *MediaQuery {
 	_q.ctx.Unique = &unique
 	return _q
 }
 
 // Order specifies how the records should be ordered.
-func (_q *AttachmentQuery) Order(o ...attachment.OrderOption) *AttachmentQuery {
+func (_q *MediaQuery) Order(o ...media.OrderOption) *MediaQuery {
 	_q.order = append(_q.order, o...)
 	return _q
 }
 
 // QueryMessage chains the current query on the "message" edge.
-func (_q *AttachmentQuery) QueryMessage() *MessageQuery {
+func (_q *MediaQuery) QueryMessage() *MessageQuery {
 	query := (&MessageClient{config: _q.config}).Query()
 	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
 		if err := _q.prepareQuery(ctx); err != nil {
@@ -72,9 +77,9 @@ func (_q *AttachmentQuery) QueryMessage() *MessageQuery {
 			return nil, err
 		}
 		step := sqlgraph.NewStep(
-			sqlgraph.From(attachment.Table, attachment.FieldID, selector),
+			sqlgraph.From(media.Table, media.FieldID, selector),
 			sqlgraph.To(message.Table, message.FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, true, attachment.MessageTable, attachment.MessageColumn),
+			sqlgraph.Edge(sqlgraph.M2O, true, media.MessageTable, media.MessageColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
 		return fromU, nil
@@ -82,21 +87,65 @@ func (_q *AttachmentQuery) QueryMessage() *MessageQuery {
 	return query
 }
 
-// First returns the first Attachment entity from the query.
-// Returns a *NotFoundError when no Attachment was found.
-func (_q *AttachmentQuery) First(ctx context.Context) (*Attachment, error) {
+// QueryUserAvatar chains the current query on the "user_avatar" edge.
+func (_q *MediaQuery) QueryUserAvatar() *UserQuery {
+	query := (&UserClient{config: _q.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := _q.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := _q.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(media.Table, media.FieldID, selector),
+			sqlgraph.To(user.Table, user.FieldID),
+			sqlgraph.Edge(sqlgraph.O2O, false, media.UserAvatarTable, media.UserAvatarColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryGroupAvatar chains the current query on the "group_avatar" edge.
+func (_q *MediaQuery) QueryGroupAvatar() *GroupChatQuery {
+	query := (&GroupChatClient{config: _q.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := _q.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := _q.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(media.Table, media.FieldID, selector),
+			sqlgraph.To(groupchat.Table, groupchat.FieldID),
+			sqlgraph.Edge(sqlgraph.O2O, false, media.GroupAvatarTable, media.GroupAvatarColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// First returns the first Media entity from the query.
+// Returns a *NotFoundError when no Media was found.
+func (_q *MediaQuery) First(ctx context.Context) (*Media, error) {
 	nodes, err := _q.Limit(1).All(setContextOp(ctx, _q.ctx, ent.OpQueryFirst))
 	if err != nil {
 		return nil, err
 	}
 	if len(nodes) == 0 {
-		return nil, &NotFoundError{attachment.Label}
+		return nil, &NotFoundError{media.Label}
 	}
 	return nodes[0], nil
 }
 
 // FirstX is like First, but panics if an error occurs.
-func (_q *AttachmentQuery) FirstX(ctx context.Context) *Attachment {
+func (_q *MediaQuery) FirstX(ctx context.Context) *Media {
 	node, err := _q.First(ctx)
 	if err != nil && !IsNotFound(err) {
 		panic(err)
@@ -104,22 +153,22 @@ func (_q *AttachmentQuery) FirstX(ctx context.Context) *Attachment {
 	return node
 }
 
-// FirstID returns the first Attachment ID from the query.
-// Returns a *NotFoundError when no Attachment ID was found.
-func (_q *AttachmentQuery) FirstID(ctx context.Context) (id int, err error) {
+// FirstID returns the first Media ID from the query.
+// Returns a *NotFoundError when no Media ID was found.
+func (_q *MediaQuery) FirstID(ctx context.Context) (id int, err error) {
 	var ids []int
 	if ids, err = _q.Limit(1).IDs(setContextOp(ctx, _q.ctx, ent.OpQueryFirstID)); err != nil {
 		return
 	}
 	if len(ids) == 0 {
-		err = &NotFoundError{attachment.Label}
+		err = &NotFoundError{media.Label}
 		return
 	}
 	return ids[0], nil
 }
 
 // FirstIDX is like FirstID, but panics if an error occurs.
-func (_q *AttachmentQuery) FirstIDX(ctx context.Context) int {
+func (_q *MediaQuery) FirstIDX(ctx context.Context) int {
 	id, err := _q.FirstID(ctx)
 	if err != nil && !IsNotFound(err) {
 		panic(err)
@@ -127,10 +176,10 @@ func (_q *AttachmentQuery) FirstIDX(ctx context.Context) int {
 	return id
 }
 
-// Only returns a single Attachment entity found by the query, ensuring it only returns one.
-// Returns a *NotSingularError when more than one Attachment entity is found.
-// Returns a *NotFoundError when no Attachment entities are found.
-func (_q *AttachmentQuery) Only(ctx context.Context) (*Attachment, error) {
+// Only returns a single Media entity found by the query, ensuring it only returns one.
+// Returns a *NotSingularError when more than one Media entity is found.
+// Returns a *NotFoundError when no Media entities are found.
+func (_q *MediaQuery) Only(ctx context.Context) (*Media, error) {
 	nodes, err := _q.Limit(2).All(setContextOp(ctx, _q.ctx, ent.OpQueryOnly))
 	if err != nil {
 		return nil, err
@@ -139,14 +188,14 @@ func (_q *AttachmentQuery) Only(ctx context.Context) (*Attachment, error) {
 	case 1:
 		return nodes[0], nil
 	case 0:
-		return nil, &NotFoundError{attachment.Label}
+		return nil, &NotFoundError{media.Label}
 	default:
-		return nil, &NotSingularError{attachment.Label}
+		return nil, &NotSingularError{media.Label}
 	}
 }
 
 // OnlyX is like Only, but panics if an error occurs.
-func (_q *AttachmentQuery) OnlyX(ctx context.Context) *Attachment {
+func (_q *MediaQuery) OnlyX(ctx context.Context) *Media {
 	node, err := _q.Only(ctx)
 	if err != nil {
 		panic(err)
@@ -154,10 +203,10 @@ func (_q *AttachmentQuery) OnlyX(ctx context.Context) *Attachment {
 	return node
 }
 
-// OnlyID is like Only, but returns the only Attachment ID in the query.
-// Returns a *NotSingularError when more than one Attachment ID is found.
+// OnlyID is like Only, but returns the only Media ID in the query.
+// Returns a *NotSingularError when more than one Media ID is found.
 // Returns a *NotFoundError when no entities are found.
-func (_q *AttachmentQuery) OnlyID(ctx context.Context) (id int, err error) {
+func (_q *MediaQuery) OnlyID(ctx context.Context) (id int, err error) {
 	var ids []int
 	if ids, err = _q.Limit(2).IDs(setContextOp(ctx, _q.ctx, ent.OpQueryOnlyID)); err != nil {
 		return
@@ -166,15 +215,15 @@ func (_q *AttachmentQuery) OnlyID(ctx context.Context) (id int, err error) {
 	case 1:
 		id = ids[0]
 	case 0:
-		err = &NotFoundError{attachment.Label}
+		err = &NotFoundError{media.Label}
 	default:
-		err = &NotSingularError{attachment.Label}
+		err = &NotSingularError{media.Label}
 	}
 	return
 }
 
 // OnlyIDX is like OnlyID, but panics if an error occurs.
-func (_q *AttachmentQuery) OnlyIDX(ctx context.Context) int {
+func (_q *MediaQuery) OnlyIDX(ctx context.Context) int {
 	id, err := _q.OnlyID(ctx)
 	if err != nil {
 		panic(err)
@@ -182,18 +231,18 @@ func (_q *AttachmentQuery) OnlyIDX(ctx context.Context) int {
 	return id
 }
 
-// All executes the query and returns a list of Attachments.
-func (_q *AttachmentQuery) All(ctx context.Context) ([]*Attachment, error) {
+// All executes the query and returns a list of MediaSlice.
+func (_q *MediaQuery) All(ctx context.Context) ([]*Media, error) {
 	ctx = setContextOp(ctx, _q.ctx, ent.OpQueryAll)
 	if err := _q.prepareQuery(ctx); err != nil {
 		return nil, err
 	}
-	qr := querierAll[[]*Attachment, *AttachmentQuery]()
-	return withInterceptors[[]*Attachment](ctx, _q, qr, _q.inters)
+	qr := querierAll[[]*Media, *MediaQuery]()
+	return withInterceptors[[]*Media](ctx, _q, qr, _q.inters)
 }
 
 // AllX is like All, but panics if an error occurs.
-func (_q *AttachmentQuery) AllX(ctx context.Context) []*Attachment {
+func (_q *MediaQuery) AllX(ctx context.Context) []*Media {
 	nodes, err := _q.All(ctx)
 	if err != nil {
 		panic(err)
@@ -201,20 +250,20 @@ func (_q *AttachmentQuery) AllX(ctx context.Context) []*Attachment {
 	return nodes
 }
 
-// IDs executes the query and returns a list of Attachment IDs.
-func (_q *AttachmentQuery) IDs(ctx context.Context) (ids []int, err error) {
+// IDs executes the query and returns a list of Media IDs.
+func (_q *MediaQuery) IDs(ctx context.Context) (ids []int, err error) {
 	if _q.ctx.Unique == nil && _q.path != nil {
 		_q.Unique(true)
 	}
 	ctx = setContextOp(ctx, _q.ctx, ent.OpQueryIDs)
-	if err = _q.Select(attachment.FieldID).Scan(ctx, &ids); err != nil {
+	if err = _q.Select(media.FieldID).Scan(ctx, &ids); err != nil {
 		return nil, err
 	}
 	return ids, nil
 }
 
 // IDsX is like IDs, but panics if an error occurs.
-func (_q *AttachmentQuery) IDsX(ctx context.Context) []int {
+func (_q *MediaQuery) IDsX(ctx context.Context) []int {
 	ids, err := _q.IDs(ctx)
 	if err != nil {
 		panic(err)
@@ -223,16 +272,16 @@ func (_q *AttachmentQuery) IDsX(ctx context.Context) []int {
 }
 
 // Count returns the count of the given query.
-func (_q *AttachmentQuery) Count(ctx context.Context) (int, error) {
+func (_q *MediaQuery) Count(ctx context.Context) (int, error) {
 	ctx = setContextOp(ctx, _q.ctx, ent.OpQueryCount)
 	if err := _q.prepareQuery(ctx); err != nil {
 		return 0, err
 	}
-	return withInterceptors[int](ctx, _q, querierCount[*AttachmentQuery](), _q.inters)
+	return withInterceptors[int](ctx, _q, querierCount[*MediaQuery](), _q.inters)
 }
 
 // CountX is like Count, but panics if an error occurs.
-func (_q *AttachmentQuery) CountX(ctx context.Context) int {
+func (_q *MediaQuery) CountX(ctx context.Context) int {
 	count, err := _q.Count(ctx)
 	if err != nil {
 		panic(err)
@@ -241,7 +290,7 @@ func (_q *AttachmentQuery) CountX(ctx context.Context) int {
 }
 
 // Exist returns true if the query has elements in the graph.
-func (_q *AttachmentQuery) Exist(ctx context.Context) (bool, error) {
+func (_q *MediaQuery) Exist(ctx context.Context) (bool, error) {
 	ctx = setContextOp(ctx, _q.ctx, ent.OpQueryExist)
 	switch _, err := _q.FirstID(ctx); {
 	case IsNotFound(err):
@@ -254,7 +303,7 @@ func (_q *AttachmentQuery) Exist(ctx context.Context) (bool, error) {
 }
 
 // ExistX is like Exist, but panics if an error occurs.
-func (_q *AttachmentQuery) ExistX(ctx context.Context) bool {
+func (_q *MediaQuery) ExistX(ctx context.Context) bool {
 	exist, err := _q.Exist(ctx)
 	if err != nil {
 		panic(err)
@@ -262,19 +311,21 @@ func (_q *AttachmentQuery) ExistX(ctx context.Context) bool {
 	return exist
 }
 
-// Clone returns a duplicate of the AttachmentQuery builder, including all associated steps. It can be
+// Clone returns a duplicate of the MediaQuery builder, including all associated steps. It can be
 // used to prepare common query builders and use them differently after the clone is made.
-func (_q *AttachmentQuery) Clone() *AttachmentQuery {
+func (_q *MediaQuery) Clone() *MediaQuery {
 	if _q == nil {
 		return nil
 	}
-	return &AttachmentQuery{
-		config:      _q.config,
-		ctx:         _q.ctx.Clone(),
-		order:       append([]attachment.OrderOption{}, _q.order...),
-		inters:      append([]Interceptor{}, _q.inters...),
-		predicates:  append([]predicate.Attachment{}, _q.predicates...),
-		withMessage: _q.withMessage.Clone(),
+	return &MediaQuery{
+		config:          _q.config,
+		ctx:             _q.ctx.Clone(),
+		order:           append([]media.OrderOption{}, _q.order...),
+		inters:          append([]Interceptor{}, _q.inters...),
+		predicates:      append([]predicate.Media{}, _q.predicates...),
+		withMessage:     _q.withMessage.Clone(),
+		withUserAvatar:  _q.withUserAvatar.Clone(),
+		withGroupAvatar: _q.withGroupAvatar.Clone(),
 		// clone intermediate query.
 		sql:  _q.sql.Clone(),
 		path: _q.path,
@@ -283,12 +334,34 @@ func (_q *AttachmentQuery) Clone() *AttachmentQuery {
 
 // WithMessage tells the query-builder to eager-load the nodes that are connected to
 // the "message" edge. The optional arguments are used to configure the query builder of the edge.
-func (_q *AttachmentQuery) WithMessage(opts ...func(*MessageQuery)) *AttachmentQuery {
+func (_q *MediaQuery) WithMessage(opts ...func(*MessageQuery)) *MediaQuery {
 	query := (&MessageClient{config: _q.config}).Query()
 	for _, opt := range opts {
 		opt(query)
 	}
 	_q.withMessage = query
+	return _q
+}
+
+// WithUserAvatar tells the query-builder to eager-load the nodes that are connected to
+// the "user_avatar" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *MediaQuery) WithUserAvatar(opts ...func(*UserQuery)) *MediaQuery {
+	query := (&UserClient{config: _q.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	_q.withUserAvatar = query
+	return _q
+}
+
+// WithGroupAvatar tells the query-builder to eager-load the nodes that are connected to
+// the "group_avatar" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *MediaQuery) WithGroupAvatar(opts ...func(*GroupChatQuery)) *MediaQuery {
+	query := (&GroupChatClient{config: _q.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	_q.withGroupAvatar = query
 	return _q
 }
 
@@ -302,15 +375,15 @@ func (_q *AttachmentQuery) WithMessage(opts ...func(*MessageQuery)) *AttachmentQ
 //		Count int `json:"count,omitempty"`
 //	}
 //
-//	client.Attachment.Query().
-//		GroupBy(attachment.FieldCreatedAt).
+//	client.Media.Query().
+//		GroupBy(media.FieldCreatedAt).
 //		Aggregate(ent.Count()).
 //		Scan(ctx, &v)
-func (_q *AttachmentQuery) GroupBy(field string, fields ...string) *AttachmentGroupBy {
+func (_q *MediaQuery) GroupBy(field string, fields ...string) *MediaGroupBy {
 	_q.ctx.Fields = append([]string{field}, fields...)
-	grbuild := &AttachmentGroupBy{build: _q}
+	grbuild := &MediaGroupBy{build: _q}
 	grbuild.flds = &_q.ctx.Fields
-	grbuild.label = attachment.Label
+	grbuild.label = media.Label
 	grbuild.scan = grbuild.Scan
 	return grbuild
 }
@@ -324,23 +397,23 @@ func (_q *AttachmentQuery) GroupBy(field string, fields ...string) *AttachmentGr
 //		CreatedAt time.Time `json:"created_at,omitempty"`
 //	}
 //
-//	client.Attachment.Query().
-//		Select(attachment.FieldCreatedAt).
+//	client.Media.Query().
+//		Select(media.FieldCreatedAt).
 //		Scan(ctx, &v)
-func (_q *AttachmentQuery) Select(fields ...string) *AttachmentSelect {
+func (_q *MediaQuery) Select(fields ...string) *MediaSelect {
 	_q.ctx.Fields = append(_q.ctx.Fields, fields...)
-	sbuild := &AttachmentSelect{AttachmentQuery: _q}
-	sbuild.label = attachment.Label
+	sbuild := &MediaSelect{MediaQuery: _q}
+	sbuild.label = media.Label
 	sbuild.flds, sbuild.scan = &_q.ctx.Fields, sbuild.Scan
 	return sbuild
 }
 
-// Aggregate returns a AttachmentSelect configured with the given aggregations.
-func (_q *AttachmentQuery) Aggregate(fns ...AggregateFunc) *AttachmentSelect {
+// Aggregate returns a MediaSelect configured with the given aggregations.
+func (_q *MediaQuery) Aggregate(fns ...AggregateFunc) *MediaSelect {
 	return _q.Select().Aggregate(fns...)
 }
 
-func (_q *AttachmentQuery) prepareQuery(ctx context.Context) error {
+func (_q *MediaQuery) prepareQuery(ctx context.Context) error {
 	for _, inter := range _q.inters {
 		if inter == nil {
 			return fmt.Errorf("ent: uninitialized interceptor (forgotten import ent/runtime?)")
@@ -352,7 +425,7 @@ func (_q *AttachmentQuery) prepareQuery(ctx context.Context) error {
 		}
 	}
 	for _, f := range _q.ctx.Fields {
-		if !attachment.ValidColumn(f) {
+		if !media.ValidColumn(f) {
 			return &ValidationError{Name: f, err: fmt.Errorf("ent: invalid field %q for query", f)}
 		}
 	}
@@ -366,19 +439,21 @@ func (_q *AttachmentQuery) prepareQuery(ctx context.Context) error {
 	return nil
 }
 
-func (_q *AttachmentQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Attachment, error) {
+func (_q *MediaQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Media, error) {
 	var (
-		nodes       = []*Attachment{}
+		nodes       = []*Media{}
 		_spec       = _q.querySpec()
-		loadedTypes = [1]bool{
+		loadedTypes = [3]bool{
 			_q.withMessage != nil,
+			_q.withUserAvatar != nil,
+			_q.withGroupAvatar != nil,
 		}
 	)
 	_spec.ScanValues = func(columns []string) ([]any, error) {
-		return (*Attachment).scanValues(nil, columns)
+		return (*Media).scanValues(nil, columns)
 	}
 	_spec.Assign = func(columns []string, values []any) error {
-		node := &Attachment{config: _q.config}
+		node := &Media{config: _q.config}
 		nodes = append(nodes, node)
 		node.Edges.loadedTypes = loadedTypes
 		return node.assignValues(columns, values)
@@ -394,16 +469,28 @@ func (_q *AttachmentQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*A
 	}
 	if query := _q.withMessage; query != nil {
 		if err := _q.loadMessage(ctx, query, nodes, nil,
-			func(n *Attachment, e *Message) { n.Edges.Message = e }); err != nil {
+			func(n *Media, e *Message) { n.Edges.Message = e }); err != nil {
+			return nil, err
+		}
+	}
+	if query := _q.withUserAvatar; query != nil {
+		if err := _q.loadUserAvatar(ctx, query, nodes, nil,
+			func(n *Media, e *User) { n.Edges.UserAvatar = e }); err != nil {
+			return nil, err
+		}
+	}
+	if query := _q.withGroupAvatar; query != nil {
+		if err := _q.loadGroupAvatar(ctx, query, nodes, nil,
+			func(n *Media, e *GroupChat) { n.Edges.GroupAvatar = e }); err != nil {
 			return nil, err
 		}
 	}
 	return nodes, nil
 }
 
-func (_q *AttachmentQuery) loadMessage(ctx context.Context, query *MessageQuery, nodes []*Attachment, init func(*Attachment), assign func(*Attachment, *Message)) error {
+func (_q *MediaQuery) loadMessage(ctx context.Context, query *MessageQuery, nodes []*Media, init func(*Media), assign func(*Media, *Message)) error {
 	ids := make([]int, 0, len(nodes))
-	nodeids := make(map[int][]*Attachment)
+	nodeids := make(map[int][]*Media)
 	for i := range nodes {
 		if nodes[i].MessageID == nil {
 			continue
@@ -433,8 +520,68 @@ func (_q *AttachmentQuery) loadMessage(ctx context.Context, query *MessageQuery,
 	}
 	return nil
 }
+func (_q *MediaQuery) loadUserAvatar(ctx context.Context, query *UserQuery, nodes []*Media, init func(*Media), assign func(*Media, *User)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[int]*Media)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+	}
+	if len(query.ctx.Fields) > 0 {
+		query.ctx.AppendFieldOnce(user.FieldAvatarID)
+	}
+	query.Where(predicate.User(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(media.UserAvatarColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.AvatarID
+		if fk == nil {
+			return fmt.Errorf(`foreign-key "avatar_id" is nil for node %v`, n.ID)
+		}
+		node, ok := nodeids[*fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "avatar_id" returned %v for node %v`, *fk, n.ID)
+		}
+		assign(node, n)
+	}
+	return nil
+}
+func (_q *MediaQuery) loadGroupAvatar(ctx context.Context, query *GroupChatQuery, nodes []*Media, init func(*Media), assign func(*Media, *GroupChat)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[int]*Media)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+	}
+	if len(query.ctx.Fields) > 0 {
+		query.ctx.AppendFieldOnce(groupchat.FieldAvatarID)
+	}
+	query.Where(predicate.GroupChat(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(media.GroupAvatarColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.AvatarID
+		if fk == nil {
+			return fmt.Errorf(`foreign-key "avatar_id" is nil for node %v`, n.ID)
+		}
+		node, ok := nodeids[*fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "avatar_id" returned %v for node %v`, *fk, n.ID)
+		}
+		assign(node, n)
+	}
+	return nil
+}
 
-func (_q *AttachmentQuery) sqlCount(ctx context.Context) (int, error) {
+func (_q *MediaQuery) sqlCount(ctx context.Context) (int, error) {
 	_spec := _q.querySpec()
 	_spec.Node.Columns = _q.ctx.Fields
 	if len(_q.ctx.Fields) > 0 {
@@ -443,8 +590,8 @@ func (_q *AttachmentQuery) sqlCount(ctx context.Context) (int, error) {
 	return sqlgraph.CountNodes(ctx, _q.driver, _spec)
 }
 
-func (_q *AttachmentQuery) querySpec() *sqlgraph.QuerySpec {
-	_spec := sqlgraph.NewQuerySpec(attachment.Table, attachment.Columns, sqlgraph.NewFieldSpec(attachment.FieldID, field.TypeInt))
+func (_q *MediaQuery) querySpec() *sqlgraph.QuerySpec {
+	_spec := sqlgraph.NewQuerySpec(media.Table, media.Columns, sqlgraph.NewFieldSpec(media.FieldID, field.TypeInt))
 	_spec.From = _q.sql
 	if unique := _q.ctx.Unique; unique != nil {
 		_spec.Unique = *unique
@@ -453,14 +600,14 @@ func (_q *AttachmentQuery) querySpec() *sqlgraph.QuerySpec {
 	}
 	if fields := _q.ctx.Fields; len(fields) > 0 {
 		_spec.Node.Columns = make([]string, 0, len(fields))
-		_spec.Node.Columns = append(_spec.Node.Columns, attachment.FieldID)
+		_spec.Node.Columns = append(_spec.Node.Columns, media.FieldID)
 		for i := range fields {
-			if fields[i] != attachment.FieldID {
+			if fields[i] != media.FieldID {
 				_spec.Node.Columns = append(_spec.Node.Columns, fields[i])
 			}
 		}
 		if _q.withMessage != nil {
-			_spec.Node.AddColumnOnce(attachment.FieldMessageID)
+			_spec.Node.AddColumnOnce(media.FieldMessageID)
 		}
 	}
 	if ps := _q.predicates; len(ps) > 0 {
@@ -486,12 +633,12 @@ func (_q *AttachmentQuery) querySpec() *sqlgraph.QuerySpec {
 	return _spec
 }
 
-func (_q *AttachmentQuery) sqlQuery(ctx context.Context) *sql.Selector {
+func (_q *MediaQuery) sqlQuery(ctx context.Context) *sql.Selector {
 	builder := sql.Dialect(_q.driver.Dialect())
-	t1 := builder.Table(attachment.Table)
+	t1 := builder.Table(media.Table)
 	columns := _q.ctx.Fields
 	if len(columns) == 0 {
-		columns = attachment.Columns
+		columns = media.Columns
 	}
 	selector := builder.Select(t1.Columns(columns...)...).From(t1)
 	if _q.sql != nil {
@@ -518,28 +665,28 @@ func (_q *AttachmentQuery) sqlQuery(ctx context.Context) *sql.Selector {
 	return selector
 }
 
-// AttachmentGroupBy is the group-by builder for Attachment entities.
-type AttachmentGroupBy struct {
+// MediaGroupBy is the group-by builder for Media entities.
+type MediaGroupBy struct {
 	selector
-	build *AttachmentQuery
+	build *MediaQuery
 }
 
 // Aggregate adds the given aggregation functions to the group-by query.
-func (_g *AttachmentGroupBy) Aggregate(fns ...AggregateFunc) *AttachmentGroupBy {
+func (_g *MediaGroupBy) Aggregate(fns ...AggregateFunc) *MediaGroupBy {
 	_g.fns = append(_g.fns, fns...)
 	return _g
 }
 
 // Scan applies the selector query and scans the result into the given value.
-func (_g *AttachmentGroupBy) Scan(ctx context.Context, v any) error {
+func (_g *MediaGroupBy) Scan(ctx context.Context, v any) error {
 	ctx = setContextOp(ctx, _g.build.ctx, ent.OpQueryGroupBy)
 	if err := _g.build.prepareQuery(ctx); err != nil {
 		return err
 	}
-	return scanWithInterceptors[*AttachmentQuery, *AttachmentGroupBy](ctx, _g.build, _g, _g.build.inters, v)
+	return scanWithInterceptors[*MediaQuery, *MediaGroupBy](ctx, _g.build, _g, _g.build.inters, v)
 }
 
-func (_g *AttachmentGroupBy) sqlScan(ctx context.Context, root *AttachmentQuery, v any) error {
+func (_g *MediaGroupBy) sqlScan(ctx context.Context, root *MediaQuery, v any) error {
 	selector := root.sqlQuery(ctx).Select()
 	aggregation := make([]string, 0, len(_g.fns))
 	for _, fn := range _g.fns {
@@ -566,28 +713,28 @@ func (_g *AttachmentGroupBy) sqlScan(ctx context.Context, root *AttachmentQuery,
 	return sql.ScanSlice(rows, v)
 }
 
-// AttachmentSelect is the builder for selecting fields of Attachment entities.
-type AttachmentSelect struct {
-	*AttachmentQuery
+// MediaSelect is the builder for selecting fields of Media entities.
+type MediaSelect struct {
+	*MediaQuery
 	selector
 }
 
 // Aggregate adds the given aggregation functions to the selector query.
-func (_s *AttachmentSelect) Aggregate(fns ...AggregateFunc) *AttachmentSelect {
+func (_s *MediaSelect) Aggregate(fns ...AggregateFunc) *MediaSelect {
 	_s.fns = append(_s.fns, fns...)
 	return _s
 }
 
 // Scan applies the selector query and scans the result into the given value.
-func (_s *AttachmentSelect) Scan(ctx context.Context, v any) error {
+func (_s *MediaSelect) Scan(ctx context.Context, v any) error {
 	ctx = setContextOp(ctx, _s.ctx, ent.OpQuerySelect)
 	if err := _s.prepareQuery(ctx); err != nil {
 		return err
 	}
-	return scanWithInterceptors[*AttachmentQuery, *AttachmentSelect](ctx, _s.AttachmentQuery, _s, _s.inters, v)
+	return scanWithInterceptors[*MediaQuery, *MediaSelect](ctx, _s.MediaQuery, _s, _s.inters, v)
 }
 
-func (_s *AttachmentSelect) sqlScan(ctx context.Context, root *AttachmentQuery, v any) error {
+func (_s *MediaSelect) sqlScan(ctx context.Context, root *MediaQuery, v any) error {
 	selector := root.sqlQuery(ctx)
 	aggregation := make([]string, 0, len(_s.fns))
 	for _, fn := range _s.fns {

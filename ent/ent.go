@@ -3,10 +3,10 @@
 package ent
 
 import (
-	"AtoiTalkAPI/ent/attachment"
 	"AtoiTalkAPI/ent/chat"
 	"AtoiTalkAPI/ent/groupchat"
 	"AtoiTalkAPI/ent/groupmember"
+	"AtoiTalkAPI/ent/media"
 	"AtoiTalkAPI/ent/message"
 	"AtoiTalkAPI/ent/otp"
 	"AtoiTalkAPI/ent/privatechat"
@@ -81,10 +81,10 @@ var (
 func checkColumn(t, c string) error {
 	initCheck.Do(func() {
 		columnCheck = sql.NewColumnCheck(map[string]func(string) bool{
-			attachment.Table:   attachment.ValidColumn,
 			chat.Table:         chat.ValidColumn,
 			groupchat.Table:    groupchat.ValidColumn,
 			groupmember.Table:  groupmember.ValidColumn,
+			media.Table:        media.ValidColumn,
 			message.Table:      message.ValidColumn,
 			otp.Table:          otp.ValidColumn,
 			privatechat.Table:  privatechat.ValidColumn,

@@ -5,6 +5,7 @@ package ent
 import (
 	"AtoiTalkAPI/ent/groupchat"
 	"AtoiTalkAPI/ent/groupmember"
+	"AtoiTalkAPI/ent/media"
 	"AtoiTalkAPI/ent/message"
 	"AtoiTalkAPI/ent/privatechat"
 	"AtoiTalkAPI/ent/user"
@@ -93,16 +94,16 @@ func (_c *UserCreate) SetNillableBio(v *string) *UserCreate {
 	return _c
 }
 
-// SetAvatarFileName sets the "avatar_file_name" field.
-func (_c *UserCreate) SetAvatarFileName(v string) *UserCreate {
-	_c.mutation.SetAvatarFileName(v)
+// SetAvatarID sets the "avatar_id" field.
+func (_c *UserCreate) SetAvatarID(v int) *UserCreate {
+	_c.mutation.SetAvatarID(v)
 	return _c
 }
 
-// SetNillableAvatarFileName sets the "avatar_file_name" field if the given value is not nil.
-func (_c *UserCreate) SetNillableAvatarFileName(v *string) *UserCreate {
+// SetNillableAvatarID sets the "avatar_id" field if the given value is not nil.
+func (_c *UserCreate) SetNillableAvatarID(v *int) *UserCreate {
 	if v != nil {
-		_c.SetAvatarFileName(*v)
+		_c.SetAvatarID(*v)
 	}
 	return _c
 }
@@ -133,6 +134,11 @@ func (_c *UserCreate) SetNillableLastSeenAt(v *time.Time) *UserCreate {
 		_c.SetLastSeenAt(*v)
 	}
 	return _c
+}
+
+// SetAvatar sets the "avatar" edge to the Media entity.
+func (_c *UserCreate) SetAvatar(v *Media) *UserCreate {
+	return _c.SetAvatarID(v.ID)
 }
 
 // AddIdentityIDs adds the "identities" edge to the UserIdentity entity by IDs.
@@ -308,11 +314,6 @@ func (_c *UserCreate) check() error {
 			return &ValidationError{Name: "bio", err: fmt.Errorf(`ent: validator failed for field "User.bio": %w`, err)}
 		}
 	}
-	if v, ok := _c.mutation.AvatarFileName(); ok {
-		if err := user.AvatarFileNameValidator(v); err != nil {
-			return &ValidationError{Name: "avatar_file_name", err: fmt.Errorf(`ent: validator failed for field "User.avatar_file_name": %w`, err)}
-		}
-	}
 	if _, ok := _c.mutation.IsOnline(); !ok {
 		return &ValidationError{Name: "is_online", err: errors.New(`ent: missing required field "User.is_online"`)}
 	}
@@ -366,10 +367,6 @@ func (_c *UserCreate) createSpec() (*User, *sqlgraph.CreateSpec) {
 		_spec.SetField(user.FieldBio, field.TypeString, value)
 		_node.Bio = &value
 	}
-	if value, ok := _c.mutation.AvatarFileName(); ok {
-		_spec.SetField(user.FieldAvatarFileName, field.TypeString, value)
-		_node.AvatarFileName = &value
-	}
 	if value, ok := _c.mutation.IsOnline(); ok {
 		_spec.SetField(user.FieldIsOnline, field.TypeBool, value)
 		_node.IsOnline = value
@@ -377,6 +374,23 @@ func (_c *UserCreate) createSpec() (*User, *sqlgraph.CreateSpec) {
 	if value, ok := _c.mutation.LastSeenAt(); ok {
 		_spec.SetField(user.FieldLastSeenAt, field.TypeTime, value)
 		_node.LastSeenAt = &value
+	}
+	if nodes := _c.mutation.AvatarIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: true,
+			Table:   user.AvatarTable,
+			Columns: []string{user.AvatarColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(media.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_node.AvatarID = &nodes[0]
+		_spec.Edges = append(_spec.Edges, edge)
 	}
 	if nodes := _c.mutation.IdentitiesIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{

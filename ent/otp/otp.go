@@ -72,8 +72,9 @@ const DefaultMode = ModeRegister
 
 // Mode values.
 const (
-	ModeRegister Mode = "register"
-	ModeReset    Mode = "reset"
+	ModeRegister    Mode = "register"
+	ModeReset       Mode = "reset"
+	ModeChangeEmail Mode = "change_email"
 )
 
 func (m Mode) String() string {
@@ -83,7 +84,7 @@ func (m Mode) String() string {
 // ModeValidator is a validator for the "mode" field enum values. It is called by the builders before save.
 func ModeValidator(m Mode) error {
 	switch m {
-	case ModeRegister, ModeReset:
+	case ModeRegister, ModeReset, ModeChangeEmail:
 		return nil
 	default:
 		return fmt.Errorf("otp: invalid enum value for mode field: %q", m)

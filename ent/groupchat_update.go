@@ -6,6 +6,7 @@ import (
 	"AtoiTalkAPI/ent/chat"
 	"AtoiTalkAPI/ent/groupchat"
 	"AtoiTalkAPI/ent/groupmember"
+	"AtoiTalkAPI/ent/media"
 	"AtoiTalkAPI/ent/predicate"
 	"AtoiTalkAPI/ent/user"
 	"context"
@@ -92,24 +93,29 @@ func (_u *GroupChatUpdate) ClearDescription() *GroupChatUpdate {
 	return _u
 }
 
-// SetAvatarFileName sets the "avatar_file_name" field.
-func (_u *GroupChatUpdate) SetAvatarFileName(v string) *GroupChatUpdate {
-	_u.mutation.SetAvatarFileName(v)
+// SetAvatarID sets the "avatar_id" field.
+func (_u *GroupChatUpdate) SetAvatarID(v int) *GroupChatUpdate {
+	_u.mutation.SetAvatarID(v)
 	return _u
 }
 
-// SetNillableAvatarFileName sets the "avatar_file_name" field if the given value is not nil.
-func (_u *GroupChatUpdate) SetNillableAvatarFileName(v *string) *GroupChatUpdate {
+// SetNillableAvatarID sets the "avatar_id" field if the given value is not nil.
+func (_u *GroupChatUpdate) SetNillableAvatarID(v *int) *GroupChatUpdate {
 	if v != nil {
-		_u.SetAvatarFileName(*v)
+		_u.SetAvatarID(*v)
 	}
 	return _u
 }
 
-// ClearAvatarFileName clears the value of the "avatar_file_name" field.
-func (_u *GroupChatUpdate) ClearAvatarFileName() *GroupChatUpdate {
-	_u.mutation.ClearAvatarFileName()
+// ClearAvatarID clears the value of the "avatar_id" field.
+func (_u *GroupChatUpdate) ClearAvatarID() *GroupChatUpdate {
+	_u.mutation.ClearAvatarID()
 	return _u
+}
+
+// SetAvatar sets the "avatar" edge to the Media entity.
+func (_u *GroupChatUpdate) SetAvatar(v *Media) *GroupChatUpdate {
+	return _u.SetAvatarID(v.ID)
 }
 
 // SetChat sets the "chat" edge to the Chat entity.
@@ -146,6 +152,12 @@ func (_u *GroupChatUpdate) AddMembers(v ...*GroupMember) *GroupChatUpdate {
 // Mutation returns the GroupChatMutation object of the builder.
 func (_u *GroupChatUpdate) Mutation() *GroupChatMutation {
 	return _u.mutation
+}
+
+// ClearAvatar clears the "avatar" edge to the Media entity.
+func (_u *GroupChatUpdate) ClearAvatar() *GroupChatUpdate {
+	_u.mutation.ClearAvatar()
+	return _u
 }
 
 // ClearChat clears the "chat" edge to the Chat entity.
@@ -215,11 +227,6 @@ func (_u *GroupChatUpdate) check() error {
 			return &ValidationError{Name: "name", err: fmt.Errorf(`ent: validator failed for field "GroupChat.name": %w`, err)}
 		}
 	}
-	if v, ok := _u.mutation.AvatarFileName(); ok {
-		if err := groupchat.AvatarFileNameValidator(v); err != nil {
-			return &ValidationError{Name: "avatar_file_name", err: fmt.Errorf(`ent: validator failed for field "GroupChat.avatar_file_name": %w`, err)}
-		}
-	}
 	if _u.mutation.ChatCleared() && len(_u.mutation.ChatIDs()) > 0 {
 		return errors.New(`ent: clearing a required unique edge "GroupChat.chat"`)
 	}
@@ -250,11 +257,34 @@ func (_u *GroupChatUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	if _u.mutation.DescriptionCleared() {
 		_spec.ClearField(groupchat.FieldDescription, field.TypeString)
 	}
-	if value, ok := _u.mutation.AvatarFileName(); ok {
-		_spec.SetField(groupchat.FieldAvatarFileName, field.TypeString, value)
+	if _u.mutation.AvatarCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: true,
+			Table:   groupchat.AvatarTable,
+			Columns: []string{groupchat.AvatarColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(media.FieldID, field.TypeInt),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if _u.mutation.AvatarFileNameCleared() {
-		_spec.ClearField(groupchat.FieldAvatarFileName, field.TypeString)
+	if nodes := _u.mutation.AvatarIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: true,
+			Table:   groupchat.AvatarTable,
+			Columns: []string{groupchat.AvatarColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(media.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
 	if _u.mutation.ChatCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -441,24 +471,29 @@ func (_u *GroupChatUpdateOne) ClearDescription() *GroupChatUpdateOne {
 	return _u
 }
 
-// SetAvatarFileName sets the "avatar_file_name" field.
-func (_u *GroupChatUpdateOne) SetAvatarFileName(v string) *GroupChatUpdateOne {
-	_u.mutation.SetAvatarFileName(v)
+// SetAvatarID sets the "avatar_id" field.
+func (_u *GroupChatUpdateOne) SetAvatarID(v int) *GroupChatUpdateOne {
+	_u.mutation.SetAvatarID(v)
 	return _u
 }
 
-// SetNillableAvatarFileName sets the "avatar_file_name" field if the given value is not nil.
-func (_u *GroupChatUpdateOne) SetNillableAvatarFileName(v *string) *GroupChatUpdateOne {
+// SetNillableAvatarID sets the "avatar_id" field if the given value is not nil.
+func (_u *GroupChatUpdateOne) SetNillableAvatarID(v *int) *GroupChatUpdateOne {
 	if v != nil {
-		_u.SetAvatarFileName(*v)
+		_u.SetAvatarID(*v)
 	}
 	return _u
 }
 
-// ClearAvatarFileName clears the value of the "avatar_file_name" field.
-func (_u *GroupChatUpdateOne) ClearAvatarFileName() *GroupChatUpdateOne {
-	_u.mutation.ClearAvatarFileName()
+// ClearAvatarID clears the value of the "avatar_id" field.
+func (_u *GroupChatUpdateOne) ClearAvatarID() *GroupChatUpdateOne {
+	_u.mutation.ClearAvatarID()
 	return _u
+}
+
+// SetAvatar sets the "avatar" edge to the Media entity.
+func (_u *GroupChatUpdateOne) SetAvatar(v *Media) *GroupChatUpdateOne {
+	return _u.SetAvatarID(v.ID)
 }
 
 // SetChat sets the "chat" edge to the Chat entity.
@@ -495,6 +530,12 @@ func (_u *GroupChatUpdateOne) AddMembers(v ...*GroupMember) *GroupChatUpdateOne 
 // Mutation returns the GroupChatMutation object of the builder.
 func (_u *GroupChatUpdateOne) Mutation() *GroupChatMutation {
 	return _u.mutation
+}
+
+// ClearAvatar clears the "avatar" edge to the Media entity.
+func (_u *GroupChatUpdateOne) ClearAvatar() *GroupChatUpdateOne {
+	_u.mutation.ClearAvatar()
+	return _u
 }
 
 // ClearChat clears the "chat" edge to the Chat entity.
@@ -577,11 +618,6 @@ func (_u *GroupChatUpdateOne) check() error {
 			return &ValidationError{Name: "name", err: fmt.Errorf(`ent: validator failed for field "GroupChat.name": %w`, err)}
 		}
 	}
-	if v, ok := _u.mutation.AvatarFileName(); ok {
-		if err := groupchat.AvatarFileNameValidator(v); err != nil {
-			return &ValidationError{Name: "avatar_file_name", err: fmt.Errorf(`ent: validator failed for field "GroupChat.avatar_file_name": %w`, err)}
-		}
-	}
 	if _u.mutation.ChatCleared() && len(_u.mutation.ChatIDs()) > 0 {
 		return errors.New(`ent: clearing a required unique edge "GroupChat.chat"`)
 	}
@@ -629,11 +665,34 @@ func (_u *GroupChatUpdateOne) sqlSave(ctx context.Context) (_node *GroupChat, er
 	if _u.mutation.DescriptionCleared() {
 		_spec.ClearField(groupchat.FieldDescription, field.TypeString)
 	}
-	if value, ok := _u.mutation.AvatarFileName(); ok {
-		_spec.SetField(groupchat.FieldAvatarFileName, field.TypeString, value)
+	if _u.mutation.AvatarCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: true,
+			Table:   groupchat.AvatarTable,
+			Columns: []string{groupchat.AvatarColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(media.FieldID, field.TypeInt),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if _u.mutation.AvatarFileNameCleared() {
-		_spec.ClearField(groupchat.FieldAvatarFileName, field.TypeString)
+	if nodes := _u.mutation.AvatarIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: true,
+			Table:   groupchat.AvatarTable,
+			Columns: []string{groupchat.AvatarColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(media.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
 	if _u.mutation.ChatCleared() {
 		edge := &sqlgraph.EdgeSpec{

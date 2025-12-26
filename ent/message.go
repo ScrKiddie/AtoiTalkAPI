@@ -52,7 +52,7 @@ type MessageEdges struct {
 	// ReplyTo holds the value of the reply_to edge.
 	ReplyTo *Message `json:"reply_to,omitempty"`
 	// Attachments holds the value of the attachments edge.
-	Attachments []*Attachment `json:"attachments,omitempty"`
+	Attachments []*Media `json:"attachments,omitempty"`
 	// ChatsWithLastMessage holds the value of the chats_with_last_message edge.
 	ChatsWithLastMessage []*Chat `json:"chats_with_last_message,omitempty"`
 	// loadedTypes holds the information for reporting if a
@@ -104,7 +104,7 @@ func (e MessageEdges) ReplyToOrErr() (*Message, error) {
 
 // AttachmentsOrErr returns the Attachments value or an error if the edge
 // was not loaded in eager-loading.
-func (e MessageEdges) AttachmentsOrErr() ([]*Attachment, error) {
+func (e MessageEdges) AttachmentsOrErr() ([]*Media, error) {
 	if e.loadedTypes[4] {
 		return e.Attachments, nil
 	}
@@ -239,7 +239,7 @@ func (_m *Message) QueryReplyTo() *MessageQuery {
 }
 
 // QueryAttachments queries the "attachments" edge of the Message entity.
-func (_m *Message) QueryAttachments() *AttachmentQuery {
+func (_m *Message) QueryAttachments() *MediaQuery {
 	return NewMessageClient(_m.config).QueryAttachments(_m)
 }
 

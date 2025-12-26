@@ -3,8 +3,8 @@
 package ent
 
 import (
-	"AtoiTalkAPI/ent/attachment"
 	"AtoiTalkAPI/ent/chat"
+	"AtoiTalkAPI/ent/media"
 	"AtoiTalkAPI/ent/message"
 	"AtoiTalkAPI/ent/predicate"
 	"AtoiTalkAPI/ent/user"
@@ -169,14 +169,14 @@ func (_u *MessageUpdate) SetReplyTo(v *Message) *MessageUpdate {
 	return _u.SetReplyToID(v.ID)
 }
 
-// AddAttachmentIDs adds the "attachments" edge to the Attachment entity by IDs.
+// AddAttachmentIDs adds the "attachments" edge to the Media entity by IDs.
 func (_u *MessageUpdate) AddAttachmentIDs(ids ...int) *MessageUpdate {
 	_u.mutation.AddAttachmentIDs(ids...)
 	return _u
 }
 
-// AddAttachments adds the "attachments" edges to the Attachment entity.
-func (_u *MessageUpdate) AddAttachments(v ...*Attachment) *MessageUpdate {
+// AddAttachments adds the "attachments" edges to the Media entity.
+func (_u *MessageUpdate) AddAttachments(v ...*Media) *MessageUpdate {
 	ids := make([]int, len(v))
 	for i := range v {
 		ids[i] = v[i].ID
@@ -243,20 +243,20 @@ func (_u *MessageUpdate) ClearReplyTo() *MessageUpdate {
 	return _u
 }
 
-// ClearAttachments clears all "attachments" edges to the Attachment entity.
+// ClearAttachments clears all "attachments" edges to the Media entity.
 func (_u *MessageUpdate) ClearAttachments() *MessageUpdate {
 	_u.mutation.ClearAttachments()
 	return _u
 }
 
-// RemoveAttachmentIDs removes the "attachments" edge to Attachment entities by IDs.
+// RemoveAttachmentIDs removes the "attachments" edge to Media entities by IDs.
 func (_u *MessageUpdate) RemoveAttachmentIDs(ids ...int) *MessageUpdate {
 	_u.mutation.RemoveAttachmentIDs(ids...)
 	return _u
 }
 
-// RemoveAttachments removes "attachments" edges to Attachment entities.
-func (_u *MessageUpdate) RemoveAttachments(v ...*Attachment) *MessageUpdate {
+// RemoveAttachments removes "attachments" edges to Media entities.
+func (_u *MessageUpdate) RemoveAttachments(v ...*Media) *MessageUpdate {
 	ids := make([]int, len(v))
 	for i := range v {
 		ids[i] = v[i].ID
@@ -502,7 +502,7 @@ func (_u *MessageUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 			Columns: []string{message.AttachmentsColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(attachment.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(media.FieldID, field.TypeInt),
 			},
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
@@ -515,7 +515,7 @@ func (_u *MessageUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 			Columns: []string{message.AttachmentsColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(attachment.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(media.FieldID, field.TypeInt),
 			},
 		}
 		for _, k := range nodes {
@@ -531,7 +531,7 @@ func (_u *MessageUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 			Columns: []string{message.AttachmentsColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(attachment.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(media.FieldID, field.TypeInt),
 			},
 		}
 		for _, k := range nodes {
@@ -742,14 +742,14 @@ func (_u *MessageUpdateOne) SetReplyTo(v *Message) *MessageUpdateOne {
 	return _u.SetReplyToID(v.ID)
 }
 
-// AddAttachmentIDs adds the "attachments" edge to the Attachment entity by IDs.
+// AddAttachmentIDs adds the "attachments" edge to the Media entity by IDs.
 func (_u *MessageUpdateOne) AddAttachmentIDs(ids ...int) *MessageUpdateOne {
 	_u.mutation.AddAttachmentIDs(ids...)
 	return _u
 }
 
-// AddAttachments adds the "attachments" edges to the Attachment entity.
-func (_u *MessageUpdateOne) AddAttachments(v ...*Attachment) *MessageUpdateOne {
+// AddAttachments adds the "attachments" edges to the Media entity.
+func (_u *MessageUpdateOne) AddAttachments(v ...*Media) *MessageUpdateOne {
 	ids := make([]int, len(v))
 	for i := range v {
 		ids[i] = v[i].ID
@@ -816,20 +816,20 @@ func (_u *MessageUpdateOne) ClearReplyTo() *MessageUpdateOne {
 	return _u
 }
 
-// ClearAttachments clears all "attachments" edges to the Attachment entity.
+// ClearAttachments clears all "attachments" edges to the Media entity.
 func (_u *MessageUpdateOne) ClearAttachments() *MessageUpdateOne {
 	_u.mutation.ClearAttachments()
 	return _u
 }
 
-// RemoveAttachmentIDs removes the "attachments" edge to Attachment entities by IDs.
+// RemoveAttachmentIDs removes the "attachments" edge to Media entities by IDs.
 func (_u *MessageUpdateOne) RemoveAttachmentIDs(ids ...int) *MessageUpdateOne {
 	_u.mutation.RemoveAttachmentIDs(ids...)
 	return _u
 }
 
-// RemoveAttachments removes "attachments" edges to Attachment entities.
-func (_u *MessageUpdateOne) RemoveAttachments(v ...*Attachment) *MessageUpdateOne {
+// RemoveAttachments removes "attachments" edges to Media entities.
+func (_u *MessageUpdateOne) RemoveAttachments(v ...*Media) *MessageUpdateOne {
 	ids := make([]int, len(v))
 	for i := range v {
 		ids[i] = v[i].ID
@@ -1105,7 +1105,7 @@ func (_u *MessageUpdateOne) sqlSave(ctx context.Context) (_node *Message, err er
 			Columns: []string{message.AttachmentsColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(attachment.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(media.FieldID, field.TypeInt),
 			},
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
@@ -1118,7 +1118,7 @@ func (_u *MessageUpdateOne) sqlSave(ctx context.Context) (_node *Message, err er
 			Columns: []string{message.AttachmentsColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(attachment.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(media.FieldID, field.TypeInt),
 			},
 		}
 		for _, k := range nodes {
@@ -1134,7 +1134,7 @@ func (_u *MessageUpdateOne) sqlSave(ctx context.Context) (_node *Message, err er
 			Columns: []string{message.AttachmentsColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(attachment.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(media.FieldID, field.TypeInt),
 			},
 		}
 		for _, k := range nodes {
