@@ -1,4 +1,11 @@
 definitions:
+  helper.PaginationMeta:
+    properties:
+      has_next:
+        type: boolean
+      next_cursor:
+        type: string
+    type: object
   helper.ResponseError:
     properties:
       error:
@@ -7,6 +14,12 @@ definitions:
   helper.ResponseSuccess:
     properties:
       data: {}
+    type: object
+  helper.ResponseWithPagination:
+    properties:
+      data: {}
+      meta:
+        $ref: '#/definitions/helper.PaginationMeta'
     type: object
   model.AuthResponse:
     properties:
@@ -552,6 +565,55 @@ paths:
       security:
       - BearerAuth: []
       summary: Update User Profile
+      tags:
+      - user
+  /api/users:
+    get:
+      consumes:
+      - application/json
+      description: Search users by name or email with cursor-based pagination.
+      parameters:
+      - description: Search query (name or email)
+        in: query
+        name: query
+        type: string
+      - description: Pagination cursor
+        in: query
+        name: cursor
+        type: string
+      - description: Number of items per page (default 10, max 50)
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/helper.ResponseWithPagination'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/model.UserDTO'
+                  type: array
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
+      security:
+      - BearerAuth: []
+      summary: Search Users
       tags:
       - user
 swagger: "2.0"
