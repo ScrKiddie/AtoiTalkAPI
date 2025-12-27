@@ -697,6 +697,12 @@ const docTemplate = `{
                         "description": "Number of items per page (default 10, max 50)",
                         "name": "limit",
                         "in": "query"
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "Include private chat ID if exists",
+                        "name": "include_chat_id",
+                        "in": "query"
                     }
                 ],
                 "responses": {
@@ -979,6 +985,9 @@ const docTemplate = `{
                     "type": "boolean"
                 },
                 "id": {
+                    "type": "integer"
+                },
+                "private_chat_id": {
                     "type": "integer"
                 }
             }
