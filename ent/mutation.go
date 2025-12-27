@@ -46,25 +46,25 @@ const (
 // ChatMutation represents an operation that mutates the Chat nodes in the graph.
 type ChatMutation struct {
 	config
-	op                  Op
-	typ                 string
-	id                  *int
-	created_at          *time.Time
-	updated_at          *time.Time
-	_type               *chat.Type
-	clearedFields       map[string]struct{}
-	messages            map[int]struct{}
-	removedmessages     map[int]struct{}
-	clearedmessages     bool
-	last_message        *int
-	clearedlast_message bool
-	private_chat        *int
-	clearedprivate_chat bool
-	group_chat          *int
-	clearedgroup_chat   bool
-	done                bool
-	oldValue            func(context.Context) (*Chat, error)
-	predicates          []predicate.Chat
+	op                    Op
+	typ                   string
+	id                    *int
+	created_at            *time.Time
+	updated_at            *time.Time
+	_type                 *chat.Type
+	clearedFields         map[string]struct{}
+	messages              map[int]struct{}
+	removedmessages       map[int]struct{}
+	clearedmessages       bool
+	pinned_message        *int
+	clearedpinned_message bool
+	private_chat          *int
+	clearedprivate_chat   bool
+	group_chat            *int
+	clearedgroup_chat     bool
+	done                  bool
+	oldValue              func(context.Context) (*Chat, error)
+	predicates            []predicate.Chat
 }
 
 var _ ent.Mutation = (*ChatMutation)(nil)
@@ -273,53 +273,53 @@ func (m *ChatMutation) ResetType() {
 	m._type = nil
 }
 
-// SetLastMessageID sets the "last_message_id" field.
-func (m *ChatMutation) SetLastMessageID(i int) {
-	m.last_message = &i
+// SetPinnedMessageID sets the "pinned_message_id" field.
+func (m *ChatMutation) SetPinnedMessageID(i int) {
+	m.pinned_message = &i
 }
 
-// LastMessageID returns the value of the "last_message_id" field in the mutation.
-func (m *ChatMutation) LastMessageID() (r int, exists bool) {
-	v := m.last_message
+// PinnedMessageID returns the value of the "pinned_message_id" field in the mutation.
+func (m *ChatMutation) PinnedMessageID() (r int, exists bool) {
+	v := m.pinned_message
 	if v == nil {
 		return
 	}
 	return *v, true
 }
 
-// OldLastMessageID returns the old "last_message_id" field's value of the Chat entity.
+// OldPinnedMessageID returns the old "pinned_message_id" field's value of the Chat entity.
 // If the Chat object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *ChatMutation) OldLastMessageID(ctx context.Context) (v *int, err error) {
+func (m *ChatMutation) OldPinnedMessageID(ctx context.Context) (v *int, err error) {
 	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldLastMessageID is only allowed on UpdateOne operations")
+		return v, errors.New("OldPinnedMessageID is only allowed on UpdateOne operations")
 	}
 	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldLastMessageID requires an ID field in the mutation")
+		return v, errors.New("OldPinnedMessageID requires an ID field in the mutation")
 	}
 	oldValue, err := m.oldValue(ctx)
 	if err != nil {
-		return v, fmt.Errorf("querying old value for OldLastMessageID: %w", err)
+		return v, fmt.Errorf("querying old value for OldPinnedMessageID: %w", err)
 	}
-	return oldValue.LastMessageID, nil
+	return oldValue.PinnedMessageID, nil
 }
 
-// ClearLastMessageID clears the value of the "last_message_id" field.
-func (m *ChatMutation) ClearLastMessageID() {
-	m.last_message = nil
-	m.clearedFields[chat.FieldLastMessageID] = struct{}{}
+// ClearPinnedMessageID clears the value of the "pinned_message_id" field.
+func (m *ChatMutation) ClearPinnedMessageID() {
+	m.pinned_message = nil
+	m.clearedFields[chat.FieldPinnedMessageID] = struct{}{}
 }
 
-// LastMessageIDCleared returns if the "last_message_id" field was cleared in this mutation.
-func (m *ChatMutation) LastMessageIDCleared() bool {
-	_, ok := m.clearedFields[chat.FieldLastMessageID]
+// PinnedMessageIDCleared returns if the "pinned_message_id" field was cleared in this mutation.
+func (m *ChatMutation) PinnedMessageIDCleared() bool {
+	_, ok := m.clearedFields[chat.FieldPinnedMessageID]
 	return ok
 }
 
-// ResetLastMessageID resets all changes to the "last_message_id" field.
-func (m *ChatMutation) ResetLastMessageID() {
-	m.last_message = nil
-	delete(m.clearedFields, chat.FieldLastMessageID)
+// ResetPinnedMessageID resets all changes to the "pinned_message_id" field.
+func (m *ChatMutation) ResetPinnedMessageID() {
+	m.pinned_message = nil
+	delete(m.clearedFields, chat.FieldPinnedMessageID)
 }
 
 // AddMessageIDs adds the "messages" edge to the Message entity by ids.
@@ -376,31 +376,31 @@ func (m *ChatMutation) ResetMessages() {
 	m.removedmessages = nil
 }
 
-// ClearLastMessage clears the "last_message" edge to the Message entity.
-func (m *ChatMutation) ClearLastMessage() {
-	m.clearedlast_message = true
-	m.clearedFields[chat.FieldLastMessageID] = struct{}{}
+// ClearPinnedMessage clears the "pinned_message" edge to the Message entity.
+func (m *ChatMutation) ClearPinnedMessage() {
+	m.clearedpinned_message = true
+	m.clearedFields[chat.FieldPinnedMessageID] = struct{}{}
 }
 
-// LastMessageCleared reports if the "last_message" edge to the Message entity was cleared.
-func (m *ChatMutation) LastMessageCleared() bool {
-	return m.LastMessageIDCleared() || m.clearedlast_message
+// PinnedMessageCleared reports if the "pinned_message" edge to the Message entity was cleared.
+func (m *ChatMutation) PinnedMessageCleared() bool {
+	return m.PinnedMessageIDCleared() || m.clearedpinned_message
 }
 
-// LastMessageIDs returns the "last_message" edge IDs in the mutation.
+// PinnedMessageIDs returns the "pinned_message" edge IDs in the mutation.
 // Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
-// LastMessageID instead. It exists only for internal usage by the builders.
-func (m *ChatMutation) LastMessageIDs() (ids []int) {
-	if id := m.last_message; id != nil {
+// PinnedMessageID instead. It exists only for internal usage by the builders.
+func (m *ChatMutation) PinnedMessageIDs() (ids []int) {
+	if id := m.pinned_message; id != nil {
 		ids = append(ids, *id)
 	}
 	return
 }
 
-// ResetLastMessage resets all changes to the "last_message" edge.
-func (m *ChatMutation) ResetLastMessage() {
-	m.last_message = nil
-	m.clearedlast_message = false
+// ResetPinnedMessage resets all changes to the "pinned_message" edge.
+func (m *ChatMutation) ResetPinnedMessage() {
+	m.pinned_message = nil
+	m.clearedpinned_message = false
 }
 
 // SetPrivateChatID sets the "private_chat" edge to the PrivateChat entity by id.
@@ -525,8 +525,8 @@ func (m *ChatMutation) Fields() []string {
 	if m._type != nil {
 		fields = append(fields, chat.FieldType)
 	}
-	if m.last_message != nil {
-		fields = append(fields, chat.FieldLastMessageID)
+	if m.pinned_message != nil {
+		fields = append(fields, chat.FieldPinnedMessageID)
 	}
 	return fields
 }
@@ -542,8 +542,8 @@ func (m *ChatMutation) Field(name string) (ent.Value, bool) {
 		return m.UpdatedAt()
 	case chat.FieldType:
 		return m.GetType()
-	case chat.FieldLastMessageID:
-		return m.LastMessageID()
+	case chat.FieldPinnedMessageID:
+		return m.PinnedMessageID()
 	}
 	return nil, false
 }
@@ -559,8 +559,8 @@ func (m *ChatMutation) OldField(ctx context.Context, name string) (ent.Value, er
 		return m.OldUpdatedAt(ctx)
 	case chat.FieldType:
 		return m.OldType(ctx)
-	case chat.FieldLastMessageID:
-		return m.OldLastMessageID(ctx)
+	case chat.FieldPinnedMessageID:
+		return m.OldPinnedMessageID(ctx)
 	}
 	return nil, fmt.Errorf("unknown Chat field %s", name)
 }
@@ -591,12 +591,12 @@ func (m *ChatMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetType(v)
 		return nil
-	case chat.FieldLastMessageID:
+	case chat.FieldPinnedMessageID:
 		v, ok := value.(int)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
-		m.SetLastMessageID(v)
+		m.SetPinnedMessageID(v)
 		return nil
 	}
 	return fmt.Errorf("unknown Chat field %s", name)
@@ -631,8 +631,8 @@ func (m *ChatMutation) AddField(name string, value ent.Value) error {
 // mutation.
 func (m *ChatMutation) ClearedFields() []string {
 	var fields []string
-	if m.FieldCleared(chat.FieldLastMessageID) {
-		fields = append(fields, chat.FieldLastMessageID)
+	if m.FieldCleared(chat.FieldPinnedMessageID) {
+		fields = append(fields, chat.FieldPinnedMessageID)
 	}
 	return fields
 }
@@ -648,8 +648,8 @@ func (m *ChatMutation) FieldCleared(name string) bool {
 // error if the field is not defined in the schema.
 func (m *ChatMutation) ClearField(name string) error {
 	switch name {
-	case chat.FieldLastMessageID:
-		m.ClearLastMessageID()
+	case chat.FieldPinnedMessageID:
+		m.ClearPinnedMessageID()
 		return nil
 	}
 	return fmt.Errorf("unknown Chat nullable field %s", name)
@@ -668,8 +668,8 @@ func (m *ChatMutation) ResetField(name string) error {
 	case chat.FieldType:
 		m.ResetType()
 		return nil
-	case chat.FieldLastMessageID:
-		m.ResetLastMessageID()
+	case chat.FieldPinnedMessageID:
+		m.ResetPinnedMessageID()
 		return nil
 	}
 	return fmt.Errorf("unknown Chat field %s", name)
@@ -681,8 +681,8 @@ func (m *ChatMutation) AddedEdges() []string {
 	if m.messages != nil {
 		edges = append(edges, chat.EdgeMessages)
 	}
-	if m.last_message != nil {
-		edges = append(edges, chat.EdgeLastMessage)
+	if m.pinned_message != nil {
+		edges = append(edges, chat.EdgePinnedMessage)
 	}
 	if m.private_chat != nil {
 		edges = append(edges, chat.EdgePrivateChat)
@@ -703,8 +703,8 @@ func (m *ChatMutation) AddedIDs(name string) []ent.Value {
 			ids = append(ids, id)
 		}
 		return ids
-	case chat.EdgeLastMessage:
-		if id := m.last_message; id != nil {
+	case chat.EdgePinnedMessage:
+		if id := m.pinned_message; id != nil {
 			return []ent.Value{*id}
 		}
 	case chat.EdgePrivateChat:
@@ -748,8 +748,8 @@ func (m *ChatMutation) ClearedEdges() []string {
 	if m.clearedmessages {
 		edges = append(edges, chat.EdgeMessages)
 	}
-	if m.clearedlast_message {
-		edges = append(edges, chat.EdgeLastMessage)
+	if m.clearedpinned_message {
+		edges = append(edges, chat.EdgePinnedMessage)
 	}
 	if m.clearedprivate_chat {
 		edges = append(edges, chat.EdgePrivateChat)
@@ -766,8 +766,8 @@ func (m *ChatMutation) EdgeCleared(name string) bool {
 	switch name {
 	case chat.EdgeMessages:
 		return m.clearedmessages
-	case chat.EdgeLastMessage:
-		return m.clearedlast_message
+	case chat.EdgePinnedMessage:
+		return m.clearedpinned_message
 	case chat.EdgePrivateChat:
 		return m.clearedprivate_chat
 	case chat.EdgeGroupChat:
@@ -780,8 +780,8 @@ func (m *ChatMutation) EdgeCleared(name string) bool {
 // if that edge is not defined in the schema.
 func (m *ChatMutation) ClearEdge(name string) error {
 	switch name {
-	case chat.EdgeLastMessage:
-		m.ClearLastMessage()
+	case chat.EdgePinnedMessage:
+		m.ClearPinnedMessage()
 		return nil
 	case chat.EdgePrivateChat:
 		m.ClearPrivateChat()
@@ -800,8 +800,8 @@ func (m *ChatMutation) ResetEdge(name string) error {
 	case chat.EdgeMessages:
 		m.ResetMessages()
 		return nil
-	case chat.EdgeLastMessage:
-		m.ResetLastMessage()
+	case chat.EdgePinnedMessage:
+		m.ResetPinnedMessage()
 		return nil
 	case chat.EdgePrivateChat:
 		m.ResetPrivateChat()
@@ -3193,33 +3193,33 @@ func (m *MediaMutation) ResetEdge(name string) error {
 // MessageMutation represents an operation that mutates the Message nodes in the graph.
 type MessageMutation struct {
 	config
-	op                             Op
-	typ                            string
-	id                             *int
-	created_at                     *time.Time
-	updated_at                     *time.Time
-	content                        *string
-	deleted_at                     *time.Time
-	is_edited                      *bool
-	clearedFields                  map[string]struct{}
-	chat                           *int
-	clearedchat                    bool
-	sender                         *int
-	clearedsender                  bool
-	replies                        map[int]struct{}
-	removedreplies                 map[int]struct{}
-	clearedreplies                 bool
-	reply_to                       *int
-	clearedreply_to                bool
-	attachments                    map[int]struct{}
-	removedattachments             map[int]struct{}
-	clearedattachments             bool
-	chats_with_last_message        map[int]struct{}
-	removedchats_with_last_message map[int]struct{}
-	clearedchats_with_last_message bool
-	done                           bool
-	oldValue                       func(context.Context) (*Message, error)
-	predicates                     []predicate.Message
+	op                     Op
+	typ                    string
+	id                     *int
+	created_at             *time.Time
+	updated_at             *time.Time
+	content                *string
+	deleted_at             *time.Time
+	is_edited              *bool
+	clearedFields          map[string]struct{}
+	chat                   *int
+	clearedchat            bool
+	sender                 *int
+	clearedsender          bool
+	replies                map[int]struct{}
+	removedreplies         map[int]struct{}
+	clearedreplies         bool
+	reply_to               *int
+	clearedreply_to        bool
+	attachments            map[int]struct{}
+	removedattachments     map[int]struct{}
+	clearedattachments     bool
+	pinned_in_chats        map[int]struct{}
+	removedpinned_in_chats map[int]struct{}
+	clearedpinned_in_chats bool
+	done                   bool
+	oldValue               func(context.Context) (*Message, error)
+	predicates             []predicate.Message
 }
 
 var _ ent.Mutation = (*MessageMutation)(nil)
@@ -3836,58 +3836,58 @@ func (m *MessageMutation) ResetAttachments() {
 	m.removedattachments = nil
 }
 
-// AddChatsWithLastMessageIDs adds the "chats_with_last_message" edge to the Chat entity by ids.
-func (m *MessageMutation) AddChatsWithLastMessageIDs(ids ...int) {
-	if m.chats_with_last_message == nil {
-		m.chats_with_last_message = make(map[int]struct{})
+// AddPinnedInChatIDs adds the "pinned_in_chats" edge to the Chat entity by ids.
+func (m *MessageMutation) AddPinnedInChatIDs(ids ...int) {
+	if m.pinned_in_chats == nil {
+		m.pinned_in_chats = make(map[int]struct{})
 	}
 	for i := range ids {
-		m.chats_with_last_message[ids[i]] = struct{}{}
+		m.pinned_in_chats[ids[i]] = struct{}{}
 	}
 }
 
-// ClearChatsWithLastMessage clears the "chats_with_last_message" edge to the Chat entity.
-func (m *MessageMutation) ClearChatsWithLastMessage() {
-	m.clearedchats_with_last_message = true
+// ClearPinnedInChats clears the "pinned_in_chats" edge to the Chat entity.
+func (m *MessageMutation) ClearPinnedInChats() {
+	m.clearedpinned_in_chats = true
 }
 
-// ChatsWithLastMessageCleared reports if the "chats_with_last_message" edge to the Chat entity was cleared.
-func (m *MessageMutation) ChatsWithLastMessageCleared() bool {
-	return m.clearedchats_with_last_message
+// PinnedInChatsCleared reports if the "pinned_in_chats" edge to the Chat entity was cleared.
+func (m *MessageMutation) PinnedInChatsCleared() bool {
+	return m.clearedpinned_in_chats
 }
 
-// RemoveChatsWithLastMessageIDs removes the "chats_with_last_message" edge to the Chat entity by IDs.
-func (m *MessageMutation) RemoveChatsWithLastMessageIDs(ids ...int) {
-	if m.removedchats_with_last_message == nil {
-		m.removedchats_with_last_message = make(map[int]struct{})
+// RemovePinnedInChatIDs removes the "pinned_in_chats" edge to the Chat entity by IDs.
+func (m *MessageMutation) RemovePinnedInChatIDs(ids ...int) {
+	if m.removedpinned_in_chats == nil {
+		m.removedpinned_in_chats = make(map[int]struct{})
 	}
 	for i := range ids {
-		delete(m.chats_with_last_message, ids[i])
-		m.removedchats_with_last_message[ids[i]] = struct{}{}
+		delete(m.pinned_in_chats, ids[i])
+		m.removedpinned_in_chats[ids[i]] = struct{}{}
 	}
 }
 
-// RemovedChatsWithLastMessage returns the removed IDs of the "chats_with_last_message" edge to the Chat entity.
-func (m *MessageMutation) RemovedChatsWithLastMessageIDs() (ids []int) {
-	for id := range m.removedchats_with_last_message {
+// RemovedPinnedInChats returns the removed IDs of the "pinned_in_chats" edge to the Chat entity.
+func (m *MessageMutation) RemovedPinnedInChatsIDs() (ids []int) {
+	for id := range m.removedpinned_in_chats {
 		ids = append(ids, id)
 	}
 	return
 }
 
-// ChatsWithLastMessageIDs returns the "chats_with_last_message" edge IDs in the mutation.
-func (m *MessageMutation) ChatsWithLastMessageIDs() (ids []int) {
-	for id := range m.chats_with_last_message {
+// PinnedInChatsIDs returns the "pinned_in_chats" edge IDs in the mutation.
+func (m *MessageMutation) PinnedInChatsIDs() (ids []int) {
+	for id := range m.pinned_in_chats {
 		ids = append(ids, id)
 	}
 	return
 }
 
-// ResetChatsWithLastMessage resets all changes to the "chats_with_last_message" edge.
-func (m *MessageMutation) ResetChatsWithLastMessage() {
-	m.chats_with_last_message = nil
-	m.clearedchats_with_last_message = false
-	m.removedchats_with_last_message = nil
+// ResetPinnedInChats resets all changes to the "pinned_in_chats" edge.
+func (m *MessageMutation) ResetPinnedInChats() {
+	m.pinned_in_chats = nil
+	m.clearedpinned_in_chats = false
+	m.removedpinned_in_chats = nil
 }
 
 // Where appends a list predicates to the MessageMutation builder.
@@ -4182,8 +4182,8 @@ func (m *MessageMutation) AddedEdges() []string {
 	if m.attachments != nil {
 		edges = append(edges, message.EdgeAttachments)
 	}
-	if m.chats_with_last_message != nil {
-		edges = append(edges, message.EdgeChatsWithLastMessage)
+	if m.pinned_in_chats != nil {
+		edges = append(edges, message.EdgePinnedInChats)
 	}
 	return edges
 }
@@ -4216,9 +4216,9 @@ func (m *MessageMutation) AddedIDs(name string) []ent.Value {
 			ids = append(ids, id)
 		}
 		return ids
-	case message.EdgeChatsWithLastMessage:
-		ids := make([]ent.Value, 0, len(m.chats_with_last_message))
-		for id := range m.chats_with_last_message {
+	case message.EdgePinnedInChats:
+		ids := make([]ent.Value, 0, len(m.pinned_in_chats))
+		for id := range m.pinned_in_chats {
 			ids = append(ids, id)
 		}
 		return ids
@@ -4235,8 +4235,8 @@ func (m *MessageMutation) RemovedEdges() []string {
 	if m.removedattachments != nil {
 		edges = append(edges, message.EdgeAttachments)
 	}
-	if m.removedchats_with_last_message != nil {
-		edges = append(edges, message.EdgeChatsWithLastMessage)
+	if m.removedpinned_in_chats != nil {
+		edges = append(edges, message.EdgePinnedInChats)
 	}
 	return edges
 }
@@ -4257,9 +4257,9 @@ func (m *MessageMutation) RemovedIDs(name string) []ent.Value {
 			ids = append(ids, id)
 		}
 		return ids
-	case message.EdgeChatsWithLastMessage:
-		ids := make([]ent.Value, 0, len(m.removedchats_with_last_message))
-		for id := range m.removedchats_with_last_message {
+	case message.EdgePinnedInChats:
+		ids := make([]ent.Value, 0, len(m.removedpinned_in_chats))
+		for id := range m.removedpinned_in_chats {
 			ids = append(ids, id)
 		}
 		return ids
@@ -4285,8 +4285,8 @@ func (m *MessageMutation) ClearedEdges() []string {
 	if m.clearedattachments {
 		edges = append(edges, message.EdgeAttachments)
 	}
-	if m.clearedchats_with_last_message {
-		edges = append(edges, message.EdgeChatsWithLastMessage)
+	if m.clearedpinned_in_chats {
+		edges = append(edges, message.EdgePinnedInChats)
 	}
 	return edges
 }
@@ -4305,8 +4305,8 @@ func (m *MessageMutation) EdgeCleared(name string) bool {
 		return m.clearedreply_to
 	case message.EdgeAttachments:
 		return m.clearedattachments
-	case message.EdgeChatsWithLastMessage:
-		return m.clearedchats_with_last_message
+	case message.EdgePinnedInChats:
+		return m.clearedpinned_in_chats
 	}
 	return false
 }
@@ -4347,8 +4347,8 @@ func (m *MessageMutation) ResetEdge(name string) error {
 	case message.EdgeAttachments:
 		m.ResetAttachments()
 		return nil
-	case message.EdgeChatsWithLastMessage:
-		m.ResetChatsWithLastMessage()
+	case message.EdgePinnedInChats:
+		m.ResetPinnedInChats()
 		return nil
 	}
 	return fmt.Errorf("unknown Message edge %s", name)
@@ -4958,6 +4958,8 @@ type PrivateChatMutation struct {
 	id                 *int
 	user1_last_read_at *time.Time
 	user2_last_read_at *time.Time
+	user1_hidden_at    *time.Time
+	user2_hidden_at    *time.Time
 	clearedFields      map[string]struct{}
 	chat               *int
 	clearedchat        bool
@@ -5274,6 +5276,104 @@ func (m *PrivateChatMutation) ResetUser2LastReadAt() {
 	delete(m.clearedFields, privatechat.FieldUser2LastReadAt)
 }
 
+// SetUser1HiddenAt sets the "user1_hidden_at" field.
+func (m *PrivateChatMutation) SetUser1HiddenAt(t time.Time) {
+	m.user1_hidden_at = &t
+}
+
+// User1HiddenAt returns the value of the "user1_hidden_at" field in the mutation.
+func (m *PrivateChatMutation) User1HiddenAt() (r time.Time, exists bool) {
+	v := m.user1_hidden_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldUser1HiddenAt returns the old "user1_hidden_at" field's value of the PrivateChat entity.
+// If the PrivateChat object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PrivateChatMutation) OldUser1HiddenAt(ctx context.Context) (v *time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldUser1HiddenAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldUser1HiddenAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldUser1HiddenAt: %w", err)
+	}
+	return oldValue.User1HiddenAt, nil
+}
+
+// ClearUser1HiddenAt clears the value of the "user1_hidden_at" field.
+func (m *PrivateChatMutation) ClearUser1HiddenAt() {
+	m.user1_hidden_at = nil
+	m.clearedFields[privatechat.FieldUser1HiddenAt] = struct{}{}
+}
+
+// User1HiddenAtCleared returns if the "user1_hidden_at" field was cleared in this mutation.
+func (m *PrivateChatMutation) User1HiddenAtCleared() bool {
+	_, ok := m.clearedFields[privatechat.FieldUser1HiddenAt]
+	return ok
+}
+
+// ResetUser1HiddenAt resets all changes to the "user1_hidden_at" field.
+func (m *PrivateChatMutation) ResetUser1HiddenAt() {
+	m.user1_hidden_at = nil
+	delete(m.clearedFields, privatechat.FieldUser1HiddenAt)
+}
+
+// SetUser2HiddenAt sets the "user2_hidden_at" field.
+func (m *PrivateChatMutation) SetUser2HiddenAt(t time.Time) {
+	m.user2_hidden_at = &t
+}
+
+// User2HiddenAt returns the value of the "user2_hidden_at" field in the mutation.
+func (m *PrivateChatMutation) User2HiddenAt() (r time.Time, exists bool) {
+	v := m.user2_hidden_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldUser2HiddenAt returns the old "user2_hidden_at" field's value of the PrivateChat entity.
+// If the PrivateChat object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PrivateChatMutation) OldUser2HiddenAt(ctx context.Context) (v *time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldUser2HiddenAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldUser2HiddenAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldUser2HiddenAt: %w", err)
+	}
+	return oldValue.User2HiddenAt, nil
+}
+
+// ClearUser2HiddenAt clears the value of the "user2_hidden_at" field.
+func (m *PrivateChatMutation) ClearUser2HiddenAt() {
+	m.user2_hidden_at = nil
+	m.clearedFields[privatechat.FieldUser2HiddenAt] = struct{}{}
+}
+
+// User2HiddenAtCleared returns if the "user2_hidden_at" field was cleared in this mutation.
+func (m *PrivateChatMutation) User2HiddenAtCleared() bool {
+	_, ok := m.clearedFields[privatechat.FieldUser2HiddenAt]
+	return ok
+}
+
+// ResetUser2HiddenAt resets all changes to the "user2_hidden_at" field.
+func (m *PrivateChatMutation) ResetUser2HiddenAt() {
+	m.user2_hidden_at = nil
+	delete(m.clearedFields, privatechat.FieldUser2HiddenAt)
+}
+
 // ClearChat clears the "chat" edge to the Chat entity.
 func (m *PrivateChatMutation) ClearChat() {
 	m.clearedchat = true
@@ -5389,7 +5489,7 @@ func (m *PrivateChatMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *PrivateChatMutation) Fields() []string {
-	fields := make([]string, 0, 5)
+	fields := make([]string, 0, 7)
 	if m.chat != nil {
 		fields = append(fields, privatechat.FieldChatID)
 	}
@@ -5404,6 +5504,12 @@ func (m *PrivateChatMutation) Fields() []string {
 	}
 	if m.user2_last_read_at != nil {
 		fields = append(fields, privatechat.FieldUser2LastReadAt)
+	}
+	if m.user1_hidden_at != nil {
+		fields = append(fields, privatechat.FieldUser1HiddenAt)
+	}
+	if m.user2_hidden_at != nil {
+		fields = append(fields, privatechat.FieldUser2HiddenAt)
 	}
 	return fields
 }
@@ -5423,6 +5529,10 @@ func (m *PrivateChatMutation) Field(name string) (ent.Value, bool) {
 		return m.User1LastReadAt()
 	case privatechat.FieldUser2LastReadAt:
 		return m.User2LastReadAt()
+	case privatechat.FieldUser1HiddenAt:
+		return m.User1HiddenAt()
+	case privatechat.FieldUser2HiddenAt:
+		return m.User2HiddenAt()
 	}
 	return nil, false
 }
@@ -5442,6 +5552,10 @@ func (m *PrivateChatMutation) OldField(ctx context.Context, name string) (ent.Va
 		return m.OldUser1LastReadAt(ctx)
 	case privatechat.FieldUser2LastReadAt:
 		return m.OldUser2LastReadAt(ctx)
+	case privatechat.FieldUser1HiddenAt:
+		return m.OldUser1HiddenAt(ctx)
+	case privatechat.FieldUser2HiddenAt:
+		return m.OldUser2HiddenAt(ctx)
 	}
 	return nil, fmt.Errorf("unknown PrivateChat field %s", name)
 }
@@ -5486,6 +5600,20 @@ func (m *PrivateChatMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetUser2LastReadAt(v)
 		return nil
+	case privatechat.FieldUser1HiddenAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetUser1HiddenAt(v)
+		return nil
+	case privatechat.FieldUser2HiddenAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetUser2HiddenAt(v)
+		return nil
 	}
 	return fmt.Errorf("unknown PrivateChat field %s", name)
 }
@@ -5525,6 +5653,12 @@ func (m *PrivateChatMutation) ClearedFields() []string {
 	if m.FieldCleared(privatechat.FieldUser2LastReadAt) {
 		fields = append(fields, privatechat.FieldUser2LastReadAt)
 	}
+	if m.FieldCleared(privatechat.FieldUser1HiddenAt) {
+		fields = append(fields, privatechat.FieldUser1HiddenAt)
+	}
+	if m.FieldCleared(privatechat.FieldUser2HiddenAt) {
+		fields = append(fields, privatechat.FieldUser2HiddenAt)
+	}
 	return fields
 }
 
@@ -5544,6 +5678,12 @@ func (m *PrivateChatMutation) ClearField(name string) error {
 		return nil
 	case privatechat.FieldUser2LastReadAt:
 		m.ClearUser2LastReadAt()
+		return nil
+	case privatechat.FieldUser1HiddenAt:
+		m.ClearUser1HiddenAt()
+		return nil
+	case privatechat.FieldUser2HiddenAt:
+		m.ClearUser2HiddenAt()
 		return nil
 	}
 	return fmt.Errorf("unknown PrivateChat nullable field %s", name)
@@ -5567,6 +5707,12 @@ func (m *PrivateChatMutation) ResetField(name string) error {
 		return nil
 	case privatechat.FieldUser2LastReadAt:
 		m.ResetUser2LastReadAt()
+		return nil
+	case privatechat.FieldUser1HiddenAt:
+		m.ResetUser1HiddenAt()
+		return nil
+	case privatechat.FieldUser2HiddenAt:
+		m.ResetUser2HiddenAt()
 		return nil
 	}
 	return fmt.Errorf("unknown PrivateChat field %s", name)

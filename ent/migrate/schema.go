@@ -15,7 +15,7 @@ var (
 		{Name: "created_at", Type: field.TypeTime, Default: "CURRENT_TIMESTAMP"},
 		{Name: "updated_at", Type: field.TypeTime, Default: "CURRENT_TIMESTAMP"},
 		{Name: "type", Type: field.TypeEnum, Enums: []string{"private", "group"}},
-		{Name: "last_message_id", Type: field.TypeInt, Nullable: true},
+		{Name: "pinned_message_id", Type: field.TypeInt, Nullable: true},
 	}
 	// ChatsTable holds the schema information for the "chats" table.
 	ChatsTable = &schema.Table{
@@ -24,21 +24,10 @@ var (
 		PrimaryKey: []*schema.Column{ChatsColumns[0]},
 		ForeignKeys: []*schema.ForeignKey{
 			{
-				Symbol:     "chats_messages_last_message",
+				Symbol:     "chats_messages_pinned_message",
 				Columns:    []*schema.Column{ChatsColumns[4]},
 				RefColumns: []*schema.Column{MessagesColumns[0]},
 				OnDelete:   schema.SetNull,
-			},
-		},
-		Indexes: []*schema.Index{
-			{
-				Name:    "idx_chats_last_msg_created",
-				Unique:  false,
-				Columns: []*schema.Column{ChatsColumns[4], ChatsColumns[1]},
-				Annotation: &entsql.IndexAnnotation{
-					Desc:  true,
-					Where: "last_message_id IS NOT NULL",
-				},
 			},
 		},
 	}
@@ -238,6 +227,8 @@ var (
 		{Name: "id", Type: field.TypeInt, Increment: true},
 		{Name: "user1_last_read_at", Type: field.TypeTime, Nullable: true},
 		{Name: "user2_last_read_at", Type: field.TypeTime, Nullable: true},
+		{Name: "user1_hidden_at", Type: field.TypeTime, Nullable: true},
+		{Name: "user2_hidden_at", Type: field.TypeTime, Nullable: true},
 		{Name: "chat_id", Type: field.TypeInt, Unique: true},
 		{Name: "user1_id", Type: field.TypeInt},
 		{Name: "user2_id", Type: field.TypeInt},
@@ -250,19 +241,19 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "private_chats_chats_private_chat",
-				Columns:    []*schema.Column{PrivateChatsColumns[3]},
+				Columns:    []*schema.Column{PrivateChatsColumns[5]},
 				RefColumns: []*schema.Column{ChatsColumns[0]},
 				OnDelete:   schema.Cascade,
 			},
 			{
 				Symbol:     "private_chats_users_private_chats_as_user1",
-				Columns:    []*schema.Column{PrivateChatsColumns[4]},
+				Columns:    []*schema.Column{PrivateChatsColumns[6]},
 				RefColumns: []*schema.Column{UsersColumns[0]},
 				OnDelete:   schema.Cascade,
 			},
 			{
 				Symbol:     "private_chats_users_private_chats_as_user2",
-				Columns:    []*schema.Column{PrivateChatsColumns[5]},
+				Columns:    []*schema.Column{PrivateChatsColumns[7]},
 				RefColumns: []*schema.Column{UsersColumns[0]},
 				OnDelete:   schema.Cascade,
 			},
@@ -271,7 +262,7 @@ var (
 			{
 				Name:    "unique_user_pair",
 				Unique:  true,
-				Columns: []*schema.Column{PrivateChatsColumns[4], PrivateChatsColumns[5]},
+				Columns: []*schema.Column{PrivateChatsColumns[6], PrivateChatsColumns[7]},
 			},
 		},
 	}

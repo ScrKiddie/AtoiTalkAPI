@@ -23,6 +23,10 @@ const (
 	FieldUser1LastReadAt = "user1_last_read_at"
 	// FieldUser2LastReadAt holds the string denoting the user2_last_read_at field in the database.
 	FieldUser2LastReadAt = "user2_last_read_at"
+	// FieldUser1HiddenAt holds the string denoting the user1_hidden_at field in the database.
+	FieldUser1HiddenAt = "user1_hidden_at"
+	// FieldUser2HiddenAt holds the string denoting the user2_hidden_at field in the database.
+	FieldUser2HiddenAt = "user2_hidden_at"
 	// EdgeChat holds the string denoting the chat edge name in mutations.
 	EdgeChat = "chat"
 	// EdgeUser1 holds the string denoting the user1 edge name in mutations.
@@ -62,6 +66,8 @@ var Columns = []string{
 	FieldUser2ID,
 	FieldUser1LastReadAt,
 	FieldUser2LastReadAt,
+	FieldUser1HiddenAt,
+	FieldUser2HiddenAt,
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
@@ -114,6 +120,16 @@ func ByUser1LastReadAt(opts ...sql.OrderTermOption) OrderOption {
 // ByUser2LastReadAt orders the results by the user2_last_read_at field.
 func ByUser2LastReadAt(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldUser2LastReadAt, opts...).ToFunc()
+}
+
+// ByUser1HiddenAt orders the results by the user1_hidden_at field.
+func ByUser1HiddenAt(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldUser1HiddenAt, opts...).ToFunc()
+}
+
+// ByUser2HiddenAt orders the results by the user2_hidden_at field.
+func ByUser2HiddenAt(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldUser2HiddenAt, opts...).ToFunc()
 }
 
 // ByChatField orders the results by chat field.

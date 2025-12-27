@@ -80,6 +80,16 @@ func User2LastReadAt(v time.Time) predicate.PrivateChat {
 	return predicate.PrivateChat(sql.FieldEQ(FieldUser2LastReadAt, v))
 }
 
+// User1HiddenAt applies equality check predicate on the "user1_hidden_at" field. It's identical to User1HiddenAtEQ.
+func User1HiddenAt(v time.Time) predicate.PrivateChat {
+	return predicate.PrivateChat(sql.FieldEQ(FieldUser1HiddenAt, v))
+}
+
+// User2HiddenAt applies equality check predicate on the "user2_hidden_at" field. It's identical to User2HiddenAtEQ.
+func User2HiddenAt(v time.Time) predicate.PrivateChat {
+	return predicate.PrivateChat(sql.FieldEQ(FieldUser2HiddenAt, v))
+}
+
 // ChatIDEQ applies the EQ predicate on the "chat_id" field.
 func ChatIDEQ(v int) predicate.PrivateChat {
 	return predicate.PrivateChat(sql.FieldEQ(FieldChatID, v))
@@ -238,6 +248,106 @@ func User2LastReadAtIsNil() predicate.PrivateChat {
 // User2LastReadAtNotNil applies the NotNil predicate on the "user2_last_read_at" field.
 func User2LastReadAtNotNil() predicate.PrivateChat {
 	return predicate.PrivateChat(sql.FieldNotNull(FieldUser2LastReadAt))
+}
+
+// User1HiddenAtEQ applies the EQ predicate on the "user1_hidden_at" field.
+func User1HiddenAtEQ(v time.Time) predicate.PrivateChat {
+	return predicate.PrivateChat(sql.FieldEQ(FieldUser1HiddenAt, v))
+}
+
+// User1HiddenAtNEQ applies the NEQ predicate on the "user1_hidden_at" field.
+func User1HiddenAtNEQ(v time.Time) predicate.PrivateChat {
+	return predicate.PrivateChat(sql.FieldNEQ(FieldUser1HiddenAt, v))
+}
+
+// User1HiddenAtIn applies the In predicate on the "user1_hidden_at" field.
+func User1HiddenAtIn(vs ...time.Time) predicate.PrivateChat {
+	return predicate.PrivateChat(sql.FieldIn(FieldUser1HiddenAt, vs...))
+}
+
+// User1HiddenAtNotIn applies the NotIn predicate on the "user1_hidden_at" field.
+func User1HiddenAtNotIn(vs ...time.Time) predicate.PrivateChat {
+	return predicate.PrivateChat(sql.FieldNotIn(FieldUser1HiddenAt, vs...))
+}
+
+// User1HiddenAtGT applies the GT predicate on the "user1_hidden_at" field.
+func User1HiddenAtGT(v time.Time) predicate.PrivateChat {
+	return predicate.PrivateChat(sql.FieldGT(FieldUser1HiddenAt, v))
+}
+
+// User1HiddenAtGTE applies the GTE predicate on the "user1_hidden_at" field.
+func User1HiddenAtGTE(v time.Time) predicate.PrivateChat {
+	return predicate.PrivateChat(sql.FieldGTE(FieldUser1HiddenAt, v))
+}
+
+// User1HiddenAtLT applies the LT predicate on the "user1_hidden_at" field.
+func User1HiddenAtLT(v time.Time) predicate.PrivateChat {
+	return predicate.PrivateChat(sql.FieldLT(FieldUser1HiddenAt, v))
+}
+
+// User1HiddenAtLTE applies the LTE predicate on the "user1_hidden_at" field.
+func User1HiddenAtLTE(v time.Time) predicate.PrivateChat {
+	return predicate.PrivateChat(sql.FieldLTE(FieldUser1HiddenAt, v))
+}
+
+// User1HiddenAtIsNil applies the IsNil predicate on the "user1_hidden_at" field.
+func User1HiddenAtIsNil() predicate.PrivateChat {
+	return predicate.PrivateChat(sql.FieldIsNull(FieldUser1HiddenAt))
+}
+
+// User1HiddenAtNotNil applies the NotNil predicate on the "user1_hidden_at" field.
+func User1HiddenAtNotNil() predicate.PrivateChat {
+	return predicate.PrivateChat(sql.FieldNotNull(FieldUser1HiddenAt))
+}
+
+// User2HiddenAtEQ applies the EQ predicate on the "user2_hidden_at" field.
+func User2HiddenAtEQ(v time.Time) predicate.PrivateChat {
+	return predicate.PrivateChat(sql.FieldEQ(FieldUser2HiddenAt, v))
+}
+
+// User2HiddenAtNEQ applies the NEQ predicate on the "user2_hidden_at" field.
+func User2HiddenAtNEQ(v time.Time) predicate.PrivateChat {
+	return predicate.PrivateChat(sql.FieldNEQ(FieldUser2HiddenAt, v))
+}
+
+// User2HiddenAtIn applies the In predicate on the "user2_hidden_at" field.
+func User2HiddenAtIn(vs ...time.Time) predicate.PrivateChat {
+	return predicate.PrivateChat(sql.FieldIn(FieldUser2HiddenAt, vs...))
+}
+
+// User2HiddenAtNotIn applies the NotIn predicate on the "user2_hidden_at" field.
+func User2HiddenAtNotIn(vs ...time.Time) predicate.PrivateChat {
+	return predicate.PrivateChat(sql.FieldNotIn(FieldUser2HiddenAt, vs...))
+}
+
+// User2HiddenAtGT applies the GT predicate on the "user2_hidden_at" field.
+func User2HiddenAtGT(v time.Time) predicate.PrivateChat {
+	return predicate.PrivateChat(sql.FieldGT(FieldUser2HiddenAt, v))
+}
+
+// User2HiddenAtGTE applies the GTE predicate on the "user2_hidden_at" field.
+func User2HiddenAtGTE(v time.Time) predicate.PrivateChat {
+	return predicate.PrivateChat(sql.FieldGTE(FieldUser2HiddenAt, v))
+}
+
+// User2HiddenAtLT applies the LT predicate on the "user2_hidden_at" field.
+func User2HiddenAtLT(v time.Time) predicate.PrivateChat {
+	return predicate.PrivateChat(sql.FieldLT(FieldUser2HiddenAt, v))
+}
+
+// User2HiddenAtLTE applies the LTE predicate on the "user2_hidden_at" field.
+func User2HiddenAtLTE(v time.Time) predicate.PrivateChat {
+	return predicate.PrivateChat(sql.FieldLTE(FieldUser2HiddenAt, v))
+}
+
+// User2HiddenAtIsNil applies the IsNil predicate on the "user2_hidden_at" field.
+func User2HiddenAtIsNil() predicate.PrivateChat {
+	return predicate.PrivateChat(sql.FieldIsNull(FieldUser2HiddenAt))
+}
+
+// User2HiddenAtNotNil applies the NotNil predicate on the "user2_hidden_at" field.
+func User2HiddenAtNotNil() predicate.PrivateChat {
+	return predicate.PrivateChat(sql.FieldNotNull(FieldUser2HiddenAt))
 }
 
 // HasChat applies the HasEdge predicate on the "chat" edge.

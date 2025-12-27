@@ -68,6 +68,34 @@ func (_c *PrivateChatCreate) SetNillableUser2LastReadAt(v *time.Time) *PrivateCh
 	return _c
 }
 
+// SetUser1HiddenAt sets the "user1_hidden_at" field.
+func (_c *PrivateChatCreate) SetUser1HiddenAt(v time.Time) *PrivateChatCreate {
+	_c.mutation.SetUser1HiddenAt(v)
+	return _c
+}
+
+// SetNillableUser1HiddenAt sets the "user1_hidden_at" field if the given value is not nil.
+func (_c *PrivateChatCreate) SetNillableUser1HiddenAt(v *time.Time) *PrivateChatCreate {
+	if v != nil {
+		_c.SetUser1HiddenAt(*v)
+	}
+	return _c
+}
+
+// SetUser2HiddenAt sets the "user2_hidden_at" field.
+func (_c *PrivateChatCreate) SetUser2HiddenAt(v time.Time) *PrivateChatCreate {
+	_c.mutation.SetUser2HiddenAt(v)
+	return _c
+}
+
+// SetNillableUser2HiddenAt sets the "user2_hidden_at" field if the given value is not nil.
+func (_c *PrivateChatCreate) SetNillableUser2HiddenAt(v *time.Time) *PrivateChatCreate {
+	if v != nil {
+		_c.SetUser2HiddenAt(*v)
+	}
+	return _c
+}
+
 // SetChat sets the "chat" edge to the Chat entity.
 func (_c *PrivateChatCreate) SetChat(v *Chat) *PrivateChatCreate {
 	return _c.SetChatID(v.ID)
@@ -168,6 +196,14 @@ func (_c *PrivateChatCreate) createSpec() (*PrivateChat, *sqlgraph.CreateSpec) {
 	if value, ok := _c.mutation.User2LastReadAt(); ok {
 		_spec.SetField(privatechat.FieldUser2LastReadAt, field.TypeTime, value)
 		_node.User2LastReadAt = &value
+	}
+	if value, ok := _c.mutation.User1HiddenAt(); ok {
+		_spec.SetField(privatechat.FieldUser1HiddenAt, field.TypeTime, value)
+		_node.User1HiddenAt = &value
+	}
+	if value, ok := _c.mutation.User2HiddenAt(); ok {
+		_spec.SetField(privatechat.FieldUser2HiddenAt, field.TypeTime, value)
+		_node.User2HiddenAt = &value
 	}
 	if nodes := _c.mutation.ChatIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{

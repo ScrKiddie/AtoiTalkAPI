@@ -40,8 +40,8 @@ const (
 	EdgeReplyTo = "reply_to"
 	// EdgeAttachments holds the string denoting the attachments edge name in mutations.
 	EdgeAttachments = "attachments"
-	// EdgeChatsWithLastMessage holds the string denoting the chats_with_last_message edge name in mutations.
-	EdgeChatsWithLastMessage = "chats_with_last_message"
+	// EdgePinnedInChats holds the string denoting the pinned_in_chats edge name in mutations.
+	EdgePinnedInChats = "pinned_in_chats"
 	// Table holds the table name of the message in the database.
 	Table = "messages"
 	// ChatTable is the table that holds the chat relation/edge.
@@ -73,13 +73,13 @@ const (
 	AttachmentsInverseTable = "media"
 	// AttachmentsColumn is the table column denoting the attachments relation/edge.
 	AttachmentsColumn = "message_id"
-	// ChatsWithLastMessageTable is the table that holds the chats_with_last_message relation/edge.
-	ChatsWithLastMessageTable = "chats"
-	// ChatsWithLastMessageInverseTable is the table name for the Chat entity.
+	// PinnedInChatsTable is the table that holds the pinned_in_chats relation/edge.
+	PinnedInChatsTable = "chats"
+	// PinnedInChatsInverseTable is the table name for the Chat entity.
 	// It exists in this package in order to avoid circular dependency with the "chat" package.
-	ChatsWithLastMessageInverseTable = "chats"
-	// ChatsWithLastMessageColumn is the table column denoting the chats_with_last_message relation/edge.
-	ChatsWithLastMessageColumn = "last_message_id"
+	PinnedInChatsInverseTable = "chats"
+	// PinnedInChatsColumn is the table column denoting the pinned_in_chats relation/edge.
+	PinnedInChatsColumn = "pinned_message_id"
 )
 
 // Columns holds all SQL columns for message fields.
@@ -213,17 +213,17 @@ func ByAttachments(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
 	}
 }
 
-// ByChatsWithLastMessageCount orders the results by chats_with_last_message count.
-func ByChatsWithLastMessageCount(opts ...sql.OrderTermOption) OrderOption {
+// ByPinnedInChatsCount orders the results by pinned_in_chats count.
+func ByPinnedInChatsCount(opts ...sql.OrderTermOption) OrderOption {
 	return func(s *sql.Selector) {
-		sqlgraph.OrderByNeighborsCount(s, newChatsWithLastMessageStep(), opts...)
+		sqlgraph.OrderByNeighborsCount(s, newPinnedInChatsStep(), opts...)
 	}
 }
 
-// ByChatsWithLastMessage orders the results by chats_with_last_message terms.
-func ByChatsWithLastMessage(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+// ByPinnedInChats orders the results by pinned_in_chats terms.
+func ByPinnedInChats(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
 	return func(s *sql.Selector) {
-		sqlgraph.OrderByNeighborTerms(s, newChatsWithLastMessageStep(), append([]sql.OrderTerm{term}, terms...)...)
+		sqlgraph.OrderByNeighborTerms(s, newPinnedInChatsStep(), append([]sql.OrderTerm{term}, terms...)...)
 	}
 }
 func newChatStep() *sqlgraph.Step {
@@ -261,10 +261,10 @@ func newAttachmentsStep() *sqlgraph.Step {
 		sqlgraph.Edge(sqlgraph.O2M, false, AttachmentsTable, AttachmentsColumn),
 	)
 }
-func newChatsWithLastMessageStep() *sqlgraph.Step {
+func newPinnedInChatsStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
-		sqlgraph.To(ChatsWithLastMessageInverseTable, FieldID),
-		sqlgraph.Edge(sqlgraph.O2M, true, ChatsWithLastMessageTable, ChatsWithLastMessageColumn),
+		sqlgraph.To(PinnedInChatsInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, true, PinnedInChatsTable, PinnedInChatsColumn),
 	)
 }
