@@ -5,7 +5,6 @@ import (
 	"entgo.io/ent/dialect/entsql"
 	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
-	"entgo.io/ent/schema/index"
 )
 
 type Chat struct {
@@ -17,24 +16,18 @@ func (Chat) Mixin() []ent.Mixin { return []ent.Mixin{TimeMixin{}} }
 func (Chat) Fields() []ent.Field {
 	return []ent.Field{
 		field.Enum("type").Values("private", "group").Immutable(),
-		field.Int("last_message_id").Optional().Nillable(),
+		field.Int("pinned_message_id").Optional().Nillable(),
 	}
 }
 
 func (Chat) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.To("messages", Message.Type).Annotations(entsql.OnDelete(entsql.Cascade)),
-		edge.To("last_message", Message.Type).Unique().Field("last_message_id").
+		edge.To("pinned_message", Message.Type).
+			Unique().
+			Field("pinned_message_id").
 			Annotations(entsql.OnDelete(entsql.SetNull)),
 		edge.To("private_chat", PrivateChat.Type).Unique().Annotations(entsql.OnDelete(entsql.Cascade)),
 		edge.To("group_chat", GroupChat.Type).Unique().Annotations(entsql.OnDelete(entsql.Cascade)),
-	}
-}
-
-func (Chat) Indexes() []ent.Index {
-	return []ent.Index{
-		index.Fields("last_message_id", "created_at").
-			Annotations(entsql.Desc(), entsql.IndexWhere("last_message_id IS NOT NULL")).
-			StorageKey("idx_chats_last_msg_created"),
 	}
 }

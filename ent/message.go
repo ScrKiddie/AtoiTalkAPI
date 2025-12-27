@@ -53,8 +53,8 @@ type MessageEdges struct {
 	ReplyTo *Message `json:"reply_to,omitempty"`
 	// Attachments holds the value of the attachments edge.
 	Attachments []*Media `json:"attachments,omitempty"`
-	// ChatsWithLastMessage holds the value of the chats_with_last_message edge.
-	ChatsWithLastMessage []*Chat `json:"chats_with_last_message,omitempty"`
+	// PinnedInChats holds the value of the pinned_in_chats edge.
+	PinnedInChats []*Chat `json:"pinned_in_chats,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
 	loadedTypes [6]bool
@@ -111,13 +111,13 @@ func (e MessageEdges) AttachmentsOrErr() ([]*Media, error) {
 	return nil, &NotLoadedError{edge: "attachments"}
 }
 
-// ChatsWithLastMessageOrErr returns the ChatsWithLastMessage value or an error if the edge
+// PinnedInChatsOrErr returns the PinnedInChats value or an error if the edge
 // was not loaded in eager-loading.
-func (e MessageEdges) ChatsWithLastMessageOrErr() ([]*Chat, error) {
+func (e MessageEdges) PinnedInChatsOrErr() ([]*Chat, error) {
 	if e.loadedTypes[5] {
-		return e.ChatsWithLastMessage, nil
+		return e.PinnedInChats, nil
 	}
-	return nil, &NotLoadedError{edge: "chats_with_last_message"}
+	return nil, &NotLoadedError{edge: "pinned_in_chats"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -243,9 +243,9 @@ func (_m *Message) QueryAttachments() *MediaQuery {
 	return NewMessageClient(_m.config).QueryAttachments(_m)
 }
 
-// QueryChatsWithLastMessage queries the "chats_with_last_message" edge of the Message entity.
-func (_m *Message) QueryChatsWithLastMessage() *ChatQuery {
-	return NewMessageClient(_m.config).QueryChatsWithLastMessage(_m)
+// QueryPinnedInChats queries the "pinned_in_chats" edge of the Message entity.
+func (_m *Message) QueryPinnedInChats() *ChatQuery {
+	return NewMessageClient(_m.config).QueryPinnedInChats(_m)
 }
 
 // Update returns a builder for updating this Message.

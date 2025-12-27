@@ -495,21 +495,21 @@ func HasAttachmentsWith(preds ...predicate.Media) predicate.Message {
 	})
 }
 
-// HasChatsWithLastMessage applies the HasEdge predicate on the "chats_with_last_message" edge.
-func HasChatsWithLastMessage() predicate.Message {
+// HasPinnedInChats applies the HasEdge predicate on the "pinned_in_chats" edge.
+func HasPinnedInChats() predicate.Message {
 	return predicate.Message(func(s *sql.Selector) {
 		step := sqlgraph.NewStep(
 			sqlgraph.From(Table, FieldID),
-			sqlgraph.Edge(sqlgraph.O2M, true, ChatsWithLastMessageTable, ChatsWithLastMessageColumn),
+			sqlgraph.Edge(sqlgraph.O2M, true, PinnedInChatsTable, PinnedInChatsColumn),
 		)
 		sqlgraph.HasNeighbors(s, step)
 	})
 }
 
-// HasChatsWithLastMessageWith applies the HasEdge predicate on the "chats_with_last_message" edge with a given conditions (other predicates).
-func HasChatsWithLastMessageWith(preds ...predicate.Chat) predicate.Message {
+// HasPinnedInChatsWith applies the HasEdge predicate on the "pinned_in_chats" edge with a given conditions (other predicates).
+func HasPinnedInChatsWith(preds ...predicate.Chat) predicate.Message {
 	return predicate.Message(func(s *sql.Selector) {
-		step := newChatsWithLastMessageStep()
+		step := newPinnedInChatsStep()
 		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
 			for _, p := range preds {
 				p(s)

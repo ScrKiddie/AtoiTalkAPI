@@ -65,9 +65,9 @@ func UpdatedAt(v time.Time) predicate.Chat {
 	return predicate.Chat(sql.FieldEQ(FieldUpdatedAt, v))
 }
 
-// LastMessageID applies equality check predicate on the "last_message_id" field. It's identical to LastMessageIDEQ.
-func LastMessageID(v int) predicate.Chat {
-	return predicate.Chat(sql.FieldEQ(FieldLastMessageID, v))
+// PinnedMessageID applies equality check predicate on the "pinned_message_id" field. It's identical to PinnedMessageIDEQ.
+func PinnedMessageID(v int) predicate.Chat {
+	return predicate.Chat(sql.FieldEQ(FieldPinnedMessageID, v))
 }
 
 // CreatedAtEQ applies the EQ predicate on the "created_at" field.
@@ -170,34 +170,34 @@ func TypeNotIn(vs ...Type) predicate.Chat {
 	return predicate.Chat(sql.FieldNotIn(FieldType, vs...))
 }
 
-// LastMessageIDEQ applies the EQ predicate on the "last_message_id" field.
-func LastMessageIDEQ(v int) predicate.Chat {
-	return predicate.Chat(sql.FieldEQ(FieldLastMessageID, v))
+// PinnedMessageIDEQ applies the EQ predicate on the "pinned_message_id" field.
+func PinnedMessageIDEQ(v int) predicate.Chat {
+	return predicate.Chat(sql.FieldEQ(FieldPinnedMessageID, v))
 }
 
-// LastMessageIDNEQ applies the NEQ predicate on the "last_message_id" field.
-func LastMessageIDNEQ(v int) predicate.Chat {
-	return predicate.Chat(sql.FieldNEQ(FieldLastMessageID, v))
+// PinnedMessageIDNEQ applies the NEQ predicate on the "pinned_message_id" field.
+func PinnedMessageIDNEQ(v int) predicate.Chat {
+	return predicate.Chat(sql.FieldNEQ(FieldPinnedMessageID, v))
 }
 
-// LastMessageIDIn applies the In predicate on the "last_message_id" field.
-func LastMessageIDIn(vs ...int) predicate.Chat {
-	return predicate.Chat(sql.FieldIn(FieldLastMessageID, vs...))
+// PinnedMessageIDIn applies the In predicate on the "pinned_message_id" field.
+func PinnedMessageIDIn(vs ...int) predicate.Chat {
+	return predicate.Chat(sql.FieldIn(FieldPinnedMessageID, vs...))
 }
 
-// LastMessageIDNotIn applies the NotIn predicate on the "last_message_id" field.
-func LastMessageIDNotIn(vs ...int) predicate.Chat {
-	return predicate.Chat(sql.FieldNotIn(FieldLastMessageID, vs...))
+// PinnedMessageIDNotIn applies the NotIn predicate on the "pinned_message_id" field.
+func PinnedMessageIDNotIn(vs ...int) predicate.Chat {
+	return predicate.Chat(sql.FieldNotIn(FieldPinnedMessageID, vs...))
 }
 
-// LastMessageIDIsNil applies the IsNil predicate on the "last_message_id" field.
-func LastMessageIDIsNil() predicate.Chat {
-	return predicate.Chat(sql.FieldIsNull(FieldLastMessageID))
+// PinnedMessageIDIsNil applies the IsNil predicate on the "pinned_message_id" field.
+func PinnedMessageIDIsNil() predicate.Chat {
+	return predicate.Chat(sql.FieldIsNull(FieldPinnedMessageID))
 }
 
-// LastMessageIDNotNil applies the NotNil predicate on the "last_message_id" field.
-func LastMessageIDNotNil() predicate.Chat {
-	return predicate.Chat(sql.FieldNotNull(FieldLastMessageID))
+// PinnedMessageIDNotNil applies the NotNil predicate on the "pinned_message_id" field.
+func PinnedMessageIDNotNil() predicate.Chat {
+	return predicate.Chat(sql.FieldNotNull(FieldPinnedMessageID))
 }
 
 // HasMessages applies the HasEdge predicate on the "messages" edge.
@@ -223,21 +223,21 @@ func HasMessagesWith(preds ...predicate.Message) predicate.Chat {
 	})
 }
 
-// HasLastMessage applies the HasEdge predicate on the "last_message" edge.
-func HasLastMessage() predicate.Chat {
+// HasPinnedMessage applies the HasEdge predicate on the "pinned_message" edge.
+func HasPinnedMessage() predicate.Chat {
 	return predicate.Chat(func(s *sql.Selector) {
 		step := sqlgraph.NewStep(
 			sqlgraph.From(Table, FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, false, LastMessageTable, LastMessageColumn),
+			sqlgraph.Edge(sqlgraph.M2O, false, PinnedMessageTable, PinnedMessageColumn),
 		)
 		sqlgraph.HasNeighbors(s, step)
 	})
 }
 
-// HasLastMessageWith applies the HasEdge predicate on the "last_message" edge with a given conditions (other predicates).
-func HasLastMessageWith(preds ...predicate.Message) predicate.Chat {
+// HasPinnedMessageWith applies the HasEdge predicate on the "pinned_message" edge with a given conditions (other predicates).
+func HasPinnedMessageWith(preds ...predicate.Message) predicate.Chat {
 	return predicate.Chat(func(s *sql.Selector) {
-		step := newLastMessageStep()
+		step := newPinnedMessageStep()
 		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
 			for _, p := range preds {
 				p(s)

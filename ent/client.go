@@ -396,15 +396,15 @@ func (c *ChatClient) QueryMessages(_m *Chat) *MessageQuery {
 	return query
 }
 
-// QueryLastMessage queries the last_message edge of a Chat.
-func (c *ChatClient) QueryLastMessage(_m *Chat) *MessageQuery {
+// QueryPinnedMessage queries the pinned_message edge of a Chat.
+func (c *ChatClient) QueryPinnedMessage(_m *Chat) *MessageQuery {
 	query := (&MessageClient{config: c.config}).Query()
 	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
 		id := _m.ID
 		step := sqlgraph.NewStep(
 			sqlgraph.From(chat.Table, chat.FieldID, id),
 			sqlgraph.To(message.Table, message.FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, false, chat.LastMessageTable, chat.LastMessageColumn),
+			sqlgraph.Edge(sqlgraph.M2O, false, chat.PinnedMessageTable, chat.PinnedMessageColumn),
 		)
 		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
 		return fromV, nil
@@ -1200,15 +1200,15 @@ func (c *MessageClient) QueryAttachments(_m *Message) *MediaQuery {
 	return query
 }
 
-// QueryChatsWithLastMessage queries the chats_with_last_message edge of a Message.
-func (c *MessageClient) QueryChatsWithLastMessage(_m *Message) *ChatQuery {
+// QueryPinnedInChats queries the pinned_in_chats edge of a Message.
+func (c *MessageClient) QueryPinnedInChats(_m *Message) *ChatQuery {
 	query := (&ChatClient{config: c.config}).Query()
 	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
 		id := _m.ID
 		step := sqlgraph.NewStep(
 			sqlgraph.From(message.Table, message.FieldID, id),
 			sqlgraph.To(chat.Table, chat.FieldID),
-			sqlgraph.Edge(sqlgraph.O2M, true, message.ChatsWithLastMessageTable, message.ChatsWithLastMessageColumn),
+			sqlgraph.Edge(sqlgraph.O2M, true, message.PinnedInChatsTable, message.PinnedInChatsColumn),
 		)
 		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
 		return fromV, nil

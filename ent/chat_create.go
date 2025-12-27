@@ -57,16 +57,16 @@ func (_c *ChatCreate) SetType(v chat.Type) *ChatCreate {
 	return _c
 }
 
-// SetLastMessageID sets the "last_message_id" field.
-func (_c *ChatCreate) SetLastMessageID(v int) *ChatCreate {
-	_c.mutation.SetLastMessageID(v)
+// SetPinnedMessageID sets the "pinned_message_id" field.
+func (_c *ChatCreate) SetPinnedMessageID(v int) *ChatCreate {
+	_c.mutation.SetPinnedMessageID(v)
 	return _c
 }
 
-// SetNillableLastMessageID sets the "last_message_id" field if the given value is not nil.
-func (_c *ChatCreate) SetNillableLastMessageID(v *int) *ChatCreate {
+// SetNillablePinnedMessageID sets the "pinned_message_id" field if the given value is not nil.
+func (_c *ChatCreate) SetNillablePinnedMessageID(v *int) *ChatCreate {
 	if v != nil {
-		_c.SetLastMessageID(*v)
+		_c.SetPinnedMessageID(*v)
 	}
 	return _c
 }
@@ -86,9 +86,9 @@ func (_c *ChatCreate) AddMessages(v ...*Message) *ChatCreate {
 	return _c.AddMessageIDs(ids...)
 }
 
-// SetLastMessage sets the "last_message" edge to the Message entity.
-func (_c *ChatCreate) SetLastMessage(v *Message) *ChatCreate {
-	return _c.SetLastMessageID(v.ID)
+// SetPinnedMessage sets the "pinned_message" edge to the Message entity.
+func (_c *ChatCreate) SetPinnedMessage(v *Message) *ChatCreate {
+	return _c.SetPinnedMessageID(v.ID)
 }
 
 // SetPrivateChatID sets the "private_chat" edge to the PrivateChat entity by ID.
@@ -244,12 +244,12 @@ func (_c *ChatCreate) createSpec() (*Chat, *sqlgraph.CreateSpec) {
 		}
 		_spec.Edges = append(_spec.Edges, edge)
 	}
-	if nodes := _c.mutation.LastMessageIDs(); len(nodes) > 0 {
+	if nodes := _c.mutation.PinnedMessageIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2O,
 			Inverse: false,
-			Table:   chat.LastMessageTable,
-			Columns: []string{chat.LastMessageColumn},
+			Table:   chat.PinnedMessageTable,
+			Columns: []string{chat.PinnedMessageColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(message.FieldID, field.TypeInt),
@@ -258,7 +258,7 @@ func (_c *ChatCreate) createSpec() (*Chat, *sqlgraph.CreateSpec) {
 		for _, k := range nodes {
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
-		_node.LastMessageID = &nodes[0]
+		_node.PinnedMessageID = &nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
 	if nodes := _c.mutation.PrivateChatIDs(); len(nodes) > 0 {

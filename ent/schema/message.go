@@ -31,16 +31,18 @@ func (Message) Edges() []ent.Edge {
 		edge.From("sender", User.Type).Ref("sent_messages").Field("sender_id").Unique().Required(),
 		edge.To("reply_to", Message.Type).Field("reply_to_id").Unique().From("replies").
 			Annotations(entsql.OnDelete(entsql.SetNull)),
-
 		edge.To("attachments", Media.Type).Annotations(entsql.OnDelete(entsql.Cascade)),
-		edge.From("chats_with_last_message", Chat.Type).Ref("last_message"),
+		edge.From("pinned_in_chats", Chat.Type).Ref("pinned_message"),
 	}
 }
 
 func (Message) Indexes() []ent.Index {
 	return []ent.Index{
 		index.Fields("chat_id", "created_at").
-			Annotations(entsql.Desc(), entsql.IndexWhere("deleted_at IS NULL")).
+			Annotations(
+				entsql.Desc(),
+				entsql.IndexWhere("deleted_at IS NULL"),
+			).
 			StorageKey("idx_messages_chat_active"),
 		index.Fields("reply_to_id").
 			Annotations(entsql.IndexWhere("reply_to_id IS NOT NULL AND deleted_at IS NULL")),

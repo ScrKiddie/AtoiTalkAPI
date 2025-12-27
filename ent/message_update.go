@@ -184,19 +184,19 @@ func (_u *MessageUpdate) AddAttachments(v ...*Media) *MessageUpdate {
 	return _u.AddAttachmentIDs(ids...)
 }
 
-// AddChatsWithLastMessageIDs adds the "chats_with_last_message" edge to the Chat entity by IDs.
-func (_u *MessageUpdate) AddChatsWithLastMessageIDs(ids ...int) *MessageUpdate {
-	_u.mutation.AddChatsWithLastMessageIDs(ids...)
+// AddPinnedInChatIDs adds the "pinned_in_chats" edge to the Chat entity by IDs.
+func (_u *MessageUpdate) AddPinnedInChatIDs(ids ...int) *MessageUpdate {
+	_u.mutation.AddPinnedInChatIDs(ids...)
 	return _u
 }
 
-// AddChatsWithLastMessage adds the "chats_with_last_message" edges to the Chat entity.
-func (_u *MessageUpdate) AddChatsWithLastMessage(v ...*Chat) *MessageUpdate {
+// AddPinnedInChats adds the "pinned_in_chats" edges to the Chat entity.
+func (_u *MessageUpdate) AddPinnedInChats(v ...*Chat) *MessageUpdate {
 	ids := make([]int, len(v))
 	for i := range v {
 		ids[i] = v[i].ID
 	}
-	return _u.AddChatsWithLastMessageIDs(ids...)
+	return _u.AddPinnedInChatIDs(ids...)
 }
 
 // Mutation returns the MessageMutation object of the builder.
@@ -264,25 +264,25 @@ func (_u *MessageUpdate) RemoveAttachments(v ...*Media) *MessageUpdate {
 	return _u.RemoveAttachmentIDs(ids...)
 }
 
-// ClearChatsWithLastMessage clears all "chats_with_last_message" edges to the Chat entity.
-func (_u *MessageUpdate) ClearChatsWithLastMessage() *MessageUpdate {
-	_u.mutation.ClearChatsWithLastMessage()
+// ClearPinnedInChats clears all "pinned_in_chats" edges to the Chat entity.
+func (_u *MessageUpdate) ClearPinnedInChats() *MessageUpdate {
+	_u.mutation.ClearPinnedInChats()
 	return _u
 }
 
-// RemoveChatsWithLastMessageIDs removes the "chats_with_last_message" edge to Chat entities by IDs.
-func (_u *MessageUpdate) RemoveChatsWithLastMessageIDs(ids ...int) *MessageUpdate {
-	_u.mutation.RemoveChatsWithLastMessageIDs(ids...)
+// RemovePinnedInChatIDs removes the "pinned_in_chats" edge to Chat entities by IDs.
+func (_u *MessageUpdate) RemovePinnedInChatIDs(ids ...int) *MessageUpdate {
+	_u.mutation.RemovePinnedInChatIDs(ids...)
 	return _u
 }
 
-// RemoveChatsWithLastMessage removes "chats_with_last_message" edges to Chat entities.
-func (_u *MessageUpdate) RemoveChatsWithLastMessage(v ...*Chat) *MessageUpdate {
+// RemovePinnedInChats removes "pinned_in_chats" edges to Chat entities.
+func (_u *MessageUpdate) RemovePinnedInChats(v ...*Chat) *MessageUpdate {
 	ids := make([]int, len(v))
 	for i := range v {
 		ids[i] = v[i].ID
 	}
-	return _u.RemoveChatsWithLastMessageIDs(ids...)
+	return _u.RemovePinnedInChatIDs(ids...)
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
@@ -539,12 +539,12 @@ func (_u *MessageUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
-	if _u.mutation.ChatsWithLastMessageCleared() {
+	if _u.mutation.PinnedInChatsCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: true,
-			Table:   message.ChatsWithLastMessageTable,
-			Columns: []string{message.ChatsWithLastMessageColumn},
+			Table:   message.PinnedInChatsTable,
+			Columns: []string{message.PinnedInChatsColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(chat.FieldID, field.TypeInt),
@@ -552,12 +552,12 @@ func (_u *MessageUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := _u.mutation.RemovedChatsWithLastMessageIDs(); len(nodes) > 0 && !_u.mutation.ChatsWithLastMessageCleared() {
+	if nodes := _u.mutation.RemovedPinnedInChatsIDs(); len(nodes) > 0 && !_u.mutation.PinnedInChatsCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: true,
-			Table:   message.ChatsWithLastMessageTable,
-			Columns: []string{message.ChatsWithLastMessageColumn},
+			Table:   message.PinnedInChatsTable,
+			Columns: []string{message.PinnedInChatsColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(chat.FieldID, field.TypeInt),
@@ -568,12 +568,12 @@ func (_u *MessageUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := _u.mutation.ChatsWithLastMessageIDs(); len(nodes) > 0 {
+	if nodes := _u.mutation.PinnedInChatsIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: true,
-			Table:   message.ChatsWithLastMessageTable,
-			Columns: []string{message.ChatsWithLastMessageColumn},
+			Table:   message.PinnedInChatsTable,
+			Columns: []string{message.PinnedInChatsColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(chat.FieldID, field.TypeInt),
@@ -757,19 +757,19 @@ func (_u *MessageUpdateOne) AddAttachments(v ...*Media) *MessageUpdateOne {
 	return _u.AddAttachmentIDs(ids...)
 }
 
-// AddChatsWithLastMessageIDs adds the "chats_with_last_message" edge to the Chat entity by IDs.
-func (_u *MessageUpdateOne) AddChatsWithLastMessageIDs(ids ...int) *MessageUpdateOne {
-	_u.mutation.AddChatsWithLastMessageIDs(ids...)
+// AddPinnedInChatIDs adds the "pinned_in_chats" edge to the Chat entity by IDs.
+func (_u *MessageUpdateOne) AddPinnedInChatIDs(ids ...int) *MessageUpdateOne {
+	_u.mutation.AddPinnedInChatIDs(ids...)
 	return _u
 }
 
-// AddChatsWithLastMessage adds the "chats_with_last_message" edges to the Chat entity.
-func (_u *MessageUpdateOne) AddChatsWithLastMessage(v ...*Chat) *MessageUpdateOne {
+// AddPinnedInChats adds the "pinned_in_chats" edges to the Chat entity.
+func (_u *MessageUpdateOne) AddPinnedInChats(v ...*Chat) *MessageUpdateOne {
 	ids := make([]int, len(v))
 	for i := range v {
 		ids[i] = v[i].ID
 	}
-	return _u.AddChatsWithLastMessageIDs(ids...)
+	return _u.AddPinnedInChatIDs(ids...)
 }
 
 // Mutation returns the MessageMutation object of the builder.
@@ -837,25 +837,25 @@ func (_u *MessageUpdateOne) RemoveAttachments(v ...*Media) *MessageUpdateOne {
 	return _u.RemoveAttachmentIDs(ids...)
 }
 
-// ClearChatsWithLastMessage clears all "chats_with_last_message" edges to the Chat entity.
-func (_u *MessageUpdateOne) ClearChatsWithLastMessage() *MessageUpdateOne {
-	_u.mutation.ClearChatsWithLastMessage()
+// ClearPinnedInChats clears all "pinned_in_chats" edges to the Chat entity.
+func (_u *MessageUpdateOne) ClearPinnedInChats() *MessageUpdateOne {
+	_u.mutation.ClearPinnedInChats()
 	return _u
 }
 
-// RemoveChatsWithLastMessageIDs removes the "chats_with_last_message" edge to Chat entities by IDs.
-func (_u *MessageUpdateOne) RemoveChatsWithLastMessageIDs(ids ...int) *MessageUpdateOne {
-	_u.mutation.RemoveChatsWithLastMessageIDs(ids...)
+// RemovePinnedInChatIDs removes the "pinned_in_chats" edge to Chat entities by IDs.
+func (_u *MessageUpdateOne) RemovePinnedInChatIDs(ids ...int) *MessageUpdateOne {
+	_u.mutation.RemovePinnedInChatIDs(ids...)
 	return _u
 }
 
-// RemoveChatsWithLastMessage removes "chats_with_last_message" edges to Chat entities.
-func (_u *MessageUpdateOne) RemoveChatsWithLastMessage(v ...*Chat) *MessageUpdateOne {
+// RemovePinnedInChats removes "pinned_in_chats" edges to Chat entities.
+func (_u *MessageUpdateOne) RemovePinnedInChats(v ...*Chat) *MessageUpdateOne {
 	ids := make([]int, len(v))
 	for i := range v {
 		ids[i] = v[i].ID
 	}
-	return _u.RemoveChatsWithLastMessageIDs(ids...)
+	return _u.RemovePinnedInChatIDs(ids...)
 }
 
 // Where appends a list predicates to the MessageUpdate builder.
@@ -1142,12 +1142,12 @@ func (_u *MessageUpdateOne) sqlSave(ctx context.Context) (_node *Message, err er
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
-	if _u.mutation.ChatsWithLastMessageCleared() {
+	if _u.mutation.PinnedInChatsCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: true,
-			Table:   message.ChatsWithLastMessageTable,
-			Columns: []string{message.ChatsWithLastMessageColumn},
+			Table:   message.PinnedInChatsTable,
+			Columns: []string{message.PinnedInChatsColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(chat.FieldID, field.TypeInt),
@@ -1155,12 +1155,12 @@ func (_u *MessageUpdateOne) sqlSave(ctx context.Context) (_node *Message, err er
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := _u.mutation.RemovedChatsWithLastMessageIDs(); len(nodes) > 0 && !_u.mutation.ChatsWithLastMessageCleared() {
+	if nodes := _u.mutation.RemovedPinnedInChatsIDs(); len(nodes) > 0 && !_u.mutation.PinnedInChatsCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: true,
-			Table:   message.ChatsWithLastMessageTable,
-			Columns: []string{message.ChatsWithLastMessageColumn},
+			Table:   message.PinnedInChatsTable,
+			Columns: []string{message.PinnedInChatsColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(chat.FieldID, field.TypeInt),
@@ -1171,12 +1171,12 @@ func (_u *MessageUpdateOne) sqlSave(ctx context.Context) (_node *Message, err er
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := _u.mutation.ChatsWithLastMessageIDs(); len(nodes) > 0 {
+	if nodes := _u.mutation.PinnedInChatsIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: true,
-			Table:   message.ChatsWithLastMessageTable,
-			Columns: []string{message.ChatsWithLastMessageColumn},
+			Table:   message.PinnedInChatsTable,
+			Columns: []string{message.PinnedInChatsColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(chat.FieldID, field.TypeInt),

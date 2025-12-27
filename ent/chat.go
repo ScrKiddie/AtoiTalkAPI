@@ -26,8 +26,8 @@ type Chat struct {
 	UpdatedAt time.Time `json:"updated_at,omitempty"`
 	// Type holds the value of the "type" field.
 	Type chat.Type `json:"type,omitempty"`
-	// LastMessageID holds the value of the "last_message_id" field.
-	LastMessageID *int `json:"last_message_id,omitempty"`
+	// PinnedMessageID holds the value of the "pinned_message_id" field.
+	PinnedMessageID *int `json:"pinned_message_id,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the ChatQuery when eager-loading is set.
 	Edges        ChatEdges `json:"edges"`
@@ -38,8 +38,8 @@ type Chat struct {
 type ChatEdges struct {
 	// Messages holds the value of the messages edge.
 	Messages []*Message `json:"messages,omitempty"`
-	// LastMessage holds the value of the last_message edge.
-	LastMessage *Message `json:"last_message,omitempty"`
+	// PinnedMessage holds the value of the pinned_message edge.
+	PinnedMessage *Message `json:"pinned_message,omitempty"`
 	// PrivateChat holds the value of the private_chat edge.
 	PrivateChat *PrivateChat `json:"private_chat,omitempty"`
 	// GroupChat holds the value of the group_chat edge.
@@ -58,15 +58,15 @@ func (e ChatEdges) MessagesOrErr() ([]*Message, error) {
 	return nil, &NotLoadedError{edge: "messages"}
 }
 
-// LastMessageOrErr returns the LastMessage value or an error if the edge
+// PinnedMessageOrErr returns the PinnedMessage value or an error if the edge
 // was not loaded in eager-loading, or loaded but was not found.
-func (e ChatEdges) LastMessageOrErr() (*Message, error) {
-	if e.LastMessage != nil {
-		return e.LastMessage, nil
+func (e ChatEdges) PinnedMessageOrErr() (*Message, error) {
+	if e.PinnedMessage != nil {
+		return e.PinnedMessage, nil
 	} else if e.loadedTypes[1] {
 		return nil, &NotFoundError{label: message.Label}
 	}
-	return nil, &NotLoadedError{edge: "last_message"}
+	return nil, &NotLoadedError{edge: "pinned_message"}
 }
 
 // PrivateChatOrErr returns the PrivateChat value or an error if the edge
@@ -96,7 +96,7 @@ func (*Chat) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case chat.FieldID, chat.FieldLastMessageID:
+		case chat.FieldID, chat.FieldPinnedMessageID:
 			values[i] = new(sql.NullInt64)
 		case chat.FieldType:
 			values[i] = new(sql.NullString)
@@ -141,12 +141,12 @@ func (_m *Chat) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				_m.Type = chat.Type(value.String)
 			}
-		case chat.FieldLastMessageID:
+		case chat.FieldPinnedMessageID:
 			if value, ok := values[i].(*sql.NullInt64); !ok {
-				return fmt.Errorf("unexpected type %T for field last_message_id", values[i])
+				return fmt.Errorf("unexpected type %T for field pinned_message_id", values[i])
 			} else if value.Valid {
-				_m.LastMessageID = new(int)
-				*_m.LastMessageID = int(value.Int64)
+				_m.PinnedMessageID = new(int)
+				*_m.PinnedMessageID = int(value.Int64)
 			}
 		default:
 			_m.selectValues.Set(columns[i], values[i])
@@ -166,9 +166,9 @@ func (_m *Chat) QueryMessages() *MessageQuery {
 	return NewChatClient(_m.config).QueryMessages(_m)
 }
 
-// QueryLastMessage queries the "last_message" edge of the Chat entity.
-func (_m *Chat) QueryLastMessage() *MessageQuery {
-	return NewChatClient(_m.config).QueryLastMessage(_m)
+// QueryPinnedMessage queries the "pinned_message" edge of the Chat entity.
+func (_m *Chat) QueryPinnedMessage() *MessageQuery {
+	return NewChatClient(_m.config).QueryPinnedMessage(_m)
 }
 
 // QueryPrivateChat queries the "private_chat" edge of the Chat entity.
@@ -213,8 +213,8 @@ func (_m *Chat) String() string {
 	builder.WriteString("type=")
 	builder.WriteString(fmt.Sprintf("%v", _m.Type))
 	builder.WriteString(", ")
-	if v := _m.LastMessageID; v != nil {
-		builder.WriteString("last_message_id=")
+	if v := _m.PinnedMessageID; v != nil {
+		builder.WriteString("pinned_message_id=")
 		builder.WriteString(fmt.Sprintf("%v", *v))
 	}
 	builder.WriteByte(')')

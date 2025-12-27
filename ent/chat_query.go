@@ -22,14 +22,14 @@ import (
 // ChatQuery is the builder for querying Chat entities.
 type ChatQuery struct {
 	config
-	ctx             *QueryContext
-	order           []chat.OrderOption
-	inters          []Interceptor
-	predicates      []predicate.Chat
-	withMessages    *MessageQuery
-	withLastMessage *MessageQuery
-	withPrivateChat *PrivateChatQuery
-	withGroupChat   *GroupChatQuery
+	ctx               *QueryContext
+	order             []chat.OrderOption
+	inters            []Interceptor
+	predicates        []predicate.Chat
+	withMessages      *MessageQuery
+	withPinnedMessage *MessageQuery
+	withPrivateChat   *PrivateChatQuery
+	withGroupChat     *GroupChatQuery
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
@@ -88,8 +88,8 @@ func (_q *ChatQuery) QueryMessages() *MessageQuery {
 	return query
 }
 
-// QueryLastMessage chains the current query on the "last_message" edge.
-func (_q *ChatQuery) QueryLastMessage() *MessageQuery {
+// QueryPinnedMessage chains the current query on the "pinned_message" edge.
+func (_q *ChatQuery) QueryPinnedMessage() *MessageQuery {
 	query := (&MessageClient{config: _q.config}).Query()
 	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
 		if err := _q.prepareQuery(ctx); err != nil {
@@ -102,7 +102,7 @@ func (_q *ChatQuery) QueryLastMessage() *MessageQuery {
 		step := sqlgraph.NewStep(
 			sqlgraph.From(chat.Table, chat.FieldID, selector),
 			sqlgraph.To(message.Table, message.FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, false, chat.LastMessageTable, chat.LastMessageColumn),
+			sqlgraph.Edge(sqlgraph.M2O, false, chat.PinnedMessageTable, chat.PinnedMessageColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
 		return fromU, nil
@@ -341,15 +341,15 @@ func (_q *ChatQuery) Clone() *ChatQuery {
 		return nil
 	}
 	return &ChatQuery{
-		config:          _q.config,
-		ctx:             _q.ctx.Clone(),
-		order:           append([]chat.OrderOption{}, _q.order...),
-		inters:          append([]Interceptor{}, _q.inters...),
-		predicates:      append([]predicate.Chat{}, _q.predicates...),
-		withMessages:    _q.withMessages.Clone(),
-		withLastMessage: _q.withLastMessage.Clone(),
-		withPrivateChat: _q.withPrivateChat.Clone(),
-		withGroupChat:   _q.withGroupChat.Clone(),
+		config:            _q.config,
+		ctx:               _q.ctx.Clone(),
+		order:             append([]chat.OrderOption{}, _q.order...),
+		inters:            append([]Interceptor{}, _q.inters...),
+		predicates:        append([]predicate.Chat{}, _q.predicates...),
+		withMessages:      _q.withMessages.Clone(),
+		withPinnedMessage: _q.withPinnedMessage.Clone(),
+		withPrivateChat:   _q.withPrivateChat.Clone(),
+		withGroupChat:     _q.withGroupChat.Clone(),
 		// clone intermediate query.
 		sql:  _q.sql.Clone(),
 		path: _q.path,
@@ -367,14 +367,14 @@ func (_q *ChatQuery) WithMessages(opts ...func(*MessageQuery)) *ChatQuery {
 	return _q
 }
 
-// WithLastMessage tells the query-builder to eager-load the nodes that are connected to
-// the "last_message" edge. The optional arguments are used to configure the query builder of the edge.
-func (_q *ChatQuery) WithLastMessage(opts ...func(*MessageQuery)) *ChatQuery {
+// WithPinnedMessage tells the query-builder to eager-load the nodes that are connected to
+// the "pinned_message" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *ChatQuery) WithPinnedMessage(opts ...func(*MessageQuery)) *ChatQuery {
 	query := (&MessageClient{config: _q.config}).Query()
 	for _, opt := range opts {
 		opt(query)
 	}
-	_q.withLastMessage = query
+	_q.withPinnedMessage = query
 	return _q
 }
 
@@ -480,7 +480,7 @@ func (_q *ChatQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Chat, e
 		_spec       = _q.querySpec()
 		loadedTypes = [4]bool{
 			_q.withMessages != nil,
-			_q.withLastMessage != nil,
+			_q.withPinnedMessage != nil,
 			_q.withPrivateChat != nil,
 			_q.withGroupChat != nil,
 		}
@@ -510,9 +510,9 @@ func (_q *ChatQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Chat, e
 			return nil, err
 		}
 	}
-	if query := _q.withLastMessage; query != nil {
-		if err := _q.loadLastMessage(ctx, query, nodes, nil,
-			func(n *Chat, e *Message) { n.Edges.LastMessage = e }); err != nil {
+	if query := _q.withPinnedMessage; query != nil {
+		if err := _q.loadPinnedMessage(ctx, query, nodes, nil,
+			func(n *Chat, e *Message) { n.Edges.PinnedMessage = e }); err != nil {
 			return nil, err
 		}
 	}
@@ -561,14 +561,14 @@ func (_q *ChatQuery) loadMessages(ctx context.Context, query *MessageQuery, node
 	}
 	return nil
 }
-func (_q *ChatQuery) loadLastMessage(ctx context.Context, query *MessageQuery, nodes []*Chat, init func(*Chat), assign func(*Chat, *Message)) error {
+func (_q *ChatQuery) loadPinnedMessage(ctx context.Context, query *MessageQuery, nodes []*Chat, init func(*Chat), assign func(*Chat, *Message)) error {
 	ids := make([]int, 0, len(nodes))
 	nodeids := make(map[int][]*Chat)
 	for i := range nodes {
-		if nodes[i].LastMessageID == nil {
+		if nodes[i].PinnedMessageID == nil {
 			continue
 		}
-		fk := *nodes[i].LastMessageID
+		fk := *nodes[i].PinnedMessageID
 		if _, ok := nodeids[fk]; !ok {
 			ids = append(ids, fk)
 		}
@@ -585,7 +585,7 @@ func (_q *ChatQuery) loadLastMessage(ctx context.Context, query *MessageQuery, n
 	for _, n := range neighbors {
 		nodes, ok := nodeids[n.ID]
 		if !ok {
-			return fmt.Errorf(`unexpected foreign-key "last_message_id" returned %v`, n.ID)
+			return fmt.Errorf(`unexpected foreign-key "pinned_message_id" returned %v`, n.ID)
 		}
 		for i := range nodes {
 			assign(nodes[i], n)
@@ -673,8 +673,8 @@ func (_q *ChatQuery) querySpec() *sqlgraph.QuerySpec {
 				_spec.Node.Columns = append(_spec.Node.Columns, fields[i])
 			}
 		}
-		if _q.withLastMessage != nil {
-			_spec.Node.AddColumnOnce(chat.FieldLastMessageID)
+		if _q.withPinnedMessage != nil {
+			_spec.Node.AddColumnOnce(chat.FieldPinnedMessageID)
 		}
 	}
 	if ps := _q.predicates; len(ps) > 0 {

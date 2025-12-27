@@ -112,6 +112,46 @@ func (_u *PrivateChatUpdate) ClearUser2LastReadAt() *PrivateChatUpdate {
 	return _u
 }
 
+// SetUser1HiddenAt sets the "user1_hidden_at" field.
+func (_u *PrivateChatUpdate) SetUser1HiddenAt(v time.Time) *PrivateChatUpdate {
+	_u.mutation.SetUser1HiddenAt(v)
+	return _u
+}
+
+// SetNillableUser1HiddenAt sets the "user1_hidden_at" field if the given value is not nil.
+func (_u *PrivateChatUpdate) SetNillableUser1HiddenAt(v *time.Time) *PrivateChatUpdate {
+	if v != nil {
+		_u.SetUser1HiddenAt(*v)
+	}
+	return _u
+}
+
+// ClearUser1HiddenAt clears the value of the "user1_hidden_at" field.
+func (_u *PrivateChatUpdate) ClearUser1HiddenAt() *PrivateChatUpdate {
+	_u.mutation.ClearUser1HiddenAt()
+	return _u
+}
+
+// SetUser2HiddenAt sets the "user2_hidden_at" field.
+func (_u *PrivateChatUpdate) SetUser2HiddenAt(v time.Time) *PrivateChatUpdate {
+	_u.mutation.SetUser2HiddenAt(v)
+	return _u
+}
+
+// SetNillableUser2HiddenAt sets the "user2_hidden_at" field if the given value is not nil.
+func (_u *PrivateChatUpdate) SetNillableUser2HiddenAt(v *time.Time) *PrivateChatUpdate {
+	if v != nil {
+		_u.SetUser2HiddenAt(*v)
+	}
+	return _u
+}
+
+// ClearUser2HiddenAt clears the value of the "user2_hidden_at" field.
+func (_u *PrivateChatUpdate) ClearUser2HiddenAt() *PrivateChatUpdate {
+	_u.mutation.ClearUser2HiddenAt()
+	return _u
+}
+
 // SetChat sets the "chat" edge to the Chat entity.
 func (_u *PrivateChatUpdate) SetChat(v *Chat) *PrivateChatUpdate {
 	return _u.SetChatID(v.ID)
@@ -214,6 +254,18 @@ func (_u *PrivateChatUpdate) sqlSave(ctx context.Context) (_node int, err error)
 	}
 	if _u.mutation.User2LastReadAtCleared() {
 		_spec.ClearField(privatechat.FieldUser2LastReadAt, field.TypeTime)
+	}
+	if value, ok := _u.mutation.User1HiddenAt(); ok {
+		_spec.SetField(privatechat.FieldUser1HiddenAt, field.TypeTime, value)
+	}
+	if _u.mutation.User1HiddenAtCleared() {
+		_spec.ClearField(privatechat.FieldUser1HiddenAt, field.TypeTime)
+	}
+	if value, ok := _u.mutation.User2HiddenAt(); ok {
+		_spec.SetField(privatechat.FieldUser2HiddenAt, field.TypeTime, value)
+	}
+	if _u.mutation.User2HiddenAtCleared() {
+		_spec.ClearField(privatechat.FieldUser2HiddenAt, field.TypeTime)
 	}
 	if _u.mutation.ChatCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -404,6 +456,46 @@ func (_u *PrivateChatUpdateOne) ClearUser2LastReadAt() *PrivateChatUpdateOne {
 	return _u
 }
 
+// SetUser1HiddenAt sets the "user1_hidden_at" field.
+func (_u *PrivateChatUpdateOne) SetUser1HiddenAt(v time.Time) *PrivateChatUpdateOne {
+	_u.mutation.SetUser1HiddenAt(v)
+	return _u
+}
+
+// SetNillableUser1HiddenAt sets the "user1_hidden_at" field if the given value is not nil.
+func (_u *PrivateChatUpdateOne) SetNillableUser1HiddenAt(v *time.Time) *PrivateChatUpdateOne {
+	if v != nil {
+		_u.SetUser1HiddenAt(*v)
+	}
+	return _u
+}
+
+// ClearUser1HiddenAt clears the value of the "user1_hidden_at" field.
+func (_u *PrivateChatUpdateOne) ClearUser1HiddenAt() *PrivateChatUpdateOne {
+	_u.mutation.ClearUser1HiddenAt()
+	return _u
+}
+
+// SetUser2HiddenAt sets the "user2_hidden_at" field.
+func (_u *PrivateChatUpdateOne) SetUser2HiddenAt(v time.Time) *PrivateChatUpdateOne {
+	_u.mutation.SetUser2HiddenAt(v)
+	return _u
+}
+
+// SetNillableUser2HiddenAt sets the "user2_hidden_at" field if the given value is not nil.
+func (_u *PrivateChatUpdateOne) SetNillableUser2HiddenAt(v *time.Time) *PrivateChatUpdateOne {
+	if v != nil {
+		_u.SetUser2HiddenAt(*v)
+	}
+	return _u
+}
+
+// ClearUser2HiddenAt clears the value of the "user2_hidden_at" field.
+func (_u *PrivateChatUpdateOne) ClearUser2HiddenAt() *PrivateChatUpdateOne {
+	_u.mutation.ClearUser2HiddenAt()
+	return _u
+}
+
 // SetChat sets the "chat" edge to the Chat entity.
 func (_u *PrivateChatUpdateOne) SetChat(v *Chat) *PrivateChatUpdateOne {
 	return _u.SetChatID(v.ID)
@@ -536,6 +628,18 @@ func (_u *PrivateChatUpdateOne) sqlSave(ctx context.Context) (_node *PrivateChat
 	}
 	if _u.mutation.User2LastReadAtCleared() {
 		_spec.ClearField(privatechat.FieldUser2LastReadAt, field.TypeTime)
+	}
+	if value, ok := _u.mutation.User1HiddenAt(); ok {
+		_spec.SetField(privatechat.FieldUser1HiddenAt, field.TypeTime, value)
+	}
+	if _u.mutation.User1HiddenAtCleared() {
+		_spec.ClearField(privatechat.FieldUser1HiddenAt, field.TypeTime)
+	}
+	if value, ok := _u.mutation.User2HiddenAt(); ok {
+		_spec.SetField(privatechat.FieldUser2HiddenAt, field.TypeTime, value)
+	}
+	if _u.mutation.User2HiddenAtCleared() {
+		_spec.ClearField(privatechat.FieldUser2HiddenAt, field.TypeTime)
 	}
 	if _u.mutation.ChatCleared() {
 		edge := &sqlgraph.EdgeSpec{

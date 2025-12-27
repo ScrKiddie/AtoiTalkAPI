@@ -29,6 +29,10 @@ type PrivateChat struct {
 	User1LastReadAt *time.Time `json:"user1_last_read_at,omitempty"`
 	// User2LastReadAt holds the value of the "user2_last_read_at" field.
 	User2LastReadAt *time.Time `json:"user2_last_read_at,omitempty"`
+	// User1HiddenAt holds the value of the "user1_hidden_at" field.
+	User1HiddenAt *time.Time `json:"user1_hidden_at,omitempty"`
+	// User2HiddenAt holds the value of the "user2_hidden_at" field.
+	User2HiddenAt *time.Time `json:"user2_hidden_at,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the PrivateChatQuery when eager-loading is set.
 	Edges        PrivateChatEdges `json:"edges"`
@@ -88,7 +92,7 @@ func (*PrivateChat) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case privatechat.FieldID, privatechat.FieldChatID, privatechat.FieldUser1ID, privatechat.FieldUser2ID:
 			values[i] = new(sql.NullInt64)
-		case privatechat.FieldUser1LastReadAt, privatechat.FieldUser2LastReadAt:
+		case privatechat.FieldUser1LastReadAt, privatechat.FieldUser2LastReadAt, privatechat.FieldUser1HiddenAt, privatechat.FieldUser2HiddenAt:
 			values[i] = new(sql.NullTime)
 		default:
 			values[i] = new(sql.UnknownType)
@@ -142,6 +146,20 @@ func (_m *PrivateChat) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				_m.User2LastReadAt = new(time.Time)
 				*_m.User2LastReadAt = value.Time
+			}
+		case privatechat.FieldUser1HiddenAt:
+			if value, ok := values[i].(*sql.NullTime); !ok {
+				return fmt.Errorf("unexpected type %T for field user1_hidden_at", values[i])
+			} else if value.Valid {
+				_m.User1HiddenAt = new(time.Time)
+				*_m.User1HiddenAt = value.Time
+			}
+		case privatechat.FieldUser2HiddenAt:
+			if value, ok := values[i].(*sql.NullTime); !ok {
+				return fmt.Errorf("unexpected type %T for field user2_hidden_at", values[i])
+			} else if value.Valid {
+				_m.User2HiddenAt = new(time.Time)
+				*_m.User2HiddenAt = value.Time
 			}
 		default:
 			_m.selectValues.Set(columns[i], values[i])
@@ -210,6 +228,16 @@ func (_m *PrivateChat) String() string {
 	builder.WriteString(", ")
 	if v := _m.User2LastReadAt; v != nil {
 		builder.WriteString("user2_last_read_at=")
+		builder.WriteString(v.Format(time.ANSIC))
+	}
+	builder.WriteString(", ")
+	if v := _m.User1HiddenAt; v != nil {
+		builder.WriteString("user1_hidden_at=")
+		builder.WriteString(v.Format(time.ANSIC))
+	}
+	builder.WriteString(", ")
+	if v := _m.User2HiddenAt; v != nil {
+		builder.WriteString("user2_hidden_at=")
 		builder.WriteString(v.Format(time.ANSIC))
 	}
 	builder.WriteByte(')')
