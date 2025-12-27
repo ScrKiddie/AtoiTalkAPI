@@ -2,6 +2,7 @@ package service
 
 import (
 	"AtoiTalkAPI/ent"
+	"AtoiTalkAPI/ent/privatechat"
 	"AtoiTalkAPI/ent/user"
 	"AtoiTalkAPI/internal/adapter"
 	"AtoiTalkAPI/internal/config"
@@ -165,7 +166,7 @@ func (s *UserService) UpdateProfile(ctx context.Context, userID int, req model.U
 	}, nil
 }
 
-func (s *UserService) SearchUsers(ctx context.Context, req model.SearchUserRequest) ([]model.UserDTO, string, bool, error) {
+func (s *UserService) SearchUsers(ctx context.Context, currentUserID int, req model.SearchUserRequest) ([]model.UserDTO, string, bool, error) {
 	if err := s.validator.Struct(req); err != nil {
 		return nil, "", false, helper.NewBadRequestError("")
 	}
@@ -225,6 +226,44 @@ func (s *UserService) SearchUsers(ctx context.Context, req model.SearchUserReque
 		nextCursor = helper.EncodeCursor(lastUser.FullName, lastUser.ID, delimiter)
 	}
 
+	privateChatMap := make(map[int]int)
+
+	if req.IncludeChatID && len(users) > 0 {
+		userIDs := make([]int, len(users))
+		for i, u := range users {
+			userIDs[i] = u.ID
+		}
+
+		chats, err := s.client.PrivateChat.Query().
+			Where(
+				privatechat.Or(
+					privatechat.And(
+						privatechat.User1ID(currentUserID),
+						privatechat.User2IDIn(userIDs...),
+					),
+					privatechat.And(
+						privatechat.User1IDIn(userIDs...),
+						privatechat.User2ID(currentUserID),
+					),
+				),
+			).
+			All(ctx)
+
+		if err != nil {
+			slog.Error("Failed to fetch private chats for search results", "error", err)
+		} else {
+			for _, pc := range chats {
+				var targetID int
+				if pc.User1ID == currentUserID {
+					targetID = pc.User2ID
+				} else {
+					targetID = pc.User1ID
+				}
+				privateChatMap[targetID] = pc.ChatID
+			}
+		}
+	}
+
 	userDTOs := make([]model.UserDTO, len(users))
 	for i, u := range users {
 		avatarURL := ""
@@ -236,7 +275,7 @@ func (s *UserService) SearchUsers(ctx context.Context, req model.SearchUserReque
 			bio = *u.Bio
 		}
 
-		userDTOs[i] = model.UserDTO{
+		dto := model.UserDTO{
 			ID:          u.ID,
 			Email:       u.Email,
 			FullName:    u.FullName,
@@ -244,6 +283,12 @@ func (s *UserService) SearchUsers(ctx context.Context, req model.SearchUserReque
 			Bio:         bio,
 			HasPassword: u.PasswordHash != nil,
 		}
+
+		if chatID, exists := privateChatMap[u.ID]; exists {
+			dto.PrivateChatID = &chatID
+		}
+
+		userDTOs[i] = dto
 	}
 
 	return userDTOs, nextCursor, hasNext, nil

@@ -110,6 +110,7 @@ func (c *UserController) UpdateProfile(w http.ResponseWriter, r *http.Request) {
 // @Param        query query string false "Search query (name or email)"
 // @Param        cursor query string false "Pagination cursor"
 // @Param        limit query int false "Number of items per page (default 10, max 50)"
+// @Param        include_chat_id query boolean false "Include private chat ID if exists"
 // @Success      200  {object}  helper.ResponseWithPagination{data=[]model.UserDTO}
 // @Failure      400  {object}  helper.ResponseError
 // @Failure      401  {object}  helper.ResponseError
@@ -117,9 +118,16 @@ func (c *UserController) UpdateProfile(w http.ResponseWriter, r *http.Request) {
 // @Security     BearerAuth
 // @Router       /api/users [get]
 func (c *UserController) SearchUsers(w http.ResponseWriter, r *http.Request) {
+	userContext, ok := r.Context().Value(middleware.UserContextKey).(*model.UserDTO)
+	if !ok {
+		helper.WriteError(w, helper.NewUnauthorizedError(""))
+		return
+	}
+
 	query := r.URL.Query().Get("query")
 	cursor := r.URL.Query().Get("cursor")
 	limitStr := r.URL.Query().Get("limit")
+	includeChatIDStr := r.URL.Query().Get("include_chat_id")
 
 	limit := 10
 	if limitStr != "" {
@@ -128,13 +136,21 @@ func (c *UserController) SearchUsers(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	req := model.SearchUserRequest{
-		Query:  query,
-		Cursor: cursor,
-		Limit:  limit,
+	includeChatID := false
+	if includeChatIDStr != "" {
+		if b, err := strconv.ParseBool(includeChatIDStr); err == nil {
+			includeChatID = b
+		}
 	}
 
-	users, nextCursor, hasNext, err := c.userService.SearchUsers(r.Context(), req)
+	req := model.SearchUserRequest{
+		Query:         query,
+		Cursor:        cursor,
+		Limit:         limit,
+		IncludeChatID: includeChatID,
+	}
+
+	users, nextCursor, hasNext, err := c.userService.SearchUsers(r.Context(), userContext.ID, req)
 	if err != nil {
 		helper.WriteError(w, err)
 		return
