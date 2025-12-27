@@ -50,7 +50,9 @@ func TestLogin(t *testing.T) {
 
 		rr := executeRequest(req)
 
-		assert.Equal(t, http.StatusOK, rr.Code)
+		if !assert.Equal(t, http.StatusOK, rr.Code) {
+			printBody(t, rr)
+		}
 		var resp helper.ResponseSuccess
 		json.Unmarshal(rr.Body.Bytes(), &resp)
 
@@ -81,7 +83,9 @@ func TestLogin(t *testing.T) {
 
 		rr := executeRequest(req)
 
-		assert.Equal(t, http.StatusBadRequest, rr.Code)
+		if !assert.Equal(t, http.StatusBadRequest, rr.Code) {
+			printBody(t, rr)
+		}
 	})
 
 	t.Run("User Not Found", func(t *testing.T) {
@@ -102,7 +106,9 @@ func TestLogin(t *testing.T) {
 
 		rr := executeRequest(req)
 
-		assert.Equal(t, http.StatusUnauthorized, rr.Code)
+		if !assert.Equal(t, http.StatusUnauthorized, rr.Code) {
+			printBody(t, rr)
+		}
 	})
 
 	t.Run("Invalid Password", func(t *testing.T) {
@@ -130,7 +136,9 @@ func TestLogin(t *testing.T) {
 
 		rr := executeRequest(req)
 
-		assert.Equal(t, http.StatusUnauthorized, rr.Code)
+		if !assert.Equal(t, http.StatusUnauthorized, rr.Code) {
+			printBody(t, rr)
+		}
 	})
 }
 
@@ -145,7 +153,9 @@ func TestGoogleExchange(t *testing.T) {
 
 		rr := executeRequest(req)
 
-		assert.Equal(t, http.StatusBadRequest, rr.Code)
+		if !assert.Equal(t, http.StatusBadRequest, rr.Code) {
+			printBody(t, rr)
+		}
 		var resp helper.ResponseError
 		json.Unmarshal(rr.Body.Bytes(), &resp)
 		assert.NotEmpty(t, resp.Error)
@@ -159,7 +169,9 @@ func TestGoogleExchange(t *testing.T) {
 
 		rr := executeRequest(req)
 
-		assert.Equal(t, http.StatusUnauthorized, rr.Code)
+		if !assert.Equal(t, http.StatusUnauthorized, rr.Code) {
+			printBody(t, rr)
+		}
 		var resp helper.ResponseError
 		json.Unmarshal(rr.Body.Bytes(), &resp)
 		assert.NotEmpty(t, resp.Error)
@@ -182,7 +194,9 @@ func TestGoogleExchange(t *testing.T) {
 		t.Run("Register", func(t *testing.T) {
 			clearDatabase(context.Background())
 			rr := makeRequest()
-			assert.Equal(t, http.StatusOK, rr.Code, "Response body: %s", rr.Body.String())
+			if !assert.Equal(t, http.StatusOK, rr.Code, "Response body: %s", rr.Body.String()) {
+				printBody(t, rr)
+			}
 
 			var resp helper.ResponseSuccess
 			err := json.Unmarshal(rr.Body.Bytes(), &resp)
@@ -211,7 +225,9 @@ func TestGoogleExchange(t *testing.T) {
 		t.Run("Login Existing User", func(t *testing.T) {
 
 			rr := makeRequest()
-			assert.Equal(t, http.StatusOK, rr.Code, "Response body: %s", rr.Body.String())
+			if !assert.Equal(t, http.StatusOK, rr.Code, "Response body: %s", rr.Body.String()) {
+				printBody(t, rr)
+			}
 
 			var resp helper.ResponseSuccess
 			err := json.Unmarshal(rr.Body.Bytes(), &resp)
@@ -248,7 +264,9 @@ func TestRegister(t *testing.T) {
 
 		rr := executeRequest(req)
 
-		assert.Equal(t, http.StatusOK, rr.Code)
+		if !assert.Equal(t, http.StatusOK, rr.Code) {
+			printBody(t, rr)
+		}
 		var resp helper.ResponseSuccess
 		json.Unmarshal(rr.Body.Bytes(), &resp)
 
@@ -284,7 +302,9 @@ func TestRegister(t *testing.T) {
 
 		rr := executeRequest(req)
 
-		assert.Equal(t, http.StatusBadRequest, rr.Code)
+		if !assert.Equal(t, http.StatusBadRequest, rr.Code) {
+			printBody(t, rr)
+		}
 		var resp helper.ResponseError
 		json.Unmarshal(rr.Body.Bytes(), &resp)
 		assert.Equal(t, helper.MsgBadRequest, resp.Error)
@@ -312,7 +332,9 @@ func TestRegister(t *testing.T) {
 
 		rr := executeRequest(req)
 
-		assert.Equal(t, http.StatusBadRequest, rr.Code)
+		if !assert.Equal(t, http.StatusBadRequest, rr.Code) {
+			printBody(t, rr)
+		}
 	})
 
 	t.Run("Expired OTP", func(t *testing.T) {
@@ -337,7 +359,9 @@ func TestRegister(t *testing.T) {
 
 		rr := executeRequest(req)
 
-		assert.Equal(t, http.StatusBadRequest, rr.Code)
+		if !assert.Equal(t, http.StatusBadRequest, rr.Code) {
+			printBody(t, rr)
+		}
 	})
 
 	t.Run("Email Already Registered", func(t *testing.T) {
@@ -369,7 +393,9 @@ func TestRegister(t *testing.T) {
 
 		rr := executeRequest(req)
 
-		assert.Equal(t, http.StatusConflict, rr.Code)
+		if !assert.Equal(t, http.StatusConflict, rr.Code) {
+			printBody(t, rr)
+		}
 	})
 }
 
@@ -414,7 +440,9 @@ func TestResetPassword(t *testing.T) {
 
 		rr := executeRequest(req)
 
-		assert.Equal(t, http.StatusOK, rr.Code)
+		if !assert.Equal(t, http.StatusOK, rr.Code) {
+			printBody(t, rr)
+		}
 
 		u, _ := testClient.User.Query().Where(user.Email(validEmail)).Only(context.Background())
 		assert.NotNil(t, u.PasswordHash)
@@ -449,7 +477,9 @@ func TestResetPassword(t *testing.T) {
 
 		rr := executeRequest(req)
 
-		assert.Equal(t, http.StatusNotFound, rr.Code)
+		if !assert.Equal(t, http.StatusNotFound, rr.Code) {
+			printBody(t, rr)
+		}
 	})
 
 	t.Run("Invalid OTP", func(t *testing.T) {
@@ -487,7 +517,9 @@ func TestResetPassword(t *testing.T) {
 
 		rr := executeRequest(req)
 
-		assert.Equal(t, http.StatusBadRequest, rr.Code)
+		if !assert.Equal(t, http.StatusBadRequest, rr.Code) {
+			printBody(t, rr)
+		}
 	})
 
 	t.Run("Password Mismatch", func(t *testing.T) {
@@ -506,6 +538,8 @@ func TestResetPassword(t *testing.T) {
 
 		rr := executeRequest(req)
 
-		assert.Equal(t, http.StatusBadRequest, rr.Code)
+		if !assert.Equal(t, http.StatusBadRequest, rr.Code) {
+			printBody(t, rr)
+		}
 	})
 }

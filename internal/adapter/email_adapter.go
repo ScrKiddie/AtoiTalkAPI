@@ -2,8 +2,8 @@ package adapter
 
 import (
 	"AtoiTalkAPI/internal/config"
+	"AtoiTalkAPI/internal/helper"
 	"fmt"
-	"log/slog"
 	"net/smtp"
 	"strings"
 	"time"
@@ -41,17 +41,15 @@ func (e *EmailAdapter) Send(to []string, subject string, body string) error {
 		"\r\n"+
 		"%s\r\n", e.fromName, e.fromEmail, strings.Join(to, ","), subject, body))
 
-	var err error
-	maxRetries := 5
-	timeout := 10 * time.Second
-
-	for i := 0; i < maxRetries; i++ {
+	operation := func() (struct{}, bool, error) {
 		errChan := make(chan error, 1)
+		timeout := 10 * time.Second
 
 		go func() {
 			errChan <- smtp.SendMail(addr, auth, e.fromEmail, to, msg)
 		}()
 
+		var err error
 		select {
 		case sendErr := <-errChan:
 			err = sendErr
@@ -59,16 +57,14 @@ func (e *EmailAdapter) Send(to []string, subject string, body string) error {
 			err = fmt.Errorf("email sending timed out after %v", timeout)
 		}
 
-		if err == nil {
-			return nil
+		if err != nil {
+
+			return struct{}{}, true, err
 		}
 
-		slog.Warn("Failed to send email, retrying...", "attempt", i+1, "error", err)
-
-		if i < maxRetries-1 {
-			time.Sleep(time.Duration(500*(i+1)) * time.Millisecond)
-		}
+		return struct{}{}, false, nil
 	}
 
-	return fmt.Errorf("failed to send email after %d attempts: %w", maxRetries, err)
+	_, err := helper.RetryWithBackoff(operation, 3, 1*time.Second)
+	return err
 }

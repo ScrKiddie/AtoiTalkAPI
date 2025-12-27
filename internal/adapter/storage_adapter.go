@@ -2,6 +2,7 @@ package adapter
 
 import (
 	"AtoiTalkAPI/internal/config"
+	"AtoiTalkAPI/internal/helper"
 	"context"
 	"errors"
 	"fmt"
@@ -81,31 +82,29 @@ func (s *StorageAdapter) StoreFromReader(reader io.Reader, contentType string, p
 }
 
 func (s *StorageAdapter) Download(url string) ([]byte, string, error) {
-	var resp *http.Response
-	var err error
-	maxRetries := 5
-
-	for i := 0; i < maxRetries; i++ {
-		resp, err = s.httpClient.Get(url)
-		if err == nil && resp.StatusCode == http.StatusOK {
-			break
+	operation := func() (*http.Response, bool, error) {
+		resp, err := s.httpClient.Get(url)
+		if helper.ShouldRetryHTTP(resp, err) {
+			if resp != nil {
+				resp.Body.Close()
+			}
+			return nil, true, err
+		}
+		if err != nil {
+			return nil, false, err
 		}
 
-		if resp != nil {
-			resp.Body.Close()
+		if resp.StatusCode != http.StatusOK {
+			defer resp.Body.Close()
+			return nil, false, fmt.Errorf("failed to download image, status code: %d", resp.StatusCode)
 		}
 
-		if i < maxRetries-1 {
-
-			time.Sleep(time.Duration(500*(i+1)) * time.Millisecond)
-		}
+		return resp, false, nil
 	}
 
+	resp, err := helper.RetryWithBackoff(operation, 3, 500*time.Millisecond)
 	if err != nil {
 		return nil, "", err
-	}
-	if resp.StatusCode != http.StatusOK {
-		return nil, "", fmt.Errorf("failed to download image, status code: %d", resp.StatusCode)
 	}
 	defer resp.Body.Close()
 
