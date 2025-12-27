@@ -108,9 +108,12 @@ func TestMain(m *testing.M) {
 	accountService := service.NewAccountService(testClient, testConfig, validator)
 	accountController := controller.NewAccountController(accountService)
 
+	chatService := service.NewChatService(testClient, testConfig, validator)
+	chatController := controller.NewChatController(chatService)
+
 	authMiddleware := middleware.NewAuthMiddleware(authService)
 
-	route := bootstrap.NewRoute(testConfig, testRouter, authController, otpController, userController, accountController, authMiddleware)
+	route := bootstrap.NewRoute(testConfig, testRouter, authController, otpController, userController, accountController, chatController, authMiddleware)
 	route.Register()
 
 	code := m.Run()
@@ -127,6 +130,8 @@ func executeRequest(req *http.Request) *httptest.ResponseRecorder {
 }
 
 func clearDatabase(ctx context.Context) {
+	testClient.PrivateChat.Delete().Exec(ctx)
+	testClient.Chat.Delete().Exec(ctx)
 	testClient.Media.Delete().Exec(ctx)
 	testClient.User.Delete().Exec(ctx)
 	testClient.OTP.Delete().Exec(ctx)
@@ -157,4 +162,8 @@ func createOTP(email, code string, expiresAt time.Time) {
 		SetMode(constant.OTPModeRegister).
 		SetExpiresAt(expiresAt).
 		Exec(context.Background())
+}
+
+func printBody(t *testing.T, rr *httptest.ResponseRecorder) {
+	t.Logf("Response Body: %s", rr.Body.String())
 }

@@ -56,7 +56,9 @@ func TestGetCurrentUser(t *testing.T) {
 
 		rr := executeRequest(req)
 
-		assert.Equal(t, http.StatusOK, rr.Code)
+		if !assert.Equal(t, http.StatusOK, rr.Code) {
+			printBody(t, rr)
+		}
 		var resp helper.ResponseSuccess
 		json.Unmarshal(rr.Body.Bytes(), &resp)
 
@@ -72,7 +74,9 @@ func TestGetCurrentUser(t *testing.T) {
 
 		rr := executeRequest(req)
 
-		assert.Equal(t, http.StatusUnauthorized, rr.Code)
+		if !assert.Equal(t, http.StatusUnauthorized, rr.Code) {
+			printBody(t, rr)
+		}
 	})
 }
 
@@ -110,7 +114,9 @@ func TestUpdateProfile(t *testing.T) {
 
 		rr := executeRequest(req)
 
-		assert.Equal(t, http.StatusOK, rr.Code)
+		if !assert.Equal(t, http.StatusOK, rr.Code) {
+			printBody(t, rr)
+		}
 		var resp helper.ResponseSuccess
 		json.Unmarshal(rr.Body.Bytes(), &resp)
 
@@ -153,7 +159,9 @@ func TestUpdateProfile(t *testing.T) {
 
 		rr := executeRequest(req)
 
-		assert.Equal(t, http.StatusOK, rr.Code)
+		if !assert.Equal(t, http.StatusOK, rr.Code) {
+			printBody(t, rr)
+		}
 		var resp helper.ResponseSuccess
 		json.Unmarshal(rr.Body.Bytes(), &resp)
 
@@ -205,7 +213,9 @@ func TestUpdateProfile(t *testing.T) {
 
 		rr := executeRequest(req)
 
-		assert.Equal(t, http.StatusOK, rr.Code)
+		if !assert.Equal(t, http.StatusOK, rr.Code) {
+			printBody(t, rr)
+		}
 
 		updatedUser, _ := testClient.User.Query().Where(user.ID(u.ID)).WithAvatar().Only(context.Background())
 		assert.Nil(t, updatedUser.Edges.Avatar)
@@ -239,7 +249,9 @@ func TestUpdateProfile(t *testing.T) {
 
 		rr := executeRequest(req)
 
-		assert.Equal(t, http.StatusBadRequest, rr.Code)
+		if !assert.Equal(t, http.StatusBadRequest, rr.Code) {
+			printBody(t, rr)
+		}
 	})
 
 	t.Run("Image Too Large", func(t *testing.T) {
@@ -271,7 +283,9 @@ func TestUpdateProfile(t *testing.T) {
 
 		rr := executeRequest(req)
 
-		assert.Equal(t, http.StatusBadRequest, rr.Code)
+		if !assert.Equal(t, http.StatusBadRequest, rr.Code) {
+			printBody(t, rr)
+		}
 	})
 
 	t.Run("Image Dimensions Too Large", func(t *testing.T) {
@@ -303,7 +317,9 @@ func TestUpdateProfile(t *testing.T) {
 
 		rr := executeRequest(req)
 
-		assert.Equal(t, http.StatusBadRequest, rr.Code)
+		if !assert.Equal(t, http.StatusBadRequest, rr.Code) {
+			printBody(t, rr)
+		}
 	})
 
 	t.Run("Unauthorized", func(t *testing.T) {
@@ -317,6 +333,8 @@ func TestUpdateProfile(t *testing.T) {
 
 		rr := executeRequest(req)
 
-		assert.Equal(t, http.StatusUnauthorized, rr.Code)
+		if !assert.Equal(t, http.StatusUnauthorized, rr.Code) {
+			printBody(t, rr)
+		}
 	})
 }

@@ -19,10 +19,11 @@ type Route struct {
 	otpController     *controller.OTPController
 	userController    *controller.UserController
 	accountController *controller.AccountController
+	chatController    *controller.ChatController
 	authMiddleware    *middleware.AuthMiddleware
 }
 
-func NewRoute(cfg *config.AppConfig, chi *chi.Mux, authController *controller.AuthController, otpController *controller.OTPController, userController *controller.UserController, accountController *controller.AccountController, authMiddleware *middleware.AuthMiddleware) *Route {
+func NewRoute(cfg *config.AppConfig, chi *chi.Mux, authController *controller.AuthController, otpController *controller.OTPController, userController *controller.UserController, accountController *controller.AccountController, chatController *controller.ChatController, authMiddleware *middleware.AuthMiddleware) *Route {
 	return &Route{
 		cfg:               cfg,
 		chi:               chi,
@@ -30,6 +31,7 @@ func NewRoute(cfg *config.AppConfig, chi *chi.Mux, authController *controller.Au
 		otpController:     otpController,
 		userController:    userController,
 		accountController: accountController,
+		chatController:    chatController,
 		authMiddleware:    authMiddleware,
 	}
 }
@@ -73,6 +75,7 @@ func (route *Route) Register() {
 			r.Put("/user/profile", route.userController.UpdateProfile)
 			r.Put("/account/password", route.accountController.ChangePassword)
 			r.Put("/account/email", route.accountController.ChangeEmail)
+			r.Post("/chats/private", route.chatController.CreatePrivateChat)
 		})
 	})
 }

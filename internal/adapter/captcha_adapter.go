@@ -2,11 +2,11 @@ package adapter
 
 import (
 	"AtoiTalkAPI/internal/config"
+	"AtoiTalkAPI/internal/helper"
 	"bytes"
 	"encoding/json"
 	"fmt"
 	"io"
-	"log/slog"
 	"net/http"
 	"time"
 )
@@ -42,28 +42,29 @@ func (c *CaptchaAdapter) Verify(token string, ip string) error {
 		return fmt.Errorf("failed to marshal captcha payload: %w", err)
 	}
 
-	var resp *http.Response
-	maxRetries := 5
-
-	for i := 0; i < maxRetries; i++ {
-		resp, err = c.httpClient.Post(url, "application/json", bytes.NewBuffer(jsonPayload))
-		if err == nil && resp.StatusCode == http.StatusOK {
-			break
+	operation := func() (*http.Response, bool, error) {
+		resp, err := c.httpClient.Post(url, "application/json", bytes.NewBuffer(jsonPayload))
+		if helper.ShouldRetryHTTP(resp, err) {
+			if resp != nil {
+				resp.Body.Close()
+			}
+			return nil, true, err
+		}
+		if err != nil {
+			return nil, false, err
 		}
 
-		if resp != nil {
-			resp.Body.Close()
+		if resp.StatusCode != http.StatusOK {
+			defer resp.Body.Close()
+			return nil, false, fmt.Errorf("captcha verification failed with status: %d", resp.StatusCode)
 		}
 
-		slog.Warn("Failed to verify captcha, retrying...", "attempt", i+1, "error", err)
-
-		if i < maxRetries-1 {
-			time.Sleep(time.Duration(500*(i+1)) * time.Millisecond)
-		}
+		return resp, false, nil
 	}
 
+	resp, err := helper.RetryWithBackoff(operation, 3, 500*time.Millisecond)
 	if err != nil {
-		return fmt.Errorf("failed to verify captcha after %d attempts: %w", maxRetries, err)
+		return err
 	}
 	defer resp.Body.Close()
 

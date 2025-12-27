@@ -53,7 +53,9 @@ func TestChangePassword(t *testing.T) {
 
 		rr := executeRequest(req)
 
-		assert.Equal(t, http.StatusOK, rr.Code)
+		if !assert.Equal(t, http.StatusOK, rr.Code) {
+			printBody(t, rr)
+		}
 
 		u, _ := testClient.User.Query().Where(user.ID(userID)).Only(context.Background())
 		assert.True(t, helper.CheckPasswordHash(newPassword, *u.PasswordHash))
@@ -75,7 +77,9 @@ func TestChangePassword(t *testing.T) {
 
 		rr := executeRequest(req)
 
-		assert.Equal(t, http.StatusOK, rr.Code)
+		if !assert.Equal(t, http.StatusOK, rr.Code) {
+			printBody(t, rr)
+		}
 
 		u, _ := testClient.User.Query().Where(user.ID(userID)).Only(context.Background())
 		assert.NotNil(t, u.PasswordHash)
@@ -97,7 +101,9 @@ func TestChangePassword(t *testing.T) {
 
 		rr := executeRequest(req)
 
-		assert.Equal(t, http.StatusBadRequest, rr.Code)
+		if !assert.Equal(t, http.StatusBadRequest, rr.Code) {
+			printBody(t, rr)
+		}
 	})
 
 	t.Run("Fail: Old Password Incorrect", func(t *testing.T) {
@@ -116,7 +122,9 @@ func TestChangePassword(t *testing.T) {
 
 		rr := executeRequest(req)
 
-		assert.Equal(t, http.StatusBadRequest, rr.Code)
+		if !assert.Equal(t, http.StatusBadRequest, rr.Code) {
+			printBody(t, rr)
+		}
 	})
 
 	t.Run("Fail: New Password Mismatch", func(t *testing.T) {
@@ -134,7 +142,9 @@ func TestChangePassword(t *testing.T) {
 
 		rr := executeRequest(req)
 
-		assert.Equal(t, http.StatusBadRequest, rr.Code)
+		if !assert.Equal(t, http.StatusBadRequest, rr.Code) {
+			printBody(t, rr)
+		}
 	})
 
 	t.Run("Fail: Weak Password", func(t *testing.T) {
@@ -153,7 +163,9 @@ func TestChangePassword(t *testing.T) {
 
 		rr := executeRequest(req)
 
-		assert.Equal(t, http.StatusBadRequest, rr.Code)
+		if !assert.Equal(t, http.StatusBadRequest, rr.Code) {
+			printBody(t, rr)
+		}
 	})
 
 	t.Run("Fail: Unauthorized (No Token)", func(t *testing.T) {
@@ -168,7 +180,9 @@ func TestChangePassword(t *testing.T) {
 
 		rr := executeRequest(req)
 
-		assert.Equal(t, http.StatusUnauthorized, rr.Code)
+		if !assert.Equal(t, http.StatusUnauthorized, rr.Code) {
+			printBody(t, rr)
+		}
 	})
 }
 
@@ -216,7 +230,9 @@ func TestChangeEmail(t *testing.T) {
 
 		rr := executeRequest(req)
 
-		assert.Equal(t, http.StatusOK, rr.Code)
+		if !assert.Equal(t, http.StatusOK, rr.Code) {
+			printBody(t, rr)
+		}
 
 		u, _ := testClient.User.Query().Where(user.ID(userID)).Only(context.Background())
 		assert.Equal(t, newEmail, u.Email)
@@ -237,7 +253,9 @@ func TestChangeEmail(t *testing.T) {
 
 		rr := executeRequest(req)
 
-		assert.Equal(t, http.StatusBadRequest, rr.Code)
+		if !assert.Equal(t, http.StatusBadRequest, rr.Code) {
+			printBody(t, rr)
+		}
 	})
 
 	t.Run("Fail: Email Already Registered", func(t *testing.T) {
@@ -260,7 +278,9 @@ func TestChangeEmail(t *testing.T) {
 
 		rr := executeRequest(req)
 
-		assert.Equal(t, http.StatusConflict, rr.Code)
+		if !assert.Equal(t, http.StatusConflict, rr.Code) {
+			printBody(t, rr)
+		}
 	})
 
 	t.Run("Fail: Unauthorized", func(t *testing.T) {
@@ -274,6 +294,8 @@ func TestChangeEmail(t *testing.T) {
 
 		rr := executeRequest(req)
 
-		assert.Equal(t, http.StatusUnauthorized, rr.Code)
+		if !assert.Equal(t, http.StatusUnauthorized, rr.Code) {
+			printBody(t, rr)
+		}
 	})
 }

@@ -31,8 +31,11 @@ func Init(appConfig *config.AppConfig, client *ent.Client, validator *validator.
 	accountService := service.NewAccountService(client, appConfig, validator)
 	accountController := controller.NewAccountController(accountService)
 
+	chatService := service.NewChatService(client, appConfig, validator)
+	chatController := controller.NewChatController(chatService)
+
 	authMiddleware := middleware.NewAuthMiddleware(authService)
 
-	route := NewRoute(appConfig, chiMux, authController, otpController, userController, accountController, authMiddleware)
+	route := NewRoute(appConfig, chiMux, authController, otpController, userController, accountController, chatController, authMiddleware)
 	route.Register()
 }

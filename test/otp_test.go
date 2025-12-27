@@ -35,7 +35,9 @@ func TestSendOTP(t *testing.T) {
 
 		rr := executeRequest(req)
 
-		assert.Equal(t, http.StatusOK, rr.Code)
+		if !assert.Equal(t, http.StatusOK, rr.Code) {
+			printBody(t, rr)
+		}
 
 		otpRecord, err := testClient.OTP.Query().Where(otp.Email(reqBody.Email)).Only(ctx)
 		assert.NoError(t, err)
@@ -82,7 +84,9 @@ func TestSendOTP(t *testing.T) {
 		req2.Header.Set("Content-Type", "application/json")
 		rr := executeRequest(req2)
 
-		assert.Equal(t, http.StatusOK, rr.Code)
+		if !assert.Equal(t, http.StatusOK, rr.Code) {
+			printBody(t, rr)
+		}
 
 		secondCode, _ := testClient.OTP.Query().Where(otp.Email(email)).Only(ctx)
 		assert.NotEqual(t, firstCode.Code, secondCode.Code)
@@ -100,7 +104,9 @@ func TestSendOTP(t *testing.T) {
 		req.Header.Set("Content-Type", "application/json")
 
 		rr := executeRequest(req)
-		assert.Equal(t, http.StatusBadRequest, rr.Code)
+		if !assert.Equal(t, http.StatusBadRequest, rr.Code) {
+			printBody(t, rr)
+		}
 	})
 
 	t.Run("Validation Error - Invalid Mode", func(t *testing.T) {
@@ -115,7 +121,9 @@ func TestSendOTP(t *testing.T) {
 		req.Header.Set("Content-Type", "application/json")
 
 		rr := executeRequest(req)
-		assert.Equal(t, http.StatusBadRequest, rr.Code)
+		if !assert.Equal(t, http.StatusBadRequest, rr.Code) {
+			printBody(t, rr)
+		}
 	})
 
 	t.Run("Rate Limit Error", func(t *testing.T) {
@@ -140,7 +148,9 @@ func TestSendOTP(t *testing.T) {
 		req2.Header.Set("Content-Type", "application/json")
 		rr2 := executeRequest(req2)
 
-		assert.Equal(t, http.StatusTooManyRequests, rr2.Code)
+		if !assert.Equal(t, http.StatusTooManyRequests, rr2.Code) {
+			printBody(t, rr2)
+		}
 		var resp helper.ResponseError
 		json.Unmarshal(rr2.Body.Bytes(), &resp)
 		assert.Contains(t, resp.Error, "Too many requests. Please try again in")
@@ -163,7 +173,9 @@ func TestSendOTP(t *testing.T) {
 
 		rr := executeRequest(req)
 
-		assert.Equal(t, http.StatusBadRequest, rr.Code)
+		if !assert.Equal(t, http.StatusBadRequest, rr.Code) {
+			printBody(t, rr)
+		}
 		var resp helper.ResponseError
 		json.Unmarshal(rr.Body.Bytes(), &resp)
 		assert.Equal(t, helper.MsgBadRequest, resp.Error)
@@ -186,7 +198,9 @@ func TestSendOTP(t *testing.T) {
 
 		rr := executeRequest(req)
 
-		assert.Equal(t, http.StatusBadRequest, rr.Code)
+		if !assert.Equal(t, http.StatusBadRequest, rr.Code) {
+			printBody(t, rr)
+		}
 		var resp helper.ResponseError
 		json.Unmarshal(rr.Body.Bytes(), &resp)
 		assert.Equal(t, helper.MsgBadRequest, resp.Error)
@@ -217,7 +231,9 @@ func TestSendOTP(t *testing.T) {
 
 		rr := executeRequest(req)
 
-		assert.Equal(t, http.StatusConflict, rr.Code)
+		if !assert.Equal(t, http.StatusConflict, rr.Code) {
+			printBody(t, rr)
+		}
 		var resp helper.ResponseError
 		json.Unmarshal(rr.Body.Bytes(), &resp)
 		assert.Equal(t, "Email already registered", resp.Error)
@@ -240,7 +256,9 @@ func TestSendOTP(t *testing.T) {
 
 		rr := executeRequest(req)
 
-		assert.Equal(t, http.StatusNotFound, rr.Code)
+		if !assert.Equal(t, http.StatusNotFound, rr.Code) {
+			printBody(t, rr)
+		}
 		var resp helper.ResponseError
 		json.Unmarshal(rr.Body.Bytes(), &resp)
 		assert.Equal(t, helper.MsgNotFound, resp.Error)
