@@ -6,6 +6,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"image"
 	"image/color"
 	"image/jpeg"
@@ -333,6 +334,139 @@ func TestUpdateProfile(t *testing.T) {
 
 		rr := executeRequest(req)
 
+		if !assert.Equal(t, http.StatusUnauthorized, rr.Code) {
+			printBody(t, rr)
+		}
+	})
+}
+
+func TestSearchUsers(t *testing.T) {
+	clearDatabase(context.Background())
+
+	names := []string{"Alice", "Bob", "Charlie", "David", "Eve"}
+	for _, name := range names {
+		email := strings.ToLower(name) + "@test.com"
+		hashedPassword, _ := helper.HashPassword("Password123!")
+		testClient.User.Create().
+			SetEmail(email).
+			SetFullName(name).
+			SetPasswordHash(hashedPassword).
+			Save(context.Background())
+	}
+
+	searcher, _ := testClient.User.Create().
+		SetEmail("searcher@test.com").
+		SetFullName("Searcher").
+		SetPasswordHash("hash").
+		Save(context.Background())
+	token, _ := helper.GenerateJWT(testConfig.JWTSecret, testConfig.JWTExp, searcher.ID)
+
+	t.Run("Success - List All (Pagination)", func(t *testing.T) {
+
+		req, _ := http.NewRequest("GET", "/api/users?limit=2", nil)
+		req.Header.Set("Authorization", "Bearer "+token)
+		rr := executeRequest(req)
+
+		if !assert.Equal(t, http.StatusOK, rr.Code) {
+			printBody(t, rr)
+		}
+
+		var resp helper.ResponseWithPagination
+		json.Unmarshal(rr.Body.Bytes(), &resp)
+
+		dataList := resp.Data.([]interface{})
+		assert.Len(t, dataList, 2)
+		assert.True(t, resp.Meta.HasNext)
+		assert.NotEmpty(t, resp.Meta.NextCursor)
+
+		user1 := dataList[0].(map[string]interface{})
+		user2 := dataList[1].(map[string]interface{})
+		assert.Equal(t, "Alice", user1["full_name"])
+		assert.Equal(t, "Bob", user2["full_name"])
+
+		cursor := resp.Meta.NextCursor
+		req2, _ := http.NewRequest("GET", fmt.Sprintf("/api/users?limit=2&cursor=%s", cursor), nil)
+		req2.Header.Set("Authorization", "Bearer "+token)
+		rr2 := executeRequest(req2)
+
+		if !assert.Equal(t, http.StatusOK, rr2.Code) {
+			printBody(t, rr2)
+		}
+		var resp2 helper.ResponseWithPagination
+		json.Unmarshal(rr2.Body.Bytes(), &resp2)
+
+		dataList2 := resp2.Data.([]interface{})
+		assert.Len(t, dataList2, 2)
+
+		user3 := dataList2[0].(map[string]interface{})
+		user4 := dataList2[1].(map[string]interface{})
+		assert.Equal(t, "Charlie", user3["full_name"])
+		assert.Equal(t, "David", user4["full_name"])
+	})
+
+	t.Run("Success - Search by Name", func(t *testing.T) {
+		req, _ := http.NewRequest("GET", "/api/users?query=ali", nil)
+		req.Header.Set("Authorization", "Bearer "+token)
+		rr := executeRequest(req)
+
+		if !assert.Equal(t, http.StatusOK, rr.Code) {
+			printBody(t, rr)
+		}
+		var resp helper.ResponseWithPagination
+		json.Unmarshal(rr.Body.Bytes(), &resp)
+
+		dataList := resp.Data.([]interface{})
+		assert.Len(t, dataList, 1)
+		user1 := dataList[0].(map[string]interface{})
+		assert.Equal(t, "Alice", user1["full_name"])
+	})
+
+	t.Run("Success - Search by Email", func(t *testing.T) {
+		req, _ := http.NewRequest("GET", "/api/users?query=bob@test", nil)
+		req.Header.Set("Authorization", "Bearer "+token)
+		rr := executeRequest(req)
+
+		if !assert.Equal(t, http.StatusOK, rr.Code) {
+			printBody(t, rr)
+		}
+		var resp helper.ResponseWithPagination
+		json.Unmarshal(rr.Body.Bytes(), &resp)
+
+		dataList := resp.Data.([]interface{})
+		assert.Len(t, dataList, 1)
+		user1 := dataList[0].(map[string]interface{})
+		assert.Equal(t, "Bob", user1["full_name"])
+	})
+
+	t.Run("Empty Result", func(t *testing.T) {
+		req, _ := http.NewRequest("GET", "/api/users?query=zoro", nil)
+		req.Header.Set("Authorization", "Bearer "+token)
+		rr := executeRequest(req)
+
+		if !assert.Equal(t, http.StatusOK, rr.Code) {
+			printBody(t, rr)
+		}
+		var resp helper.ResponseWithPagination
+		json.Unmarshal(rr.Body.Bytes(), &resp)
+
+		dataList := resp.Data.([]interface{})
+		assert.Len(t, dataList, 0)
+		assert.False(t, resp.Meta.HasNext)
+	})
+
+	t.Run("Invalid Cursor", func(t *testing.T) {
+		req, _ := http.NewRequest("GET", "/api/users?cursor=invalid-base64-string", nil)
+		req.Header.Set("Authorization", "Bearer "+token)
+		rr := executeRequest(req)
+
+		if !assert.Equal(t, http.StatusBadRequest, rr.Code) {
+			printBody(t, rr)
+		}
+	})
+
+	t.Run("Unauthorized", func(t *testing.T) {
+		req, _ := http.NewRequest("GET", "/api/users", nil)
+		rr := executeRequest(req)
 		if !assert.Equal(t, http.StatusUnauthorized, rr.Code) {
 			printBody(t, rr)
 		}

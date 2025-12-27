@@ -23,3 +23,9 @@ type UpdateProfileRequest struct {
 	Avatar        *multipart.FileHeader `form:"avatar" validate:"omitempty,imagevalid=800_800_2"`
 	DeleteAvatar  bool                  `form:"delete_avatar"`
 }
+
+type SearchUserRequest struct {
+	Query  string `json:"query" validate:"omitempty,min=1"`
+	Cursor string `json:"cursor"`
+	Limit  int    `json:"limit" validate:"min=1,max=50"`
+}

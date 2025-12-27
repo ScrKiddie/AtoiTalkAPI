@@ -100,3 +100,45 @@ func (c *UserController) UpdateProfile(w http.ResponseWriter, r *http.Request) {
 
 	helper.WriteSuccess(w, resp)
 }
+
+// SearchUsers godoc
+// @Summary      Search Users
+// @Description  Search users by name or email with cursor-based pagination.
+// @Tags         user
+// @Accept       json
+// @Produce      json
+// @Param        query query string false "Search query (name or email)"
+// @Param        cursor query string false "Pagination cursor"
+// @Param        limit query int false "Number of items per page (default 10, max 50)"
+// @Success      200  {object}  helper.ResponseWithPagination{data=[]model.UserDTO}
+// @Failure      400  {object}  helper.ResponseError
+// @Failure      401  {object}  helper.ResponseError
+// @Failure      500  {object}  helper.ResponseError
+// @Security     BearerAuth
+// @Router       /api/users [get]
+func (c *UserController) SearchUsers(w http.ResponseWriter, r *http.Request) {
+	query := r.URL.Query().Get("query")
+	cursor := r.URL.Query().Get("cursor")
+	limitStr := r.URL.Query().Get("limit")
+
+	limit := 10
+	if limitStr != "" {
+		if l, err := strconv.Atoi(limitStr); err == nil {
+			limit = l
+		}
+	}
+
+	req := model.SearchUserRequest{
+		Query:  query,
+		Cursor: cursor,
+		Limit:  limit,
+	}
+
+	users, nextCursor, hasNext, err := c.userService.SearchUsers(r.Context(), req)
+	if err != nil {
+		helper.WriteError(w, err)
+		return
+	}
+
+	helper.WriteSuccessWithPagination(w, users, nextCursor, hasNext)
+}

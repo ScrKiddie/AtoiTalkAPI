@@ -13,6 +13,16 @@ type ResponseError struct {
 	Error string `json:"error"`
 }
 
+type PaginationMeta struct {
+	NextCursor string `json:"next_cursor,omitempty"`
+	HasNext    bool   `json:"has_next"`
+}
+
+type ResponseWithPagination struct {
+	Data interface{}    `json:"data"`
+	Meta PaginationMeta `json:"meta"`
+}
+
 func WriteJSON(w http.ResponseWriter, code int, payload interface{}) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(code)
@@ -25,6 +35,16 @@ func WriteSuccess(w http.ResponseWriter, data interface{}) {
 	}
 	WriteJSON(w, http.StatusOK, ResponseSuccess{
 		Data: data,
+	})
+}
+
+func WriteSuccessWithPagination(w http.ResponseWriter, data interface{}, nextCursor string, hasNext bool) {
+	WriteJSON(w, http.StatusOK, ResponseWithPagination{
+		Data: data,
+		Meta: PaginationMeta{
+			NextCursor: nextCursor,
+			HasNext:    hasNext,
+		},
 	})
 }
 

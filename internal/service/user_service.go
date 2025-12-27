@@ -164,3 +164,87 @@ func (s *UserService) UpdateProfile(ctx context.Context, userID int, req model.U
 		HasPassword: updatedUser.PasswordHash != nil,
 	}, nil
 }
+
+func (s *UserService) SearchUsers(ctx context.Context, req model.SearchUserRequest) ([]model.UserDTO, string, bool, error) {
+	if err := s.validator.Struct(req); err != nil {
+		return nil, "", false, helper.NewBadRequestError("")
+	}
+
+	if req.Limit == 0 {
+		req.Limit = 10
+	}
+
+	query := s.client.User.Query()
+
+	if req.Query != "" {
+		query = query.Where(
+			user.Or(
+				user.FullNameContainsFold(req.Query),
+				user.EmailContainsFold(req.Query),
+			),
+		)
+	}
+
+	delimiter := "|||"
+
+	if req.Cursor != "" {
+		cursorName, cursorID, err := helper.DecodeCursor(req.Cursor, delimiter)
+		if err != nil {
+			return nil, "", false, helper.NewBadRequestError("")
+		}
+
+		query = query.Where(
+			user.Or(
+				user.FullNameGT(cursorName),
+				user.And(
+					user.FullNameEQ(cursorName),
+					user.IDGT(cursorID),
+				),
+			),
+		)
+	}
+
+	query = query.Order(ent.Asc(user.FieldFullName), ent.Asc(user.FieldID)).
+		Limit(req.Limit + 1).
+		WithAvatar()
+
+	users, err := query.All(ctx)
+	if err != nil {
+		slog.Error("Failed to search users", "error", err)
+		return nil, "", false, helper.NewInternalServerError("")
+	}
+
+	hasNext := false
+	var nextCursor string
+
+	if len(users) > req.Limit {
+		hasNext = true
+		users = users[:req.Limit]
+		lastUser := users[len(users)-1]
+
+		nextCursor = helper.EncodeCursor(lastUser.FullName, lastUser.ID, delimiter)
+	}
+
+	userDTOs := make([]model.UserDTO, len(users))
+	for i, u := range users {
+		avatarURL := ""
+		if u.Edges.Avatar != nil {
+			avatarURL = helper.BuildImageURL(s.cfg.StorageMode, s.cfg.AppURL, s.cfg.StorageCDNURL, s.cfg.StorageProfile, u.Edges.Avatar.FileName)
+		}
+		bio := ""
+		if u.Bio != nil {
+			bio = *u.Bio
+		}
+
+		userDTOs[i] = model.UserDTO{
+			ID:          u.ID,
+			Email:       u.Email,
+			FullName:    u.FullName,
+			Avatar:      avatarURL,
+			Bio:         bio,
+			HasPassword: u.PasswordHash != nil,
+		}
+	}
+
+	return userDTOs, nextCursor, hasNext, nil
+}

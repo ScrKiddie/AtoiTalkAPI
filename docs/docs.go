@@ -660,9 +660,101 @@ const docTemplate = `{
                     }
                 }
             }
+        },
+        "/api/users": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Search users by name or email with cursor-based pagination.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "user"
+                ],
+                "summary": "Search Users",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Search query (name or email)",
+                        "name": "query",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Pagination cursor",
+                        "name": "cursor",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Number of items per page (default 10, max 50)",
+                        "name": "limit",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/helper.ResponseWithPagination"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/definitions/model.UserDTO"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    }
+                }
+            }
         }
     },
     "definitions": {
+        "helper.PaginationMeta": {
+            "type": "object",
+            "properties": {
+                "has_next": {
+                    "type": "boolean"
+                },
+                "next_cursor": {
+                    "type": "string"
+                }
+            }
+        },
         "helper.ResponseError": {
             "type": "object",
             "properties": {
@@ -675,6 +767,15 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "data": {}
+            }
+        },
+        "helper.ResponseWithPagination": {
+            "type": "object",
+            "properties": {
+                "data": {},
+                "meta": {
+                    "$ref": "#/definitions/helper.PaginationMeta"
+                }
             }
         },
         "model.AuthResponse": {
