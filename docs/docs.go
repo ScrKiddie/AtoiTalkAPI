@@ -379,6 +379,87 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/chats": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Get a paginated list of user's chats, sorted by last message time. Can be searched.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "chat"
+                ],
+                "summary": "Get Chat List",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Search query for chat name",
+                        "name": "query",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Pagination cursor",
+                        "name": "cursor",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Number of items per page (default 20, max 50)",
+                        "name": "limit",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/helper.ResponseWithPagination"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/definitions/model.ChatListResponse"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    }
+                }
+            }
+        },
         "/api/chats/private": {
             "post": {
                 "security": [
@@ -425,6 +506,67 @@ const docTemplate = `{
                                     }
                                 }
                             ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/chats/{id}/read": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Mark all messages in a chat as read for the current user.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "chat"
+                ],
+                "summary": "Mark Chat as Read",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Chat ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseSuccess"
                         }
                     },
                     "400": {
@@ -972,6 +1114,35 @@ const docTemplate = `{
                 }
             }
         },
+        "model.ChatListResponse": {
+            "type": "object",
+            "properties": {
+                "avatar": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "is_pinned": {
+                    "type": "boolean"
+                },
+                "last_message": {
+                    "$ref": "#/definitions/model.MessageResponse"
+                },
+                "last_read_at": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "type": {
+                    "type": "string"
+                },
+                "unread_count": {
+                    "type": "integer"
+                }
+            }
+        },
         "model.ChatResponse": {
             "type": "object",
             "properties": {
@@ -1073,8 +1244,8 @@ const docTemplate = `{
                 "id": {
                     "type": "integer"
                 },
-                "is_read": {
-                    "type": "boolean"
+                "reply_to": {
+                    "$ref": "#/definitions/model.ReplyPreviewDTO"
                 },
                 "sender_id": {
                     "type": "integer"
@@ -1109,6 +1280,20 @@ const docTemplate = `{
                     "type": "string",
                     "maxLength": 72,
                     "minLength": 8
+                }
+            }
+        },
+        "model.ReplyPreviewDTO": {
+            "type": "object",
+            "properties": {
+                "content": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "sender_name": {
+                    "type": "string"
                 }
             }
         },
@@ -1159,6 +1344,9 @@ const docTemplate = `{
                 },
                 "content": {
                     "type": "string"
+                },
+                "reply_to_id": {
+                    "type": "integer"
                 },
                 "type": {
                     "type": "string",

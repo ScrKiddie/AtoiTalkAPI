@@ -29,6 +29,8 @@ type GroupMember struct {
 	LastReadAt *time.Time `json:"last_read_at,omitempty"`
 	// JoinedAt holds the value of the "joined_at" field.
 	JoinedAt time.Time `json:"joined_at,omitempty"`
+	// UnreadCount holds the value of the "unread_count" field.
+	UnreadCount int `json:"unread_count,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the GroupMemberQuery when eager-loading is set.
 	Edges        GroupMemberEdges `json:"edges"`
@@ -73,7 +75,7 @@ func (*GroupMember) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case groupmember.FieldID, groupmember.FieldGroupChatID, groupmember.FieldUserID:
+		case groupmember.FieldID, groupmember.FieldGroupChatID, groupmember.FieldUserID, groupmember.FieldUnreadCount:
 			values[i] = new(sql.NullInt64)
 		case groupmember.FieldRole:
 			values[i] = new(sql.NullString)
@@ -130,6 +132,12 @@ func (_m *GroupMember) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field joined_at", values[i])
 			} else if value.Valid {
 				_m.JoinedAt = value.Time
+			}
+		case groupmember.FieldUnreadCount:
+			if value, ok := values[i].(*sql.NullInt64); !ok {
+				return fmt.Errorf("unexpected type %T for field unread_count", values[i])
+			} else if value.Valid {
+				_m.UnreadCount = int(value.Int64)
 			}
 		default:
 			_m.selectValues.Set(columns[i], values[i])
@@ -193,6 +201,9 @@ func (_m *GroupMember) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("joined_at=")
 	builder.WriteString(_m.JoinedAt.Format(time.ANSIC))
+	builder.WriteString(", ")
+	builder.WriteString("unread_count=")
+	builder.WriteString(fmt.Sprintf("%v", _m.UnreadCount))
 	builder.WriteByte(')')
 	return builder.String()
 }

@@ -52,6 +52,25 @@ definitions:
     - confirm_password
     - new_password
     type: object
+  model.ChatListResponse:
+    properties:
+      avatar:
+        type: string
+      id:
+        type: integer
+      is_pinned:
+        type: boolean
+      last_message:
+        $ref: '#/definitions/model.MessageResponse'
+      last_read_at:
+        type: string
+      name:
+        type: string
+      type:
+        type: string
+      unread_count:
+        type: integer
+    type: object
   model.ChatResponse:
     properties:
       created_at:
@@ -119,8 +138,8 @@ definitions:
         type: string
       id:
         type: integer
-      is_read:
-        type: boolean
+      reply_to:
+        $ref: '#/definitions/model.ReplyPreviewDTO'
       sender_id:
         type: integer
     type: object
@@ -146,6 +165,15 @@ definitions:
     - email
     - full_name
     - password
+    type: object
+  model.ReplyPreviewDTO:
+    properties:
+      content:
+        type: string
+      id:
+        type: integer
+      sender_name:
+        type: string
     type: object
   model.ResetPasswordRequest:
     properties:
@@ -178,6 +206,8 @@ definitions:
         type: integer
       content:
         type: string
+      reply_to_id:
+        type: integer
       type:
         enum:
         - text
@@ -450,6 +480,95 @@ paths:
       summary: Reset Password
       tags:
       - auth
+  /api/chats:
+    get:
+      consumes:
+      - application/json
+      description: Get a paginated list of user's chats, sorted by last message time.
+        Can be searched.
+      parameters:
+      - description: Search query for chat name
+        in: query
+        name: query
+        type: string
+      - description: Pagination cursor
+        in: query
+        name: cursor
+        type: string
+      - description: Number of items per page (default 20, max 50)
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/helper.ResponseWithPagination'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/model.ChatListResponse'
+                  type: array
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
+      security:
+      - BearerAuth: []
+      summary: Get Chat List
+      tags:
+      - chat
+  /api/chats/{id}/read:
+    post:
+      consumes:
+      - application/json
+      description: Mark all messages in a chat as read for the current user.
+      parameters:
+      - description: Chat ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/helper.ResponseSuccess'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
+      security:
+      - BearerAuth: []
+      summary: Mark Chat as Read
+      tags:
+      - chat
   /api/chats/private:
     post:
       consumes:

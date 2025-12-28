@@ -27,6 +27,10 @@ const (
 	FieldUser1HiddenAt = "user1_hidden_at"
 	// FieldUser2HiddenAt holds the string denoting the user2_hidden_at field in the database.
 	FieldUser2HiddenAt = "user2_hidden_at"
+	// FieldUser1UnreadCount holds the string denoting the user1_unread_count field in the database.
+	FieldUser1UnreadCount = "user1_unread_count"
+	// FieldUser2UnreadCount holds the string denoting the user2_unread_count field in the database.
+	FieldUser2UnreadCount = "user2_unread_count"
 	// EdgeChat holds the string denoting the chat edge name in mutations.
 	EdgeChat = "chat"
 	// EdgeUser1 holds the string denoting the user1 edge name in mutations.
@@ -68,6 +72,8 @@ var Columns = []string{
 	FieldUser2LastReadAt,
 	FieldUser1HiddenAt,
 	FieldUser2HiddenAt,
+	FieldUser1UnreadCount,
+	FieldUser2UnreadCount,
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
@@ -87,6 +93,10 @@ func ValidColumn(column string) bool {
 //	import _ "AtoiTalkAPI/ent/runtime"
 var (
 	Hooks [1]ent.Hook
+	// DefaultUser1UnreadCount holds the default value on creation for the "user1_unread_count" field.
+	DefaultUser1UnreadCount int
+	// DefaultUser2UnreadCount holds the default value on creation for the "user2_unread_count" field.
+	DefaultUser2UnreadCount int
 )
 
 // OrderOption defines the ordering options for the PrivateChat queries.
@@ -130,6 +140,16 @@ func ByUser1HiddenAt(opts ...sql.OrderTermOption) OrderOption {
 // ByUser2HiddenAt orders the results by the user2_hidden_at field.
 func ByUser2HiddenAt(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldUser2HiddenAt, opts...).ToFunc()
+}
+
+// ByUser1UnreadCount orders the results by the user1_unread_count field.
+func ByUser1UnreadCount(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldUser1UnreadCount, opts...).ToFunc()
+}
+
+// ByUser2UnreadCount orders the results by the user2_unread_count field.
+func ByUser2UnreadCount(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldUser2UnreadCount, opts...).ToFunc()
 }
 
 // ByChatField orders the results by chat field.

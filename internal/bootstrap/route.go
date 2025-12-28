@@ -80,7 +80,11 @@ func (route *Route) Register() {
 			r.Get("/users", route.userController.SearchUsers)
 			r.Put("/account/password", route.accountController.ChangePassword)
 			r.Put("/account/email", route.accountController.ChangeEmail)
+			
+			r.Get("/chats", route.chatController.GetChats)
 			r.Post("/chats/private", route.chatController.CreatePrivateChat)
+			r.Post("/chats/{id}/read", route.chatController.MarkAsRead)
+
 			r.Post("/messages", route.messageController.SendMessage)
 			r.Post("/media/upload", route.mediaController.UploadMedia)
 		})

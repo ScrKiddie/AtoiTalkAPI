@@ -25,6 +25,8 @@ const (
 	FieldLastReadAt = "last_read_at"
 	// FieldJoinedAt holds the string denoting the joined_at field in the database.
 	FieldJoinedAt = "joined_at"
+	// FieldUnreadCount holds the string denoting the unread_count field in the database.
+	FieldUnreadCount = "unread_count"
 	// EdgeGroupChat holds the string denoting the group_chat edge name in mutations.
 	EdgeGroupChat = "group_chat"
 	// EdgeUser holds the string denoting the user edge name in mutations.
@@ -55,6 +57,7 @@ var Columns = []string{
 	FieldRole,
 	FieldLastReadAt,
 	FieldJoinedAt,
+	FieldUnreadCount,
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
@@ -70,6 +73,8 @@ func ValidColumn(column string) bool {
 var (
 	// DefaultJoinedAt holds the default value on creation for the "joined_at" field.
 	DefaultJoinedAt func() time.Time
+	// DefaultUnreadCount holds the default value on creation for the "unread_count" field.
+	DefaultUnreadCount int
 )
 
 // Role defines the type for the "role" enum field.
@@ -129,6 +134,11 @@ func ByLastReadAt(opts ...sql.OrderTermOption) OrderOption {
 // ByJoinedAt orders the results by the joined_at field.
 func ByJoinedAt(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldJoinedAt, opts...).ToFunc()
+}
+
+// ByUnreadCount orders the results by the unread_count field.
+func ByUnreadCount(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldUnreadCount, opts...).ToFunc()
 }
 
 // ByGroupChatField orders the results by group_chat field.

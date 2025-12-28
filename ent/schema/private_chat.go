@@ -23,6 +23,8 @@ func (PrivateChat) Fields() []ent.Field {
 		field.Time("user2_last_read_at").Optional().Nillable(),
 		field.Time("user1_hidden_at").Optional().Nillable(),
 		field.Time("user2_hidden_at").Optional().Nillable(),
+		field.Int("user1_unread_count").Default(0),
+		field.Int("user2_unread_count").Default(0),
 	}
 }
 
