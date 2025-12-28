@@ -34,8 +34,14 @@ func Init(appConfig *config.AppConfig, client *ent.Client, validator *validator.
 	chatService := service.NewChatService(client, appConfig, validator)
 	chatController := controller.NewChatController(chatService)
 
+	messageService := service.NewMessageService(client, appConfig, validator, storageAdapter)
+	messageController := controller.NewMessageController(messageService)
+
+	mediaService := service.NewMediaService(client, appConfig, validator, storageAdapter)
+	mediaController := controller.NewMediaController(mediaService)
+
 	authMiddleware := middleware.NewAuthMiddleware(authService)
 
-	route := NewRoute(appConfig, chiMux, authController, otpController, userController, accountController, chatController, authMiddleware)
+	route := NewRoute(appConfig, chiMux, authController, otpController, userController, accountController, chatController, messageController, mediaController, authMiddleware)
 	route.Register()
 }

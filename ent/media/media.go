@@ -3,6 +3,7 @@
 package media
 
 import (
+	"fmt"
 	"time"
 
 	"entgo.io/ent/dialect/sql"
@@ -26,6 +27,8 @@ const (
 	FieldFileSize = "file_size"
 	// FieldMimeType holds the string denoting the mime_type field in the database.
 	FieldMimeType = "mime_type"
+	// FieldStatus holds the string denoting the status field in the database.
+	FieldStatus = "status"
 	// FieldMessageID holds the string denoting the message_id field in the database.
 	FieldMessageID = "message_id"
 	// EdgeMessage holds the string denoting the message edge name in mutations.
@@ -68,6 +71,7 @@ var Columns = []string{
 	FieldOriginalName,
 	FieldFileSize,
 	FieldMimeType,
+	FieldStatus,
 	FieldMessageID,
 }
 
@@ -97,6 +101,33 @@ var (
 	// MimeTypeValidator is a validator for the "mime_type" field. It is called by the builders before save.
 	MimeTypeValidator func(string) error
 )
+
+// Status defines the type for the "status" enum field.
+type Status string
+
+// StatusPending is the default value of the Status enum.
+const DefaultStatus = StatusPending
+
+// Status values.
+const (
+	StatusPending Status = "pending"
+	StatusActive  Status = "active"
+	StatusFailed  Status = "failed"
+)
+
+func (s Status) String() string {
+	return string(s)
+}
+
+// StatusValidator is a validator for the "status" field enum values. It is called by the builders before save.
+func StatusValidator(s Status) error {
+	switch s {
+	case StatusPending, StatusActive, StatusFailed:
+		return nil
+	default:
+		return fmt.Errorf("media: invalid enum value for status field: %q", s)
+	}
+}
 
 // OrderOption defines the ordering options for the Media queries.
 type OrderOption func(*sql.Selector)
@@ -134,6 +165,11 @@ func ByFileSize(opts ...sql.OrderTermOption) OrderOption {
 // ByMimeType orders the results by the mime_type field.
 func ByMimeType(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldMimeType, opts...).ToFunc()
+}
+
+// ByStatus orders the results by the status field.
+func ByStatus(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldStatus, opts...).ToFunc()
 }
 
 // ByMessageID orders the results by the message_id field.

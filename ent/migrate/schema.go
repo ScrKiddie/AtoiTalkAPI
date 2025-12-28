@@ -111,6 +111,7 @@ var (
 		{Name: "original_name", Type: field.TypeString, Size: 255},
 		{Name: "file_size", Type: field.TypeInt64},
 		{Name: "mime_type", Type: field.TypeString, Size: 100},
+		{Name: "status", Type: field.TypeEnum, Enums: []string{"pending", "active", "failed"}, Default: "pending"},
 		{Name: "message_id", Type: field.TypeInt, Nullable: true},
 	}
 	// MediaTable holds the schema information for the "media" table.
@@ -121,7 +122,7 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "media_messages_attachments",
-				Columns:    []*schema.Column{MediaColumns[7]},
+				Columns:    []*schema.Column{MediaColumns[8]},
 				RefColumns: []*schema.Column{MessagesColumns[0]},
 				OnDelete:   schema.Cascade,
 			},

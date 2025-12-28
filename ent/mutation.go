@@ -2323,6 +2323,7 @@ type MediaMutation struct {
 	file_size           *int64
 	addfile_size        *int64
 	mime_type           *string
+	status              *media.Status
 	clearedFields       map[string]struct{}
 	message             *int
 	clearedmessage      bool
@@ -2669,6 +2670,42 @@ func (m *MediaMutation) ResetMimeType() {
 	m.mime_type = nil
 }
 
+// SetStatus sets the "status" field.
+func (m *MediaMutation) SetStatus(value media.Status) {
+	m.status = &value
+}
+
+// Status returns the value of the "status" field in the mutation.
+func (m *MediaMutation) Status() (r media.Status, exists bool) {
+	v := m.status
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldStatus returns the old "status" field's value of the Media entity.
+// If the Media object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *MediaMutation) OldStatus(ctx context.Context) (v media.Status, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldStatus is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldStatus requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldStatus: %w", err)
+	}
+	return oldValue.Status, nil
+}
+
+// ResetStatus resets all changes to the "status" field.
+func (m *MediaMutation) ResetStatus() {
+	m.status = nil
+}
+
 // SetMessageID sets the "message_id" field.
 func (m *MediaMutation) SetMessageID(i int) {
 	m.message = &i
@@ -2857,7 +2894,7 @@ func (m *MediaMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *MediaMutation) Fields() []string {
-	fields := make([]string, 0, 7)
+	fields := make([]string, 0, 8)
 	if m.created_at != nil {
 		fields = append(fields, media.FieldCreatedAt)
 	}
@@ -2875,6 +2912,9 @@ func (m *MediaMutation) Fields() []string {
 	}
 	if m.mime_type != nil {
 		fields = append(fields, media.FieldMimeType)
+	}
+	if m.status != nil {
+		fields = append(fields, media.FieldStatus)
 	}
 	if m.message != nil {
 		fields = append(fields, media.FieldMessageID)
@@ -2899,6 +2939,8 @@ func (m *MediaMutation) Field(name string) (ent.Value, bool) {
 		return m.FileSize()
 	case media.FieldMimeType:
 		return m.MimeType()
+	case media.FieldStatus:
+		return m.Status()
 	case media.FieldMessageID:
 		return m.MessageID()
 	}
@@ -2922,6 +2964,8 @@ func (m *MediaMutation) OldField(ctx context.Context, name string) (ent.Value, e
 		return m.OldFileSize(ctx)
 	case media.FieldMimeType:
 		return m.OldMimeType(ctx)
+	case media.FieldStatus:
+		return m.OldStatus(ctx)
 	case media.FieldMessageID:
 		return m.OldMessageID(ctx)
 	}
@@ -2974,6 +3018,13 @@ func (m *MediaMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetMimeType(v)
+		return nil
+	case media.FieldStatus:
+		v, ok := value.(media.Status)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetStatus(v)
 		return nil
 	case media.FieldMessageID:
 		v, ok := value.(int)
@@ -3072,6 +3123,9 @@ func (m *MediaMutation) ResetField(name string) error {
 		return nil
 	case media.FieldMimeType:
 		m.ResetMimeType()
+		return nil
+	case media.FieldStatus:
+		m.ResetStatus()
 		return nil
 	case media.FieldMessageID:
 		m.ResetMessageID()

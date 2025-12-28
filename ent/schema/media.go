@@ -18,6 +18,7 @@ func (Media) Fields() []ent.Field {
 		field.String("original_name").MaxLen(255).NotEmpty(),
 		field.Int64("file_size").Positive(),
 		field.String("mime_type").MaxLen(100).NotEmpty(),
+		field.Enum("status").Values("pending", "active", "failed").Default("pending"),
 		field.Int("message_id").Optional().Nillable(),
 	}
 }

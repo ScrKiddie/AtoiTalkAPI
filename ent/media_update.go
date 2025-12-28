@@ -100,6 +100,20 @@ func (_u *MediaUpdate) SetNillableMimeType(v *string) *MediaUpdate {
 	return _u
 }
 
+// SetStatus sets the "status" field.
+func (_u *MediaUpdate) SetStatus(v media.Status) *MediaUpdate {
+	_u.mutation.SetStatus(v)
+	return _u
+}
+
+// SetNillableStatus sets the "status" field if the given value is not nil.
+func (_u *MediaUpdate) SetNillableStatus(v *media.Status) *MediaUpdate {
+	if v != nil {
+		_u.SetStatus(*v)
+	}
+	return _u
+}
+
 // SetMessageID sets the "message_id" field.
 func (_u *MediaUpdate) SetMessageID(v int) *MediaUpdate {
 	_u.mutation.SetMessageID(v)
@@ -244,6 +258,11 @@ func (_u *MediaUpdate) check() error {
 			return &ValidationError{Name: "mime_type", err: fmt.Errorf(`ent: validator failed for field "Media.mime_type": %w`, err)}
 		}
 	}
+	if v, ok := _u.mutation.Status(); ok {
+		if err := media.StatusValidator(v); err != nil {
+			return &ValidationError{Name: "status", err: fmt.Errorf(`ent: validator failed for field "Media.status": %w`, err)}
+		}
+	}
 	return nil
 }
 
@@ -276,6 +295,9 @@ func (_u *MediaUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	}
 	if value, ok := _u.mutation.MimeType(); ok {
 		_spec.SetField(media.FieldMimeType, field.TypeString, value)
+	}
+	if value, ok := _u.mutation.Status(); ok {
+		_spec.SetField(media.FieldStatus, field.TypeEnum, value)
 	}
 	if _u.mutation.MessageCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -453,6 +475,20 @@ func (_u *MediaUpdateOne) SetNillableMimeType(v *string) *MediaUpdateOne {
 	return _u
 }
 
+// SetStatus sets the "status" field.
+func (_u *MediaUpdateOne) SetStatus(v media.Status) *MediaUpdateOne {
+	_u.mutation.SetStatus(v)
+	return _u
+}
+
+// SetNillableStatus sets the "status" field if the given value is not nil.
+func (_u *MediaUpdateOne) SetNillableStatus(v *media.Status) *MediaUpdateOne {
+	if v != nil {
+		_u.SetStatus(*v)
+	}
+	return _u
+}
+
 // SetMessageID sets the "message_id" field.
 func (_u *MediaUpdateOne) SetMessageID(v int) *MediaUpdateOne {
 	_u.mutation.SetMessageID(v)
@@ -610,6 +646,11 @@ func (_u *MediaUpdateOne) check() error {
 			return &ValidationError{Name: "mime_type", err: fmt.Errorf(`ent: validator failed for field "Media.mime_type": %w`, err)}
 		}
 	}
+	if v, ok := _u.mutation.Status(); ok {
+		if err := media.StatusValidator(v); err != nil {
+			return &ValidationError{Name: "status", err: fmt.Errorf(`ent: validator failed for field "Media.status": %w`, err)}
+		}
+	}
 	return nil
 }
 
@@ -659,6 +700,9 @@ func (_u *MediaUpdateOne) sqlSave(ctx context.Context) (_node *Media, err error)
 	}
 	if value, ok := _u.mutation.MimeType(); ok {
 		_spec.SetField(media.FieldMimeType, field.TypeString, value)
+	}
+	if value, ok := _u.mutation.Status(); ok {
+		_spec.SetField(media.FieldStatus, field.TypeEnum, value)
 	}
 	if _u.mutation.MessageCleared() {
 		edge := &sqlgraph.EdgeSpec{
