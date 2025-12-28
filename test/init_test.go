@@ -111,9 +111,15 @@ func TestMain(m *testing.M) {
 	chatService := service.NewChatService(testClient, testConfig, validator)
 	chatController := controller.NewChatController(chatService)
 
+	messageService := service.NewMessageService(testClient, testConfig, validator, storageAdapter)
+	messageController := controller.NewMessageController(messageService)
+
+	mediaService := service.NewMediaService(testClient, testConfig, validator, storageAdapter)
+	mediaController := controller.NewMediaController(mediaService)
+
 	authMiddleware := middleware.NewAuthMiddleware(authService)
 
-	route := bootstrap.NewRoute(testConfig, testRouter, authController, otpController, userController, accountController, chatController, authMiddleware)
+	route := bootstrap.NewRoute(testConfig, testRouter, authController, otpController, userController, accountController, chatController, messageController, mediaController, authMiddleware)
 	route.Register()
 
 	code := m.Run()
@@ -130,7 +136,11 @@ func executeRequest(req *http.Request) *httptest.ResponseRecorder {
 }
 
 func clearDatabase(ctx context.Context) {
+
+	testClient.Message.Delete().Exec(ctx)
 	testClient.PrivateChat.Delete().Exec(ctx)
+	testClient.GroupMember.Delete().Exec(ctx)
+	testClient.GroupChat.Delete().Exec(ctx)
 	testClient.Chat.Delete().Exec(ctx)
 	testClient.Media.Delete().Exec(ctx)
 	testClient.User.Delete().Exec(ctx)

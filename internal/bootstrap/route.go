@@ -20,10 +20,12 @@ type Route struct {
 	userController    *controller.UserController
 	accountController *controller.AccountController
 	chatController    *controller.ChatController
+	messageController *controller.MessageController
+	mediaController   *controller.MediaController
 	authMiddleware    *middleware.AuthMiddleware
 }
 
-func NewRoute(cfg *config.AppConfig, chi *chi.Mux, authController *controller.AuthController, otpController *controller.OTPController, userController *controller.UserController, accountController *controller.AccountController, chatController *controller.ChatController, authMiddleware *middleware.AuthMiddleware) *Route {
+func NewRoute(cfg *config.AppConfig, chi *chi.Mux, authController *controller.AuthController, otpController *controller.OTPController, userController *controller.UserController, accountController *controller.AccountController, chatController *controller.ChatController, messageController *controller.MessageController, mediaController *controller.MediaController, authMiddleware *middleware.AuthMiddleware) *Route {
 	return &Route{
 		cfg:               cfg,
 		chi:               chi,
@@ -32,6 +34,8 @@ func NewRoute(cfg *config.AppConfig, chi *chi.Mux, authController *controller.Au
 		userController:    userController,
 		accountController: accountController,
 		chatController:    chatController,
+		messageController: messageController,
+		mediaController:   mediaController,
 		authMiddleware:    authMiddleware,
 	}
 }
@@ -77,6 +81,8 @@ func (route *Route) Register() {
 			r.Put("/account/password", route.accountController.ChangePassword)
 			r.Put("/account/email", route.accountController.ChangeEmail)
 			r.Post("/chats/private", route.chatController.CreatePrivateChat)
+			r.Post("/messages", route.messageController.SendMessage)
+			r.Post("/media/upload", route.mediaController.UploadMedia)
 		})
 	})
 }

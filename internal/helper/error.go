@@ -7,6 +7,7 @@ const (
 	MsgBadRequest          = "Bad Request"
 	MsgNotFound            = "Not Found"
 	MsgUnauthorized        = "Unauthorized"
+	MsgForbidden           = "Forbidden"
 	MsgMethodNotAllowed    = "Method Not Allowed"
 	MsgTooManyRequests     = "Too Many Requests"
 	MsgConflict            = "Conflict"
@@ -54,6 +55,13 @@ func NewUnauthorizedError(message string) *AppError {
 		message = MsgUnauthorized
 	}
 	return NewAppError(http.StatusUnauthorized, message)
+}
+
+func NewForbiddenError(message string) *AppError {
+	if message == "" {
+		message = MsgForbidden
+	}
+	return NewAppError(http.StatusForbidden, message)
 }
 
 func NewMethodNotAllowedError(message string) *AppError {

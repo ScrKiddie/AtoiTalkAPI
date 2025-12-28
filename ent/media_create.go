@@ -75,6 +75,20 @@ func (_c *MediaCreate) SetMimeType(v string) *MediaCreate {
 	return _c
 }
 
+// SetStatus sets the "status" field.
+func (_c *MediaCreate) SetStatus(v media.Status) *MediaCreate {
+	_c.mutation.SetStatus(v)
+	return _c
+}
+
+// SetNillableStatus sets the "status" field if the given value is not nil.
+func (_c *MediaCreate) SetNillableStatus(v *media.Status) *MediaCreate {
+	if v != nil {
+		_c.SetStatus(*v)
+	}
+	return _c
+}
+
 // SetMessageID sets the "message_id" field.
 func (_c *MediaCreate) SetMessageID(v int) *MediaCreate {
 	_c.mutation.SetMessageID(v)
@@ -175,6 +189,10 @@ func (_c *MediaCreate) defaults() {
 		v := media.DefaultUpdatedAt()
 		_c.mutation.SetUpdatedAt(v)
 	}
+	if _, ok := _c.mutation.Status(); !ok {
+		v := media.DefaultStatus
+		_c.mutation.SetStatus(v)
+	}
 }
 
 // check runs all checks and user-defined validators on the builder.
@@ -215,6 +233,14 @@ func (_c *MediaCreate) check() error {
 	if v, ok := _c.mutation.MimeType(); ok {
 		if err := media.MimeTypeValidator(v); err != nil {
 			return &ValidationError{Name: "mime_type", err: fmt.Errorf(`ent: validator failed for field "Media.mime_type": %w`, err)}
+		}
+	}
+	if _, ok := _c.mutation.Status(); !ok {
+		return &ValidationError{Name: "status", err: errors.New(`ent: missing required field "Media.status"`)}
+	}
+	if v, ok := _c.mutation.Status(); ok {
+		if err := media.StatusValidator(v); err != nil {
+			return &ValidationError{Name: "status", err: fmt.Errorf(`ent: validator failed for field "Media.status": %w`, err)}
 		}
 	}
 	return nil
@@ -266,6 +292,10 @@ func (_c *MediaCreate) createSpec() (*Media, *sqlgraph.CreateSpec) {
 	if value, ok := _c.mutation.MimeType(); ok {
 		_spec.SetField(media.FieldMimeType, field.TypeString, value)
 		_node.MimeType = value
+	}
+	if value, ok := _c.mutation.Status(); ok {
+		_spec.SetField(media.FieldStatus, field.TypeEnum, value)
+		_node.Status = value
 	}
 	if nodes := _c.mutation.MessageIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{

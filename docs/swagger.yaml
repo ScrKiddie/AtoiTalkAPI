@@ -90,6 +90,40 @@ definitions:
     - email
     - password
     type: object
+  model.MediaDTO:
+    properties:
+      file_name:
+        type: string
+      file_size:
+        type: integer
+      id:
+        type: integer
+      mime_type:
+        type: string
+      original_name:
+        type: string
+      url:
+        type: string
+    type: object
+  model.MessageResponse:
+    properties:
+      attachments:
+        items:
+          $ref: '#/definitions/model.MediaDTO'
+        type: array
+      chat_id:
+        type: integer
+      content:
+        type: string
+      created_at:
+        type: string
+      id:
+        type: integer
+      is_read:
+        type: boolean
+      sender_id:
+        type: integer
+    type: object
   model.RegisterUserRequest:
     properties:
       captcha_token:
@@ -133,6 +167,28 @@ definitions:
     - confirm_password
     - email
     - password
+    type: object
+  model.SendMessageRequest:
+    properties:
+      attachment_ids:
+        items:
+          type: integer
+        type: array
+      chat_id:
+        type: integer
+      content:
+        type: string
+      type:
+        enum:
+        - text
+        - image
+        - video
+        - file
+        - audio
+        type: string
+    required:
+    - chat_id
+    - type
     type: object
   model.SendOTPRequest:
     properties:
@@ -440,6 +496,92 @@ paths:
       summary: Create Private Chat
       tags:
       - chat
+  /api/media/upload:
+    post:
+      consumes:
+      - multipart/form-data
+      description: Upload a file (image, video, file, audio) to be used as attachment.
+      parameters:
+      - description: File to upload
+        in: formData
+        name: file
+        required: true
+        type: file
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/helper.ResponseSuccess'
+            - properties:
+                data:
+                  $ref: '#/definitions/model.MediaDTO'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
+      security:
+      - BearerAuth: []
+      summary: Upload Media
+      tags:
+      - media
+  /api/messages:
+    post:
+      consumes:
+      - application/json
+      description: Send a message to a chat (private or group). Supports text and
+        attachments (via IDs).
+      parameters:
+      - description: Send Message Request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.SendMessageRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/helper.ResponseSuccess'
+            - properties:
+                data:
+                  $ref: '#/definitions/model.MessageResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
+      security:
+      - BearerAuth: []
+      summary: Send Message
+      tags:
+      - message
   /api/otp/send:
     post:
       consumes:
