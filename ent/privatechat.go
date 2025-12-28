@@ -33,6 +33,10 @@ type PrivateChat struct {
 	User1HiddenAt *time.Time `json:"user1_hidden_at,omitempty"`
 	// User2HiddenAt holds the value of the "user2_hidden_at" field.
 	User2HiddenAt *time.Time `json:"user2_hidden_at,omitempty"`
+	// User1UnreadCount holds the value of the "user1_unread_count" field.
+	User1UnreadCount int `json:"user1_unread_count,omitempty"`
+	// User2UnreadCount holds the value of the "user2_unread_count" field.
+	User2UnreadCount int `json:"user2_unread_count,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the PrivateChatQuery when eager-loading is set.
 	Edges        PrivateChatEdges `json:"edges"`
@@ -90,7 +94,7 @@ func (*PrivateChat) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case privatechat.FieldID, privatechat.FieldChatID, privatechat.FieldUser1ID, privatechat.FieldUser2ID:
+		case privatechat.FieldID, privatechat.FieldChatID, privatechat.FieldUser1ID, privatechat.FieldUser2ID, privatechat.FieldUser1UnreadCount, privatechat.FieldUser2UnreadCount:
 			values[i] = new(sql.NullInt64)
 		case privatechat.FieldUser1LastReadAt, privatechat.FieldUser2LastReadAt, privatechat.FieldUser1HiddenAt, privatechat.FieldUser2HiddenAt:
 			values[i] = new(sql.NullTime)
@@ -160,6 +164,18 @@ func (_m *PrivateChat) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				_m.User2HiddenAt = new(time.Time)
 				*_m.User2HiddenAt = value.Time
+			}
+		case privatechat.FieldUser1UnreadCount:
+			if value, ok := values[i].(*sql.NullInt64); !ok {
+				return fmt.Errorf("unexpected type %T for field user1_unread_count", values[i])
+			} else if value.Valid {
+				_m.User1UnreadCount = int(value.Int64)
+			}
+		case privatechat.FieldUser2UnreadCount:
+			if value, ok := values[i].(*sql.NullInt64); !ok {
+				return fmt.Errorf("unexpected type %T for field user2_unread_count", values[i])
+			} else if value.Valid {
+				_m.User2UnreadCount = int(value.Int64)
 			}
 		default:
 			_m.selectValues.Set(columns[i], values[i])
@@ -240,6 +256,12 @@ func (_m *PrivateChat) String() string {
 		builder.WriteString("user2_hidden_at=")
 		builder.WriteString(v.Format(time.ANSIC))
 	}
+	builder.WriteString(", ")
+	builder.WriteString("user1_unread_count=")
+	builder.WriteString(fmt.Sprintf("%v", _m.User1UnreadCount))
+	builder.WriteString(", ")
+	builder.WriteString("user2_unread_count=")
+	builder.WriteString(fmt.Sprintf("%v", _m.User2UnreadCount))
 	builder.WriteByte(')')
 	return builder.String()
 }

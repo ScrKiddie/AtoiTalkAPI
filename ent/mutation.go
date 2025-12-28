@@ -1652,6 +1652,8 @@ type GroupMemberMutation struct {
 	role              *groupmember.Role
 	last_read_at      *time.Time
 	joined_at         *time.Time
+	unread_count      *int
+	addunread_count   *int
 	clearedFields     map[string]struct{}
 	group_chat        *int
 	clearedgroup_chat bool
@@ -1953,6 +1955,62 @@ func (m *GroupMemberMutation) ResetJoinedAt() {
 	m.joined_at = nil
 }
 
+// SetUnreadCount sets the "unread_count" field.
+func (m *GroupMemberMutation) SetUnreadCount(i int) {
+	m.unread_count = &i
+	m.addunread_count = nil
+}
+
+// UnreadCount returns the value of the "unread_count" field in the mutation.
+func (m *GroupMemberMutation) UnreadCount() (r int, exists bool) {
+	v := m.unread_count
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldUnreadCount returns the old "unread_count" field's value of the GroupMember entity.
+// If the GroupMember object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *GroupMemberMutation) OldUnreadCount(ctx context.Context) (v int, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldUnreadCount is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldUnreadCount requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldUnreadCount: %w", err)
+	}
+	return oldValue.UnreadCount, nil
+}
+
+// AddUnreadCount adds i to the "unread_count" field.
+func (m *GroupMemberMutation) AddUnreadCount(i int) {
+	if m.addunread_count != nil {
+		*m.addunread_count += i
+	} else {
+		m.addunread_count = &i
+	}
+}
+
+// AddedUnreadCount returns the value that was added to the "unread_count" field in this mutation.
+func (m *GroupMemberMutation) AddedUnreadCount() (r int, exists bool) {
+	v := m.addunread_count
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetUnreadCount resets all changes to the "unread_count" field.
+func (m *GroupMemberMutation) ResetUnreadCount() {
+	m.unread_count = nil
+	m.addunread_count = nil
+}
+
 // ClearGroupChat clears the "group_chat" edge to the GroupChat entity.
 func (m *GroupMemberMutation) ClearGroupChat() {
 	m.clearedgroup_chat = true
@@ -2041,7 +2099,7 @@ func (m *GroupMemberMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *GroupMemberMutation) Fields() []string {
-	fields := make([]string, 0, 5)
+	fields := make([]string, 0, 6)
 	if m.group_chat != nil {
 		fields = append(fields, groupmember.FieldGroupChatID)
 	}
@@ -2056,6 +2114,9 @@ func (m *GroupMemberMutation) Fields() []string {
 	}
 	if m.joined_at != nil {
 		fields = append(fields, groupmember.FieldJoinedAt)
+	}
+	if m.unread_count != nil {
+		fields = append(fields, groupmember.FieldUnreadCount)
 	}
 	return fields
 }
@@ -2075,6 +2136,8 @@ func (m *GroupMemberMutation) Field(name string) (ent.Value, bool) {
 		return m.LastReadAt()
 	case groupmember.FieldJoinedAt:
 		return m.JoinedAt()
+	case groupmember.FieldUnreadCount:
+		return m.UnreadCount()
 	}
 	return nil, false
 }
@@ -2094,6 +2157,8 @@ func (m *GroupMemberMutation) OldField(ctx context.Context, name string) (ent.Va
 		return m.OldLastReadAt(ctx)
 	case groupmember.FieldJoinedAt:
 		return m.OldJoinedAt(ctx)
+	case groupmember.FieldUnreadCount:
+		return m.OldUnreadCount(ctx)
 	}
 	return nil, fmt.Errorf("unknown GroupMember field %s", name)
 }
@@ -2138,6 +2203,13 @@ func (m *GroupMemberMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetJoinedAt(v)
 		return nil
+	case groupmember.FieldUnreadCount:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetUnreadCount(v)
+		return nil
 	}
 	return fmt.Errorf("unknown GroupMember field %s", name)
 }
@@ -2146,6 +2218,9 @@ func (m *GroupMemberMutation) SetField(name string, value ent.Value) error {
 // this mutation.
 func (m *GroupMemberMutation) AddedFields() []string {
 	var fields []string
+	if m.addunread_count != nil {
+		fields = append(fields, groupmember.FieldUnreadCount)
+	}
 	return fields
 }
 
@@ -2154,6 +2229,8 @@ func (m *GroupMemberMutation) AddedFields() []string {
 // was not set, or was not defined in the schema.
 func (m *GroupMemberMutation) AddedField(name string) (ent.Value, bool) {
 	switch name {
+	case groupmember.FieldUnreadCount:
+		return m.AddedUnreadCount()
 	}
 	return nil, false
 }
@@ -2163,6 +2240,13 @@ func (m *GroupMemberMutation) AddedField(name string) (ent.Value, bool) {
 // type.
 func (m *GroupMemberMutation) AddField(name string, value ent.Value) error {
 	switch name {
+	case groupmember.FieldUnreadCount:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddUnreadCount(v)
+		return nil
 	}
 	return fmt.Errorf("unknown GroupMember numeric field %s", name)
 }
@@ -2213,6 +2297,9 @@ func (m *GroupMemberMutation) ResetField(name string) error {
 		return nil
 	case groupmember.FieldJoinedAt:
 		m.ResetJoinedAt()
+		return nil
+	case groupmember.FieldUnreadCount:
+		m.ResetUnreadCount()
 		return nil
 	}
 	return fmt.Errorf("unknown GroupMember field %s", name)
@@ -5007,23 +5094,27 @@ func (m *OTPMutation) ResetEdge(name string) error {
 // PrivateChatMutation represents an operation that mutates the PrivateChat nodes in the graph.
 type PrivateChatMutation struct {
 	config
-	op                 Op
-	typ                string
-	id                 *int
-	user1_last_read_at *time.Time
-	user2_last_read_at *time.Time
-	user1_hidden_at    *time.Time
-	user2_hidden_at    *time.Time
-	clearedFields      map[string]struct{}
-	chat               *int
-	clearedchat        bool
-	user1              *int
-	cleareduser1       bool
-	user2              *int
-	cleareduser2       bool
-	done               bool
-	oldValue           func(context.Context) (*PrivateChat, error)
-	predicates         []predicate.PrivateChat
+	op                    Op
+	typ                   string
+	id                    *int
+	user1_last_read_at    *time.Time
+	user2_last_read_at    *time.Time
+	user1_hidden_at       *time.Time
+	user2_hidden_at       *time.Time
+	user1_unread_count    *int
+	adduser1_unread_count *int
+	user2_unread_count    *int
+	adduser2_unread_count *int
+	clearedFields         map[string]struct{}
+	chat                  *int
+	clearedchat           bool
+	user1                 *int
+	cleareduser1          bool
+	user2                 *int
+	cleareduser2          bool
+	done                  bool
+	oldValue              func(context.Context) (*PrivateChat, error)
+	predicates            []predicate.PrivateChat
 }
 
 var _ ent.Mutation = (*PrivateChatMutation)(nil)
@@ -5428,6 +5519,118 @@ func (m *PrivateChatMutation) ResetUser2HiddenAt() {
 	delete(m.clearedFields, privatechat.FieldUser2HiddenAt)
 }
 
+// SetUser1UnreadCount sets the "user1_unread_count" field.
+func (m *PrivateChatMutation) SetUser1UnreadCount(i int) {
+	m.user1_unread_count = &i
+	m.adduser1_unread_count = nil
+}
+
+// User1UnreadCount returns the value of the "user1_unread_count" field in the mutation.
+func (m *PrivateChatMutation) User1UnreadCount() (r int, exists bool) {
+	v := m.user1_unread_count
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldUser1UnreadCount returns the old "user1_unread_count" field's value of the PrivateChat entity.
+// If the PrivateChat object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PrivateChatMutation) OldUser1UnreadCount(ctx context.Context) (v int, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldUser1UnreadCount is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldUser1UnreadCount requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldUser1UnreadCount: %w", err)
+	}
+	return oldValue.User1UnreadCount, nil
+}
+
+// AddUser1UnreadCount adds i to the "user1_unread_count" field.
+func (m *PrivateChatMutation) AddUser1UnreadCount(i int) {
+	if m.adduser1_unread_count != nil {
+		*m.adduser1_unread_count += i
+	} else {
+		m.adduser1_unread_count = &i
+	}
+}
+
+// AddedUser1UnreadCount returns the value that was added to the "user1_unread_count" field in this mutation.
+func (m *PrivateChatMutation) AddedUser1UnreadCount() (r int, exists bool) {
+	v := m.adduser1_unread_count
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetUser1UnreadCount resets all changes to the "user1_unread_count" field.
+func (m *PrivateChatMutation) ResetUser1UnreadCount() {
+	m.user1_unread_count = nil
+	m.adduser1_unread_count = nil
+}
+
+// SetUser2UnreadCount sets the "user2_unread_count" field.
+func (m *PrivateChatMutation) SetUser2UnreadCount(i int) {
+	m.user2_unread_count = &i
+	m.adduser2_unread_count = nil
+}
+
+// User2UnreadCount returns the value of the "user2_unread_count" field in the mutation.
+func (m *PrivateChatMutation) User2UnreadCount() (r int, exists bool) {
+	v := m.user2_unread_count
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldUser2UnreadCount returns the old "user2_unread_count" field's value of the PrivateChat entity.
+// If the PrivateChat object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PrivateChatMutation) OldUser2UnreadCount(ctx context.Context) (v int, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldUser2UnreadCount is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldUser2UnreadCount requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldUser2UnreadCount: %w", err)
+	}
+	return oldValue.User2UnreadCount, nil
+}
+
+// AddUser2UnreadCount adds i to the "user2_unread_count" field.
+func (m *PrivateChatMutation) AddUser2UnreadCount(i int) {
+	if m.adduser2_unread_count != nil {
+		*m.adduser2_unread_count += i
+	} else {
+		m.adduser2_unread_count = &i
+	}
+}
+
+// AddedUser2UnreadCount returns the value that was added to the "user2_unread_count" field in this mutation.
+func (m *PrivateChatMutation) AddedUser2UnreadCount() (r int, exists bool) {
+	v := m.adduser2_unread_count
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetUser2UnreadCount resets all changes to the "user2_unread_count" field.
+func (m *PrivateChatMutation) ResetUser2UnreadCount() {
+	m.user2_unread_count = nil
+	m.adduser2_unread_count = nil
+}
+
 // ClearChat clears the "chat" edge to the Chat entity.
 func (m *PrivateChatMutation) ClearChat() {
 	m.clearedchat = true
@@ -5543,7 +5746,7 @@ func (m *PrivateChatMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *PrivateChatMutation) Fields() []string {
-	fields := make([]string, 0, 7)
+	fields := make([]string, 0, 9)
 	if m.chat != nil {
 		fields = append(fields, privatechat.FieldChatID)
 	}
@@ -5564,6 +5767,12 @@ func (m *PrivateChatMutation) Fields() []string {
 	}
 	if m.user2_hidden_at != nil {
 		fields = append(fields, privatechat.FieldUser2HiddenAt)
+	}
+	if m.user1_unread_count != nil {
+		fields = append(fields, privatechat.FieldUser1UnreadCount)
+	}
+	if m.user2_unread_count != nil {
+		fields = append(fields, privatechat.FieldUser2UnreadCount)
 	}
 	return fields
 }
@@ -5587,6 +5796,10 @@ func (m *PrivateChatMutation) Field(name string) (ent.Value, bool) {
 		return m.User1HiddenAt()
 	case privatechat.FieldUser2HiddenAt:
 		return m.User2HiddenAt()
+	case privatechat.FieldUser1UnreadCount:
+		return m.User1UnreadCount()
+	case privatechat.FieldUser2UnreadCount:
+		return m.User2UnreadCount()
 	}
 	return nil, false
 }
@@ -5610,6 +5823,10 @@ func (m *PrivateChatMutation) OldField(ctx context.Context, name string) (ent.Va
 		return m.OldUser1HiddenAt(ctx)
 	case privatechat.FieldUser2HiddenAt:
 		return m.OldUser2HiddenAt(ctx)
+	case privatechat.FieldUser1UnreadCount:
+		return m.OldUser1UnreadCount(ctx)
+	case privatechat.FieldUser2UnreadCount:
+		return m.OldUser2UnreadCount(ctx)
 	}
 	return nil, fmt.Errorf("unknown PrivateChat field %s", name)
 }
@@ -5668,6 +5885,20 @@ func (m *PrivateChatMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetUser2HiddenAt(v)
 		return nil
+	case privatechat.FieldUser1UnreadCount:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetUser1UnreadCount(v)
+		return nil
+	case privatechat.FieldUser2UnreadCount:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetUser2UnreadCount(v)
+		return nil
 	}
 	return fmt.Errorf("unknown PrivateChat field %s", name)
 }
@@ -5676,6 +5907,12 @@ func (m *PrivateChatMutation) SetField(name string, value ent.Value) error {
 // this mutation.
 func (m *PrivateChatMutation) AddedFields() []string {
 	var fields []string
+	if m.adduser1_unread_count != nil {
+		fields = append(fields, privatechat.FieldUser1UnreadCount)
+	}
+	if m.adduser2_unread_count != nil {
+		fields = append(fields, privatechat.FieldUser2UnreadCount)
+	}
 	return fields
 }
 
@@ -5684,6 +5921,10 @@ func (m *PrivateChatMutation) AddedFields() []string {
 // was not set, or was not defined in the schema.
 func (m *PrivateChatMutation) AddedField(name string) (ent.Value, bool) {
 	switch name {
+	case privatechat.FieldUser1UnreadCount:
+		return m.AddedUser1UnreadCount()
+	case privatechat.FieldUser2UnreadCount:
+		return m.AddedUser2UnreadCount()
 	}
 	return nil, false
 }
@@ -5693,6 +5934,20 @@ func (m *PrivateChatMutation) AddedField(name string) (ent.Value, bool) {
 // type.
 func (m *PrivateChatMutation) AddField(name string, value ent.Value) error {
 	switch name {
+	case privatechat.FieldUser1UnreadCount:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddUser1UnreadCount(v)
+		return nil
+	case privatechat.FieldUser2UnreadCount:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddUser2UnreadCount(v)
+		return nil
 	}
 	return fmt.Errorf("unknown PrivateChat numeric field %s", name)
 }
@@ -5767,6 +6022,12 @@ func (m *PrivateChatMutation) ResetField(name string) error {
 		return nil
 	case privatechat.FieldUser2HiddenAt:
 		m.ResetUser2HiddenAt()
+		return nil
+	case privatechat.FieldUser1UnreadCount:
+		m.ResetUser1UnreadCount()
+		return nil
+	case privatechat.FieldUser2UnreadCount:
+		m.ResetUser2UnreadCount()
 		return nil
 	}
 	return fmt.Errorf("unknown PrivateChat field %s", name)

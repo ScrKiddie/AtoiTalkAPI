@@ -143,6 +143,7 @@ func clearDatabase(ctx context.Context) {
 	testClient.GroupChat.Delete().Exec(ctx)
 	testClient.Chat.Delete().Exec(ctx)
 	testClient.Media.Delete().Exec(ctx)
+	testClient.UserIdentity.Delete().Exec(ctx)
 	testClient.User.Delete().Exec(ctx)
 	testClient.OTP.Delete().Exec(ctx)
 }

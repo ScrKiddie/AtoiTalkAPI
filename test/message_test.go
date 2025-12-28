@@ -2,6 +2,7 @@ package test
 
 import (
 	"AtoiTalkAPI/ent/chat"
+	"AtoiTalkAPI/ent/groupmember"
 	"AtoiTalkAPI/ent/media"
 	"AtoiTalkAPI/ent/privatechat"
 	"AtoiTalkAPI/internal/helper"
@@ -58,6 +59,83 @@ func TestSendMessage(t *testing.T) {
 		assert.Equal(t, float64(u1.ID), dataMap["sender_id"])
 		assert.Equal(t, "Hello User 2!", dataMap["content"])
 		assert.Empty(t, dataMap["attachments"])
+
+		pc, _ := testClient.PrivateChat.Query().Where(privatechat.ChatID(chatEntity.ID)).Only(context.Background())
+		assert.Equal(t, 0, pc.User1UnreadCount)
+		assert.Equal(t, 1, pc.User2UnreadCount)
+	})
+
+	t.Run("Success - Send Message with Reply", func(t *testing.T) {
+
+		msg1, _ := testClient.Message.Create().SetChatID(chatEntity.ID).SetSenderID(u2.ID).SetContent("Original Message").Save(context.Background())
+
+		replyToID := msg1.ID
+		reqBody := model.SendMessageRequest{
+			ChatID:    chatEntity.ID,
+			Content:   "This is a reply",
+			Type:      "text",
+			ReplyToID: &replyToID,
+		}
+		body, _ := json.Marshal(reqBody)
+		req, _ := http.NewRequest("POST", "/api/messages", bytes.NewBuffer(body))
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Authorization", "Bearer "+token1)
+
+		rr := executeRequest(req)
+		assert.Equal(t, http.StatusOK, rr.Code)
+
+		var resp helper.ResponseSuccess
+		json.Unmarshal(rr.Body.Bytes(), &resp)
+		dataMap := resp.Data.(map[string]interface{})
+
+		replyToMap, ok := dataMap["reply_to"].(map[string]interface{})
+		assert.True(t, ok)
+		assert.Equal(t, float64(msg1.ID), replyToMap["id"])
+		assert.Equal(t, "User 2", replyToMap["sender_name"])
+		assert.Equal(t, "Original Message", replyToMap["content"])
+
+		msg2ID := int(dataMap["id"].(float64))
+		msg2, _ := testClient.Message.Get(context.Background(), msg2ID)
+		assert.Equal(t, msg1.ID, *msg2.ReplyToID)
+	})
+
+	t.Run("Fail - Reply to Non-Existent Message", func(t *testing.T) {
+		replyToID := 99999
+		reqBody := model.SendMessageRequest{
+			ChatID:    chatEntity.ID,
+			Content:   "Reply to ghost",
+			Type:      "text",
+			ReplyToID: &replyToID,
+		}
+		body, _ := json.Marshal(reqBody)
+		req, _ := http.NewRequest("POST", "/api/messages", bytes.NewBuffer(body))
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Authorization", "Bearer "+token1)
+
+		rr := executeRequest(req)
+		assert.Equal(t, http.StatusBadRequest, rr.Code)
+	})
+
+	t.Run("Fail - Reply to Message in Different Chat", func(t *testing.T) {
+
+		chat2, _ := testClient.Chat.Create().SetType(chat.TypePrivate).Save(context.Background())
+		testClient.PrivateChat.Create().SetChat(chat2).SetUser1(u1).SetUser2(u3).Save(context.Background())
+		msgOther, _ := testClient.Message.Create().SetChatID(chat2.ID).SetSenderID(u3.ID).SetContent("Other Chat Msg").Save(context.Background())
+
+		replyToID := msgOther.ID
+		reqBody := model.SendMessageRequest{
+			ChatID:    chatEntity.ID,
+			Content:   "Cross-chat reply",
+			Type:      "text",
+			ReplyToID: &replyToID,
+		}
+		body, _ := json.Marshal(reqBody)
+		req, _ := http.NewRequest("POST", "/api/messages", bytes.NewBuffer(body))
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Authorization", "Bearer "+token1)
+
+		rr := executeRequest(req)
+		assert.Equal(t, http.StatusBadRequest, rr.Code)
 	})
 
 	t.Run("Success - Send Message with Attachment", func(t *testing.T) {
@@ -99,6 +177,11 @@ func TestSendMessage(t *testing.T) {
 		msg, _ := testClient.Message.Get(context.Background(), msgID)
 		attachedMedia, _ := msg.QueryAttachments().Only(context.Background())
 		assert.Equal(t, m.ID, attachedMedia.ID)
+
+		pc, _ := testClient.PrivateChat.Query().Where(privatechat.ChatID(chatEntity.ID)).Only(context.Background())
+		assert.Equal(t, 0, pc.User1UnreadCount)
+
+		assert.Equal(t, 3, pc.User2UnreadCount)
 	})
 
 	t.Run("Success - hidden_at Reset", func(t *testing.T) {
@@ -124,12 +207,13 @@ func TestSendMessage(t *testing.T) {
 		assert.NotNil(t, pcUpdated.User1LastReadAt)
 	})
 
-	t.Run("Success - Group Chat", func(t *testing.T) {
+	t.Run("Success - Group Chat (Multiple Recipients)", func(t *testing.T) {
 
 		groupChat, _ := testClient.Chat.Create().SetType(chat.TypeGroup).Save(context.Background())
 		gc, _ := testClient.GroupChat.Create().SetChat(groupChat).SetCreator(u1).SetName("Test Group").Save(context.Background())
 		testClient.GroupMember.Create().SetGroupChat(gc).SetUser(u1).Save(context.Background())
 		testClient.GroupMember.Create().SetGroupChat(gc).SetUser(u2).Save(context.Background())
+		testClient.GroupMember.Create().SetGroupChat(gc).SetUser(u3).Save(context.Background())
 
 		reqBody := model.SendMessageRequest{
 			ChatID:  groupChat.ID,
@@ -145,6 +229,14 @@ func TestSendMessage(t *testing.T) {
 		if !assert.Equal(t, http.StatusOK, rr.Code) {
 			printBody(t, rr)
 		}
+
+		gm1, _ := testClient.GroupMember.Query().Where(groupmember.GroupChatID(gc.ID), groupmember.UserID(u1.ID)).Only(context.Background())
+		gm2, _ := testClient.GroupMember.Query().Where(groupmember.GroupChatID(gc.ID), groupmember.UserID(u2.ID)).Only(context.Background())
+		gm3, _ := testClient.GroupMember.Query().Where(groupmember.GroupChatID(gc.ID), groupmember.UserID(u3.ID)).Only(context.Background())
+
+		assert.Equal(t, 0, gm1.UnreadCount)
+		assert.Equal(t, 1, gm2.UnreadCount)
+		assert.Equal(t, 1, gm3.UnreadCount)
 	})
 
 	t.Run("Fail - Group Non-Member", func(t *testing.T) {

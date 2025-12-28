@@ -76,6 +76,20 @@ func (_c *GroupMemberCreate) SetNillableJoinedAt(v *time.Time) *GroupMemberCreat
 	return _c
 }
 
+// SetUnreadCount sets the "unread_count" field.
+func (_c *GroupMemberCreate) SetUnreadCount(v int) *GroupMemberCreate {
+	_c.mutation.SetUnreadCount(v)
+	return _c
+}
+
+// SetNillableUnreadCount sets the "unread_count" field if the given value is not nil.
+func (_c *GroupMemberCreate) SetNillableUnreadCount(v *int) *GroupMemberCreate {
+	if v != nil {
+		_c.SetUnreadCount(*v)
+	}
+	return _c
+}
+
 // SetGroupChat sets the "group_chat" edge to the GroupChat entity.
 func (_c *GroupMemberCreate) SetGroupChat(v *GroupChat) *GroupMemberCreate {
 	return _c.SetGroupChatID(v.ID)
@@ -129,6 +143,10 @@ func (_c *GroupMemberCreate) defaults() {
 		v := groupmember.DefaultJoinedAt()
 		_c.mutation.SetJoinedAt(v)
 	}
+	if _, ok := _c.mutation.UnreadCount(); !ok {
+		v := groupmember.DefaultUnreadCount
+		_c.mutation.SetUnreadCount(v)
+	}
 }
 
 // check runs all checks and user-defined validators on the builder.
@@ -149,6 +167,9 @@ func (_c *GroupMemberCreate) check() error {
 	}
 	if _, ok := _c.mutation.JoinedAt(); !ok {
 		return &ValidationError{Name: "joined_at", err: errors.New(`ent: missing required field "GroupMember.joined_at"`)}
+	}
+	if _, ok := _c.mutation.UnreadCount(); !ok {
+		return &ValidationError{Name: "unread_count", err: errors.New(`ent: missing required field "GroupMember.unread_count"`)}
 	}
 	if len(_c.mutation.GroupChatIDs()) == 0 {
 		return &ValidationError{Name: "group_chat", err: errors.New(`ent: missing required edge "GroupMember.group_chat"`)}
@@ -193,6 +214,10 @@ func (_c *GroupMemberCreate) createSpec() (*GroupMember, *sqlgraph.CreateSpec) {
 	if value, ok := _c.mutation.JoinedAt(); ok {
 		_spec.SetField(groupmember.FieldJoinedAt, field.TypeTime, value)
 		_node.JoinedAt = value
+	}
+	if value, ok := _c.mutation.UnreadCount(); ok {
+		_spec.SetField(groupmember.FieldUnreadCount, field.TypeInt, value)
+		_node.UnreadCount = value
 	}
 	if nodes := _c.mutation.GroupChatIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{

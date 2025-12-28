@@ -90,6 +90,16 @@ func User2HiddenAt(v time.Time) predicate.PrivateChat {
 	return predicate.PrivateChat(sql.FieldEQ(FieldUser2HiddenAt, v))
 }
 
+// User1UnreadCount applies equality check predicate on the "user1_unread_count" field. It's identical to User1UnreadCountEQ.
+func User1UnreadCount(v int) predicate.PrivateChat {
+	return predicate.PrivateChat(sql.FieldEQ(FieldUser1UnreadCount, v))
+}
+
+// User2UnreadCount applies equality check predicate on the "user2_unread_count" field. It's identical to User2UnreadCountEQ.
+func User2UnreadCount(v int) predicate.PrivateChat {
+	return predicate.PrivateChat(sql.FieldEQ(FieldUser2UnreadCount, v))
+}
+
 // ChatIDEQ applies the EQ predicate on the "chat_id" field.
 func ChatIDEQ(v int) predicate.PrivateChat {
 	return predicate.PrivateChat(sql.FieldEQ(FieldChatID, v))
@@ -348,6 +358,86 @@ func User2HiddenAtIsNil() predicate.PrivateChat {
 // User2HiddenAtNotNil applies the NotNil predicate on the "user2_hidden_at" field.
 func User2HiddenAtNotNil() predicate.PrivateChat {
 	return predicate.PrivateChat(sql.FieldNotNull(FieldUser2HiddenAt))
+}
+
+// User1UnreadCountEQ applies the EQ predicate on the "user1_unread_count" field.
+func User1UnreadCountEQ(v int) predicate.PrivateChat {
+	return predicate.PrivateChat(sql.FieldEQ(FieldUser1UnreadCount, v))
+}
+
+// User1UnreadCountNEQ applies the NEQ predicate on the "user1_unread_count" field.
+func User1UnreadCountNEQ(v int) predicate.PrivateChat {
+	return predicate.PrivateChat(sql.FieldNEQ(FieldUser1UnreadCount, v))
+}
+
+// User1UnreadCountIn applies the In predicate on the "user1_unread_count" field.
+func User1UnreadCountIn(vs ...int) predicate.PrivateChat {
+	return predicate.PrivateChat(sql.FieldIn(FieldUser1UnreadCount, vs...))
+}
+
+// User1UnreadCountNotIn applies the NotIn predicate on the "user1_unread_count" field.
+func User1UnreadCountNotIn(vs ...int) predicate.PrivateChat {
+	return predicate.PrivateChat(sql.FieldNotIn(FieldUser1UnreadCount, vs...))
+}
+
+// User1UnreadCountGT applies the GT predicate on the "user1_unread_count" field.
+func User1UnreadCountGT(v int) predicate.PrivateChat {
+	return predicate.PrivateChat(sql.FieldGT(FieldUser1UnreadCount, v))
+}
+
+// User1UnreadCountGTE applies the GTE predicate on the "user1_unread_count" field.
+func User1UnreadCountGTE(v int) predicate.PrivateChat {
+	return predicate.PrivateChat(sql.FieldGTE(FieldUser1UnreadCount, v))
+}
+
+// User1UnreadCountLT applies the LT predicate on the "user1_unread_count" field.
+func User1UnreadCountLT(v int) predicate.PrivateChat {
+	return predicate.PrivateChat(sql.FieldLT(FieldUser1UnreadCount, v))
+}
+
+// User1UnreadCountLTE applies the LTE predicate on the "user1_unread_count" field.
+func User1UnreadCountLTE(v int) predicate.PrivateChat {
+	return predicate.PrivateChat(sql.FieldLTE(FieldUser1UnreadCount, v))
+}
+
+// User2UnreadCountEQ applies the EQ predicate on the "user2_unread_count" field.
+func User2UnreadCountEQ(v int) predicate.PrivateChat {
+	return predicate.PrivateChat(sql.FieldEQ(FieldUser2UnreadCount, v))
+}
+
+// User2UnreadCountNEQ applies the NEQ predicate on the "user2_unread_count" field.
+func User2UnreadCountNEQ(v int) predicate.PrivateChat {
+	return predicate.PrivateChat(sql.FieldNEQ(FieldUser2UnreadCount, v))
+}
+
+// User2UnreadCountIn applies the In predicate on the "user2_unread_count" field.
+func User2UnreadCountIn(vs ...int) predicate.PrivateChat {
+	return predicate.PrivateChat(sql.FieldIn(FieldUser2UnreadCount, vs...))
+}
+
+// User2UnreadCountNotIn applies the NotIn predicate on the "user2_unread_count" field.
+func User2UnreadCountNotIn(vs ...int) predicate.PrivateChat {
+	return predicate.PrivateChat(sql.FieldNotIn(FieldUser2UnreadCount, vs...))
+}
+
+// User2UnreadCountGT applies the GT predicate on the "user2_unread_count" field.
+func User2UnreadCountGT(v int) predicate.PrivateChat {
+	return predicate.PrivateChat(sql.FieldGT(FieldUser2UnreadCount, v))
+}
+
+// User2UnreadCountGTE applies the GTE predicate on the "user2_unread_count" field.
+func User2UnreadCountGTE(v int) predicate.PrivateChat {
+	return predicate.PrivateChat(sql.FieldGTE(FieldUser2UnreadCount, v))
+}
+
+// User2UnreadCountLT applies the LT predicate on the "user2_unread_count" field.
+func User2UnreadCountLT(v int) predicate.PrivateChat {
+	return predicate.PrivateChat(sql.FieldLT(FieldUser2UnreadCount, v))
+}
+
+// User2UnreadCountLTE applies the LTE predicate on the "user2_unread_count" field.
+func User2UnreadCountLTE(v int) predicate.PrivateChat {
+	return predicate.PrivateChat(sql.FieldLTE(FieldUser2UnreadCount, v))
 }
 
 // HasChat applies the HasEdge predicate on the "chat" edge.

@@ -152,6 +152,48 @@ func (_u *PrivateChatUpdate) ClearUser2HiddenAt() *PrivateChatUpdate {
 	return _u
 }
 
+// SetUser1UnreadCount sets the "user1_unread_count" field.
+func (_u *PrivateChatUpdate) SetUser1UnreadCount(v int) *PrivateChatUpdate {
+	_u.mutation.ResetUser1UnreadCount()
+	_u.mutation.SetUser1UnreadCount(v)
+	return _u
+}
+
+// SetNillableUser1UnreadCount sets the "user1_unread_count" field if the given value is not nil.
+func (_u *PrivateChatUpdate) SetNillableUser1UnreadCount(v *int) *PrivateChatUpdate {
+	if v != nil {
+		_u.SetUser1UnreadCount(*v)
+	}
+	return _u
+}
+
+// AddUser1UnreadCount adds value to the "user1_unread_count" field.
+func (_u *PrivateChatUpdate) AddUser1UnreadCount(v int) *PrivateChatUpdate {
+	_u.mutation.AddUser1UnreadCount(v)
+	return _u
+}
+
+// SetUser2UnreadCount sets the "user2_unread_count" field.
+func (_u *PrivateChatUpdate) SetUser2UnreadCount(v int) *PrivateChatUpdate {
+	_u.mutation.ResetUser2UnreadCount()
+	_u.mutation.SetUser2UnreadCount(v)
+	return _u
+}
+
+// SetNillableUser2UnreadCount sets the "user2_unread_count" field if the given value is not nil.
+func (_u *PrivateChatUpdate) SetNillableUser2UnreadCount(v *int) *PrivateChatUpdate {
+	if v != nil {
+		_u.SetUser2UnreadCount(*v)
+	}
+	return _u
+}
+
+// AddUser2UnreadCount adds value to the "user2_unread_count" field.
+func (_u *PrivateChatUpdate) AddUser2UnreadCount(v int) *PrivateChatUpdate {
+	_u.mutation.AddUser2UnreadCount(v)
+	return _u
+}
+
 // SetChat sets the "chat" edge to the Chat entity.
 func (_u *PrivateChatUpdate) SetChat(v *Chat) *PrivateChatUpdate {
 	return _u.SetChatID(v.ID)
@@ -266,6 +308,18 @@ func (_u *PrivateChatUpdate) sqlSave(ctx context.Context) (_node int, err error)
 	}
 	if _u.mutation.User2HiddenAtCleared() {
 		_spec.ClearField(privatechat.FieldUser2HiddenAt, field.TypeTime)
+	}
+	if value, ok := _u.mutation.User1UnreadCount(); ok {
+		_spec.SetField(privatechat.FieldUser1UnreadCount, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.AddedUser1UnreadCount(); ok {
+		_spec.AddField(privatechat.FieldUser1UnreadCount, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.User2UnreadCount(); ok {
+		_spec.SetField(privatechat.FieldUser2UnreadCount, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.AddedUser2UnreadCount(); ok {
+		_spec.AddField(privatechat.FieldUser2UnreadCount, field.TypeInt, value)
 	}
 	if _u.mutation.ChatCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -496,6 +550,48 @@ func (_u *PrivateChatUpdateOne) ClearUser2HiddenAt() *PrivateChatUpdateOne {
 	return _u
 }
 
+// SetUser1UnreadCount sets the "user1_unread_count" field.
+func (_u *PrivateChatUpdateOne) SetUser1UnreadCount(v int) *PrivateChatUpdateOne {
+	_u.mutation.ResetUser1UnreadCount()
+	_u.mutation.SetUser1UnreadCount(v)
+	return _u
+}
+
+// SetNillableUser1UnreadCount sets the "user1_unread_count" field if the given value is not nil.
+func (_u *PrivateChatUpdateOne) SetNillableUser1UnreadCount(v *int) *PrivateChatUpdateOne {
+	if v != nil {
+		_u.SetUser1UnreadCount(*v)
+	}
+	return _u
+}
+
+// AddUser1UnreadCount adds value to the "user1_unread_count" field.
+func (_u *PrivateChatUpdateOne) AddUser1UnreadCount(v int) *PrivateChatUpdateOne {
+	_u.mutation.AddUser1UnreadCount(v)
+	return _u
+}
+
+// SetUser2UnreadCount sets the "user2_unread_count" field.
+func (_u *PrivateChatUpdateOne) SetUser2UnreadCount(v int) *PrivateChatUpdateOne {
+	_u.mutation.ResetUser2UnreadCount()
+	_u.mutation.SetUser2UnreadCount(v)
+	return _u
+}
+
+// SetNillableUser2UnreadCount sets the "user2_unread_count" field if the given value is not nil.
+func (_u *PrivateChatUpdateOne) SetNillableUser2UnreadCount(v *int) *PrivateChatUpdateOne {
+	if v != nil {
+		_u.SetUser2UnreadCount(*v)
+	}
+	return _u
+}
+
+// AddUser2UnreadCount adds value to the "user2_unread_count" field.
+func (_u *PrivateChatUpdateOne) AddUser2UnreadCount(v int) *PrivateChatUpdateOne {
+	_u.mutation.AddUser2UnreadCount(v)
+	return _u
+}
+
 // SetChat sets the "chat" edge to the Chat entity.
 func (_u *PrivateChatUpdateOne) SetChat(v *Chat) *PrivateChatUpdateOne {
 	return _u.SetChatID(v.ID)
@@ -640,6 +736,18 @@ func (_u *PrivateChatUpdateOne) sqlSave(ctx context.Context) (_node *PrivateChat
 	}
 	if _u.mutation.User2HiddenAtCleared() {
 		_spec.ClearField(privatechat.FieldUser2HiddenAt, field.TypeTime)
+	}
+	if value, ok := _u.mutation.User1UnreadCount(); ok {
+		_spec.SetField(privatechat.FieldUser1UnreadCount, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.AddedUser1UnreadCount(); ok {
+		_spec.AddField(privatechat.FieldUser1UnreadCount, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.User2UnreadCount(); ok {
+		_spec.SetField(privatechat.FieldUser2UnreadCount, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.AddedUser2UnreadCount(); ok {
+		_spec.AddField(privatechat.FieldUser2UnreadCount, field.TypeInt, value)
 	}
 	if _u.mutation.ChatCleared() {
 		edge := &sqlgraph.EdgeSpec{

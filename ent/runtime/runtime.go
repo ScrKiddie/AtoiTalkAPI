@@ -61,6 +61,10 @@ func init() {
 	groupmemberDescJoinedAt := groupmemberFields[4].Descriptor()
 	// groupmember.DefaultJoinedAt holds the default value on creation for the joined_at field.
 	groupmember.DefaultJoinedAt = groupmemberDescJoinedAt.Default.(func() time.Time)
+	// groupmemberDescUnreadCount is the schema descriptor for unread_count field.
+	groupmemberDescUnreadCount := groupmemberFields[5].Descriptor()
+	// groupmember.DefaultUnreadCount holds the default value on creation for the unread_count field.
+	groupmember.DefaultUnreadCount = groupmemberDescUnreadCount.Default.(int)
 	mediaMixin := schema.Media{}.Mixin()
 	mediaMixinFields0 := mediaMixin[0].Fields()
 	_ = mediaMixinFields0
@@ -206,6 +210,16 @@ func init() {
 	}()
 	privatechatHooks := schema.PrivateChat{}.Hooks()
 	privatechat.Hooks[0] = privatechatHooks[0]
+	privatechatFields := schema.PrivateChat{}.Fields()
+	_ = privatechatFields
+	// privatechatDescUser1UnreadCount is the schema descriptor for user1_unread_count field.
+	privatechatDescUser1UnreadCount := privatechatFields[7].Descriptor()
+	// privatechat.DefaultUser1UnreadCount holds the default value on creation for the user1_unread_count field.
+	privatechat.DefaultUser1UnreadCount = privatechatDescUser1UnreadCount.Default.(int)
+	// privatechatDescUser2UnreadCount is the schema descriptor for user2_unread_count field.
+	privatechatDescUser2UnreadCount := privatechatFields[8].Descriptor()
+	// privatechat.DefaultUser2UnreadCount holds the default value on creation for the user2_unread_count field.
+	privatechat.DefaultUser2UnreadCount = privatechatDescUser2UnreadCount.Default.(int)
 	userMixin := schema.User{}.Mixin()
 	userMixinFields0 := userMixin[0].Fields()
 	_ = userMixinFields0

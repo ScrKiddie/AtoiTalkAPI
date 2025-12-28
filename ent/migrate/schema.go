@@ -72,6 +72,7 @@ var (
 		{Name: "role", Type: field.TypeEnum, Enums: []string{"admin", "member"}, Default: "member"},
 		{Name: "last_read_at", Type: field.TypeTime, Nullable: true},
 		{Name: "joined_at", Type: field.TypeTime},
+		{Name: "unread_count", Type: field.TypeInt, Default: 0},
 		{Name: "group_chat_id", Type: field.TypeInt},
 		{Name: "user_id", Type: field.TypeInt},
 	}
@@ -83,13 +84,13 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "group_members_group_chats_members",
-				Columns:    []*schema.Column{GroupMembersColumns[4]},
+				Columns:    []*schema.Column{GroupMembersColumns[5]},
 				RefColumns: []*schema.Column{GroupChatsColumns[0]},
 				OnDelete:   schema.Cascade,
 			},
 			{
 				Symbol:     "group_members_users_group_memberships",
-				Columns:    []*schema.Column{GroupMembersColumns[5]},
+				Columns:    []*schema.Column{GroupMembersColumns[6]},
 				RefColumns: []*schema.Column{UsersColumns[0]},
 				OnDelete:   schema.Cascade,
 			},
@@ -98,7 +99,7 @@ var (
 			{
 				Name:    "pk_group_member",
 				Unique:  true,
-				Columns: []*schema.Column{GroupMembersColumns[4], GroupMembersColumns[5]},
+				Columns: []*schema.Column{GroupMembersColumns[5], GroupMembersColumns[6]},
 			},
 		},
 	}
@@ -230,6 +231,8 @@ var (
 		{Name: "user2_last_read_at", Type: field.TypeTime, Nullable: true},
 		{Name: "user1_hidden_at", Type: field.TypeTime, Nullable: true},
 		{Name: "user2_hidden_at", Type: field.TypeTime, Nullable: true},
+		{Name: "user1_unread_count", Type: field.TypeInt, Default: 0},
+		{Name: "user2_unread_count", Type: field.TypeInt, Default: 0},
 		{Name: "chat_id", Type: field.TypeInt, Unique: true},
 		{Name: "user1_id", Type: field.TypeInt},
 		{Name: "user2_id", Type: field.TypeInt},
@@ -242,19 +245,19 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "private_chats_chats_private_chat",
-				Columns:    []*schema.Column{PrivateChatsColumns[5]},
+				Columns:    []*schema.Column{PrivateChatsColumns[7]},
 				RefColumns: []*schema.Column{ChatsColumns[0]},
 				OnDelete:   schema.Cascade,
 			},
 			{
 				Symbol:     "private_chats_users_private_chats_as_user1",
-				Columns:    []*schema.Column{PrivateChatsColumns[6]},
+				Columns:    []*schema.Column{PrivateChatsColumns[8]},
 				RefColumns: []*schema.Column{UsersColumns[0]},
 				OnDelete:   schema.Cascade,
 			},
 			{
 				Symbol:     "private_chats_users_private_chats_as_user2",
-				Columns:    []*schema.Column{PrivateChatsColumns[7]},
+				Columns:    []*schema.Column{PrivateChatsColumns[9]},
 				RefColumns: []*schema.Column{UsersColumns[0]},
 				OnDelete:   schema.Cascade,
 			},
@@ -263,7 +266,7 @@ var (
 			{
 				Name:    "unique_user_pair",
 				Unique:  true,
-				Columns: []*schema.Column{PrivateChatsColumns[6], PrivateChatsColumns[7]},
+				Columns: []*schema.Column{PrivateChatsColumns[8], PrivateChatsColumns[9]},
 			},
 		},
 	}

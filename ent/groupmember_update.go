@@ -92,6 +92,27 @@ func (_u *GroupMemberUpdate) ClearLastReadAt() *GroupMemberUpdate {
 	return _u
 }
 
+// SetUnreadCount sets the "unread_count" field.
+func (_u *GroupMemberUpdate) SetUnreadCount(v int) *GroupMemberUpdate {
+	_u.mutation.ResetUnreadCount()
+	_u.mutation.SetUnreadCount(v)
+	return _u
+}
+
+// SetNillableUnreadCount sets the "unread_count" field if the given value is not nil.
+func (_u *GroupMemberUpdate) SetNillableUnreadCount(v *int) *GroupMemberUpdate {
+	if v != nil {
+		_u.SetUnreadCount(*v)
+	}
+	return _u
+}
+
+// AddUnreadCount adds value to the "unread_count" field.
+func (_u *GroupMemberUpdate) AddUnreadCount(v int) *GroupMemberUpdate {
+	_u.mutation.AddUnreadCount(v)
+	return _u
+}
+
 // SetGroupChat sets the "group_chat" edge to the GroupChat entity.
 func (_u *GroupMemberUpdate) SetGroupChat(v *GroupChat) *GroupMemberUpdate {
 	return _u.SetGroupChatID(v.ID)
@@ -182,6 +203,12 @@ func (_u *GroupMemberUpdate) sqlSave(ctx context.Context) (_node int, err error)
 	}
 	if _u.mutation.LastReadAtCleared() {
 		_spec.ClearField(groupmember.FieldLastReadAt, field.TypeTime)
+	}
+	if value, ok := _u.mutation.UnreadCount(); ok {
+		_spec.SetField(groupmember.FieldUnreadCount, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.AddedUnreadCount(); ok {
+		_spec.AddField(groupmember.FieldUnreadCount, field.TypeInt, value)
 	}
 	if _u.mutation.GroupChatCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -323,6 +350,27 @@ func (_u *GroupMemberUpdateOne) ClearLastReadAt() *GroupMemberUpdateOne {
 	return _u
 }
 
+// SetUnreadCount sets the "unread_count" field.
+func (_u *GroupMemberUpdateOne) SetUnreadCount(v int) *GroupMemberUpdateOne {
+	_u.mutation.ResetUnreadCount()
+	_u.mutation.SetUnreadCount(v)
+	return _u
+}
+
+// SetNillableUnreadCount sets the "unread_count" field if the given value is not nil.
+func (_u *GroupMemberUpdateOne) SetNillableUnreadCount(v *int) *GroupMemberUpdateOne {
+	if v != nil {
+		_u.SetUnreadCount(*v)
+	}
+	return _u
+}
+
+// AddUnreadCount adds value to the "unread_count" field.
+func (_u *GroupMemberUpdateOne) AddUnreadCount(v int) *GroupMemberUpdateOne {
+	_u.mutation.AddUnreadCount(v)
+	return _u
+}
+
 // SetGroupChat sets the "group_chat" edge to the GroupChat entity.
 func (_u *GroupMemberUpdateOne) SetGroupChat(v *GroupChat) *GroupMemberUpdateOne {
 	return _u.SetGroupChatID(v.ID)
@@ -443,6 +491,12 @@ func (_u *GroupMemberUpdateOne) sqlSave(ctx context.Context) (_node *GroupMember
 	}
 	if _u.mutation.LastReadAtCleared() {
 		_spec.ClearField(groupmember.FieldLastReadAt, field.TypeTime)
+	}
+	if value, ok := _u.mutation.UnreadCount(); ok {
+		_spec.SetField(groupmember.FieldUnreadCount, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.AddedUnreadCount(); ok {
+		_spec.AddField(groupmember.FieldUnreadCount, field.TypeInt, value)
 	}
 	if _u.mutation.GroupChatCleared() {
 		edge := &sqlgraph.EdgeSpec{

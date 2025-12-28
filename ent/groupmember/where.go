@@ -75,6 +75,11 @@ func JoinedAt(v time.Time) predicate.GroupMember {
 	return predicate.GroupMember(sql.FieldEQ(FieldJoinedAt, v))
 }
 
+// UnreadCount applies equality check predicate on the "unread_count" field. It's identical to UnreadCountEQ.
+func UnreadCount(v int) predicate.GroupMember {
+	return predicate.GroupMember(sql.FieldEQ(FieldUnreadCount, v))
+}
+
 // GroupChatIDEQ applies the EQ predicate on the "group_chat_id" field.
 func GroupChatIDEQ(v int) predicate.GroupMember {
 	return predicate.GroupMember(sql.FieldEQ(FieldGroupChatID, v))
@@ -223,6 +228,46 @@ func JoinedAtLT(v time.Time) predicate.GroupMember {
 // JoinedAtLTE applies the LTE predicate on the "joined_at" field.
 func JoinedAtLTE(v time.Time) predicate.GroupMember {
 	return predicate.GroupMember(sql.FieldLTE(FieldJoinedAt, v))
+}
+
+// UnreadCountEQ applies the EQ predicate on the "unread_count" field.
+func UnreadCountEQ(v int) predicate.GroupMember {
+	return predicate.GroupMember(sql.FieldEQ(FieldUnreadCount, v))
+}
+
+// UnreadCountNEQ applies the NEQ predicate on the "unread_count" field.
+func UnreadCountNEQ(v int) predicate.GroupMember {
+	return predicate.GroupMember(sql.FieldNEQ(FieldUnreadCount, v))
+}
+
+// UnreadCountIn applies the In predicate on the "unread_count" field.
+func UnreadCountIn(vs ...int) predicate.GroupMember {
+	return predicate.GroupMember(sql.FieldIn(FieldUnreadCount, vs...))
+}
+
+// UnreadCountNotIn applies the NotIn predicate on the "unread_count" field.
+func UnreadCountNotIn(vs ...int) predicate.GroupMember {
+	return predicate.GroupMember(sql.FieldNotIn(FieldUnreadCount, vs...))
+}
+
+// UnreadCountGT applies the GT predicate on the "unread_count" field.
+func UnreadCountGT(v int) predicate.GroupMember {
+	return predicate.GroupMember(sql.FieldGT(FieldUnreadCount, v))
+}
+
+// UnreadCountGTE applies the GTE predicate on the "unread_count" field.
+func UnreadCountGTE(v int) predicate.GroupMember {
+	return predicate.GroupMember(sql.FieldGTE(FieldUnreadCount, v))
+}
+
+// UnreadCountLT applies the LT predicate on the "unread_count" field.
+func UnreadCountLT(v int) predicate.GroupMember {
+	return predicate.GroupMember(sql.FieldLT(FieldUnreadCount, v))
+}
+
+// UnreadCountLTE applies the LTE predicate on the "unread_count" field.
+func UnreadCountLTE(v int) predicate.GroupMember {
+	return predicate.GroupMember(sql.FieldLTE(FieldUnreadCount, v))
 }
 
 // HasGroupChat applies the HasEdge predicate on the "group_chat" edge.

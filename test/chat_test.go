@@ -1,13 +1,18 @@
 package test
 
 import (
+	"AtoiTalkAPI/ent/chat"
+	"AtoiTalkAPI/ent/groupmember"
+	"AtoiTalkAPI/ent/privatechat"
 	"AtoiTalkAPI/internal/helper"
 	"AtoiTalkAPI/internal/model"
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -22,17 +27,17 @@ func TestCreatePrivateChat(t *testing.T) {
 		clearDatabase(context.Background())
 
 		hashedPassword, _ := helper.HashPassword(password)
-		u1, _ := testClient.User.Create().
+		u1 := testClient.User.Create().
 			SetEmail(user1Email).
 			SetFullName("User One").
 			SetPasswordHash(hashedPassword).
-			Save(context.Background())
+			SaveX(context.Background())
 
-		u2, _ := testClient.User.Create().
+		u2 := testClient.User.Create().
 			SetEmail(user2Email).
 			SetFullName("User Two").
 			SetPasswordHash(hashedPassword).
-			Save(context.Background())
+			SaveX(context.Background())
 
 		token, _ := helper.GenerateJWT(testConfig.JWTSecret, testConfig.JWTExp, u1.ID)
 
@@ -63,17 +68,17 @@ func TestCreatePrivateChat(t *testing.T) {
 		clearDatabase(context.Background())
 
 		hashedPassword, _ := helper.HashPassword(password)
-		u1, _ := testClient.User.Create().
+		u1 := testClient.User.Create().
 			SetEmail(user1Email).
 			SetFullName("User One").
 			SetPasswordHash(hashedPassword).
-			Save(context.Background())
+			SaveX(context.Background())
 
-		u2, _ := testClient.User.Create().
+		u2 := testClient.User.Create().
 			SetEmail(user2Email).
 			SetFullName("User Two").
 			SetPasswordHash(hashedPassword).
-			Save(context.Background())
+			SaveX(context.Background())
 
 		token, _ := helper.GenerateJWT(testConfig.JWTSecret, testConfig.JWTExp, u1.ID)
 
@@ -111,11 +116,11 @@ func TestCreatePrivateChat(t *testing.T) {
 		clearDatabase(context.Background())
 
 		hashedPassword, _ := helper.HashPassword(password)
-		u1, _ := testClient.User.Create().
+		u1 := testClient.User.Create().
 			SetEmail(user1Email).
 			SetFullName("User One").
 			SetPasswordHash(hashedPassword).
-			Save(context.Background())
+			SaveX(context.Background())
 
 		token, _ := helper.GenerateJWT(testConfig.JWTSecret, testConfig.JWTExp, u1.ID)
 
@@ -138,11 +143,11 @@ func TestCreatePrivateChat(t *testing.T) {
 		clearDatabase(context.Background())
 
 		hashedPassword, _ := helper.HashPassword(password)
-		u1, _ := testClient.User.Create().
+		u1 := testClient.User.Create().
 			SetEmail(user1Email).
 			SetFullName("User One").
 			SetPasswordHash(hashedPassword).
-			Save(context.Background())
+			SaveX(context.Background())
 
 		token, _ := helper.GenerateJWT(testConfig.JWTSecret, testConfig.JWTExp, u1.ID)
 
@@ -182,8 +187,8 @@ func TestCreatePrivateChat_ReverseOrder(t *testing.T) {
 	password := "Password123!"
 	hashedPassword, _ := helper.HashPassword(password)
 
-	u1, _ := testClient.User.Create().SetEmail("u1@test.com").SetFullName("U1").SetPasswordHash(hashedPassword).Save(context.Background())
-	u2, _ := testClient.User.Create().SetEmail("u2@test.com").SetFullName("U2").SetPasswordHash(hashedPassword).Save(context.Background())
+	u1 := testClient.User.Create().SetEmail("u1@test.com").SetFullName("U1").SetPasswordHash(hashedPassword).SaveX(context.Background())
+	u2 := testClient.User.Create().SetEmail("u2@test.com").SetFullName("U2").SetPasswordHash(hashedPassword).SaveX(context.Background())
 
 	token1, _ := helper.GenerateJWT(testConfig.JWTSecret, testConfig.JWTExp, u1.ID)
 	token2, _ := helper.GenerateJWT(testConfig.JWTSecret, testConfig.JWTExp, u2.ID)
@@ -222,7 +227,7 @@ func TestCreatePrivateChat_Validation(t *testing.T) {
 	clearDatabase(context.Background())
 	password := "Password123!"
 	hashedPassword, _ := helper.HashPassword(password)
-	u1, _ := testClient.User.Create().SetEmail("u1@test.com").SetFullName("U1").SetPasswordHash(hashedPassword).Save(context.Background())
+	u1 := testClient.User.Create().SetEmail("u1@test.com").SetFullName("U1").SetPasswordHash(hashedPassword).SaveX(context.Background())
 	token, _ := helper.GenerateJWT(testConfig.JWTSecret, testConfig.JWTExp, u1.ID)
 
 	t.Run("Missing TargetUserID", func(t *testing.T) {
@@ -248,5 +253,178 @@ func TestCreatePrivateChat_Validation(t *testing.T) {
 		if !assert.Equal(t, http.StatusBadRequest, rr.Code) {
 			printBody(t, rr)
 		}
+	})
+}
+
+func TestGetChats(t *testing.T) {
+	clearDatabase(context.Background())
+
+	password := "Password123!"
+	hashedPassword, _ := helper.HashPassword(password)
+	u1 := testClient.User.Create().SetEmail("u1@test.com").SetFullName("User 1").SetPasswordHash(hashedPassword).SaveX(context.Background())
+	u2 := testClient.User.Create().SetEmail("u2@test.com").SetFullName("User 2").SetPasswordHash(hashedPassword).SaveX(context.Background())
+	u3 := testClient.User.Create().SetEmail("u3@test.com").SetFullName("User 3").SetPasswordHash(hashedPassword).SaveX(context.Background())
+
+	token1, _ := helper.GenerateJWT(testConfig.JWTSecret, testConfig.JWTExp, u1.ID)
+
+	chat1 := testClient.Chat.Create().SetType(chat.TypePrivate).SetUpdatedAt(time.Now().Add(-2 * time.Hour)).SaveX(context.Background())
+
+	testClient.PrivateChat.Create().SetChat(chat1).SetUser1(u1).SetUser2(u2).SetUser1UnreadCount(3).SaveX(context.Background())
+	testClient.Message.Create().SetChat(chat1).SetSender(u2).SetContent("Old message").SetCreatedAt(time.Now().Add(-2 * time.Hour)).SaveX(context.Background())
+
+	chat2 := testClient.Chat.Create().SetType(chat.TypePrivate).SetUpdatedAt(time.Now().Add(-1 * time.Hour)).SaveX(context.Background())
+	testClient.PrivateChat.Create().SetChat(chat2).SetUser1(u1).SetUser2(u3).SetUser1UnreadCount(0).SaveX(context.Background())
+	testClient.Message.Create().SetChat(chat2).SetSender(u3).SetContent("New message").SetCreatedAt(time.Now().Add(-1 * time.Hour)).SaveX(context.Background())
+
+	chat3 := testClient.Chat.Create().SetType(chat.TypeGroup).SetUpdatedAt(time.Now()).SaveX(context.Background())
+	gc := testClient.GroupChat.Create().SetChat(chat3).SetCreator(u1).SetName("My Group").SaveX(context.Background())
+	testClient.GroupMember.Create().SetGroupChat(gc).SetUser(u1).SetUnreadCount(5).SaveX(context.Background())
+	testClient.Message.Create().SetChat(chat3).SetSender(u1).SetContent("Group message").SetCreatedAt(time.Now()).SaveX(context.Background())
+
+	t.Run("Success - List All Chats", func(t *testing.T) {
+		req, _ := http.NewRequest("GET", "/api/chats", nil)
+		req.Header.Set("Authorization", "Bearer "+token1)
+
+		rr := executeRequest(req)
+
+		if !assert.Equal(t, http.StatusOK, rr.Code) {
+			printBody(t, rr)
+		}
+
+		var resp helper.ResponseWithPagination
+		json.Unmarshal(rr.Body.Bytes(), &resp)
+		dataList := resp.Data.([]interface{})
+
+		assert.Len(t, dataList, 3)
+
+		c1 := dataList[0].(map[string]interface{})
+		c2 := dataList[1].(map[string]interface{})
+		c3 := dataList[2].(map[string]interface{})
+
+		assert.Equal(t, float64(chat3.ID), c1["id"])
+		assert.Equal(t, "My Group", c1["name"])
+		assert.Equal(t, float64(5), c1["unread_count"])
+
+		assert.Equal(t, float64(chat2.ID), c2["id"])
+		assert.Equal(t, "User 3", c2["name"])
+		assert.Equal(t, float64(0), c2["unread_count"])
+
+		assert.Equal(t, float64(chat1.ID), c3["id"])
+		assert.Equal(t, "User 2", c3["name"])
+		assert.Equal(t, float64(3), c3["unread_count"])
+	})
+
+	t.Run("Success - Pagination", func(t *testing.T) {
+		req, _ := http.NewRequest("GET", "/api/chats?limit=2", nil)
+		req.Header.Set("Authorization", "Bearer "+token1)
+
+		rr := executeRequest(req)
+		assert.Equal(t, http.StatusOK, rr.Code)
+
+		var resp helper.ResponseWithPagination
+		json.Unmarshal(rr.Body.Bytes(), &resp)
+		dataList := resp.Data.([]interface{})
+		assert.Len(t, dataList, 2)
+		assert.True(t, resp.Meta.HasNext)
+		assert.NotEmpty(t, resp.Meta.NextCursor)
+
+		cursor := resp.Meta.NextCursor
+		req2, _ := http.NewRequest("GET", fmt.Sprintf("/api/chats?limit=2&cursor=%s", cursor), nil)
+		req2.Header.Set("Authorization", "Bearer "+token1)
+		rr2 := executeRequest(req2)
+
+		if !assert.Equal(t, http.StatusOK, rr2.Code) {
+			printBody(t, rr2)
+		}
+		var resp2 helper.ResponseWithPagination
+		json.Unmarshal(rr2.Body.Bytes(), &resp2)
+		dataList2 := resp2.Data.([]interface{})
+		assert.Len(t, dataList2, 1)
+		assert.Equal(t, float64(chat1.ID), dataList2[0].(map[string]interface{})["id"])
+	})
+
+	t.Run("Success - Search", func(t *testing.T) {
+		req, _ := http.NewRequest("GET", "/api/chats?query=Group", nil)
+		req.Header.Set("Authorization", "Bearer "+token1)
+
+		rr := executeRequest(req)
+		assert.Equal(t, http.StatusOK, rr.Code)
+
+		var resp helper.ResponseWithPagination
+		json.Unmarshal(rr.Body.Bytes(), &resp)
+		dataList := resp.Data.([]interface{})
+		assert.Len(t, dataList, 1)
+		assert.Equal(t, "My Group", dataList[0].(map[string]interface{})["name"])
+	})
+
+	t.Run("Success - Search Self (Should not return self)", func(t *testing.T) {
+
+		req, _ := http.NewRequest("GET", "/api/chats?query=User 1", nil)
+		req.Header.Set("Authorization", "Bearer "+token1)
+
+		rr := executeRequest(req)
+		assert.Equal(t, http.StatusOK, rr.Code)
+
+		var resp helper.ResponseWithPagination
+		json.Unmarshal(rr.Body.Bytes(), &resp)
+		dataList := resp.Data.([]interface{})
+
+		assert.Len(t, dataList, 0)
+	})
+
+	t.Run("Unauthorized", func(t *testing.T) {
+		req, _ := http.NewRequest("GET", "/api/chats", nil)
+		rr := executeRequest(req)
+		assert.Equal(t, http.StatusUnauthorized, rr.Code)
+	})
+}
+
+func TestMarkAsRead(t *testing.T) {
+	clearDatabase(context.Background())
+
+	password := "Password123!"
+	hashedPassword, _ := helper.HashPassword(password)
+	u1 := testClient.User.Create().SetEmail("u1@test.com").SetFullName("User 1").SetPasswordHash(hashedPassword).SaveX(context.Background())
+	u2 := testClient.User.Create().SetEmail("u2@test.com").SetFullName("User 2").SetPasswordHash(hashedPassword).SaveX(context.Background())
+
+	token1, _ := helper.GenerateJWT(testConfig.JWTSecret, testConfig.JWTExp, u1.ID)
+
+	chat1 := testClient.Chat.Create().SetType(chat.TypePrivate).SaveX(context.Background())
+	testClient.PrivateChat.Create().SetChat(chat1).SetUser1(u1).SetUser2(u2).SetUser1UnreadCount(5).SaveX(context.Background())
+
+	chat2 := testClient.Chat.Create().SetType(chat.TypeGroup).SaveX(context.Background())
+	gc := testClient.GroupChat.Create().SetChat(chat2).SetCreator(u2).SetName("Test Group").SaveX(context.Background())
+	testClient.GroupMember.Create().SetGroupChat(gc).SetUser(u1).SetUnreadCount(10).SaveX(context.Background())
+
+	t.Run("Success - Mark Private Chat Read", func(t *testing.T) {
+		req, _ := http.NewRequest("POST", fmt.Sprintf("/api/chats/%d/read", chat1.ID), nil)
+		req.Header.Set("Authorization", "Bearer "+token1)
+
+		rr := executeRequest(req)
+		assert.Equal(t, http.StatusOK, rr.Code)
+
+		pc, _ := testClient.PrivateChat.Query().Where(privatechat.ChatID(chat1.ID)).Only(context.Background())
+		assert.Equal(t, 0, pc.User1UnreadCount)
+		assert.NotNil(t, pc.User1LastReadAt)
+	})
+
+	t.Run("Success - Mark Group Chat Read", func(t *testing.T) {
+		req, _ := http.NewRequest("POST", fmt.Sprintf("/api/chats/%d/read", chat2.ID), nil)
+		req.Header.Set("Authorization", "Bearer "+token1)
+
+		rr := executeRequest(req)
+		assert.Equal(t, http.StatusOK, rr.Code)
+
+		gm, _ := testClient.GroupMember.Query().Where(groupmember.GroupChatID(gc.ID), groupmember.UserID(u1.ID)).Only(context.Background())
+		assert.Equal(t, 0, gm.UnreadCount)
+		assert.NotNil(t, gm.LastReadAt)
+	})
+
+	t.Run("Not Found", func(t *testing.T) {
+		req, _ := http.NewRequest("POST", "/api/chats/99999/read", nil)
+		req.Header.Set("Authorization", "Bearer "+token1)
+
+		rr := executeRequest(req)
+		assert.Equal(t, http.StatusNotFound, rr.Code)
 	})
 }

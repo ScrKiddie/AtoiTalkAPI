@@ -96,6 +96,34 @@ func (_c *PrivateChatCreate) SetNillableUser2HiddenAt(v *time.Time) *PrivateChat
 	return _c
 }
 
+// SetUser1UnreadCount sets the "user1_unread_count" field.
+func (_c *PrivateChatCreate) SetUser1UnreadCount(v int) *PrivateChatCreate {
+	_c.mutation.SetUser1UnreadCount(v)
+	return _c
+}
+
+// SetNillableUser1UnreadCount sets the "user1_unread_count" field if the given value is not nil.
+func (_c *PrivateChatCreate) SetNillableUser1UnreadCount(v *int) *PrivateChatCreate {
+	if v != nil {
+		_c.SetUser1UnreadCount(*v)
+	}
+	return _c
+}
+
+// SetUser2UnreadCount sets the "user2_unread_count" field.
+func (_c *PrivateChatCreate) SetUser2UnreadCount(v int) *PrivateChatCreate {
+	_c.mutation.SetUser2UnreadCount(v)
+	return _c
+}
+
+// SetNillableUser2UnreadCount sets the "user2_unread_count" field if the given value is not nil.
+func (_c *PrivateChatCreate) SetNillableUser2UnreadCount(v *int) *PrivateChatCreate {
+	if v != nil {
+		_c.SetUser2UnreadCount(*v)
+	}
+	return _c
+}
+
 // SetChat sets the "chat" edge to the Chat entity.
 func (_c *PrivateChatCreate) SetChat(v *Chat) *PrivateChatCreate {
 	return _c.SetChatID(v.ID)
@@ -118,6 +146,9 @@ func (_c *PrivateChatCreate) Mutation() *PrivateChatMutation {
 
 // Save creates the PrivateChat in the database.
 func (_c *PrivateChatCreate) Save(ctx context.Context) (*PrivateChat, error) {
+	if err := _c.defaults(); err != nil {
+		return nil, err
+	}
 	return withHooks(ctx, _c.sqlSave, _c.mutation, _c.hooks)
 }
 
@@ -143,6 +174,19 @@ func (_c *PrivateChatCreate) ExecX(ctx context.Context) {
 	}
 }
 
+// defaults sets the default values of the builder before save.
+func (_c *PrivateChatCreate) defaults() error {
+	if _, ok := _c.mutation.User1UnreadCount(); !ok {
+		v := privatechat.DefaultUser1UnreadCount
+		_c.mutation.SetUser1UnreadCount(v)
+	}
+	if _, ok := _c.mutation.User2UnreadCount(); !ok {
+		v := privatechat.DefaultUser2UnreadCount
+		_c.mutation.SetUser2UnreadCount(v)
+	}
+	return nil
+}
+
 // check runs all checks and user-defined validators on the builder.
 func (_c *PrivateChatCreate) check() error {
 	if _, ok := _c.mutation.ChatID(); !ok {
@@ -153,6 +197,12 @@ func (_c *PrivateChatCreate) check() error {
 	}
 	if _, ok := _c.mutation.User2ID(); !ok {
 		return &ValidationError{Name: "user2_id", err: errors.New(`ent: missing required field "PrivateChat.user2_id"`)}
+	}
+	if _, ok := _c.mutation.User1UnreadCount(); !ok {
+		return &ValidationError{Name: "user1_unread_count", err: errors.New(`ent: missing required field "PrivateChat.user1_unread_count"`)}
+	}
+	if _, ok := _c.mutation.User2UnreadCount(); !ok {
+		return &ValidationError{Name: "user2_unread_count", err: errors.New(`ent: missing required field "PrivateChat.user2_unread_count"`)}
 	}
 	if len(_c.mutation.ChatIDs()) == 0 {
 		return &ValidationError{Name: "chat", err: errors.New(`ent: missing required edge "PrivateChat.chat"`)}
@@ -204,6 +254,14 @@ func (_c *PrivateChatCreate) createSpec() (*PrivateChat, *sqlgraph.CreateSpec) {
 	if value, ok := _c.mutation.User2HiddenAt(); ok {
 		_spec.SetField(privatechat.FieldUser2HiddenAt, field.TypeTime, value)
 		_node.User2HiddenAt = &value
+	}
+	if value, ok := _c.mutation.User1UnreadCount(); ok {
+		_spec.SetField(privatechat.FieldUser1UnreadCount, field.TypeInt, value)
+		_node.User1UnreadCount = value
+	}
+	if value, ok := _c.mutation.User2UnreadCount(); ok {
+		_spec.SetField(privatechat.FieldUser2UnreadCount, field.TypeInt, value)
+		_node.User2UnreadCount = value
 	}
 	if nodes := _c.mutation.ChatIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
@@ -277,6 +335,7 @@ func (_c *PrivateChatCreateBulk) Save(ctx context.Context) ([]*PrivateChat, erro
 	for i := range _c.builders {
 		func(i int, root context.Context) {
 			builder := _c.builders[i]
+			builder.defaults()
 			var mut Mutator = MutateFunc(func(ctx context.Context, m Mutation) (Value, error) {
 				mutation, ok := m.(*PrivateChatMutation)
 				if !ok {
