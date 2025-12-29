@@ -357,11 +357,37 @@ func TestGetChats(t *testing.T) {
 		assert.Equal(t, "My Group", dataList[0].(map[string]interface{})["name"])
 	})
 
-	t.Run("Success - Search Self (Should not return self)", func(t *testing.T) {
-
-		req, _ := http.NewRequest("GET", "/api/chats?query=User 1", nil)
+	t.Run("Success - Search No Results", func(t *testing.T) {
+		req, _ := http.NewRequest("GET", "/api/chats?query=NamaNgawur123", nil)
 		req.Header.Set("Authorization", "Bearer "+token1)
+		rr := executeRequest(req)
+		assert.Equal(t, http.StatusOK, rr.Code)
+		var resp helper.ResponseWithPagination
+		json.Unmarshal(rr.Body.Bytes(), &resp)
+		assert.Empty(t, resp.Data)
+	})
 
+	t.Run("Fail - Invalid Cursor Format", func(t *testing.T) {
+		req, _ := http.NewRequest("GET", "/api/chats?cursor=bukan-base64-valid", nil)
+		req.Header.Set("Authorization", "Bearer "+token1)
+		rr := executeRequest(req)
+		assert.Equal(t, http.StatusOK, rr.Code)
+	})
+
+	t.Run("Success - Last Message Placeholder for Deleted Message", func(t *testing.T) {
+
+		u4 := testClient.User.Create().SetEmail("u4@test.com").SetFullName("User 4").SetPasswordHash(hashedPassword).SaveX(context.Background())
+
+		delChat := testClient.Chat.Create().SetType(chat.TypePrivate).SaveX(context.Background())
+		testClient.PrivateChat.Create().SetChat(delChat).SetUser1(u1).SetUser2(u4).SaveX(context.Background())
+
+		msg := testClient.Message.Create().SetChat(delChat).SetSender(u4).SetContent("This will be deleted").SaveX(context.Background())
+		testClient.Message.UpdateOne(msg).SetDeletedAt(time.Now()).ExecX(context.Background())
+
+		delChat.Update().SetUpdatedAt(time.Now()).ExecX(context.Background())
+
+		req, _ := http.NewRequest("GET", "/api/chats", nil)
+		req.Header.Set("Authorization", "Bearer "+token1)
 		rr := executeRequest(req)
 		assert.Equal(t, http.StatusOK, rr.Code)
 
@@ -369,7 +395,31 @@ func TestGetChats(t *testing.T) {
 		json.Unmarshal(rr.Body.Bytes(), &resp)
 		dataList := resp.Data.([]interface{})
 
-		assert.Len(t, dataList, 0)
+		topChat := dataList[0].(map[string]interface{})
+		assert.Equal(t, float64(delChat.ID), topChat["id"])
+
+		lastMsg, ok := topChat["last_message"].(map[string]interface{})
+		assert.True(t, ok)
+		assert.Equal(t, "Pesan telah dihapus", lastMsg["content"])
+	})
+
+	t.Run("Success - Exclude Hidden Private Chat", func(t *testing.T) {
+
+		pc, _ := testClient.PrivateChat.Query().Where(privatechat.ChatID(chat1.ID)).Only(context.Background())
+		testClient.PrivateChat.UpdateOne(pc).SetUser1HiddenAt(time.Now()).ExecX(context.Background())
+
+		req, _ := http.NewRequest("GET", "/api/chats", nil)
+		req.Header.Set("Authorization", "Bearer "+token1)
+		rr := executeRequest(req)
+
+		var resp helper.ResponseWithPagination
+		json.Unmarshal(rr.Body.Bytes(), &resp)
+		dataList := resp.Data.([]interface{})
+
+		for _, item := range dataList {
+			c := item.(map[string]interface{})
+			assert.NotEqual(t, float64(chat1.ID), c["id"], "Hidden chat should not appear")
+		}
 	})
 
 	t.Run("Unauthorized", func(t *testing.T) {

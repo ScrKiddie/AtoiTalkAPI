@@ -9,8 +9,11 @@ import (
 	"AtoiTalkAPI/internal/model"
 	"bytes"
 	"context"
+	"encoding/base64"
 	"encoding/json"
+	"fmt"
 	"net/http"
+	"strconv"
 	"testing"
 	"time"
 
@@ -180,7 +183,6 @@ func TestSendMessage(t *testing.T) {
 
 		pc, _ := testClient.PrivateChat.Query().Where(privatechat.ChatID(chatEntity.ID)).Only(context.Background())
 		assert.Equal(t, 0, pc.User1UnreadCount)
-
 		assert.Equal(t, 3, pc.User2UnreadCount)
 	})
 
@@ -399,5 +401,223 @@ func TestSendMessage(t *testing.T) {
 
 		rr := executeRequest(req)
 		assert.Equal(t, http.StatusBadRequest, rr.Code)
+	})
+}
+
+func TestGetMessages(t *testing.T) {
+	clearDatabase(context.Background())
+
+	password := "Password123!"
+	hashedPassword, _ := helper.HashPassword(password)
+	u1, _ := testClient.User.Create().SetEmail("u1@test.com").SetFullName("User 1").SetPasswordHash(hashedPassword).Save(context.Background())
+	u2, _ := testClient.User.Create().SetEmail("u2@test.com").SetFullName("User 2").SetPasswordHash(hashedPassword).Save(context.Background())
+	u3, _ := testClient.User.Create().SetEmail("u3@test.com").SetFullName("User 3").SetPasswordHash(hashedPassword).Save(context.Background())
+
+	token1, _ := helper.GenerateJWT(testConfig.JWTSecret, testConfig.JWTExp, u1.ID)
+	token3, _ := helper.GenerateJWT(testConfig.JWTSecret, testConfig.JWTExp, u3.ID)
+
+	chatEntity, _ := testClient.Chat.Create().SetType(chat.TypePrivate).Save(context.Background())
+	testClient.PrivateChat.Create().SetChat(chatEntity).SetUser1(u1).SetUser2(u2).Save(context.Background())
+
+	var msgIDs []int
+	for i := 1; i <= 5; i++ {
+		msg, _ := testClient.Message.Create().
+			SetChatID(chatEntity.ID).
+			SetSenderID(u1.ID).
+			SetContent(fmt.Sprintf("Message %d", i)).
+			Save(context.Background())
+		msgIDs = append(msgIDs, msg.ID)
+		time.Sleep(10 * time.Millisecond)
+	}
+
+	t.Run("Success - Get Messages (First Page)", func(t *testing.T) {
+		req, _ := http.NewRequest("GET", fmt.Sprintf("/api/chats/%d/messages?limit=2", chatEntity.ID), nil)
+		req.Header.Set("Authorization", "Bearer "+token1)
+
+		rr := executeRequest(req)
+		assert.Equal(t, http.StatusOK, rr.Code)
+
+		var resp helper.ResponseWithPagination
+		json.Unmarshal(rr.Body.Bytes(), &resp)
+		dataList := resp.Data.([]interface{})
+
+		assert.Len(t, dataList, 2)
+
+		m1 := dataList[0].(map[string]interface{})
+		m2 := dataList[1].(map[string]interface{})
+
+		assert.Equal(t, float64(msgIDs[3]), m1["id"])
+		assert.Equal(t, float64(msgIDs[4]), m2["id"])
+
+		assert.True(t, resp.Meta.HasNext)
+		assert.NotEmpty(t, resp.Meta.NextCursor)
+	})
+
+	t.Run("Success - Get Messages (Next Page)", func(t *testing.T) {
+
+		cursor := base64.URLEncoding.EncodeToString([]byte(strconv.Itoa(msgIDs[3])))
+
+		req, _ := http.NewRequest("GET", fmt.Sprintf("/api/chats/%d/messages?limit=2&cursor=%s", chatEntity.ID, cursor), nil)
+		req.Header.Set("Authorization", "Bearer "+token1)
+
+		rr := executeRequest(req)
+		assert.Equal(t, http.StatusOK, rr.Code)
+
+		var resp helper.ResponseWithPagination
+		json.Unmarshal(rr.Body.Bytes(), &resp)
+		dataList := resp.Data.([]interface{})
+
+		assert.Len(t, dataList, 2)
+
+		m1 := dataList[0].(map[string]interface{})
+		m2 := dataList[1].(map[string]interface{})
+
+		assert.Equal(t, float64(msgIDs[1]), m1["id"])
+		assert.Equal(t, float64(msgIDs[2]), m2["id"])
+	})
+
+	t.Run("Success - Empty Chat", func(t *testing.T) {
+		emptyChat, _ := testClient.Chat.Create().SetType(chat.TypePrivate).Save(context.Background())
+
+		testClient.PrivateChat.Create().SetChat(emptyChat).SetUser1(u1).SetUser2(u3).Save(context.Background())
+
+		req, _ := http.NewRequest("GET", fmt.Sprintf("/api/chats/%d/messages", emptyChat.ID), nil)
+		req.Header.Set("Authorization", "Bearer "+token1)
+
+		rr := executeRequest(req)
+		assert.Equal(t, http.StatusOK, rr.Code)
+
+		var resp helper.ResponseWithPagination
+		json.Unmarshal(rr.Body.Bytes(), &resp)
+		assert.Empty(t, resp.Data)
+	})
+
+	t.Run("Fail - Not Member (Forbidden)", func(t *testing.T) {
+		req, _ := http.NewRequest("GET", fmt.Sprintf("/api/chats/%d/messages", chatEntity.ID), nil)
+		req.Header.Set("Authorization", "Bearer "+token3)
+
+		rr := executeRequest(req)
+		assert.Equal(t, http.StatusForbidden, rr.Code)
+	})
+
+	t.Run("Fail - Chat Not Found (Forbidden)", func(t *testing.T) {
+
+		req, _ := http.NewRequest("GET", "/api/chats/99999/messages", nil)
+		req.Header.Set("Authorization", "Bearer "+token1)
+
+		rr := executeRequest(req)
+		assert.Equal(t, http.StatusForbidden, rr.Code)
+	})
+
+	t.Run("Success - Soft Deleted Message Shows Placeholder", func(t *testing.T) {
+
+		delMsg, _ := testClient.Message.Create().
+			SetChatID(chatEntity.ID).
+			SetSenderID(u1.ID).
+			SetContent("Sensitive Info").
+			SetDeletedAt(time.Now()).
+			Save(context.Background())
+
+		req, _ := http.NewRequest("GET", fmt.Sprintf("/api/chats/%d/messages", chatEntity.ID), nil)
+		req.Header.Set("Authorization", "Bearer "+token1)
+
+		rr := executeRequest(req)
+		assert.Equal(t, http.StatusOK, rr.Code)
+
+		var resp helper.ResponseWithPagination
+		json.Unmarshal(rr.Body.Bytes(), &resp)
+		dataList := resp.Data.([]interface{})
+
+		found := false
+		for _, item := range dataList {
+			m := item.(map[string]interface{})
+			if m["id"].(float64) == float64(delMsg.ID) {
+				assert.Equal(t, "Pesan telah dihapus", m["content"])
+				found = true
+			}
+		}
+		assert.True(t, found, "Deleted message should still be in the list with placeholder")
+	})
+
+	t.Run("Success - Reply Preview for Deleted Message", func(t *testing.T) {
+
+		originalMsg, _ := testClient.Message.Create().
+			SetChatID(chatEntity.ID).
+			SetSenderID(u2.ID).
+			SetContent("I will be deleted").
+			Save(context.Background())
+
+		replyMsg, _ := testClient.Message.Create().
+			SetChatID(chatEntity.ID).
+			SetSenderID(u1.ID).
+			SetContent("Replying to a soon-to-be-deleted message").
+			SetReplyToID(originalMsg.ID).
+			Save(context.Background())
+
+		testClient.Message.UpdateOne(originalMsg).SetDeletedAt(time.Now()).Exec(context.Background())
+
+		req, _ := http.NewRequest("GET", fmt.Sprintf("/api/chats/%d/messages", chatEntity.ID), nil)
+		req.Header.Set("Authorization", "Bearer "+token1)
+
+		rr := executeRequest(req)
+		assert.Equal(t, http.StatusOK, rr.Code)
+
+		var resp helper.ResponseWithPagination
+		json.Unmarshal(rr.Body.Bytes(), &resp)
+		dataList := resp.Data.([]interface{})
+
+		var targetReply map[string]interface{}
+		for _, item := range dataList {
+			m := item.(map[string]interface{})
+			if m["id"].(float64) == float64(replyMsg.ID) {
+				targetReply = m
+				break
+			}
+		}
+
+		assert.NotNil(t, targetReply)
+		replyToMap, ok := targetReply["reply_to"].(map[string]interface{})
+		assert.True(t, ok)
+		assert.Equal(t, "Pesan telah dihapus", replyToMap["content"])
+		assert.Equal(t, "User 2", replyToMap["sender_name"])
+	})
+
+	t.Run("Success - Media Placeholder Preview", func(t *testing.T) {
+
+		media, _ := testClient.Media.Create().
+			SetFileName("test_image.jpg").
+			SetOriginalName("image.jpg").
+			SetFileSize(12345).
+			SetMimeType("image/jpeg").
+			SetStatus("active").
+			Save(context.Background())
+
+		msgWithMedia, _ := testClient.Message.Create().
+			SetChatID(chatEntity.ID).
+			SetSenderID(u1.ID).
+			AddAttachmentIDs(media.ID).
+			Save(context.Background())
+
+		req, _ := http.NewRequest("GET", fmt.Sprintf("/api/chats/%d/messages", chatEntity.ID), nil)
+		req.Header.Set("Authorization", "Bearer "+token1)
+
+		rr := executeRequest(req)
+		assert.Equal(t, http.StatusOK, rr.Code)
+
+		var resp helper.ResponseWithPagination
+		json.Unmarshal(rr.Body.Bytes(), &resp)
+		dataList := resp.Data.([]interface{})
+
+		var targetMsg map[string]interface{}
+		for _, item := range dataList {
+			m := item.(map[string]interface{})
+			if m["id"].(float64) == float64(msgWithMedia.ID) {
+				targetMsg = m
+				break
+			}
+		}
+
+		assert.NotNil(t, targetMsg)
+		assert.Equal(t, "📷 Foto", targetMsg["content"])
 	})
 }

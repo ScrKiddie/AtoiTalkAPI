@@ -84,6 +84,7 @@ func (route *Route) Register() {
 			r.Get("/chats", route.chatController.GetChats)
 			r.Post("/chats/private", route.chatController.CreatePrivateChat)
 			r.Post("/chats/{id}/read", route.chatController.MarkAsRead)
+			r.Get("/chats/{chatID}/messages", route.messageController.GetMessages)
 
 			r.Post("/messages", route.messageController.SendMessage)
 			r.Post("/media/upload", route.mediaController.UploadMedia)

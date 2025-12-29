@@ -8,6 +8,12 @@ type SendMessageRequest struct {
 	ReplyToID     *int   `json:"reply_to_id" validate:"omitempty"`
 }
 
+type GetMessagesRequest struct {
+	ChatID int `json:"chat_id" validate:"required"`
+	Cursor int `json:"cursor" validate:"omitempty,gt=0"`
+	Limit  int `json:"limit" validate:"omitempty,gt=0,max=50"`
+}
+
 type MessageResponse struct {
 	ID          int              `json:"id"`
 	ChatID      int              `json:"chat_id"`
