@@ -186,14 +186,14 @@ func TestSendMessage(t *testing.T) {
 		assert.Equal(t, 3, pc.User2UnreadCount)
 	})
 
-	t.Run("Success - hidden_at Reset", func(t *testing.T) {
-
+	t.Run("Success - SendMessage does not unhide", func(t *testing.T) {
 		pc, _ := testClient.PrivateChat.Query().Where(privatechat.ChatID(chatEntity.ID)).Only(context.Background())
-		testClient.PrivateChat.UpdateOne(pc).SetUser1HiddenAt(time.Now()).Exec(context.Background())
+		hiddenTime := time.Now().Add(-time.Hour)
+		testClient.PrivateChat.UpdateOne(pc).SetUser1HiddenAt(hiddenTime).Exec(context.Background())
 
 		reqBody := model.SendMessageRequest{
 			ChatID:  chatEntity.ID,
-			Content: "I'm back!",
+			Content: "This should not unhide",
 			Type:    "text",
 		}
 		body, _ := json.Marshal(reqBody)
@@ -205,8 +205,8 @@ func TestSendMessage(t *testing.T) {
 		assert.Equal(t, http.StatusOK, rr.Code)
 
 		pcUpdated, _ := testClient.PrivateChat.Query().Where(privatechat.ChatID(chatEntity.ID)).Only(context.Background())
-		assert.Nil(t, pcUpdated.User1HiddenAt)
-		assert.NotNil(t, pcUpdated.User1LastReadAt)
+		assert.NotNil(t, pcUpdated.User1HiddenAt)
+		assert.WithinDuration(t, hiddenTime, *pcUpdated.User1HiddenAt, time.Second)
 	})
 
 	t.Run("Success - Group Chat (Multiple Recipients)", func(t *testing.T) {
@@ -500,13 +500,11 @@ func TestGetMessages(t *testing.T) {
 		assert.Equal(t, http.StatusForbidden, rr.Code)
 	})
 
-	t.Run("Fail - Chat Not Found (Forbidden)", func(t *testing.T) {
-
+	t.Run("Fail - Chat Not Found", func(t *testing.T) {
 		req, _ := http.NewRequest("GET", "/api/chats/99999/messages", nil)
 		req.Header.Set("Authorization", "Bearer "+token1)
-
 		rr := executeRequest(req)
-		assert.Equal(t, http.StatusForbidden, rr.Code)
+		assert.Equal(t, http.StatusNotFound, rr.Code)
 	})
 
 	t.Run("Success - Soft Deleted Message Shows Placeholder", func(t *testing.T) {
@@ -619,5 +617,110 @@ func TestGetMessages(t *testing.T) {
 
 		assert.NotNil(t, targetMsg)
 		assert.Equal(t, "📷 Foto", targetMsg["content"])
+	})
+
+	t.Run("Success - GetMessages respects hidden_at", func(t *testing.T) {
+		clearDatabase(context.Background())
+		u1, _ := testClient.User.Create().SetEmail("u1@test.com").SetFullName("User 1").Save(context.Background())
+		u2, _ := testClient.User.Create().SetEmail("u2@test.com").SetFullName("User 2").Save(context.Background())
+		token1, _ := helper.GenerateJWT(testConfig.JWTSecret, testConfig.JWTExp, u1.ID)
+
+		chatEntity, _ := testClient.Chat.Create().SetType(chat.TypePrivate).Save(context.Background())
+		pc, _ := testClient.PrivateChat.Create().SetChat(chatEntity).SetUser1(u1).SetUser2(u2).Save(context.Background())
+
+		testClient.Message.Create().SetChatID(chatEntity.ID).SetSenderID(u2.ID).SetContent("Old Message 1").SetCreatedAt(time.Now().Add(-2 * time.Hour)).SaveX(context.Background())
+		testClient.Message.Create().SetChatID(chatEntity.ID).SetSenderID(u1.ID).SetContent("Old Message 2").SetCreatedAt(time.Now().Add(-1 * time.Hour)).SaveX(context.Background())
+
+		hideTime := time.Now()
+		testClient.PrivateChat.UpdateOne(pc).SetUser1HiddenAt(hideTime).ExecX(context.Background())
+		time.Sleep(10 * time.Millisecond)
+
+		msg3, _ := testClient.Message.Create().SetChatID(chatEntity.ID).SetSenderID(u2.ID).SetContent("New Message 3").Save(context.Background())
+
+		req, _ := http.NewRequest("GET", fmt.Sprintf("/api/chats/%d/messages", chatEntity.ID), nil)
+		req.Header.Set("Authorization", "Bearer "+token1)
+		rr := executeRequest(req)
+		assert.Equal(t, http.StatusOK, rr.Code)
+
+		var resp helper.ResponseWithPagination
+		json.Unmarshal(rr.Body.Bytes(), &resp)
+		dataList := resp.Data.([]interface{})
+
+		assert.Len(t, dataList, 1, "Should only get messages after hidden_at")
+		msgData := dataList[0].(map[string]interface{})
+		assert.Equal(t, float64(msg3.ID), msgData["id"])
+		assert.Equal(t, "New Message 3", msgData["content"])
+	})
+}
+
+func TestDeleteMessage(t *testing.T) {
+	clearDatabase(context.Background())
+
+	password := "Password123!"
+	hashedPassword, _ := helper.HashPassword(password)
+	u1, _ := testClient.User.Create().SetEmail("u1@test.com").SetFullName("User 1").SetPasswordHash(hashedPassword).Save(context.Background())
+	u2, _ := testClient.User.Create().SetEmail("u2@test.com").SetFullName("User 2").SetPasswordHash(hashedPassword).Save(context.Background())
+
+	token1, _ := helper.GenerateJWT(testConfig.JWTSecret, testConfig.JWTExp, u1.ID)
+	token2, _ := helper.GenerateJWT(testConfig.JWTSecret, testConfig.JWTExp, u2.ID)
+
+	chatEntity, _ := testClient.Chat.Create().SetType(chat.TypePrivate).Save(context.Background())
+	testClient.PrivateChat.Create().SetChat(chatEntity).SetUser1(u1).SetUser2(u2).Save(context.Background())
+
+	t.Run("Success - Delete Own Message", func(t *testing.T) {
+		msg, _ := testClient.Message.Create().
+			SetChatID(chatEntity.ID).
+			SetSenderID(u1.ID).
+			SetContent("To be deleted").
+			Save(context.Background())
+
+		req, _ := http.NewRequest("DELETE", fmt.Sprintf("/api/messages/%d", msg.ID), nil)
+		req.Header.Set("Authorization", "Bearer "+token1)
+
+		rr := executeRequest(req)
+		assert.Equal(t, http.StatusOK, rr.Code)
+
+		deletedMsg, _ := testClient.Message.Get(context.Background(), msg.ID)
+		assert.NotNil(t, deletedMsg.DeletedAt)
+	})
+
+	t.Run("Fail - Delete Other User's Message", func(t *testing.T) {
+		msg, _ := testClient.Message.Create().
+			SetChatID(chatEntity.ID).
+			SetSenderID(u1.ID).
+			SetContent("User 1 Message").
+			Save(context.Background())
+
+		req, _ := http.NewRequest("DELETE", fmt.Sprintf("/api/messages/%d", msg.ID), nil)
+		req.Header.Set("Authorization", "Bearer "+token2)
+
+		rr := executeRequest(req)
+		assert.Equal(t, http.StatusForbidden, rr.Code)
+
+		notDeletedMsg, _ := testClient.Message.Get(context.Background(), msg.ID)
+		assert.Nil(t, notDeletedMsg.DeletedAt)
+	})
+
+	t.Run("Fail - Message Not Found", func(t *testing.T) {
+		req, _ := http.NewRequest("DELETE", "/api/messages/99999", nil)
+		req.Header.Set("Authorization", "Bearer "+token1)
+
+		rr := executeRequest(req)
+		assert.Equal(t, http.StatusNotFound, rr.Code)
+	})
+
+	t.Run("Fail - Already Deleted", func(t *testing.T) {
+		msg, _ := testClient.Message.Create().
+			SetChatID(chatEntity.ID).
+			SetSenderID(u1.ID).
+			SetContent("Already deleted").
+			SetDeletedAt(time.Now()).
+			Save(context.Background())
+
+		req, _ := http.NewRequest("DELETE", fmt.Sprintf("/api/messages/%d", msg.ID), nil)
+		req.Header.Set("Authorization", "Bearer "+token1)
+
+		rr := executeRequest(req)
+		assert.Equal(t, http.StatusBadRequest, rr.Code)
 	})
 }

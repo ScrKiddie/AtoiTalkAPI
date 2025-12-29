@@ -142,3 +142,40 @@ func (c *ChatController) MarkAsRead(w http.ResponseWriter, r *http.Request) {
 
 	helper.WriteSuccess(w, nil)
 }
+
+// HideChat godoc
+// @Summary      Hide Chat
+// @Description  Hide a private chat from the chat list. It will reappear if a new message is sent or received.
+// @Tags         chat
+// @Accept       json
+// @Produce      json
+// @Param        id path int true "Chat ID"
+// @Success      200  {object}  helper.ResponseSuccess
+// @Failure      400  {object}  helper.ResponseError
+// @Failure      401  {object}  helper.ResponseError
+// @Failure      404  {object}  helper.ResponseError
+// @Failure      500  {object}  helper.ResponseError
+// @Security     BearerAuth
+// @Router       /api/chats/{id}/hide [post]
+func (c *ChatController) HideChat(w http.ResponseWriter, r *http.Request) {
+	userContext, ok := r.Context().Value(middleware.UserContextKey).(*model.UserDTO)
+	if !ok {
+		helper.WriteError(w, helper.NewUnauthorizedError(""))
+		return
+	}
+
+	chatIDStr := chi.URLParam(r, "id")
+	chatID, err := strconv.Atoi(chatIDStr)
+	if err != nil {
+		helper.WriteError(w, helper.NewBadRequestError("Invalid chat ID"))
+		return
+	}
+
+	err = c.chatService.HideChat(r.Context(), userContext.ID, chatID)
+	if err != nil {
+		helper.WriteError(w, err)
+		return
+	}
+
+	helper.WriteSuccess(w, nil)
+}
