@@ -115,3 +115,40 @@ func (c *MessageController) GetMessages(w http.ResponseWriter, r *http.Request) 
 
 	helper.WriteSuccessWithPagination(w, messages, nextCursor, hasNext)
 }
+
+// DeleteMessage godoc
+// @Summary      Delete Message
+// @Description  Soft delete a message. Only the sender can delete their own message.
+// @Tags         message
+// @Accept       json
+// @Produce      json
+// @Param        messageID path int true "Message ID"
+// @Success      200  {object}  helper.ResponseSuccess
+// @Failure      400  {object}  helper.ResponseError
+// @Failure      401  {object}  helper.ResponseError
+// @Failure      403  {object}  helper.ResponseError
+// @Failure      404  {object}  helper.ResponseError
+// @Failure      500  {object}  helper.ResponseError
+// @Security     BearerAuth
+// @Router       /api/messages/{messageID} [delete]
+func (c *MessageController) DeleteMessage(w http.ResponseWriter, r *http.Request) {
+	userContext, ok := r.Context().Value(middleware.UserContextKey).(*model.UserDTO)
+	if !ok {
+		helper.WriteError(w, helper.NewUnauthorizedError(""))
+		return
+	}
+
+	messageID, err := strconv.Atoi(chi.URLParam(r, "messageID"))
+	if err != nil {
+		helper.WriteError(w, helper.NewBadRequestError("Invalid message ID"))
+		return
+	}
+
+	err = c.messageService.DeleteMessage(r.Context(), userContext.ID, messageID)
+	if err != nil {
+		helper.WriteError(w, err)
+		return
+	}
+
+	helper.WriteSuccess(w, nil)
+}

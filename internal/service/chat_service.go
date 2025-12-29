@@ -140,10 +140,34 @@ func (s *ChatService) GetChats(ctx context.Context, userID int, req model.GetCha
 	query := s.client.Chat.Query().
 		Where(
 			chat.Or(
-				chat.HasPrivateChatWith(privatechat.Or(
-					privatechat.And(privatechat.User1ID(userID), privatechat.User1HiddenAtIsNil()),
-					privatechat.And(privatechat.User2ID(userID), privatechat.User2HiddenAtIsNil()),
-				)),
+
+				chat.HasPrivateChatWith(
+					privatechat.Or(
+
+						privatechat.And(
+							privatechat.User1ID(userID),
+							privatechat.Or(
+								privatechat.User1HiddenAtIsNil(),
+							),
+						),
+
+						privatechat.And(
+							privatechat.User2ID(userID),
+							privatechat.Or(
+								privatechat.User2HiddenAtIsNil(),
+							),
+						),
+					),
+				),
+
+				chat.HasGroupChatWith(groupchat.HasMembersWith(groupmember.UserID(userID))),
+			),
+		)
+
+	query = s.client.Chat.Query().
+		Where(
+			chat.Or(
+				chat.HasPrivateChatWith(privatechat.Or(privatechat.User1ID(userID), privatechat.User2ID(userID))),
 				chat.HasGroupChatWith(groupchat.HasMembersWith(groupmember.UserID(userID))),
 			),
 		)
@@ -156,7 +180,6 @@ func (s *ChatService) GetChats(ctx context.Context, userID int, req model.GetCha
 		query = query.Where(
 			chat.Or(
 				chat.HasPrivateChatWith(privatechat.Or(
-
 					privatechat.And(
 						privatechat.User1ID(userID),
 						privatechat.HasUser2With(otherUserPredicate),
@@ -194,16 +217,17 @@ func (s *ChatService) GetChats(ctx context.Context, userID int, req model.GetCha
 		}
 	}
 
+	fetchLimit := req.Limit * 3
+
 	chats, err := query.
 		Order(ent.Desc(chat.FieldUpdatedAt), ent.Desc(chat.FieldID)).
-		Limit(req.Limit + 1).
+		Limit(fetchLimit).
 		WithPrivateChat(func(q *ent.PrivateChatQuery) {
 			q.WithUser1(func(uq *ent.UserQuery) { uq.WithAvatar() })
 			q.WithUser2(func(uq *ent.UserQuery) { uq.WithAvatar() })
 		}).
 		WithGroupChat(func(q *ent.GroupChatQuery) {
 			q.WithAvatar()
-
 			q.WithMembers(func(mq *ent.GroupMemberQuery) {
 				mq.Where(groupmember.UserID(userID))
 			})
@@ -215,18 +239,42 @@ func (s *ChatService) GetChats(ctx context.Context, userID int, req model.GetCha
 		return nil, "", false, helper.NewInternalServerError("")
 	}
 
+	var validChats []*ent.Chat
+	for _, c := range chats {
+		if c.Type == chat.TypePrivate && c.Edges.PrivateChat != nil {
+			pc := c.Edges.PrivateChat
+			var hiddenAt *time.Time
+			if pc.User1ID == userID {
+				hiddenAt = pc.User1HiddenAt
+			} else {
+				hiddenAt = pc.User2HiddenAt
+			}
+
+			if hiddenAt != nil {
+
+				if c.UpdatedAt.Before(hiddenAt.Add(time.Second)) {
+					continue
+				}
+			}
+		}
+		validChats = append(validChats, c)
+		if len(validChats) == req.Limit+1 {
+			break
+		}
+	}
+
 	hasNext := false
 	var nextCursor string
-	if len(chats) > req.Limit {
+	if len(validChats) > req.Limit {
 		hasNext = true
-		chats = chats[:req.Limit]
-		lastChat := chats[len(chats)-1]
+		validChats = validChats[:req.Limit]
+		lastChat := validChats[len(validChats)-1]
 		cursorString := fmt.Sprintf("%d,%d", lastChat.UpdatedAt.UnixMicro(), lastChat.ID)
 		nextCursor = base64.URLEncoding.EncodeToString([]byte(cursorString))
 	}
 
-	chatIDs := make([]int, len(chats))
-	for i, c := range chats {
+	chatIDs := make([]int, len(validChats))
+	for i, c := range validChats {
 		chatIDs[i] = c.ID
 	}
 
@@ -267,7 +315,7 @@ func (s *ChatService) GetChats(ctx context.Context, userID int, req model.GetCha
 	}
 
 	response := make([]model.ChatListResponse, 0)
-	for _, c := range chats {
+	for _, c := range validChats {
 		var name, avatar string
 		var lastReadAt *string
 		var isPinned bool
@@ -382,6 +430,47 @@ func (s *ChatService) MarkAsRead(ctx context.Context, userID int, chatID int) er
 			SetUnreadCount(0).
 			SetLastReadAt(time.Now()).
 			Exec(ctx)
+	}
+
+	return nil
+}
+
+func (s *ChatService) HideChat(ctx context.Context, userID int, chatID int) error {
+	c, err := s.client.Chat.Query().
+		Where(chat.ID(chatID)).
+		WithPrivateChat().
+		Only(ctx)
+
+	if err != nil {
+		if ent.IsNotFound(err) {
+			return helper.NewNotFoundError("Chat not found")
+		}
+		slog.Error("Failed to query chat", "error", err, "chatID", chatID)
+		return helper.NewInternalServerError("")
+	}
+
+	if c.Type != chat.TypePrivate {
+		return helper.NewBadRequestError("Only private chats can be hidden")
+	}
+
+	if c.Edges.PrivateChat == nil {
+		return helper.NewInternalServerError("Private chat data missing")
+	}
+
+	pc := c.Edges.PrivateChat
+	update := s.client.PrivateChat.UpdateOneID(pc.ID)
+
+	if pc.User1ID == userID {
+		update.SetUser1HiddenAt(time.Now())
+	} else if pc.User2ID == userID {
+		update.SetUser2HiddenAt(time.Now())
+	} else {
+		return helper.NewForbiddenError("You are not part of this chat")
+	}
+
+	if err := update.Exec(ctx); err != nil {
+		slog.Error("Failed to hide chat", "error", err, "chatID", chatID)
+		return helper.NewInternalServerError("")
 	}
 
 	return nil

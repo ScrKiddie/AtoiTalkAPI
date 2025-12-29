@@ -422,6 +422,42 @@ func TestGetChats(t *testing.T) {
 		}
 	})
 
+	t.Run("Success - Reappear Hidden Chat on New Message", func(t *testing.T) {
+
+		pc, _ := testClient.PrivateChat.Query().Where(privatechat.ChatID(chat1.ID)).Only(context.Background())
+		testClient.PrivateChat.UpdateOne(pc).SetUser1HiddenAt(time.Now()).ExecX(context.Background())
+
+		req1, _ := http.NewRequest("GET", "/api/chats", nil)
+		req1.Header.Set("Authorization", "Bearer "+token1)
+		rr1 := executeRequest(req1)
+		var resp1 helper.ResponseWithPagination
+		json.Unmarshal(rr1.Body.Bytes(), &resp1)
+		dataList1 := resp1.Data.([]interface{})
+		for _, item := range dataList1 {
+			c := item.(map[string]interface{})
+			assert.NotEqual(t, float64(chat1.ID), c["id"], "Chat should be hidden")
+		}
+
+		testClient.Chat.UpdateOneID(chat1.ID).SetUpdatedAt(time.Now().Add(time.Second)).ExecX(context.Background())
+
+		req2, _ := http.NewRequest("GET", "/api/chats", nil)
+		req2.Header.Set("Authorization", "Bearer "+token1)
+		rr2 := executeRequest(req2)
+		var resp2 helper.ResponseWithPagination
+		json.Unmarshal(rr2.Body.Bytes(), &resp2)
+		dataList2 := resp2.Data.([]interface{})
+
+		found := false
+		for _, item := range dataList2 {
+			c := item.(map[string]interface{})
+			if c["id"].(float64) == float64(chat1.ID) {
+				found = true
+				break
+			}
+		}
+		assert.True(t, found, "Chat should reappear after new activity")
+	})
+
 	t.Run("Unauthorized", func(t *testing.T) {
 		req, _ := http.NewRequest("GET", "/api/chats", nil)
 		rr := executeRequest(req)
@@ -476,5 +512,50 @@ func TestMarkAsRead(t *testing.T) {
 
 		rr := executeRequest(req)
 		assert.Equal(t, http.StatusNotFound, rr.Code)
+	})
+}
+
+func TestHideChat(t *testing.T) {
+	clearDatabase(context.Background())
+
+	password := "Password123!"
+	hashedPassword, _ := helper.HashPassword(password)
+	u1 := testClient.User.Create().SetEmail("u1@test.com").SetFullName("User 1").SetPasswordHash(hashedPassword).SaveX(context.Background())
+	u2 := testClient.User.Create().SetEmail("u2@test.com").SetFullName("User 2").SetPasswordHash(hashedPassword).SaveX(context.Background())
+
+	token1, _ := helper.GenerateJWT(testConfig.JWTSecret, testConfig.JWTExp, u1.ID)
+
+	chat1 := testClient.Chat.Create().SetType(chat.TypePrivate).SaveX(context.Background())
+	testClient.PrivateChat.Create().SetChat(chat1).SetUser1(u1).SetUser2(u2).SaveX(context.Background())
+
+	t.Run("Success - Hide Private Chat", func(t *testing.T) {
+		req, _ := http.NewRequest("POST", fmt.Sprintf("/api/chats/%d/hide", chat1.ID), nil)
+		req.Header.Set("Authorization", "Bearer "+token1)
+
+		rr := executeRequest(req)
+		assert.Equal(t, http.StatusOK, rr.Code)
+
+		pc, _ := testClient.PrivateChat.Query().Where(privatechat.ChatID(chat1.ID)).Only(context.Background())
+		assert.NotNil(t, pc.User1HiddenAt)
+		assert.Nil(t, pc.User2HiddenAt)
+	})
+
+	t.Run("Fail - Chat Not Found", func(t *testing.T) {
+		req, _ := http.NewRequest("POST", "/api/chats/99999/hide", nil)
+		req.Header.Set("Authorization", "Bearer "+token1)
+
+		rr := executeRequest(req)
+		assert.Equal(t, http.StatusNotFound, rr.Code)
+	})
+
+	t.Run("Fail - Not Private Chat", func(t *testing.T) {
+		chatGroup := testClient.Chat.Create().SetType(chat.TypeGroup).SaveX(context.Background())
+		testClient.GroupChat.Create().SetChat(chatGroup).SetCreator(u1).SetName("Group").SaveX(context.Background())
+
+		req, _ := http.NewRequest("POST", fmt.Sprintf("/api/chats/%d/hide", chatGroup.ID), nil)
+		req.Header.Set("Authorization", "Bearer "+token1)
+
+		rr := executeRequest(req)
+		assert.Equal(t, http.StatusBadRequest, rr.Code)
 	})
 }

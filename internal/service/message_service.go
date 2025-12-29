@@ -106,7 +106,7 @@ func (s *MessageService) SendMessage(ctx context.Context, userID int, req model.
 			return nil, helper.NewInternalServerError("")
 		}
 		if !replyMsgExists {
-			return nil, helper.NewBadRequestError("Replied message not found or in a different chat")
+			return nil, helper.NewBadRequestError("")
 		}
 	}
 
@@ -162,16 +162,11 @@ func (s *MessageService) SendMessage(ctx context.Context, userID int, req model.
 			update.SetUser1LastReadAt(time.Now())
 			update.SetUser1UnreadCount(0)
 			update.AddUser2UnreadCount(1)
-			if pc.User1HiddenAt != nil {
-				update.ClearUser1HiddenAt()
-			}
+
 		} else {
 			update.SetUser2LastReadAt(time.Now())
 			update.SetUser2UnreadCount(0)
 			update.AddUser1UnreadCount(1)
-			if pc.User2HiddenAt != nil {
-				update.ClearUser2HiddenAt()
-			}
 		}
 
 		if err := update.Exec(ctx); err != nil {
@@ -248,28 +243,56 @@ func (s *MessageService) GetMessages(ctx context.Context, userID int, req model.
 		req.Limit = 20
 	}
 
-	isMember, err := s.client.Chat.Query().
-		Where(
-			chat.ID(req.ChatID),
-			chat.Or(
-				chat.HasPrivateChatWith(privatechat.Or(privatechat.User1ID(userID), privatechat.User2ID(userID))),
-				chat.HasGroupChatWith(groupchat.HasMembersWith(groupmember.UserID(userID))),
-			),
-		).Exist(ctx)
+	chatInfo, err := s.client.Chat.Query().
+		Where(chat.ID(req.ChatID)).
+		WithPrivateChat().
+		WithGroupChat(func(q *ent.GroupChatQuery) {
+			q.WithMembers(func(mq *ent.GroupMemberQuery) {
+				mq.Where(groupmember.UserID(userID))
+			})
+		}).
+		Only(ctx)
 
 	if err != nil {
-		slog.Error("Failed to check chat membership", "error", err, "chatID", req.ChatID)
+		if ent.IsNotFound(err) {
+			return nil, "", false, helper.NewNotFoundError("")
+		}
+		slog.Error("Failed to query chat info", "error", err, "chatID", req.ChatID)
 		return nil, "", false, helper.NewInternalServerError("")
 	}
+
+	isMember := false
+	var hiddenAt *time.Time
+
+	if chatInfo.Type == chat.TypePrivate && chatInfo.Edges.PrivateChat != nil {
+		pc := chatInfo.Edges.PrivateChat
+		if pc.User1ID == userID {
+			isMember = true
+			hiddenAt = pc.User1HiddenAt
+		} else if pc.User2ID == userID {
+			isMember = true
+			hiddenAt = pc.User2HiddenAt
+		}
+	} else if chatInfo.Type == chat.TypeGroup && chatInfo.Edges.GroupChat != nil {
+		if len(chatInfo.Edges.GroupChat.Edges.Members) > 0 {
+			isMember = true
+		}
+	}
+
 	if !isMember {
-		return nil, "", false, helper.NewForbiddenError("You are not a member of this chat")
+		return nil, "", false, helper.NewForbiddenError("")
 	}
 
 	query := s.client.Message.Query().
 		Where(
 			message.ChatID(req.ChatID),
-		).
-		Order(ent.Desc(message.FieldID)).
+		)
+
+	if hiddenAt != nil {
+		query = query.Where(message.CreatedAtGT(*hiddenAt))
+	}
+
+	query = query.Order(ent.Desc(message.FieldID)).
 		Limit(req.Limit + 1).
 		WithSender().
 		WithAttachments().
@@ -309,4 +332,37 @@ func (s *MessageService) GetMessages(ctx context.Context, userID int, req model.
 	}
 
 	return response, nextCursor, hasNext, nil
+}
+
+func (s *MessageService) DeleteMessage(ctx context.Context, userID int, messageID int) error {
+	msg, err := s.client.Message.Query().
+		Where(message.ID(messageID)).
+		Only(ctx)
+
+	if err != nil {
+		if ent.IsNotFound(err) {
+			return helper.NewNotFoundError("")
+		}
+		slog.Error("Failed to query message", "error", err, "messageID", messageID)
+		return helper.NewInternalServerError("")
+	}
+
+	if msg.SenderID != userID {
+		return helper.NewForbiddenError("")
+	}
+
+	if msg.DeletedAt != nil {
+		return helper.NewBadRequestError("")
+	}
+
+	err = s.client.Message.UpdateOne(msg).
+		SetDeletedAt(time.Now()).
+		Exec(ctx)
+
+	if err != nil {
+		slog.Error("Failed to delete message", "error", err, "messageID", messageID)
+		return helper.NewInternalServerError("")
+	}
+
+	return nil
 }
