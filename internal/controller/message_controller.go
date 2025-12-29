@@ -5,9 +5,13 @@ import (
 	"AtoiTalkAPI/internal/middleware"
 	"AtoiTalkAPI/internal/model"
 	"AtoiTalkAPI/internal/service"
+	"encoding/base64"
 	"encoding/json"
 	"log/slog"
 	"net/http"
+	"strconv"
+
+	"github.com/go-chi/chi/v5"
 )
 
 type MessageController struct {
@@ -55,4 +59,59 @@ func (c *MessageController) SendMessage(w http.ResponseWriter, r *http.Request) 
 	}
 
 	helper.WriteSuccess(w, resp)
+}
+
+// GetMessages godoc
+// @Summary      Get Messages
+// @Description  Get a paginated list of messages from a chat.
+// @Tags         message
+// @Accept       json
+// @Produce      json
+// @Param        chatID path int true "Chat ID"
+// @Param        cursor query string false "Pagination cursor (Base64 encoded message ID)"
+// @Param        limit query int false "Number of messages to fetch (default 20, max 50)"
+// @Success      200  {object}  helper.ResponseWithPagination{data=[]model.MessageResponse}
+// @Failure      400  {object}  helper.ResponseError
+// @Failure      401  {object}  helper.ResponseError
+// @Failure      403  {object}  helper.ResponseError
+// @Failure      500  {object}  helper.ResponseError
+// @Security     BearerAuth
+// @Router       /api/chats/{chatID}/messages [get]
+func (c *MessageController) GetMessages(w http.ResponseWriter, r *http.Request) {
+	userContext, ok := r.Context().Value(middleware.UserContextKey).(*model.UserDTO)
+	if !ok {
+		helper.WriteError(w, helper.NewUnauthorizedError(""))
+		return
+	}
+
+	chatID, err := strconv.Atoi(chi.URLParam(r, "chatID"))
+	if err != nil {
+		helper.WriteError(w, helper.NewBadRequestError("Invalid chat ID"))
+		return
+	}
+
+	cursorStr := r.URL.Query().Get("cursor")
+	var cursor int
+	if cursorStr != "" {
+		decodedBytes, err := base64.URLEncoding.DecodeString(cursorStr)
+		if err == nil {
+			cursor, _ = strconv.Atoi(string(decodedBytes))
+		}
+	}
+
+	limit, _ := strconv.Atoi(r.URL.Query().Get("limit"))
+
+	req := model.GetMessagesRequest{
+		ChatID: chatID,
+		Cursor: cursor,
+		Limit:  limit,
+	}
+
+	messages, nextCursor, hasNext, err := c.messageService.GetMessages(r.Context(), userContext.ID, req)
+	if err != nil {
+		helper.WriteError(w, err)
+		return
+	}
+
+	helper.WriteSuccessWithPagination(w, messages, nextCursor, hasNext)
 }

@@ -13,7 +13,9 @@ import (
 	"AtoiTalkAPI/internal/helper"
 	"AtoiTalkAPI/internal/model"
 	"context"
+	"encoding/base64"
 	"log/slog"
+	"strconv"
 	"time"
 
 	"github.com/go-playground/validator/v10"
@@ -42,8 +44,6 @@ func (s *MessageService) SendMessage(ctx context.Context, userID int, req model.
 	}
 
 	var msg *ent.Message
-	var attachmentDTOs []model.MediaDTO
-	var replyPreview *model.ReplyPreviewDTO
 
 	tx, err := s.client.Tx(ctx)
 	if err != nil {
@@ -93,31 +93,20 @@ func (s *MessageService) SendMessage(ctx context.Context, userID int, req model.
 	}
 
 	if req.ReplyToID != nil {
-		replyMsg, err := tx.Message.Query().
+		replyMsgExists, err := tx.Message.Query().
 			Where(
 				message.ID(*req.ReplyToID),
 				message.ChatID(req.ChatID),
 				message.DeletedAtIsNil(),
 			).
-			WithSender().
-			Only(ctx)
+			Exist(ctx)
 
 		if err != nil {
-			if ent.IsNotFound(err) {
-				return nil, helper.NewBadRequestError("Replied message not found or in a different chat")
-			}
 			slog.Error("Failed to check reply message existence", "error", err)
 			return nil, helper.NewInternalServerError("")
 		}
-
-		content := ""
-		if replyMsg.Content != nil {
-			content = *replyMsg.Content
-		}
-		replyPreview = &model.ReplyPreviewDTO{
-			ID:         replyMsg.ID,
-			SenderName: replyMsg.Edges.Sender.FullName,
-			Content:    content,
+		if !replyMsgExists {
+			return nil, helper.NewBadRequestError("Replied message not found or in a different chat")
 		}
 	}
 
@@ -228,43 +217,96 @@ func (s *MessageService) SendMessage(ctx context.Context, userID int, req model.
 		slog.Error("Failed to update chat timestamp", "error", err)
 	}
 
-	if len(req.AttachmentIDs) > 0 {
-		attachments, err := msg.QueryAttachments().All(ctx)
-		if err == nil {
-			for _, att := range attachments {
-				url := helper.BuildImageURL(s.cfg.StorageMode, s.cfg.AppURL, s.cfg.StorageCDNURL, s.cfg.StorageAttachment, att.FileName)
-				attachmentDTOs = append(attachmentDTOs, model.MediaDTO{
-					ID:           att.ID,
-					FileName:     att.FileName,
-					OriginalName: att.OriginalName,
-					FileSize:     att.FileSize,
-					MimeType:     att.MimeType,
-					URL:          url,
-				})
-			}
-		} else {
-			slog.Error("Failed to fetch attachments for response", "error", err)
-			return nil, helper.NewInternalServerError("")
-		}
-	}
-
 	if err := tx.Commit(); err != nil {
 		slog.Error("Failed to commit transaction", "error", err)
 		return nil, helper.NewInternalServerError("")
 	}
 
-	content := ""
-	if msg.Content != nil {
-		content = *msg.Content
+	fullMsg, err := s.client.Message.Query().
+		Where(message.ID(msg.ID)).
+		WithSender().
+		WithAttachments().
+		WithReplyTo(func(q *ent.MessageQuery) {
+			q.WithSender().WithAttachments()
+		}).
+		Only(ctx)
+
+	if err != nil {
+		slog.Error("Failed to fetch full message for response", "error", err)
+		return nil, helper.NewInternalServerError("")
 	}
 
-	return &model.MessageResponse{
-		ID:          msg.ID,
-		ChatID:      msg.ChatID,
-		SenderID:    msg.SenderID,
-		Content:     content,
-		Attachments: attachmentDTOs,
-		ReplyTo:     replyPreview,
-		CreatedAt:   msg.CreatedAt.String(),
-	}, nil
+	return helper.ToMessageResponse(fullMsg, s.cfg.StorageMode, s.cfg.AppURL, s.cfg.StorageCDNURL, s.cfg.StorageAttachment), nil
+}
+
+func (s *MessageService) GetMessages(ctx context.Context, userID int, req model.GetMessagesRequest) ([]model.MessageResponse, string, bool, error) {
+	if err := s.validator.Struct(req); err != nil {
+		return nil, "", false, helper.NewBadRequestError("")
+	}
+
+	if req.Limit == 0 {
+		req.Limit = 20
+	}
+
+	isMember, err := s.client.Chat.Query().
+		Where(
+			chat.ID(req.ChatID),
+			chat.Or(
+				chat.HasPrivateChatWith(privatechat.Or(privatechat.User1ID(userID), privatechat.User2ID(userID))),
+				chat.HasGroupChatWith(groupchat.HasMembersWith(groupmember.UserID(userID))),
+			),
+		).Exist(ctx)
+
+	if err != nil {
+		slog.Error("Failed to check chat membership", "error", err, "chatID", req.ChatID)
+		return nil, "", false, helper.NewInternalServerError("")
+	}
+	if !isMember {
+		return nil, "", false, helper.NewForbiddenError("You are not a member of this chat")
+	}
+
+	query := s.client.Message.Query().
+		Where(
+			message.ChatID(req.ChatID),
+		).
+		Order(ent.Desc(message.FieldID)).
+		Limit(req.Limit + 1).
+		WithSender().
+		WithAttachments().
+		WithReplyTo(func(q *ent.MessageQuery) {
+			q.WithSender().WithAttachments()
+		})
+
+	if req.Cursor > 0 {
+		query = query.Where(message.IDLT(req.Cursor))
+	}
+
+	messages, err := query.All(ctx)
+	if err != nil {
+		slog.Error("Failed to get messages", "error", err)
+		return nil, "", false, helper.NewInternalServerError("")
+	}
+
+	hasNext := false
+	var nextCursor string
+	if len(messages) > req.Limit {
+		hasNext = true
+		messages = messages[:req.Limit]
+		lastID := messages[len(messages)-1].ID
+		nextCursor = base64.URLEncoding.EncodeToString([]byte(strconv.Itoa(lastID)))
+	}
+
+	var response []model.MessageResponse
+	for _, msg := range messages {
+		resp := helper.ToMessageResponse(msg, s.cfg.StorageMode, s.cfg.AppURL, s.cfg.StorageCDNURL, s.cfg.StorageAttachment)
+		if resp != nil {
+			response = append(response, *resp)
+		}
+	}
+
+	for i, j := 0, len(response)-1; i < j; i, j = i+1, j-1 {
+		response[i], response[j] = response[j], response[i]
+	}
+
+	return response, nextCursor, hasNext, nil
 }

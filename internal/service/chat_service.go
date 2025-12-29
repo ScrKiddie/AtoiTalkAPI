@@ -256,7 +256,7 @@ func (s *ChatService) GetChats(ctx context.Context, userID int, req model.GetCha
 					WithSender().
 					WithAttachments().
 					WithReplyTo(func(q *ent.MessageQuery) {
-						q.WithSender()
+						q.WithSender().WithAttachments()
 					}).
 					All(ctx)
 				for _, msg := range msgs {
@@ -313,40 +313,7 @@ func (s *ChatService) GetChats(ctx context.Context, userID int, req model.GetCha
 
 		var lastMsgResp *model.MessageResponse
 		if msg, ok := lastMessages[c.ID]; ok {
-			content := ""
-			if msg.Content != nil {
-				content = *msg.Content
-			}
-			var attachments []model.MediaDTO
-			if len(msg.Edges.Attachments) > 0 {
-				for _, att := range msg.Edges.Attachments {
-					url := helper.BuildImageURL(s.cfg.StorageMode, s.cfg.AppURL, s.cfg.StorageCDNURL, s.cfg.StorageAttachment, att.FileName)
-					attachments = append(attachments, model.MediaDTO{ID: att.ID, FileName: att.FileName, OriginalName: att.OriginalName, FileSize: att.FileSize, MimeType: att.MimeType, URL: url})
-				}
-			}
-
-			var replyPreview *model.ReplyPreviewDTO
-			if msg.Edges.ReplyTo != nil {
-				replyContent := ""
-				if msg.Edges.ReplyTo.Content != nil {
-					replyContent = *msg.Edges.ReplyTo.Content
-				}
-				replyPreview = &model.ReplyPreviewDTO{
-					ID:         msg.Edges.ReplyTo.ID,
-					SenderName: msg.Edges.ReplyTo.Edges.Sender.FullName,
-					Content:    replyContent,
-				}
-			}
-
-			lastMsgResp = &model.MessageResponse{
-				ID:          msg.ID,
-				ChatID:      msg.ChatID,
-				SenderID:    msg.SenderID,
-				Content:     content,
-				Attachments: attachments,
-				ReplyTo:     replyPreview,
-				CreatedAt:   msg.CreatedAt.String(),
-			}
+			lastMsgResp = helper.ToMessageResponse(msg, s.cfg.StorageMode, s.cfg.AppURL, s.cfg.StorageCDNURL, s.cfg.StorageAttachment)
 		}
 
 		response = append(response, model.ChatListResponse{ID: c.ID, Type: string(c.Type), Name: name, Avatar: avatar, LastMessage: lastMsgResp, UnreadCount: unreadCount, LastReadAt: lastReadAt, IsPinned: isPinned})

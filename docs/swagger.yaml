@@ -530,6 +530,60 @@ paths:
       summary: Get Chat List
       tags:
       - chat
+  /api/chats/{chatID}/messages:
+    get:
+      consumes:
+      - application/json
+      description: Get a paginated list of messages from a chat.
+      parameters:
+      - description: Chat ID
+        in: path
+        name: chatID
+        required: true
+        type: integer
+      - description: Pagination cursor (Base64 encoded message ID)
+        in: query
+        name: cursor
+        type: string
+      - description: Number of messages to fetch (default 20, max 50)
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/helper.ResponseWithPagination'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/model.MessageResponse'
+                  type: array
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
+      security:
+      - BearerAuth: []
+      summary: Get Messages
+      tags:
+      - message
   /api/chats/{id}/read:
     post:
       consumes:
