@@ -90,6 +90,11 @@ func MessageID(v int) predicate.Media {
 	return predicate.Media(sql.FieldEQ(FieldMessageID, v))
 }
 
+// UploadedByID applies equality check predicate on the "uploaded_by_id" field. It's identical to UploadedByIDEQ.
+func UploadedByID(v int) predicate.Media {
+	return predicate.Media(sql.FieldEQ(FieldUploadedByID, v))
+}
+
 // CreatedAtEQ applies the EQ predicate on the "created_at" field.
 func CreatedAtEQ(v time.Time) predicate.Media {
 	return predicate.Media(sql.FieldEQ(FieldCreatedAt, v))
@@ -455,6 +460,26 @@ func MessageIDNotNil() predicate.Media {
 	return predicate.Media(sql.FieldNotNull(FieldMessageID))
 }
 
+// UploadedByIDEQ applies the EQ predicate on the "uploaded_by_id" field.
+func UploadedByIDEQ(v int) predicate.Media {
+	return predicate.Media(sql.FieldEQ(FieldUploadedByID, v))
+}
+
+// UploadedByIDNEQ applies the NEQ predicate on the "uploaded_by_id" field.
+func UploadedByIDNEQ(v int) predicate.Media {
+	return predicate.Media(sql.FieldNEQ(FieldUploadedByID, v))
+}
+
+// UploadedByIDIn applies the In predicate on the "uploaded_by_id" field.
+func UploadedByIDIn(vs ...int) predicate.Media {
+	return predicate.Media(sql.FieldIn(FieldUploadedByID, vs...))
+}
+
+// UploadedByIDNotIn applies the NotIn predicate on the "uploaded_by_id" field.
+func UploadedByIDNotIn(vs ...int) predicate.Media {
+	return predicate.Media(sql.FieldNotIn(FieldUploadedByID, vs...))
+}
+
 // HasMessage applies the HasEdge predicate on the "message" edge.
 func HasMessage() predicate.Media {
 	return predicate.Media(func(s *sql.Selector) {
@@ -516,6 +541,29 @@ func HasGroupAvatar() predicate.Media {
 func HasGroupAvatarWith(preds ...predicate.GroupChat) predicate.Media {
 	return predicate.Media(func(s *sql.Selector) {
 		step := newGroupAvatarStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
+// HasUploader applies the HasEdge predicate on the "uploader" edge.
+func HasUploader() predicate.Media {
+	return predicate.Media(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, UploaderTable, UploaderColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasUploaderWith applies the HasEdge predicate on the "uploader" edge with a given conditions (other predicates).
+func HasUploaderWith(preds ...predicate.User) predicate.Media {
+	return predicate.Media(func(s *sql.Selector) {
+		step := newUploaderStep()
 		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
 			for _, p := range preds {
 				p(s)

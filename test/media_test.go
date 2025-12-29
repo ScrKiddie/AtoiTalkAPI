@@ -69,6 +69,7 @@ func TestUploadMedia(t *testing.T) {
 		m, err := testClient.Media.Query().Where(media.ID(mediaID)).Only(context.Background())
 		assert.NoError(t, err)
 		assert.Equal(t, media.StatusActive, m.Status)
+		assert.Equal(t, u.ID, m.UploadedByID, "Media uploader should be set to the user")
 
 		_, b, _, _ := runtime.Caller(0)
 		testDir := filepath.Dir(b)

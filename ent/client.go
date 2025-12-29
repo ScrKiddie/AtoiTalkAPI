@@ -987,6 +987,22 @@ func (c *MediaClient) QueryGroupAvatar(_m *Media) *GroupChatQuery {
 	return query
 }
 
+// QueryUploader queries the uploader edge of a Media.
+func (c *MediaClient) QueryUploader(_m *Media) *UserQuery {
+	query := (&UserClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(media.Table, media.FieldID, id),
+			sqlgraph.To(user.Table, user.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, media.UploaderTable, media.UploaderColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
 // Hooks returns the client hooks.
 func (c *MediaClient) Hooks() []Hook {
 	return c.hooks.Media
@@ -1769,6 +1785,22 @@ func (c *UserClient) QueryPrivateChatsAsUser2(_m *User) *PrivateChatQuery {
 			sqlgraph.From(user.Table, user.FieldID, id),
 			sqlgraph.To(privatechat.Table, privatechat.FieldID),
 			sqlgraph.Edge(sqlgraph.O2M, false, user.PrivateChatsAsUser2Table, user.PrivateChatsAsUser2Column),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryUploadedMedia queries the uploaded_media edge of a User.
+func (c *UserClient) QueryUploadedMedia(_m *User) *MediaQuery {
+	query := (&MediaClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(user.Table, user.FieldID, id),
+			sqlgraph.To(media.Table, media.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, user.UploadedMediaTable, user.UploadedMediaColumn),
 		)
 		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
 		return fromV, nil

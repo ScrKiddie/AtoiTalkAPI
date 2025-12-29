@@ -36,6 +36,8 @@ type Media struct {
 	Status media.Status `json:"status,omitempty"`
 	// MessageID holds the value of the "message_id" field.
 	MessageID *int `json:"message_id,omitempty"`
+	// UploadedByID holds the value of the "uploaded_by_id" field.
+	UploadedByID int `json:"uploaded_by_id,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the MediaQuery when eager-loading is set.
 	Edges        MediaEdges `json:"edges"`
@@ -50,9 +52,11 @@ type MediaEdges struct {
 	UserAvatar *User `json:"user_avatar,omitempty"`
 	// GroupAvatar holds the value of the group_avatar edge.
 	GroupAvatar *GroupChat `json:"group_avatar,omitempty"`
+	// Uploader holds the value of the uploader edge.
+	Uploader *User `json:"uploader,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [3]bool
+	loadedTypes [4]bool
 }
 
 // MessageOrErr returns the Message value or an error if the edge
@@ -88,12 +92,23 @@ func (e MediaEdges) GroupAvatarOrErr() (*GroupChat, error) {
 	return nil, &NotLoadedError{edge: "group_avatar"}
 }
 
+// UploaderOrErr returns the Uploader value or an error if the edge
+// was not loaded in eager-loading, or loaded but was not found.
+func (e MediaEdges) UploaderOrErr() (*User, error) {
+	if e.Uploader != nil {
+		return e.Uploader, nil
+	} else if e.loadedTypes[3] {
+		return nil, &NotFoundError{label: user.Label}
+	}
+	return nil, &NotLoadedError{edge: "uploader"}
+}
+
 // scanValues returns the types for scanning values from sql.Rows.
 func (*Media) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case media.FieldID, media.FieldFileSize, media.FieldMessageID:
+		case media.FieldID, media.FieldFileSize, media.FieldMessageID, media.FieldUploadedByID:
 			values[i] = new(sql.NullInt64)
 		case media.FieldFileName, media.FieldOriginalName, media.FieldMimeType, media.FieldStatus:
 			values[i] = new(sql.NullString)
@@ -169,6 +184,12 @@ func (_m *Media) assignValues(columns []string, values []any) error {
 				_m.MessageID = new(int)
 				*_m.MessageID = int(value.Int64)
 			}
+		case media.FieldUploadedByID:
+			if value, ok := values[i].(*sql.NullInt64); !ok {
+				return fmt.Errorf("unexpected type %T for field uploaded_by_id", values[i])
+			} else if value.Valid {
+				_m.UploadedByID = int(value.Int64)
+			}
 		default:
 			_m.selectValues.Set(columns[i], values[i])
 		}
@@ -195,6 +216,11 @@ func (_m *Media) QueryUserAvatar() *UserQuery {
 // QueryGroupAvatar queries the "group_avatar" edge of the Media entity.
 func (_m *Media) QueryGroupAvatar() *GroupChatQuery {
 	return NewMediaClient(_m.config).QueryGroupAvatar(_m)
+}
+
+// QueryUploader queries the "uploader" edge of the Media entity.
+func (_m *Media) QueryUploader() *UserQuery {
+	return NewMediaClient(_m.config).QueryUploader(_m)
 }
 
 // Update returns a builder for updating this Media.
@@ -245,6 +271,9 @@ func (_m *Media) String() string {
 		builder.WriteString("message_id=")
 		builder.WriteString(fmt.Sprintf("%v", *v))
 	}
+	builder.WriteString(", ")
+	builder.WriteString("uploaded_by_id=")
+	builder.WriteString(fmt.Sprintf("%v", _m.UploadedByID))
 	builder.WriteByte(')')
 	return builder.String()
 }

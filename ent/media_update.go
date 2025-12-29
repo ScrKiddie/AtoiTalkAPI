@@ -134,6 +134,20 @@ func (_u *MediaUpdate) ClearMessageID() *MediaUpdate {
 	return _u
 }
 
+// SetUploadedByID sets the "uploaded_by_id" field.
+func (_u *MediaUpdate) SetUploadedByID(v int) *MediaUpdate {
+	_u.mutation.SetUploadedByID(v)
+	return _u
+}
+
+// SetNillableUploadedByID sets the "uploaded_by_id" field if the given value is not nil.
+func (_u *MediaUpdate) SetNillableUploadedByID(v *int) *MediaUpdate {
+	if v != nil {
+		_u.SetUploadedByID(*v)
+	}
+	return _u
+}
+
 // SetMessage sets the "message" edge to the Message entity.
 func (_u *MediaUpdate) SetMessage(v *Message) *MediaUpdate {
 	return _u.SetMessageID(v.ID)
@@ -177,6 +191,17 @@ func (_u *MediaUpdate) SetGroupAvatar(v *GroupChat) *MediaUpdate {
 	return _u.SetGroupAvatarID(v.ID)
 }
 
+// SetUploaderID sets the "uploader" edge to the User entity by ID.
+func (_u *MediaUpdate) SetUploaderID(id int) *MediaUpdate {
+	_u.mutation.SetUploaderID(id)
+	return _u
+}
+
+// SetUploader sets the "uploader" edge to the User entity.
+func (_u *MediaUpdate) SetUploader(v *User) *MediaUpdate {
+	return _u.SetUploaderID(v.ID)
+}
+
 // Mutation returns the MediaMutation object of the builder.
 func (_u *MediaUpdate) Mutation() *MediaMutation {
 	return _u.mutation
@@ -197,6 +222,12 @@ func (_u *MediaUpdate) ClearUserAvatar() *MediaUpdate {
 // ClearGroupAvatar clears the "group_avatar" edge to the GroupChat entity.
 func (_u *MediaUpdate) ClearGroupAvatar() *MediaUpdate {
 	_u.mutation.ClearGroupAvatar()
+	return _u
+}
+
+// ClearUploader clears the "uploader" edge to the User entity.
+func (_u *MediaUpdate) ClearUploader() *MediaUpdate {
+	_u.mutation.ClearUploader()
 	return _u
 }
 
@@ -262,6 +293,9 @@ func (_u *MediaUpdate) check() error {
 		if err := media.StatusValidator(v); err != nil {
 			return &ValidationError{Name: "status", err: fmt.Errorf(`ent: validator failed for field "Media.status": %w`, err)}
 		}
+	}
+	if _u.mutation.UploaderCleared() && len(_u.mutation.UploaderIDs()) > 0 {
+		return errors.New(`ent: clearing a required unique edge "Media.uploader"`)
 	}
 	return nil
 }
@@ -379,6 +413,35 @@ func (_u *MediaUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(groupchat.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.UploaderCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   media.UploaderTable,
+			Columns: []string{media.UploaderColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeInt),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.UploaderIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   media.UploaderTable,
+			Columns: []string{media.UploaderColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeInt),
 			},
 		}
 		for _, k := range nodes {
@@ -509,6 +572,20 @@ func (_u *MediaUpdateOne) ClearMessageID() *MediaUpdateOne {
 	return _u
 }
 
+// SetUploadedByID sets the "uploaded_by_id" field.
+func (_u *MediaUpdateOne) SetUploadedByID(v int) *MediaUpdateOne {
+	_u.mutation.SetUploadedByID(v)
+	return _u
+}
+
+// SetNillableUploadedByID sets the "uploaded_by_id" field if the given value is not nil.
+func (_u *MediaUpdateOne) SetNillableUploadedByID(v *int) *MediaUpdateOne {
+	if v != nil {
+		_u.SetUploadedByID(*v)
+	}
+	return _u
+}
+
 // SetMessage sets the "message" edge to the Message entity.
 func (_u *MediaUpdateOne) SetMessage(v *Message) *MediaUpdateOne {
 	return _u.SetMessageID(v.ID)
@@ -552,6 +629,17 @@ func (_u *MediaUpdateOne) SetGroupAvatar(v *GroupChat) *MediaUpdateOne {
 	return _u.SetGroupAvatarID(v.ID)
 }
 
+// SetUploaderID sets the "uploader" edge to the User entity by ID.
+func (_u *MediaUpdateOne) SetUploaderID(id int) *MediaUpdateOne {
+	_u.mutation.SetUploaderID(id)
+	return _u
+}
+
+// SetUploader sets the "uploader" edge to the User entity.
+func (_u *MediaUpdateOne) SetUploader(v *User) *MediaUpdateOne {
+	return _u.SetUploaderID(v.ID)
+}
+
 // Mutation returns the MediaMutation object of the builder.
 func (_u *MediaUpdateOne) Mutation() *MediaMutation {
 	return _u.mutation
@@ -572,6 +660,12 @@ func (_u *MediaUpdateOne) ClearUserAvatar() *MediaUpdateOne {
 // ClearGroupAvatar clears the "group_avatar" edge to the GroupChat entity.
 func (_u *MediaUpdateOne) ClearGroupAvatar() *MediaUpdateOne {
 	_u.mutation.ClearGroupAvatar()
+	return _u
+}
+
+// ClearUploader clears the "uploader" edge to the User entity.
+func (_u *MediaUpdateOne) ClearUploader() *MediaUpdateOne {
+	_u.mutation.ClearUploader()
 	return _u
 }
 
@@ -650,6 +744,9 @@ func (_u *MediaUpdateOne) check() error {
 		if err := media.StatusValidator(v); err != nil {
 			return &ValidationError{Name: "status", err: fmt.Errorf(`ent: validator failed for field "Media.status": %w`, err)}
 		}
+	}
+	if _u.mutation.UploaderCleared() && len(_u.mutation.UploaderIDs()) > 0 {
+		return errors.New(`ent: clearing a required unique edge "Media.uploader"`)
 	}
 	return nil
 }
@@ -784,6 +881,35 @@ func (_u *MediaUpdateOne) sqlSave(ctx context.Context) (_node *Media, err error)
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(groupchat.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.UploaderCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   media.UploaderTable,
+			Columns: []string{media.UploaderColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeInt),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.UploaderIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   media.UploaderTable,
+			Columns: []string{media.UploaderColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeInt),
 			},
 		}
 		for _, k := range nodes {

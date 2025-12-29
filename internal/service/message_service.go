@@ -8,6 +8,7 @@ import (
 	"AtoiTalkAPI/ent/media"
 	"AtoiTalkAPI/ent/message"
 	"AtoiTalkAPI/ent/privatechat"
+	"AtoiTalkAPI/ent/user"
 	"AtoiTalkAPI/internal/adapter"
 	"AtoiTalkAPI/internal/config"
 	"AtoiTalkAPI/internal/helper"
@@ -119,6 +120,7 @@ func (s *MessageService) SendMessage(ctx context.Context, userID int, req model.
 				media.Not(media.HasUserAvatar()),
 				media.Not(media.HasGroupAvatar()),
 				media.StatusEQ(media.StatusActive),
+				media.HasUploaderWith(user.ID(userID)),
 			).
 			Count(ctx)
 
@@ -128,7 +130,7 @@ func (s *MessageService) SendMessage(ctx context.Context, userID int, req model.
 		}
 
 		if count != len(req.AttachmentIDs) {
-			return nil, helper.NewBadRequestError("")
+			return nil, helper.NewBadRequestError("One or more attachments are invalid or do not belong to you.")
 		}
 	}
 

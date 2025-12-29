@@ -103,6 +103,12 @@ func (_c *MediaCreate) SetNillableMessageID(v *int) *MediaCreate {
 	return _c
 }
 
+// SetUploadedByID sets the "uploaded_by_id" field.
+func (_c *MediaCreate) SetUploadedByID(v int) *MediaCreate {
+	_c.mutation.SetUploadedByID(v)
+	return _c
+}
+
 // SetMessage sets the "message" edge to the Message entity.
 func (_c *MediaCreate) SetMessage(v *Message) *MediaCreate {
 	return _c.SetMessageID(v.ID)
@@ -144,6 +150,17 @@ func (_c *MediaCreate) SetNillableGroupAvatarID(id *int) *MediaCreate {
 // SetGroupAvatar sets the "group_avatar" edge to the GroupChat entity.
 func (_c *MediaCreate) SetGroupAvatar(v *GroupChat) *MediaCreate {
 	return _c.SetGroupAvatarID(v.ID)
+}
+
+// SetUploaderID sets the "uploader" edge to the User entity by ID.
+func (_c *MediaCreate) SetUploaderID(id int) *MediaCreate {
+	_c.mutation.SetUploaderID(id)
+	return _c
+}
+
+// SetUploader sets the "uploader" edge to the User entity.
+func (_c *MediaCreate) SetUploader(v *User) *MediaCreate {
+	return _c.SetUploaderID(v.ID)
 }
 
 // Mutation returns the MediaMutation object of the builder.
@@ -242,6 +259,12 @@ func (_c *MediaCreate) check() error {
 		if err := media.StatusValidator(v); err != nil {
 			return &ValidationError{Name: "status", err: fmt.Errorf(`ent: validator failed for field "Media.status": %w`, err)}
 		}
+	}
+	if _, ok := _c.mutation.UploadedByID(); !ok {
+		return &ValidationError{Name: "uploaded_by_id", err: errors.New(`ent: missing required field "Media.uploaded_by_id"`)}
+	}
+	if len(_c.mutation.UploaderIDs()) == 0 {
+		return &ValidationError{Name: "uploader", err: errors.New(`ent: missing required edge "Media.uploader"`)}
 	}
 	return nil
 }
@@ -344,6 +367,23 @@ func (_c *MediaCreate) createSpec() (*Media, *sqlgraph.CreateSpec) {
 		for _, k := range nodes {
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.UploaderIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   media.UploaderTable,
+			Columns: []string{media.UploaderColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_node.UploadedByID = nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
 	return _node, _spec

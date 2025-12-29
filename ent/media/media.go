@@ -31,12 +31,16 @@ const (
 	FieldStatus = "status"
 	// FieldMessageID holds the string denoting the message_id field in the database.
 	FieldMessageID = "message_id"
+	// FieldUploadedByID holds the string denoting the uploaded_by_id field in the database.
+	FieldUploadedByID = "uploaded_by_id"
 	// EdgeMessage holds the string denoting the message edge name in mutations.
 	EdgeMessage = "message"
 	// EdgeUserAvatar holds the string denoting the user_avatar edge name in mutations.
 	EdgeUserAvatar = "user_avatar"
 	// EdgeGroupAvatar holds the string denoting the group_avatar edge name in mutations.
 	EdgeGroupAvatar = "group_avatar"
+	// EdgeUploader holds the string denoting the uploader edge name in mutations.
+	EdgeUploader = "uploader"
 	// Table holds the table name of the media in the database.
 	Table = "media"
 	// MessageTable is the table that holds the message relation/edge.
@@ -60,6 +64,13 @@ const (
 	GroupAvatarInverseTable = "group_chats"
 	// GroupAvatarColumn is the table column denoting the group_avatar relation/edge.
 	GroupAvatarColumn = "avatar_id"
+	// UploaderTable is the table that holds the uploader relation/edge.
+	UploaderTable = "media"
+	// UploaderInverseTable is the table name for the User entity.
+	// It exists in this package in order to avoid circular dependency with the "user" package.
+	UploaderInverseTable = "users"
+	// UploaderColumn is the table column denoting the uploader relation/edge.
+	UploaderColumn = "uploaded_by_id"
 )
 
 // Columns holds all SQL columns for media fields.
@@ -73,6 +84,7 @@ var Columns = []string{
 	FieldMimeType,
 	FieldStatus,
 	FieldMessageID,
+	FieldUploadedByID,
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
@@ -177,6 +189,11 @@ func ByMessageID(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldMessageID, opts...).ToFunc()
 }
 
+// ByUploadedByID orders the results by the uploaded_by_id field.
+func ByUploadedByID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldUploadedByID, opts...).ToFunc()
+}
+
 // ByMessageField orders the results by message field.
 func ByMessageField(field string, opts ...sql.OrderTermOption) OrderOption {
 	return func(s *sql.Selector) {
@@ -195,6 +212,13 @@ func ByUserAvatarField(field string, opts ...sql.OrderTermOption) OrderOption {
 func ByGroupAvatarField(field string, opts ...sql.OrderTermOption) OrderOption {
 	return func(s *sql.Selector) {
 		sqlgraph.OrderByNeighborTerms(s, newGroupAvatarStep(), sql.OrderByField(field, opts...))
+	}
+}
+
+// ByUploaderField orders the results by uploader field.
+func ByUploaderField(field string, opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newUploaderStep(), sql.OrderByField(field, opts...))
 	}
 }
 func newMessageStep() *sqlgraph.Step {
@@ -216,5 +240,12 @@ func newGroupAvatarStep() *sqlgraph.Step {
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(GroupAvatarInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.O2O, false, GroupAvatarTable, GroupAvatarColumn),
+	)
+}
+func newUploaderStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(UploaderInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.M2O, true, UploaderTable, UploaderColumn),
 	)
 }

@@ -46,6 +46,8 @@ const (
 	EdgePrivateChatsAsUser1 = "private_chats_as_user1"
 	// EdgePrivateChatsAsUser2 holds the string denoting the private_chats_as_user2 edge name in mutations.
 	EdgePrivateChatsAsUser2 = "private_chats_as_user2"
+	// EdgeUploadedMedia holds the string denoting the uploaded_media edge name in mutations.
+	EdgeUploadedMedia = "uploaded_media"
 	// Table holds the table name of the user in the database.
 	Table = "users"
 	// AvatarTable is the table that holds the avatar relation/edge.
@@ -97,6 +99,13 @@ const (
 	PrivateChatsAsUser2InverseTable = "private_chats"
 	// PrivateChatsAsUser2Column is the table column denoting the private_chats_as_user2 relation/edge.
 	PrivateChatsAsUser2Column = "user2_id"
+	// UploadedMediaTable is the table that holds the uploaded_media relation/edge.
+	UploadedMediaTable = "media"
+	// UploadedMediaInverseTable is the table name for the Media entity.
+	// It exists in this package in order to avoid circular dependency with the "media" package.
+	UploadedMediaInverseTable = "media"
+	// UploadedMediaColumn is the table column denoting the uploaded_media relation/edge.
+	UploadedMediaColumn = "uploaded_by_id"
 )
 
 // Columns holds all SQL columns for user fields.
@@ -285,6 +294,20 @@ func ByPrivateChatsAsUser2(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOpti
 		sqlgraph.OrderByNeighborTerms(s, newPrivateChatsAsUser2Step(), append([]sql.OrderTerm{term}, terms...)...)
 	}
 }
+
+// ByUploadedMediaCount orders the results by uploaded_media count.
+func ByUploadedMediaCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newUploadedMediaStep(), opts...)
+	}
+}
+
+// ByUploadedMedia orders the results by uploaded_media terms.
+func ByUploadedMedia(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newUploadedMediaStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
 func newAvatarStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
@@ -332,5 +355,12 @@ func newPrivateChatsAsUser2Step() *sqlgraph.Step {
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(PrivateChatsAsUser2InverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.O2M, false, PrivateChatsAsUser2Table, PrivateChatsAsUser2Column),
+	)
+}
+func newUploadedMediaStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(UploadedMediaInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, UploadedMediaTable, UploadedMediaColumn),
 	)
 }

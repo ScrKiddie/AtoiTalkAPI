@@ -2,6 +2,7 @@ package test
 
 import (
 	"AtoiTalkAPI/ent/user"
+	"AtoiTalkAPI/ent/useridentity"
 	"AtoiTalkAPI/internal/constant"
 	"AtoiTalkAPI/internal/helper"
 	"AtoiTalkAPI/internal/model"
@@ -191,15 +192,19 @@ func TestChangeEmail(t *testing.T) {
 	newEmail := "new@example.com"
 	validCode := "123456"
 
-	setupUser := func() (string, int) {
+	setupUser := func(withPassword bool) (string, int) {
 		clearDatabase(context.Background())
 
-		hashedPassword, _ := helper.HashPassword("Password123!")
-		u, _ := testClient.User.Create().
+		create := testClient.User.Create().
 			SetEmail(currentEmail).
-			SetFullName("Change Email User").
-			SetPasswordHash(hashedPassword).
-			Save(context.Background())
+			SetFullName("Change Email User")
+
+		if withPassword {
+			hashedPassword, _ := helper.HashPassword("Password123!")
+			create.SetPasswordHash(hashedPassword)
+		}
+
+		u, _ := create.Save(context.Background())
 
 		token, _ := helper.GenerateJWT(testConfig.JWTSecret, testConfig.JWTExp, u.ID)
 		return token, u.ID
@@ -216,8 +221,14 @@ func TestChangeEmail(t *testing.T) {
 	}
 
 	t.Run("Success", func(t *testing.T) {
-		token, userID := setupUser()
+		token, userID := setupUser(true)
 		createEmailOTP(newEmail, validCode)
+
+		testClient.UserIdentity.Create().
+			SetUserID(userID).
+			SetProvider("google").
+			SetProviderID("12345").
+			Save(context.Background())
 
 		reqBody := model.ChangeEmailRequest{
 			Email: newEmail,
@@ -236,10 +247,60 @@ func TestChangeEmail(t *testing.T) {
 
 		u, _ := testClient.User.Query().Where(user.ID(userID)).Only(context.Background())
 		assert.Equal(t, newEmail, u.Email)
+
+		count, _ := testClient.UserIdentity.Query().Where(useridentity.UserID(userID)).Count(context.Background())
+		assert.Equal(t, 0, count)
+	})
+
+	t.Run("Fail: No Password Set", func(t *testing.T) {
+		token, _ := setupUser(false)
+		createEmailOTP(newEmail, validCode)
+
+		reqBody := model.ChangeEmailRequest{
+			Email: newEmail,
+			Code:  validCode,
+		}
+		body, _ := json.Marshal(reqBody)
+		req, _ := http.NewRequest("PUT", "/api/account/email", bytes.NewBuffer(body))
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Authorization", "Bearer "+token)
+
+		rr := executeRequest(req)
+
+		if !assert.Equal(t, http.StatusBadRequest, rr.Code) {
+			printBody(t, rr)
+		}
+
+		var resp map[string]interface{}
+		json.Unmarshal(rr.Body.Bytes(), &resp)
+		assert.Contains(t, resp["error"], "set a password")
+	})
+
+	t.Run("Fail: Same Email", func(t *testing.T) {
+		token, _ := setupUser(true)
+
+		reqBody := model.ChangeEmailRequest{
+			Email: currentEmail,
+			Code:  validCode,
+		}
+		body, _ := json.Marshal(reqBody)
+		req, _ := http.NewRequest("PUT", "/api/account/email", bytes.NewBuffer(body))
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Authorization", "Bearer "+token)
+
+		rr := executeRequest(req)
+
+		if !assert.Equal(t, http.StatusBadRequest, rr.Code) {
+			printBody(t, rr)
+		}
+
+		var resp map[string]interface{}
+		json.Unmarshal(rr.Body.Bytes(), &resp)
+		assert.Contains(t, resp["error"], "same as the current email")
 	})
 
 	t.Run("Fail: Invalid OTP", func(t *testing.T) {
-		token, _ := setupUser()
+		token, _ := setupUser(true)
 		createEmailOTP(newEmail, validCode)
 
 		reqBody := model.ChangeEmailRequest{
@@ -259,7 +320,7 @@ func TestChangeEmail(t *testing.T) {
 	})
 
 	t.Run("Fail: Email Already Registered", func(t *testing.T) {
-		token, _ := setupUser()
+		token, _ := setupUser(true)
 		createEmailOTP(newEmail, validCode)
 
 		testClient.User.Create().

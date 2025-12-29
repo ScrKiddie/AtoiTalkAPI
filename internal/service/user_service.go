@@ -2,6 +2,7 @@ package service
 
 import (
 	"AtoiTalkAPI/ent"
+	"AtoiTalkAPI/ent/media"
 	"AtoiTalkAPI/ent/privatechat"
 	"AtoiTalkAPI/ent/user"
 	"AtoiTalkAPI/internal/adapter"
@@ -10,6 +11,7 @@ import (
 	"AtoiTalkAPI/internal/model"
 	"context"
 	"log/slog"
+	"mime/multipart"
 	"path/filepath"
 
 	"github.com/go-playground/validator/v10"
@@ -75,7 +77,20 @@ func (s *UserService) UpdateProfile(ctx context.Context, userID int, req model.U
 		return nil, helper.NewBadRequestError("")
 	}
 
-	u, err := s.client.User.Query().Where(user.ID(userID)).WithAvatar().Only(ctx)
+	tx, err := s.client.Tx(ctx)
+	if err != nil {
+		slog.Error("Failed to start transaction", "error", err)
+		return nil, helper.NewInternalServerError("")
+	}
+
+	defer func() {
+		_ = tx.Rollback()
+		if v := recover(); v != nil {
+			panic(v)
+		}
+	}()
+
+	u, err := tx.User.Query().Where(user.ID(userID)).WithAvatar().Only(ctx)
 	if err != nil {
 		if ent.IsNotFound(err) {
 			return nil, helper.NewNotFoundError("")
@@ -85,7 +100,7 @@ func (s *UserService) UpdateProfile(ctx context.Context, userID int, req model.U
 		return nil, helper.NewInternalServerError("")
 	}
 
-	update := s.client.User.UpdateOneID(userID).SetFullName(req.FullName)
+	update := tx.User.UpdateOneID(userID).SetFullName(req.FullName)
 	if req.Bio != "" {
 		update.SetBio(req.Bio)
 	} else {
@@ -94,6 +109,11 @@ func (s *UserService) UpdateProfile(ctx context.Context, userID int, req model.U
 
 	var newAvatarFileName string
 	var isAvatarUpdated bool
+
+	var fileToUpload multipart.File
+	var fileUploadPath string
+	var fileContentType string
+	var mediaID int
 
 	if req.DeleteAvatar {
 		update.ClearAvatar().ClearAvatarID()
@@ -105,27 +125,27 @@ func (s *UserService) UpdateProfile(ctx context.Context, userID int, req model.U
 			return nil, helper.NewInternalServerError("")
 		}
 		defer file.Close()
+		fileToUpload = file
 
 		fileName := helper.GenerateUniqueFileName(req.Avatar.Filename)
 		filePath := filepath.Join(s.cfg.StorageProfile, fileName)
 		contentType := req.Avatar.Header.Get("Content-Type")
 
-		if err := s.storageAdapter.StoreFromReader(file, contentType, filePath); err != nil {
+		fileUploadPath = filePath
+		fileContentType = contentType
 
-			slog.Error("Failed to store avatar to storage", "error", err, "userID", userID)
-			return nil, helper.NewInternalServerError("")
-		}
-
-		media, err := s.client.Media.Create().
+		media, err := tx.Media.Create().
 			SetFileName(fileName).SetOriginalName(req.Avatar.Filename).
 			SetFileSize(req.Avatar.Size).SetMimeType(contentType).
+			SetStatus(media.StatusActive).
+			SetUploaderID(userID).
 			Save(ctx)
 
 		if err != nil {
-
 			slog.Error("Failed to create media record", "error", err, "userID", userID)
 			return nil, helper.NewInternalServerError("")
 		}
+		mediaID = media.ID
 
 		update.SetAvatar(media)
 		newAvatarFileName = fileName
@@ -134,9 +154,33 @@ func (s *UserService) UpdateProfile(ctx context.Context, userID int, req model.U
 
 	updatedUser, err := update.Save(ctx)
 	if err != nil {
-
 		slog.Error("Failed to save user profile update", "error", err, "userID", userID)
 		return nil, helper.NewInternalServerError("")
+	}
+
+	if err := tx.Commit(); err != nil {
+		slog.Error("Failed to commit transaction", "error", err)
+		return nil, helper.NewInternalServerError("")
+	}
+
+	if fileToUpload != nil {
+		if err := s.storageAdapter.StoreFromReader(fileToUpload, fileContentType, fileUploadPath); err != nil {
+			slog.Error("Failed to store avatar to storage after db commit", "error", err, "userID", userID)
+
+			if mediaID != 0 {
+				cleanupCtx := context.Background()
+
+				_, unlinkErr := s.client.User.UpdateOneID(userID).ClearAvatar().Save(cleanupCtx)
+				if unlinkErr != nil {
+					slog.Error("Failed to unlink avatar after file upload failure", "error", unlinkErr, "userID", userID)
+				} else {
+
+					if delErr := s.client.Media.DeleteOneID(mediaID).Exec(cleanupCtx); delErr != nil {
+						slog.Error("Failed to delete orphan media record after file upload failure", "error", delErr, "mediaID", mediaID)
+					}
+				}
+			}
+		}
 	}
 
 	var avatarFileName string

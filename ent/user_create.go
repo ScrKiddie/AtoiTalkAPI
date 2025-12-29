@@ -231,6 +231,21 @@ func (_c *UserCreate) AddPrivateChatsAsUser2(v ...*PrivateChat) *UserCreate {
 	return _c.AddPrivateChatsAsUser2IDs(ids...)
 }
 
+// AddUploadedMediumIDs adds the "uploaded_media" edge to the Media entity by IDs.
+func (_c *UserCreate) AddUploadedMediumIDs(ids ...int) *UserCreate {
+	_c.mutation.AddUploadedMediumIDs(ids...)
+	return _c
+}
+
+// AddUploadedMedia adds the "uploaded_media" edges to the Media entity.
+func (_c *UserCreate) AddUploadedMedia(v ...*Media) *UserCreate {
+	ids := make([]int, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _c.AddUploadedMediumIDs(ids...)
+}
+
 // Mutation returns the UserMutation object of the builder.
 func (_c *UserCreate) Mutation() *UserMutation {
 	return _c.mutation
@@ -481,6 +496,22 @@ func (_c *UserCreate) createSpec() (*User, *sqlgraph.CreateSpec) {
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(privatechat.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.UploadedMediaIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.UploadedMediaTable,
+			Columns: []string{user.UploadedMediaColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(media.FieldID, field.TypeInt),
 			},
 		}
 		for _, k := range nodes {

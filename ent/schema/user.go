@@ -44,5 +44,8 @@ func (User) Edges() []ent.Edge {
 			Annotations(entsql.OnDelete(entsql.Cascade)),
 		edge.To("private_chats_as_user2", PrivateChat.Type).
 			Annotations(entsql.OnDelete(entsql.Cascade)),
+
+		edge.To("uploaded_media", Media.Type).
+			Annotations(entsql.OnDelete(entsql.Cascade)),
 	}
 }

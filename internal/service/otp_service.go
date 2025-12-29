@@ -71,7 +71,7 @@ func (s *OTPService) SendOTP(ctx context.Context, req model.SendOTPRequest) erro
 		return helper.NewInternalServerError("")
 	}
 
-	if req.Mode == constant.OTPModeRegister && userExists {
+	if (req.Mode == constant.OTPModeRegister || req.Mode == constant.OTPModeChangeEmail) && userExists {
 		return helper.NewConflictError("Email already registered")
 	}
 
@@ -83,17 +83,13 @@ func (s *OTPService) SendOTP(ctx context.Context, req model.SendOTPRequest) erro
 		Where(otp.Email(req.Email)).
 		Only(ctx)
 
-	if err != nil {
-		if !ent.IsNotFound(err) {
-			slog.Error("Failed to query OTP", "error", err)
-			return helper.NewInternalServerError("")
-		}
-
-		err = nil
+	if err != nil && !ent.IsNotFound(err) {
+		slog.Error("Failed to query OTP", "error", err)
+		return helper.NewInternalServerError("")
 	}
 
 	expiresAt := time.Now().Add(time.Duration(s.cfg.OTPExp) * time.Second)
-	
+
 	n, err := rand.Int(rand.Reader, big.NewInt(1000000))
 	if err != nil {
 		slog.Error("Failed to generate random number", "error", err)
