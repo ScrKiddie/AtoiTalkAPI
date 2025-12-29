@@ -19,6 +19,7 @@ import (
 	"strings"
 	"time"
 
+	"entgo.io/ent/dialect/sql"
 	"github.com/go-playground/validator/v10"
 )
 
@@ -78,7 +79,7 @@ func (s *ChatService) CreatePrivateChat(ctx context.Context, userID int, req mod
 		return &model.ChatResponse{
 			ID:        existingChat.Edges.Chat.ID,
 			Type:      string(existingChat.Edges.Chat.Type),
-			CreatedAt: existingChat.Edges.Chat.CreatedAt.String(),
+			CreatedAt: existingChat.Edges.Chat.CreatedAt.Format(time.RFC3339),
 		}, nil
 	} else if !ent.IsNotFound(err) {
 		slog.Error("Failed to check existing private chat", "error", err)
@@ -124,7 +125,7 @@ func (s *ChatService) CreatePrivateChat(ctx context.Context, userID int, req mod
 	return &model.ChatResponse{
 		ID:        newChat.ID,
 		Type:      string(newChat.Type),
-		CreatedAt: newChat.CreatedAt.String(),
+		CreatedAt: newChat.CreatedAt.Format(time.RFC3339),
 	}, nil
 }
 
@@ -140,36 +141,35 @@ func (s *ChatService) GetChats(ctx context.Context, userID int, req model.GetCha
 	query := s.client.Chat.Query().
 		Where(
 			chat.Or(
-
-				chat.HasPrivateChatWith(
-					privatechat.Or(
-
-						privatechat.And(
-							privatechat.User1ID(userID),
-							privatechat.Or(
-								privatechat.User1HiddenAtIsNil(),
-							),
-						),
-
-						privatechat.And(
-							privatechat.User2ID(userID),
-							privatechat.Or(
-								privatechat.User2HiddenAtIsNil(),
-							),
-						),
-					),
-				),
-
-				chat.HasGroupChatWith(groupchat.HasMembersWith(groupmember.UserID(userID))),
-			),
-		)
-
-	query = s.client.Chat.Query().
-		Where(
-			chat.Or(
 				chat.HasPrivateChatWith(privatechat.Or(privatechat.User1ID(userID), privatechat.User2ID(userID))),
 				chat.HasGroupChatWith(groupchat.HasMembersWith(groupmember.UserID(userID))),
 			),
+			func(s *sql.Selector) {
+				t := sql.Table(privatechat.Table)
+				s.Where(
+					sql.Not(
+						sql.Exists(
+							sql.Select(privatechat.FieldID).From(t).Where(
+								sql.And(
+									sql.ColumnsEQ(t.C(privatechat.FieldChatID), s.C(chat.FieldID)),
+									sql.Or(
+										sql.And(
+											sql.EQ(t.C(privatechat.FieldUser1ID), userID),
+											sql.NotNull(t.C(privatechat.FieldUser1HiddenAt)),
+											sql.ColumnsGTE(t.C(privatechat.FieldUser1HiddenAt), s.C(chat.FieldUpdatedAt)),
+										),
+										sql.And(
+											sql.EQ(t.C(privatechat.FieldUser2ID), userID),
+											sql.NotNull(t.C(privatechat.FieldUser2HiddenAt)),
+											sql.ColumnsGTE(t.C(privatechat.FieldUser2HiddenAt), s.C(chat.FieldUpdatedAt)),
+										),
+									),
+								),
+							),
+						),
+					),
+				)
+			},
 		)
 
 	if req.Query != "" {
@@ -217,11 +217,11 @@ func (s *ChatService) GetChats(ctx context.Context, userID int, req model.GetCha
 		}
 	}
 
-	fetchLimit := req.Limit * 3
+	fetchLimit := req.Limit
 
 	chats, err := query.
 		Order(ent.Desc(chat.FieldUpdatedAt), ent.Desc(chat.FieldID)).
-		Limit(fetchLimit).
+		Limit(fetchLimit + 1).
 		WithPrivateChat(func(q *ent.PrivateChatQuery) {
 			q.WithUser1(func(uq *ent.UserQuery) { uq.WithAvatar() })
 			q.WithUser2(func(uq *ent.UserQuery) { uq.WithAvatar() })
@@ -239,42 +239,18 @@ func (s *ChatService) GetChats(ctx context.Context, userID int, req model.GetCha
 		return nil, "", false, helper.NewInternalServerError("")
 	}
 
-	var validChats []*ent.Chat
-	for _, c := range chats {
-		if c.Type == chat.TypePrivate && c.Edges.PrivateChat != nil {
-			pc := c.Edges.PrivateChat
-			var hiddenAt *time.Time
-			if pc.User1ID == userID {
-				hiddenAt = pc.User1HiddenAt
-			} else {
-				hiddenAt = pc.User2HiddenAt
-			}
-
-			if hiddenAt != nil {
-
-				if c.UpdatedAt.Before(hiddenAt.Add(time.Second)) {
-					continue
-				}
-			}
-		}
-		validChats = append(validChats, c)
-		if len(validChats) == req.Limit+1 {
-			break
-		}
-	}
-
 	hasNext := false
 	var nextCursor string
-	if len(validChats) > req.Limit {
+	if len(chats) > req.Limit {
 		hasNext = true
-		validChats = validChats[:req.Limit]
-		lastChat := validChats[len(validChats)-1]
+		chats = chats[:req.Limit]
+		lastChat := chats[len(chats)-1]
 		cursorString := fmt.Sprintf("%d,%d", lastChat.UpdatedAt.UnixMicro(), lastChat.ID)
 		nextCursor = base64.URLEncoding.EncodeToString([]byte(cursorString))
 	}
 
-	chatIDs := make([]int, len(validChats))
-	for i, c := range validChats {
+	chatIDs := make([]int, len(chats))
+	for i, c := range chats {
 		chatIDs[i] = c.ID
 	}
 
@@ -315,7 +291,7 @@ func (s *ChatService) GetChats(ctx context.Context, userID int, req model.GetCha
 	}
 
 	response := make([]model.ChatListResponse, 0)
-	for _, c := range validChats {
+	for _, c := range chats {
 		var name, avatar string
 		var lastReadAt *string
 		var isPinned bool
@@ -461,9 +437,9 @@ func (s *ChatService) HideChat(ctx context.Context, userID int, chatID int) erro
 	update := s.client.PrivateChat.UpdateOneID(pc.ID)
 
 	if pc.User1ID == userID {
-		update.SetUser1HiddenAt(time.Now())
+		update.SetUser1HiddenAt(time.Now()).SetUser1UnreadCount(0)
 	} else if pc.User2ID == userID {
-		update.SetUser2HiddenAt(time.Now())
+		update.SetUser2HiddenAt(time.Now()).SetUser2UnreadCount(0)
 	} else {
 		return helper.NewForbiddenError("You are not part of this chat")
 	}

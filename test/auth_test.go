@@ -1,8 +1,10 @@
 package test
 
 import (
+	"AtoiTalkAPI/ent/media"
 	"AtoiTalkAPI/ent/otp"
 	"AtoiTalkAPI/ent/user"
+	"AtoiTalkAPI/ent/useridentity"
 	"AtoiTalkAPI/internal/constant"
 	"AtoiTalkAPI/internal/helper"
 	"AtoiTalkAPI/internal/model"
@@ -183,6 +185,9 @@ func TestGoogleExchange(t *testing.T) {
 			t.Skip("Skipping Valid Token test: TEST_GOOGLE_ID_TOKEN not set")
 		}
 
+		mockEmail := "your.test.email@gmail.com"
+		mockSub := "12345678901234567890"
+
 		makeRequest := func() *httptest.ResponseRecorder {
 			reqBody := model.GoogleLoginRequest{Code: validToken}
 			body, _ := json.Marshal(reqBody)
@@ -191,7 +196,7 @@ func TestGoogleExchange(t *testing.T) {
 			return executeRequest(req)
 		}
 
-		t.Run("Register", func(t *testing.T) {
+		t.Run("Register and Link Identity", func(t *testing.T) {
 			clearDatabase(context.Background())
 			rr := makeRequest()
 			if !assert.Equal(t, http.StatusOK, rr.Code, "Response body: %s", rr.Body.String()) {
@@ -208,7 +213,15 @@ func TestGoogleExchange(t *testing.T) {
 
 			userMap, ok := dataMap["user"].(map[string]interface{})
 			assert.True(t, ok, "Expected user object in response data")
-			assert.Contains(t, userMap, "email")
+			assert.Equal(t, mockEmail, userMap["email"])
+
+			userID := int(userMap["id"].(float64))
+			identity, err := testClient.UserIdentity.Query().
+				Where(useridentity.UserID(userID)).
+				Only(context.Background())
+			assert.NoError(t, err)
+			assert.Equal(t, useridentity.ProviderGoogle, identity.Provider)
+			assert.Equal(t, mockSub, identity.ProviderID)
 
 			if avatarURL, ok := userMap["avatar"].(string); ok && avatarURL != "" {
 				parts := strings.Split(avatarURL, "/")
@@ -217,22 +230,58 @@ func TestGoogleExchange(t *testing.T) {
 				testDir := filepath.Dir(b)
 				physicalPath := filepath.Join(testDir, testConfig.StorageProfile, fileName)
 				assert.FileExists(t, physicalPath, "Profile picture file should be created")
+
+				m, err := testClient.Media.Query().Where(media.FileName(fileName)).Only(context.Background())
+				assert.NoError(t, err)
+				assert.Equal(t, userID, m.UploadedByID, "Media uploader should be set to the user")
 			} else {
 				t.Log("No avatar URL returned, skipping file check")
 			}
 		})
 
-		t.Run("Login Existing User", func(t *testing.T) {
+		t.Run("Login Existing User and Link Identity", func(t *testing.T) {
+
+			clearDatabase(context.Background())
+			u, _ := testClient.User.Create().
+				SetEmail(mockEmail).
+				SetFullName("Existing User").
+				Save(context.Background())
 
 			rr := makeRequest()
 			if !assert.Equal(t, http.StatusOK, rr.Code, "Response body: %s", rr.Body.String()) {
 				printBody(t, rr)
 			}
 
-			var resp helper.ResponseSuccess
-			err := json.Unmarshal(rr.Body.Bytes(), &resp)
+			identity, err := testClient.UserIdentity.Query().
+				Where(useridentity.UserID(u.ID)).
+				Only(context.Background())
 			assert.NoError(t, err)
-			assert.NotNil(t, resp.Data)
+			assert.Equal(t, useridentity.ProviderGoogle, identity.Provider)
+			assert.Equal(t, mockSub, identity.ProviderID)
+		})
+
+		t.Run("Login Existing User with Existing Identity", func(t *testing.T) {
+
+			clearDatabase(context.Background())
+			u, _ := testClient.User.Create().
+				SetEmail(mockEmail).
+				SetFullName("Existing User").
+				Save(context.Background())
+			testClient.UserIdentity.Create().
+				SetUserID(u.ID).
+				SetProvider(useridentity.ProviderGoogle).
+				SetProviderID(mockSub).
+				Save(context.Background())
+
+			rr := makeRequest()
+			if !assert.Equal(t, http.StatusOK, rr.Code, "Response body: %s", rr.Body.String()) {
+				printBody(t, rr)
+			}
+
+			count, _ := testClient.UserIdentity.Query().
+				Where(useridentity.UserID(u.ID)).
+				Count(context.Background())
+			assert.Equal(t, 1, count)
 		})
 	})
 }

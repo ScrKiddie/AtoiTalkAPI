@@ -711,6 +711,29 @@ func HasPrivateChatsAsUser2With(preds ...predicate.PrivateChat) predicate.User {
 	})
 }
 
+// HasUploadedMedia applies the HasEdge predicate on the "uploaded_media" edge.
+func HasUploadedMedia() predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, UploadedMediaTable, UploadedMediaColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasUploadedMediaWith applies the HasEdge predicate on the "uploaded_media" edge with a given conditions (other predicates).
+func HasUploadedMediaWith(preds ...predicate.Media) predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		step := newUploadedMediaStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
 // And groups predicates with the AND operator between them.
 func And(predicates ...predicate.User) predicate.User {
 	return predicate.User(sql.AndPredicates(predicates...))

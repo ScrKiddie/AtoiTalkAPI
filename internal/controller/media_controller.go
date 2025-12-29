@@ -33,7 +33,8 @@ func NewMediaController(mediaService *service.MediaService) *MediaController {
 // @Security     BearerAuth
 // @Router       /api/media/upload [post]
 func (c *MediaController) UploadMedia(w http.ResponseWriter, r *http.Request) {
-	if _, ok := r.Context().Value(middleware.UserContextKey).(*model.UserDTO); !ok {
+	user, ok := r.Context().Value(middleware.UserContextKey).(*model.UserDTO)
+	if !ok {
 		helper.WriteError(w, helper.NewUnauthorizedError(""))
 		return
 	}
@@ -59,7 +60,7 @@ func (c *MediaController) UploadMedia(w http.ResponseWriter, r *http.Request) {
 		File: header,
 	}
 
-	resp, err := c.mediaService.UploadMedia(r.Context(), req)
+	resp, err := c.mediaService.UploadMedia(r.Context(), user.ID, req)
 	if err != nil {
 		helper.WriteError(w, err)
 		return

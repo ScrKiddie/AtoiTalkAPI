@@ -36,6 +36,7 @@ type UserQuery struct {
 	withGroupMemberships    *GroupMemberQuery
 	withPrivateChatsAsUser1 *PrivateChatQuery
 	withPrivateChatsAsUser2 *PrivateChatQuery
+	withUploadedMedia       *MediaQuery
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
@@ -219,6 +220,28 @@ func (_q *UserQuery) QueryPrivateChatsAsUser2() *PrivateChatQuery {
 			sqlgraph.From(user.Table, user.FieldID, selector),
 			sqlgraph.To(privatechat.Table, privatechat.FieldID),
 			sqlgraph.Edge(sqlgraph.O2M, false, user.PrivateChatsAsUser2Table, user.PrivateChatsAsUser2Column),
+		)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryUploadedMedia chains the current query on the "uploaded_media" edge.
+func (_q *UserQuery) QueryUploadedMedia() *MediaQuery {
+	query := (&MediaClient{config: _q.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := _q.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := _q.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(user.Table, user.FieldID, selector),
+			sqlgraph.To(media.Table, media.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, user.UploadedMediaTable, user.UploadedMediaColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
 		return fromU, nil
@@ -425,6 +448,7 @@ func (_q *UserQuery) Clone() *UserQuery {
 		withGroupMemberships:    _q.withGroupMemberships.Clone(),
 		withPrivateChatsAsUser1: _q.withPrivateChatsAsUser1.Clone(),
 		withPrivateChatsAsUser2: _q.withPrivateChatsAsUser2.Clone(),
+		withUploadedMedia:       _q.withUploadedMedia.Clone(),
 		// clone intermediate query.
 		sql:  _q.sql.Clone(),
 		path: _q.path,
@@ -508,6 +532,17 @@ func (_q *UserQuery) WithPrivateChatsAsUser2(opts ...func(*PrivateChatQuery)) *U
 	return _q
 }
 
+// WithUploadedMedia tells the query-builder to eager-load the nodes that are connected to
+// the "uploaded_media" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *UserQuery) WithUploadedMedia(opts ...func(*MediaQuery)) *UserQuery {
+	query := (&MediaClient{config: _q.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	_q.withUploadedMedia = query
+	return _q
+}
+
 // GroupBy is used to group vertices by one or more fields/columns.
 // It is often used with aggregate functions, like: count, max, mean, min, sum.
 //
@@ -586,7 +621,7 @@ func (_q *UserQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*User, e
 	var (
 		nodes       = []*User{}
 		_spec       = _q.querySpec()
-		loadedTypes = [7]bool{
+		loadedTypes = [8]bool{
 			_q.withAvatar != nil,
 			_q.withIdentities != nil,
 			_q.withSentMessages != nil,
@@ -594,6 +629,7 @@ func (_q *UserQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*User, e
 			_q.withGroupMemberships != nil,
 			_q.withPrivateChatsAsUser1 != nil,
 			_q.withPrivateChatsAsUser2 != nil,
+			_q.withUploadedMedia != nil,
 		}
 	)
 	_spec.ScanValues = func(columns []string) ([]any, error) {
@@ -659,6 +695,13 @@ func (_q *UserQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*User, e
 		if err := _q.loadPrivateChatsAsUser2(ctx, query, nodes,
 			func(n *User) { n.Edges.PrivateChatsAsUser2 = []*PrivateChat{} },
 			func(n *User, e *PrivateChat) { n.Edges.PrivateChatsAsUser2 = append(n.Edges.PrivateChatsAsUser2, e) }); err != nil {
+			return nil, err
+		}
+	}
+	if query := _q.withUploadedMedia; query != nil {
+		if err := _q.loadUploadedMedia(ctx, query, nodes,
+			func(n *User) { n.Edges.UploadedMedia = []*Media{} },
+			func(n *User, e *Media) { n.Edges.UploadedMedia = append(n.Edges.UploadedMedia, e) }); err != nil {
 			return nil, err
 		}
 	}
@@ -872,6 +915,36 @@ func (_q *UserQuery) loadPrivateChatsAsUser2(ctx context.Context, query *Private
 		node, ok := nodeids[fk]
 		if !ok {
 			return fmt.Errorf(`unexpected referenced foreign-key "user2_id" returned %v for node %v`, fk, n.ID)
+		}
+		assign(node, n)
+	}
+	return nil
+}
+func (_q *UserQuery) loadUploadedMedia(ctx context.Context, query *MediaQuery, nodes []*User, init func(*User), assign func(*User, *Media)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[int]*User)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+		if init != nil {
+			init(nodes[i])
+		}
+	}
+	if len(query.ctx.Fields) > 0 {
+		query.ctx.AppendFieldOnce(media.FieldUploadedByID)
+	}
+	query.Where(predicate.Media(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(user.UploadedMediaColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.UploadedByID
+		node, ok := nodeids[fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "uploaded_by_id" returned %v for node %v`, fk, n.ID)
 		}
 		assign(node, n)
 	}

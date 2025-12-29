@@ -58,9 +58,11 @@ type UserEdges struct {
 	PrivateChatsAsUser1 []*PrivateChat `json:"private_chats_as_user1,omitempty"`
 	// PrivateChatsAsUser2 holds the value of the private_chats_as_user2 edge.
 	PrivateChatsAsUser2 []*PrivateChat `json:"private_chats_as_user2,omitempty"`
+	// UploadedMedia holds the value of the uploaded_media edge.
+	UploadedMedia []*Media `json:"uploaded_media,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [7]bool
+	loadedTypes [8]bool
 }
 
 // AvatarOrErr returns the Avatar value or an error if the edge
@@ -126,6 +128,15 @@ func (e UserEdges) PrivateChatsAsUser2OrErr() ([]*PrivateChat, error) {
 		return e.PrivateChatsAsUser2, nil
 	}
 	return nil, &NotLoadedError{edge: "private_chats_as_user2"}
+}
+
+// UploadedMediaOrErr returns the UploadedMedia value or an error if the edge
+// was not loaded in eager-loading.
+func (e UserEdges) UploadedMediaOrErr() ([]*Media, error) {
+	if e.loadedTypes[7] {
+		return e.UploadedMedia, nil
+	}
+	return nil, &NotLoadedError{edge: "uploaded_media"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -266,6 +277,11 @@ func (_m *User) QueryPrivateChatsAsUser1() *PrivateChatQuery {
 // QueryPrivateChatsAsUser2 queries the "private_chats_as_user2" edge of the User entity.
 func (_m *User) QueryPrivateChatsAsUser2() *PrivateChatQuery {
 	return NewUserClient(_m.config).QueryPrivateChatsAsUser2(_m)
+}
+
+// QueryUploadedMedia queries the "uploaded_media" edge of the User entity.
+func (_m *User) QueryUploadedMedia() *MediaQuery {
+	return NewUserClient(_m.config).QueryUploadedMedia(_m)
 }
 
 // Update returns a builder for updating this User.

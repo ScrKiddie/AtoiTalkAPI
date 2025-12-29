@@ -191,15 +191,19 @@ func TestUpdateProfile(t *testing.T) {
 		clearDatabase(context.Background())
 		cleanupStorage(true)
 
-		media, err := testClient.Media.Create().
-			SetFileName("old_avatar.jpg").SetOriginalName("old.jpg").
-			SetFileSize(1024).SetMimeType("image/jpeg").
+		u, err := testClient.User.Create().
+			SetEmail(validEmail).SetFullName("User With Avatar").
 			Save(context.Background())
 		assert.NoError(t, err)
 
-		u, err := testClient.User.Create().
-			SetEmail(validEmail).SetFullName("User With Avatar").
-			SetAvatar(media).Save(context.Background())
+		media, err := testClient.Media.Create().
+			SetFileName("old_avatar.jpg").SetOriginalName("old.jpg").
+			SetFileSize(1024).SetMimeType("image/jpeg").
+			SetUploader(u).
+			Save(context.Background())
+		assert.NoError(t, err)
+
+		u, err = testClient.User.UpdateOne(u).SetAvatar(media).Save(context.Background())
 		assert.NoError(t, err)
 
 		token, _ := helper.GenerateJWT(testConfig.JWTSecret, testConfig.JWTExp, u.ID)

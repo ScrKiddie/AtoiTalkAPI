@@ -20,6 +20,7 @@ func (Media) Fields() []ent.Field {
 		field.String("mime_type").MaxLen(100).NotEmpty(),
 		field.Enum("status").Values("pending", "active", "failed").Default("pending"),
 		field.Int("message_id").Optional().Nillable(),
+		field.Int("uploaded_by_id"),
 	}
 }
 func (Media) Edges() []ent.Edge {
@@ -34,5 +35,11 @@ func (Media) Edges() []ent.Edge {
 			Unique(),
 		edge.To("group_avatar", GroupChat.Type).
 			Unique(),
+
+		edge.From("uploader", User.Type).
+			Ref("uploaded_media").
+			Field("uploaded_by_id").
+			Unique().
+			Required(),
 	}
 }

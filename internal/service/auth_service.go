@@ -2,9 +2,11 @@ package service
 
 import (
 	"AtoiTalkAPI/ent"
+	"AtoiTalkAPI/ent/media"
 	"AtoiTalkAPI/ent/otp"
 	_ "AtoiTalkAPI/ent/runtime"
 	"AtoiTalkAPI/ent/user"
+	"AtoiTalkAPI/ent/useridentity"
 	"AtoiTalkAPI/internal/adapter"
 	"AtoiTalkAPI/internal/config"
 	"AtoiTalkAPI/internal/constant"
@@ -155,6 +157,12 @@ func (s *AuthService) GoogleExchange(ctx context.Context, req model.GoogleLoginR
 
 	picture, _ := payload.Claims["picture"].(string)
 
+	sub, ok := payload.Claims["sub"].(string)
+	if !ok || sub == "" {
+		slog.Warn("Subject ID not found in token claims")
+		return nil, helper.NewBadRequestError("")
+	}
+
 	u, err := s.client.User.Query().
 		Where(user.Email(email)).
 		WithAvatar().
@@ -169,7 +177,35 @@ func (s *AuthService) GoogleExchange(ctx context.Context, req model.GoogleLoginR
 	var fileSize int64
 	var mimeType string
 
+	var fileData []byte
+	var fileUploadPath string
+	var fileContentType string
+	var mediaID int
+
 	if u == nil {
+
+		tx, err := s.client.Tx(ctx)
+		if err != nil {
+			slog.Error("Failed to start transaction", "error", err)
+			return nil, helper.NewInternalServerError("")
+		}
+
+		defer func() {
+			_ = tx.Rollback()
+			if v := recover(); v != nil {
+				panic(v)
+			}
+		}()
+
+		u, err = tx.User.Create().
+			SetEmail(email).
+			SetFullName(name).
+			Save(ctx)
+		if err != nil {
+			slog.Error("Failed to create user", "error", err)
+			return nil, helper.NewInternalServerError("")
+		}
+
 		if picture != "" {
 			data, contentType, err := s.storageAdapter.Download(picture)
 			if err != nil {
@@ -177,49 +213,96 @@ func (s *AuthService) GoogleExchange(ctx context.Context, req model.GoogleLoginR
 			} else {
 				fileName := helper.GenerateUniqueFileName(picture)
 				filePath := filepath.Join(s.cfg.StorageProfile, fileName)
+				fileSize = int64(len(data))
+				mimeType = contentType
 
-				err = s.storageAdapter.StoreFromReader(bytes.NewReader(data), contentType, filePath)
+				if mimeType == "" {
+					mimeType = "image/jpeg"
+				}
+
+				fileData = data
+				fileUploadPath = filePath
+				fileContentType = mimeType
+
+				media, err := tx.Media.Create().
+					SetFileName(fileName).
+					SetOriginalName(filepath.Base(picture)).
+					SetFileSize(fileSize).
+					SetMimeType(mimeType).
+					SetStatus(media.StatusActive).
+					SetUploader(u).
+					Save(ctx)
+
 				if err != nil {
-					slog.Error("Failed to store profile picture", "error", err)
+					slog.Error("Failed to create media record for google avatar", "error", err)
+					fileData = nil
 				} else {
-					avatarFileName = fileName
-					fileSize = int64(len(data))
-					mimeType = contentType
+
+					err = tx.User.UpdateOne(u).SetAvatar(media).Exec(ctx)
+					if err != nil {
+						slog.Error("Failed to link avatar to user", "error", err)
+					} else {
+						avatarFileName = fileName
+						mediaID = media.ID
+					}
 				}
 			}
 		}
 
-		create := s.client.User.Create().
-			SetEmail(email).
-			SetFullName(name)
+		_, err = tx.UserIdentity.Create().
+			SetUser(u).
+			SetProvider(useridentity.ProviderGoogle).
+			SetProviderID(sub).
+			SetProviderEmail(email).
+			Save(ctx)
 
-		if avatarFileName != "" {
-
-			if mimeType == "" {
-				mimeType = "image/jpeg"
-			}
-
-			media, err := s.client.Media.Create().
-				SetFileName(avatarFileName).
-				SetOriginalName(filepath.Base(picture)).
-				SetFileSize(fileSize).
-				SetMimeType(mimeType).
-				Save(ctx)
-
-			if err != nil {
-				slog.Error("Failed to create media record for google avatar", "error", err)
-			} else {
-				create.SetAvatar(media)
-			}
-		}
-
-		u, err = create.Save(ctx)
 		if err != nil {
-			slog.Error("Failed to create user", "error", err)
+			slog.Error("Failed to create user identity", "error", err)
 			return nil, helper.NewInternalServerError("")
 		}
 
+		if err := tx.Commit(); err != nil {
+			slog.Error("Failed to commit transaction", "error", err)
+			return nil, helper.NewInternalServerError("")
+		}
+
+		if fileData != nil {
+			err = s.storageAdapter.StoreFromReader(bytes.NewReader(fileData), fileContentType, fileUploadPath)
+			if err != nil {
+				slog.Error("Failed to store profile picture after db commit", "error", err)
+
+				if mediaID != 0 {
+					if delErr := s.client.Media.DeleteOneID(mediaID).Exec(context.Background()); delErr != nil {
+						slog.Error("Failed to delete orphan media record after file upload failure", "error", delErr, "mediaID", mediaID)
+					}
+				}
+			}
+		}
+
 	} else {
+
+		exists, err := s.client.UserIdentity.Query().
+			Where(
+				useridentity.UserID(u.ID),
+				useridentity.ProviderEQ(useridentity.ProviderGoogle),
+				useridentity.ProviderID(sub),
+			).
+			Exist(ctx)
+
+		if err != nil {
+			slog.Error("Failed to check user identity", "error", err)
+		} else if !exists {
+			_, err = s.client.UserIdentity.Create().
+				SetUserID(u.ID).
+				SetProvider(useridentity.ProviderGoogle).
+				SetProviderID(sub).
+				SetProviderEmail(email).
+				Save(ctx)
+
+			if err != nil {
+				slog.Error("Failed to link google identity to existing user", "error", err)
+			}
+		}
 
 		if u.Edges.Avatar != nil {
 			avatarFileName = u.Edges.Avatar.FileName

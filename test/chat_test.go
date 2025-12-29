@@ -526,9 +526,9 @@ func TestHideChat(t *testing.T) {
 	token1, _ := helper.GenerateJWT(testConfig.JWTSecret, testConfig.JWTExp, u1.ID)
 
 	chat1 := testClient.Chat.Create().SetType(chat.TypePrivate).SaveX(context.Background())
-	testClient.PrivateChat.Create().SetChat(chat1).SetUser1(u1).SetUser2(u2).SaveX(context.Background())
+	testClient.PrivateChat.Create().SetChat(chat1).SetUser1(u1).SetUser2(u2).SetUser1UnreadCount(5).SaveX(context.Background())
 
-	t.Run("Success - Hide Private Chat", func(t *testing.T) {
+	t.Run("Success - Hide Private Chat and Reset Unread Count", func(t *testing.T) {
 		req, _ := http.NewRequest("POST", fmt.Sprintf("/api/chats/%d/hide", chat1.ID), nil)
 		req.Header.Set("Authorization", "Bearer "+token1)
 
@@ -538,6 +538,7 @@ func TestHideChat(t *testing.T) {
 		pc, _ := testClient.PrivateChat.Query().Where(privatechat.ChatID(chat1.ID)).Only(context.Background())
 		assert.NotNil(t, pc.User1HiddenAt)
 		assert.Nil(t, pc.User2HiddenAt)
+		assert.Equal(t, 0, pc.User1UnreadCount, "Unread count should be reset to 0 after hiding")
 	})
 
 	t.Run("Fail - Chat Not Found", func(t *testing.T) {

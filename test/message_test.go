@@ -149,6 +149,7 @@ func TestSendMessage(t *testing.T) {
 			SetFileSize(1024).
 			SetMimeType("image/jpeg").
 			SetStatus(media.StatusActive).
+			SetUploaderID(u1.ID).
 			Save(context.Background())
 
 		reqBody := model.SendMessageRequest{
@@ -184,6 +185,37 @@ func TestSendMessage(t *testing.T) {
 		pc, _ := testClient.PrivateChat.Query().Where(privatechat.ChatID(chatEntity.ID)).Only(context.Background())
 		assert.Equal(t, 0, pc.User1UnreadCount)
 		assert.Equal(t, 3, pc.User2UnreadCount)
+	})
+
+	t.Run("Fail - Attachment Belongs to Another User", func(t *testing.T) {
+
+		m, _ := testClient.Media.Create().
+			SetFileName("user2_file.jpg").
+			SetOriginalName("user2.jpg").
+			SetFileSize(1024).
+			SetMimeType("image/jpeg").
+			SetStatus(media.StatusActive).
+			SetUploaderID(u2.ID).
+			Save(context.Background())
+
+		reqBody := model.SendMessageRequest{
+			ChatID:        chatEntity.ID,
+			Type:          "image",
+			AttachmentIDs: []int{m.ID},
+		}
+		body, _ := json.Marshal(reqBody)
+		req, _ := http.NewRequest("POST", "/api/messages", bytes.NewBuffer(body))
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Authorization", "Bearer "+token1)
+
+		rr := executeRequest(req)
+
+		if !assert.Equal(t, http.StatusBadRequest, rr.Code) {
+			printBody(t, rr)
+		}
+		var resp helper.ResponseError
+		json.Unmarshal(rr.Body.Bytes(), &resp)
+		assert.Contains(t, resp.Error, "do not belong to you")
 	})
 
 	t.Run("Success - SendMessage does not unhide", func(t *testing.T) {
@@ -270,6 +302,7 @@ func TestSendMessage(t *testing.T) {
 			SetFileSize(1024).
 			SetMimeType("image/jpeg").
 			SetStatus(media.StatusPending).
+			SetUploaderID(u1.ID).
 			Save(context.Background())
 
 		reqBody := model.SendMessageRequest{
@@ -294,6 +327,7 @@ func TestSendMessage(t *testing.T) {
 			SetFileSize(1024).
 			SetMimeType("image/jpeg").
 			SetStatus(media.StatusActive).
+			SetUploaderID(u1.ID).
 			Save(context.Background())
 		testClient.User.UpdateOne(u1).SetAvatar(m).Exec(context.Background())
 
@@ -321,6 +355,7 @@ func TestSendMessage(t *testing.T) {
 			SetMimeType("image/jpeg").
 			SetStatus(media.StatusActive).
 			SetMessage(otherMsg).
+			SetUploaderID(u1.ID).
 			Save(context.Background())
 
 		reqBody := model.SendMessageRequest{
@@ -588,6 +623,7 @@ func TestGetMessages(t *testing.T) {
 			SetFileSize(12345).
 			SetMimeType("image/jpeg").
 			SetStatus("active").
+			SetUploaderID(u1.ID).
 			Save(context.Background())
 
 		msgWithMedia, _ := testClient.Message.Create().
