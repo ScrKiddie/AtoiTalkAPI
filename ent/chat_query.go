@@ -14,6 +14,7 @@ import (
 	"math"
 
 	"entgo.io/ent"
+	"entgo.io/ent/dialect"
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
@@ -29,6 +30,8 @@ type ChatQuery struct {
 	withMessages    *MessageQuery
 	withPrivateChat *PrivateChatQuery
 	withGroupChat   *GroupChatQuery
+	withLastMessage *MessageQuery
+	modifiers       []func(*sql.Selector)
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
@@ -124,6 +127,28 @@ func (_q *ChatQuery) QueryGroupChat() *GroupChatQuery {
 			sqlgraph.From(chat.Table, chat.FieldID, selector),
 			sqlgraph.To(groupchat.Table, groupchat.FieldID),
 			sqlgraph.Edge(sqlgraph.O2O, false, chat.GroupChatTable, chat.GroupChatColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryLastMessage chains the current query on the "last_message" edge.
+func (_q *ChatQuery) QueryLastMessage() *MessageQuery {
+	query := (&MessageClient{config: _q.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := _q.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := _q.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(chat.Table, chat.FieldID, selector),
+			sqlgraph.To(message.Table, message.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, false, chat.LastMessageTable, chat.LastMessageColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
 		return fromU, nil
@@ -326,9 +351,11 @@ func (_q *ChatQuery) Clone() *ChatQuery {
 		withMessages:    _q.withMessages.Clone(),
 		withPrivateChat: _q.withPrivateChat.Clone(),
 		withGroupChat:   _q.withGroupChat.Clone(),
+		withLastMessage: _q.withLastMessage.Clone(),
 		// clone intermediate query.
-		sql:  _q.sql.Clone(),
-		path: _q.path,
+		sql:       _q.sql.Clone(),
+		path:      _q.path,
+		modifiers: append([]func(*sql.Selector){}, _q.modifiers...),
 	}
 }
 
@@ -362,6 +389,17 @@ func (_q *ChatQuery) WithGroupChat(opts ...func(*GroupChatQuery)) *ChatQuery {
 		opt(query)
 	}
 	_q.withGroupChat = query
+	return _q
+}
+
+// WithLastMessage tells the query-builder to eager-load the nodes that are connected to
+// the "last_message" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *ChatQuery) WithLastMessage(opts ...func(*MessageQuery)) *ChatQuery {
+	query := (&MessageClient{config: _q.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	_q.withLastMessage = query
 	return _q
 }
 
@@ -443,10 +481,11 @@ func (_q *ChatQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Chat, e
 	var (
 		nodes       = []*Chat{}
 		_spec       = _q.querySpec()
-		loadedTypes = [3]bool{
+		loadedTypes = [4]bool{
 			_q.withMessages != nil,
 			_q.withPrivateChat != nil,
 			_q.withGroupChat != nil,
+			_q.withLastMessage != nil,
 		}
 	)
 	_spec.ScanValues = func(columns []string) ([]any, error) {
@@ -457,6 +496,9 @@ func (_q *ChatQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Chat, e
 		nodes = append(nodes, node)
 		node.Edges.loadedTypes = loadedTypes
 		return node.assignValues(columns, values)
+	}
+	if len(_q.modifiers) > 0 {
+		_spec.Modifiers = _q.modifiers
 	}
 	for i := range hooks {
 		hooks[i](ctx, _spec)
@@ -483,6 +525,12 @@ func (_q *ChatQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Chat, e
 	if query := _q.withGroupChat; query != nil {
 		if err := _q.loadGroupChat(ctx, query, nodes, nil,
 			func(n *Chat, e *GroupChat) { n.Edges.GroupChat = e }); err != nil {
+			return nil, err
+		}
+	}
+	if query := _q.withLastMessage; query != nil {
+		if err := _q.loadLastMessage(ctx, query, nodes, nil,
+			func(n *Chat, e *Message) { n.Edges.LastMessage = e }); err != nil {
 			return nil, err
 		}
 	}
@@ -573,9 +621,44 @@ func (_q *ChatQuery) loadGroupChat(ctx context.Context, query *GroupChatQuery, n
 	}
 	return nil
 }
+func (_q *ChatQuery) loadLastMessage(ctx context.Context, query *MessageQuery, nodes []*Chat, init func(*Chat), assign func(*Chat, *Message)) error {
+	ids := make([]int, 0, len(nodes))
+	nodeids := make(map[int][]*Chat)
+	for i := range nodes {
+		if nodes[i].LastMessageID == nil {
+			continue
+		}
+		fk := *nodes[i].LastMessageID
+		if _, ok := nodeids[fk]; !ok {
+			ids = append(ids, fk)
+		}
+		nodeids[fk] = append(nodeids[fk], nodes[i])
+	}
+	if len(ids) == 0 {
+		return nil
+	}
+	query.Where(message.IDIn(ids...))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		nodes, ok := nodeids[n.ID]
+		if !ok {
+			return fmt.Errorf(`unexpected foreign-key "last_message_id" returned %v`, n.ID)
+		}
+		for i := range nodes {
+			assign(nodes[i], n)
+		}
+	}
+	return nil
+}
 
 func (_q *ChatQuery) sqlCount(ctx context.Context) (int, error) {
 	_spec := _q.querySpec()
+	if len(_q.modifiers) > 0 {
+		_spec.Modifiers = _q.modifiers
+	}
 	_spec.Node.Columns = _q.ctx.Fields
 	if len(_q.ctx.Fields) > 0 {
 		_spec.Unique = _q.ctx.Unique != nil && *_q.ctx.Unique
@@ -598,6 +681,9 @@ func (_q *ChatQuery) querySpec() *sqlgraph.QuerySpec {
 			if fields[i] != chat.FieldID {
 				_spec.Node.Columns = append(_spec.Node.Columns, fields[i])
 			}
+		}
+		if _q.withLastMessage != nil {
+			_spec.Node.AddColumnOnce(chat.FieldLastMessageID)
 		}
 	}
 	if ps := _q.predicates; len(ps) > 0 {
@@ -638,6 +724,9 @@ func (_q *ChatQuery) sqlQuery(ctx context.Context) *sql.Selector {
 	if _q.ctx.Unique != nil && *_q.ctx.Unique {
 		selector.Distinct()
 	}
+	for _, m := range _q.modifiers {
+		m(selector)
+	}
 	for _, p := range _q.predicates {
 		p(selector)
 	}
@@ -653,6 +742,38 @@ func (_q *ChatQuery) sqlQuery(ctx context.Context) *sql.Selector {
 		selector.Limit(*limit)
 	}
 	return selector
+}
+
+// ForUpdate locks the selected rows against concurrent updates, and prevent them from being
+// updated, deleted or "selected ... for update" by other sessions, until the transaction is
+// either committed or rolled-back.
+func (_q *ChatQuery) ForUpdate(opts ...sql.LockOption) *ChatQuery {
+	if _q.driver.Dialect() == dialect.Postgres {
+		_q.Unique(false)
+	}
+	_q.modifiers = append(_q.modifiers, func(s *sql.Selector) {
+		s.ForUpdate(opts...)
+	})
+	return _q
+}
+
+// ForShare behaves similarly to ForUpdate, except that it acquires a shared mode lock
+// on any rows that are read. Other sessions can read the rows, but cannot modify them
+// until your transaction commits.
+func (_q *ChatQuery) ForShare(opts ...sql.LockOption) *ChatQuery {
+	if _q.driver.Dialect() == dialect.Postgres {
+		_q.Unique(false)
+	}
+	_q.modifiers = append(_q.modifiers, func(s *sql.Selector) {
+		s.ForShare(opts...)
+	})
+	return _q
+}
+
+// Modify adds a query modifier for attaching custom logic to queries.
+func (_q *ChatQuery) Modify(modifiers ...func(s *sql.Selector)) *ChatSelect {
+	_q.modifiers = append(_q.modifiers, modifiers...)
+	return _q.Select()
 }
 
 // ChatGroupBy is the group-by builder for Chat entities.
@@ -743,4 +864,10 @@ func (_s *ChatSelect) sqlScan(ctx context.Context, root *ChatQuery, v any) error
 	}
 	defer rows.Close()
 	return sql.ScanSlice(rows, v)
+}
+
+// Modify adds a query modifier for attaching custom logic to queries.
+func (_s *ChatSelect) Modify(modifiers ...func(s *sql.Selector)) *ChatSelect {
+	_s.modifiers = append(_s.modifiers, modifiers...)
+	return _s
 }

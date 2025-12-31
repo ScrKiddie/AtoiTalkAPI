@@ -26,6 +26,7 @@ func TestChangePassword(t *testing.T) {
 
 		create := testClient.User.Create().
 			SetEmail(validEmail).
+			SetUsername("changepassuser").
 			SetFullName("Change Pass User")
 
 		if password != nil {
@@ -33,7 +34,10 @@ func TestChangePassword(t *testing.T) {
 			create.SetPasswordHash(hashed)
 		}
 
-		u, _ := create.Save(context.Background())
+		u, err := create.Save(context.Background())
+		if err != nil {
+			t.Fatalf("Failed to create user: %v", err)
+		}
 
 		token, _ := helper.GenerateJWT(testConfig.JWTSecret, testConfig.JWTExp, u.ID)
 		return token, u.ID
@@ -197,6 +201,7 @@ func TestChangeEmail(t *testing.T) {
 
 		create := testClient.User.Create().
 			SetEmail(currentEmail).
+			SetUsername("changeemailuser").
 			SetFullName("Change Email User")
 
 		if withPassword {
@@ -204,7 +209,10 @@ func TestChangeEmail(t *testing.T) {
 			create.SetPasswordHash(hashedPassword)
 		}
 
-		u, _ := create.Save(context.Background())
+		u, err := create.Save(context.Background())
+		if err != nil {
+			t.Fatalf("Failed to create user: %v", err)
+		}
 
 		token, _ := helper.GenerateJWT(testConfig.JWTSecret, testConfig.JWTExp, u.ID)
 		return token, u.ID
@@ -325,6 +333,7 @@ func TestChangeEmail(t *testing.T) {
 
 		testClient.User.Create().
 			SetEmail(newEmail).
+			SetUsername("existinguser").
 			SetFullName("Existing User").
 			Save(context.Background())
 

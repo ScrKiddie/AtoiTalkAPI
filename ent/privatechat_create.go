@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"time"
 
+	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 )
@@ -20,6 +21,7 @@ type PrivateChatCreate struct {
 	config
 	mutation *PrivateChatMutation
 	hooks    []Hook
+	conflict []sql.ConflictOption
 }
 
 // SetChatID sets the "chat_id" field.
@@ -239,6 +241,7 @@ func (_c *PrivateChatCreate) createSpec() (*PrivateChat, *sqlgraph.CreateSpec) {
 		_node = &PrivateChat{config: _c.config}
 		_spec = sqlgraph.NewCreateSpec(privatechat.Table, sqlgraph.NewFieldSpec(privatechat.FieldID, field.TypeInt))
 	)
+	_spec.OnConflict = _c.conflict
 	if value, ok := _c.mutation.User1LastReadAt(); ok {
 		_spec.SetField(privatechat.FieldUser1LastReadAt, field.TypeTime, value)
 		_node.User1LastReadAt = &value
@@ -317,11 +320,446 @@ func (_c *PrivateChatCreate) createSpec() (*PrivateChat, *sqlgraph.CreateSpec) {
 	return _node, _spec
 }
 
+// OnConflict allows configuring the `ON CONFLICT` / `ON DUPLICATE KEY` clause
+// of the `INSERT` statement. For example:
+//
+//	client.PrivateChat.Create().
+//		SetChatID(v).
+//		OnConflict(
+//			// Update the row with the new values
+//			// the was proposed for insertion.
+//			sql.ResolveWithNewValues(),
+//		).
+//		// Override some of the fields with custom
+//		// update values.
+//		Update(func(u *ent.PrivateChatUpsert) {
+//			SetChatID(v+v).
+//		}).
+//		Exec(ctx)
+func (_c *PrivateChatCreate) OnConflict(opts ...sql.ConflictOption) *PrivateChatUpsertOne {
+	_c.conflict = opts
+	return &PrivateChatUpsertOne{
+		create: _c,
+	}
+}
+
+// OnConflictColumns calls `OnConflict` and configures the columns
+// as conflict target. Using this option is equivalent to using:
+//
+//	client.PrivateChat.Create().
+//		OnConflict(sql.ConflictColumns(columns...)).
+//		Exec(ctx)
+func (_c *PrivateChatCreate) OnConflictColumns(columns ...string) *PrivateChatUpsertOne {
+	_c.conflict = append(_c.conflict, sql.ConflictColumns(columns...))
+	return &PrivateChatUpsertOne{
+		create: _c,
+	}
+}
+
+type (
+	// PrivateChatUpsertOne is the builder for "upsert"-ing
+	//  one PrivateChat node.
+	PrivateChatUpsertOne struct {
+		create *PrivateChatCreate
+	}
+
+	// PrivateChatUpsert is the "OnConflict" setter.
+	PrivateChatUpsert struct {
+		*sql.UpdateSet
+	}
+)
+
+// SetChatID sets the "chat_id" field.
+func (u *PrivateChatUpsert) SetChatID(v int) *PrivateChatUpsert {
+	u.Set(privatechat.FieldChatID, v)
+	return u
+}
+
+// UpdateChatID sets the "chat_id" field to the value that was provided on create.
+func (u *PrivateChatUpsert) UpdateChatID() *PrivateChatUpsert {
+	u.SetExcluded(privatechat.FieldChatID)
+	return u
+}
+
+// SetUser1ID sets the "user1_id" field.
+func (u *PrivateChatUpsert) SetUser1ID(v int) *PrivateChatUpsert {
+	u.Set(privatechat.FieldUser1ID, v)
+	return u
+}
+
+// UpdateUser1ID sets the "user1_id" field to the value that was provided on create.
+func (u *PrivateChatUpsert) UpdateUser1ID() *PrivateChatUpsert {
+	u.SetExcluded(privatechat.FieldUser1ID)
+	return u
+}
+
+// SetUser2ID sets the "user2_id" field.
+func (u *PrivateChatUpsert) SetUser2ID(v int) *PrivateChatUpsert {
+	u.Set(privatechat.FieldUser2ID, v)
+	return u
+}
+
+// UpdateUser2ID sets the "user2_id" field to the value that was provided on create.
+func (u *PrivateChatUpsert) UpdateUser2ID() *PrivateChatUpsert {
+	u.SetExcluded(privatechat.FieldUser2ID)
+	return u
+}
+
+// SetUser1LastReadAt sets the "user1_last_read_at" field.
+func (u *PrivateChatUpsert) SetUser1LastReadAt(v time.Time) *PrivateChatUpsert {
+	u.Set(privatechat.FieldUser1LastReadAt, v)
+	return u
+}
+
+// UpdateUser1LastReadAt sets the "user1_last_read_at" field to the value that was provided on create.
+func (u *PrivateChatUpsert) UpdateUser1LastReadAt() *PrivateChatUpsert {
+	u.SetExcluded(privatechat.FieldUser1LastReadAt)
+	return u
+}
+
+// ClearUser1LastReadAt clears the value of the "user1_last_read_at" field.
+func (u *PrivateChatUpsert) ClearUser1LastReadAt() *PrivateChatUpsert {
+	u.SetNull(privatechat.FieldUser1LastReadAt)
+	return u
+}
+
+// SetUser2LastReadAt sets the "user2_last_read_at" field.
+func (u *PrivateChatUpsert) SetUser2LastReadAt(v time.Time) *PrivateChatUpsert {
+	u.Set(privatechat.FieldUser2LastReadAt, v)
+	return u
+}
+
+// UpdateUser2LastReadAt sets the "user2_last_read_at" field to the value that was provided on create.
+func (u *PrivateChatUpsert) UpdateUser2LastReadAt() *PrivateChatUpsert {
+	u.SetExcluded(privatechat.FieldUser2LastReadAt)
+	return u
+}
+
+// ClearUser2LastReadAt clears the value of the "user2_last_read_at" field.
+func (u *PrivateChatUpsert) ClearUser2LastReadAt() *PrivateChatUpsert {
+	u.SetNull(privatechat.FieldUser2LastReadAt)
+	return u
+}
+
+// SetUser1HiddenAt sets the "user1_hidden_at" field.
+func (u *PrivateChatUpsert) SetUser1HiddenAt(v time.Time) *PrivateChatUpsert {
+	u.Set(privatechat.FieldUser1HiddenAt, v)
+	return u
+}
+
+// UpdateUser1HiddenAt sets the "user1_hidden_at" field to the value that was provided on create.
+func (u *PrivateChatUpsert) UpdateUser1HiddenAt() *PrivateChatUpsert {
+	u.SetExcluded(privatechat.FieldUser1HiddenAt)
+	return u
+}
+
+// ClearUser1HiddenAt clears the value of the "user1_hidden_at" field.
+func (u *PrivateChatUpsert) ClearUser1HiddenAt() *PrivateChatUpsert {
+	u.SetNull(privatechat.FieldUser1HiddenAt)
+	return u
+}
+
+// SetUser2HiddenAt sets the "user2_hidden_at" field.
+func (u *PrivateChatUpsert) SetUser2HiddenAt(v time.Time) *PrivateChatUpsert {
+	u.Set(privatechat.FieldUser2HiddenAt, v)
+	return u
+}
+
+// UpdateUser2HiddenAt sets the "user2_hidden_at" field to the value that was provided on create.
+func (u *PrivateChatUpsert) UpdateUser2HiddenAt() *PrivateChatUpsert {
+	u.SetExcluded(privatechat.FieldUser2HiddenAt)
+	return u
+}
+
+// ClearUser2HiddenAt clears the value of the "user2_hidden_at" field.
+func (u *PrivateChatUpsert) ClearUser2HiddenAt() *PrivateChatUpsert {
+	u.SetNull(privatechat.FieldUser2HiddenAt)
+	return u
+}
+
+// SetUser1UnreadCount sets the "user1_unread_count" field.
+func (u *PrivateChatUpsert) SetUser1UnreadCount(v int) *PrivateChatUpsert {
+	u.Set(privatechat.FieldUser1UnreadCount, v)
+	return u
+}
+
+// UpdateUser1UnreadCount sets the "user1_unread_count" field to the value that was provided on create.
+func (u *PrivateChatUpsert) UpdateUser1UnreadCount() *PrivateChatUpsert {
+	u.SetExcluded(privatechat.FieldUser1UnreadCount)
+	return u
+}
+
+// AddUser1UnreadCount adds v to the "user1_unread_count" field.
+func (u *PrivateChatUpsert) AddUser1UnreadCount(v int) *PrivateChatUpsert {
+	u.Add(privatechat.FieldUser1UnreadCount, v)
+	return u
+}
+
+// SetUser2UnreadCount sets the "user2_unread_count" field.
+func (u *PrivateChatUpsert) SetUser2UnreadCount(v int) *PrivateChatUpsert {
+	u.Set(privatechat.FieldUser2UnreadCount, v)
+	return u
+}
+
+// UpdateUser2UnreadCount sets the "user2_unread_count" field to the value that was provided on create.
+func (u *PrivateChatUpsert) UpdateUser2UnreadCount() *PrivateChatUpsert {
+	u.SetExcluded(privatechat.FieldUser2UnreadCount)
+	return u
+}
+
+// AddUser2UnreadCount adds v to the "user2_unread_count" field.
+func (u *PrivateChatUpsert) AddUser2UnreadCount(v int) *PrivateChatUpsert {
+	u.Add(privatechat.FieldUser2UnreadCount, v)
+	return u
+}
+
+// UpdateNewValues updates the mutable fields using the new values that were set on create.
+// Using this option is equivalent to using:
+//
+//	client.PrivateChat.Create().
+//		OnConflict(
+//			sql.ResolveWithNewValues(),
+//		).
+//		Exec(ctx)
+func (u *PrivateChatUpsertOne) UpdateNewValues() *PrivateChatUpsertOne {
+	u.create.conflict = append(u.create.conflict, sql.ResolveWithNewValues())
+	return u
+}
+
+// Ignore sets each column to itself in case of conflict.
+// Using this option is equivalent to using:
+//
+//	client.PrivateChat.Create().
+//	    OnConflict(sql.ResolveWithIgnore()).
+//	    Exec(ctx)
+func (u *PrivateChatUpsertOne) Ignore() *PrivateChatUpsertOne {
+	u.create.conflict = append(u.create.conflict, sql.ResolveWithIgnore())
+	return u
+}
+
+// DoNothing configures the conflict_action to `DO NOTHING`.
+// Supported only by SQLite and PostgreSQL.
+func (u *PrivateChatUpsertOne) DoNothing() *PrivateChatUpsertOne {
+	u.create.conflict = append(u.create.conflict, sql.DoNothing())
+	return u
+}
+
+// Update allows overriding fields `UPDATE` values. See the PrivateChatCreate.OnConflict
+// documentation for more info.
+func (u *PrivateChatUpsertOne) Update(set func(*PrivateChatUpsert)) *PrivateChatUpsertOne {
+	u.create.conflict = append(u.create.conflict, sql.ResolveWith(func(update *sql.UpdateSet) {
+		set(&PrivateChatUpsert{UpdateSet: update})
+	}))
+	return u
+}
+
+// SetChatID sets the "chat_id" field.
+func (u *PrivateChatUpsertOne) SetChatID(v int) *PrivateChatUpsertOne {
+	return u.Update(func(s *PrivateChatUpsert) {
+		s.SetChatID(v)
+	})
+}
+
+// UpdateChatID sets the "chat_id" field to the value that was provided on create.
+func (u *PrivateChatUpsertOne) UpdateChatID() *PrivateChatUpsertOne {
+	return u.Update(func(s *PrivateChatUpsert) {
+		s.UpdateChatID()
+	})
+}
+
+// SetUser1ID sets the "user1_id" field.
+func (u *PrivateChatUpsertOne) SetUser1ID(v int) *PrivateChatUpsertOne {
+	return u.Update(func(s *PrivateChatUpsert) {
+		s.SetUser1ID(v)
+	})
+}
+
+// UpdateUser1ID sets the "user1_id" field to the value that was provided on create.
+func (u *PrivateChatUpsertOne) UpdateUser1ID() *PrivateChatUpsertOne {
+	return u.Update(func(s *PrivateChatUpsert) {
+		s.UpdateUser1ID()
+	})
+}
+
+// SetUser2ID sets the "user2_id" field.
+func (u *PrivateChatUpsertOne) SetUser2ID(v int) *PrivateChatUpsertOne {
+	return u.Update(func(s *PrivateChatUpsert) {
+		s.SetUser2ID(v)
+	})
+}
+
+// UpdateUser2ID sets the "user2_id" field to the value that was provided on create.
+func (u *PrivateChatUpsertOne) UpdateUser2ID() *PrivateChatUpsertOne {
+	return u.Update(func(s *PrivateChatUpsert) {
+		s.UpdateUser2ID()
+	})
+}
+
+// SetUser1LastReadAt sets the "user1_last_read_at" field.
+func (u *PrivateChatUpsertOne) SetUser1LastReadAt(v time.Time) *PrivateChatUpsertOne {
+	return u.Update(func(s *PrivateChatUpsert) {
+		s.SetUser1LastReadAt(v)
+	})
+}
+
+// UpdateUser1LastReadAt sets the "user1_last_read_at" field to the value that was provided on create.
+func (u *PrivateChatUpsertOne) UpdateUser1LastReadAt() *PrivateChatUpsertOne {
+	return u.Update(func(s *PrivateChatUpsert) {
+		s.UpdateUser1LastReadAt()
+	})
+}
+
+// ClearUser1LastReadAt clears the value of the "user1_last_read_at" field.
+func (u *PrivateChatUpsertOne) ClearUser1LastReadAt() *PrivateChatUpsertOne {
+	return u.Update(func(s *PrivateChatUpsert) {
+		s.ClearUser1LastReadAt()
+	})
+}
+
+// SetUser2LastReadAt sets the "user2_last_read_at" field.
+func (u *PrivateChatUpsertOne) SetUser2LastReadAt(v time.Time) *PrivateChatUpsertOne {
+	return u.Update(func(s *PrivateChatUpsert) {
+		s.SetUser2LastReadAt(v)
+	})
+}
+
+// UpdateUser2LastReadAt sets the "user2_last_read_at" field to the value that was provided on create.
+func (u *PrivateChatUpsertOne) UpdateUser2LastReadAt() *PrivateChatUpsertOne {
+	return u.Update(func(s *PrivateChatUpsert) {
+		s.UpdateUser2LastReadAt()
+	})
+}
+
+// ClearUser2LastReadAt clears the value of the "user2_last_read_at" field.
+func (u *PrivateChatUpsertOne) ClearUser2LastReadAt() *PrivateChatUpsertOne {
+	return u.Update(func(s *PrivateChatUpsert) {
+		s.ClearUser2LastReadAt()
+	})
+}
+
+// SetUser1HiddenAt sets the "user1_hidden_at" field.
+func (u *PrivateChatUpsertOne) SetUser1HiddenAt(v time.Time) *PrivateChatUpsertOne {
+	return u.Update(func(s *PrivateChatUpsert) {
+		s.SetUser1HiddenAt(v)
+	})
+}
+
+// UpdateUser1HiddenAt sets the "user1_hidden_at" field to the value that was provided on create.
+func (u *PrivateChatUpsertOne) UpdateUser1HiddenAt() *PrivateChatUpsertOne {
+	return u.Update(func(s *PrivateChatUpsert) {
+		s.UpdateUser1HiddenAt()
+	})
+}
+
+// ClearUser1HiddenAt clears the value of the "user1_hidden_at" field.
+func (u *PrivateChatUpsertOne) ClearUser1HiddenAt() *PrivateChatUpsertOne {
+	return u.Update(func(s *PrivateChatUpsert) {
+		s.ClearUser1HiddenAt()
+	})
+}
+
+// SetUser2HiddenAt sets the "user2_hidden_at" field.
+func (u *PrivateChatUpsertOne) SetUser2HiddenAt(v time.Time) *PrivateChatUpsertOne {
+	return u.Update(func(s *PrivateChatUpsert) {
+		s.SetUser2HiddenAt(v)
+	})
+}
+
+// UpdateUser2HiddenAt sets the "user2_hidden_at" field to the value that was provided on create.
+func (u *PrivateChatUpsertOne) UpdateUser2HiddenAt() *PrivateChatUpsertOne {
+	return u.Update(func(s *PrivateChatUpsert) {
+		s.UpdateUser2HiddenAt()
+	})
+}
+
+// ClearUser2HiddenAt clears the value of the "user2_hidden_at" field.
+func (u *PrivateChatUpsertOne) ClearUser2HiddenAt() *PrivateChatUpsertOne {
+	return u.Update(func(s *PrivateChatUpsert) {
+		s.ClearUser2HiddenAt()
+	})
+}
+
+// SetUser1UnreadCount sets the "user1_unread_count" field.
+func (u *PrivateChatUpsertOne) SetUser1UnreadCount(v int) *PrivateChatUpsertOne {
+	return u.Update(func(s *PrivateChatUpsert) {
+		s.SetUser1UnreadCount(v)
+	})
+}
+
+// AddUser1UnreadCount adds v to the "user1_unread_count" field.
+func (u *PrivateChatUpsertOne) AddUser1UnreadCount(v int) *PrivateChatUpsertOne {
+	return u.Update(func(s *PrivateChatUpsert) {
+		s.AddUser1UnreadCount(v)
+	})
+}
+
+// UpdateUser1UnreadCount sets the "user1_unread_count" field to the value that was provided on create.
+func (u *PrivateChatUpsertOne) UpdateUser1UnreadCount() *PrivateChatUpsertOne {
+	return u.Update(func(s *PrivateChatUpsert) {
+		s.UpdateUser1UnreadCount()
+	})
+}
+
+// SetUser2UnreadCount sets the "user2_unread_count" field.
+func (u *PrivateChatUpsertOne) SetUser2UnreadCount(v int) *PrivateChatUpsertOne {
+	return u.Update(func(s *PrivateChatUpsert) {
+		s.SetUser2UnreadCount(v)
+	})
+}
+
+// AddUser2UnreadCount adds v to the "user2_unread_count" field.
+func (u *PrivateChatUpsertOne) AddUser2UnreadCount(v int) *PrivateChatUpsertOne {
+	return u.Update(func(s *PrivateChatUpsert) {
+		s.AddUser2UnreadCount(v)
+	})
+}
+
+// UpdateUser2UnreadCount sets the "user2_unread_count" field to the value that was provided on create.
+func (u *PrivateChatUpsertOne) UpdateUser2UnreadCount() *PrivateChatUpsertOne {
+	return u.Update(func(s *PrivateChatUpsert) {
+		s.UpdateUser2UnreadCount()
+	})
+}
+
+// Exec executes the query.
+func (u *PrivateChatUpsertOne) Exec(ctx context.Context) error {
+	if len(u.create.conflict) == 0 {
+		return errors.New("ent: missing options for PrivateChatCreate.OnConflict")
+	}
+	return u.create.Exec(ctx)
+}
+
+// ExecX is like Exec, but panics if an error occurs.
+func (u *PrivateChatUpsertOne) ExecX(ctx context.Context) {
+	if err := u.create.Exec(ctx); err != nil {
+		panic(err)
+	}
+}
+
+// Exec executes the UPSERT query and returns the inserted/updated ID.
+func (u *PrivateChatUpsertOne) ID(ctx context.Context) (id int, err error) {
+	node, err := u.create.Save(ctx)
+	if err != nil {
+		return id, err
+	}
+	return node.ID, nil
+}
+
+// IDX is like ID, but panics if an error occurs.
+func (u *PrivateChatUpsertOne) IDX(ctx context.Context) int {
+	id, err := u.ID(ctx)
+	if err != nil {
+		panic(err)
+	}
+	return id
+}
+
 // PrivateChatCreateBulk is the builder for creating many PrivateChat entities in bulk.
 type PrivateChatCreateBulk struct {
 	config
 	err      error
 	builders []*PrivateChatCreate
+	conflict []sql.ConflictOption
 }
 
 // Save creates the PrivateChat entities in the database.
@@ -351,6 +789,7 @@ func (_c *PrivateChatCreateBulk) Save(ctx context.Context) ([]*PrivateChat, erro
 					_, err = mutators[i+1].Mutate(root, _c.builders[i+1].mutation)
 				} else {
 					spec := &sqlgraph.BatchCreateSpec{Nodes: specs}
+					spec.OnConflict = _c.conflict
 					// Invoke the actual operation on the latest mutation in the chain.
 					if err = sqlgraph.BatchCreate(ctx, _c.driver, spec); err != nil {
 						if sqlgraph.IsConstraintError(err) {
@@ -401,6 +840,278 @@ func (_c *PrivateChatCreateBulk) Exec(ctx context.Context) error {
 // ExecX is like Exec, but panics if an error occurs.
 func (_c *PrivateChatCreateBulk) ExecX(ctx context.Context) {
 	if err := _c.Exec(ctx); err != nil {
+		panic(err)
+	}
+}
+
+// OnConflict allows configuring the `ON CONFLICT` / `ON DUPLICATE KEY` clause
+// of the `INSERT` statement. For example:
+//
+//	client.PrivateChat.CreateBulk(builders...).
+//		OnConflict(
+//			// Update the row with the new values
+//			// the was proposed for insertion.
+//			sql.ResolveWithNewValues(),
+//		).
+//		// Override some of the fields with custom
+//		// update values.
+//		Update(func(u *ent.PrivateChatUpsert) {
+//			SetChatID(v+v).
+//		}).
+//		Exec(ctx)
+func (_c *PrivateChatCreateBulk) OnConflict(opts ...sql.ConflictOption) *PrivateChatUpsertBulk {
+	_c.conflict = opts
+	return &PrivateChatUpsertBulk{
+		create: _c,
+	}
+}
+
+// OnConflictColumns calls `OnConflict` and configures the columns
+// as conflict target. Using this option is equivalent to using:
+//
+//	client.PrivateChat.Create().
+//		OnConflict(sql.ConflictColumns(columns...)).
+//		Exec(ctx)
+func (_c *PrivateChatCreateBulk) OnConflictColumns(columns ...string) *PrivateChatUpsertBulk {
+	_c.conflict = append(_c.conflict, sql.ConflictColumns(columns...))
+	return &PrivateChatUpsertBulk{
+		create: _c,
+	}
+}
+
+// PrivateChatUpsertBulk is the builder for "upsert"-ing
+// a bulk of PrivateChat nodes.
+type PrivateChatUpsertBulk struct {
+	create *PrivateChatCreateBulk
+}
+
+// UpdateNewValues updates the mutable fields using the new values that
+// were set on create. Using this option is equivalent to using:
+//
+//	client.PrivateChat.Create().
+//		OnConflict(
+//			sql.ResolveWithNewValues(),
+//		).
+//		Exec(ctx)
+func (u *PrivateChatUpsertBulk) UpdateNewValues() *PrivateChatUpsertBulk {
+	u.create.conflict = append(u.create.conflict, sql.ResolveWithNewValues())
+	return u
+}
+
+// Ignore sets each column to itself in case of conflict.
+// Using this option is equivalent to using:
+//
+//	client.PrivateChat.Create().
+//		OnConflict(sql.ResolveWithIgnore()).
+//		Exec(ctx)
+func (u *PrivateChatUpsertBulk) Ignore() *PrivateChatUpsertBulk {
+	u.create.conflict = append(u.create.conflict, sql.ResolveWithIgnore())
+	return u
+}
+
+// DoNothing configures the conflict_action to `DO NOTHING`.
+// Supported only by SQLite and PostgreSQL.
+func (u *PrivateChatUpsertBulk) DoNothing() *PrivateChatUpsertBulk {
+	u.create.conflict = append(u.create.conflict, sql.DoNothing())
+	return u
+}
+
+// Update allows overriding fields `UPDATE` values. See the PrivateChatCreateBulk.OnConflict
+// documentation for more info.
+func (u *PrivateChatUpsertBulk) Update(set func(*PrivateChatUpsert)) *PrivateChatUpsertBulk {
+	u.create.conflict = append(u.create.conflict, sql.ResolveWith(func(update *sql.UpdateSet) {
+		set(&PrivateChatUpsert{UpdateSet: update})
+	}))
+	return u
+}
+
+// SetChatID sets the "chat_id" field.
+func (u *PrivateChatUpsertBulk) SetChatID(v int) *PrivateChatUpsertBulk {
+	return u.Update(func(s *PrivateChatUpsert) {
+		s.SetChatID(v)
+	})
+}
+
+// UpdateChatID sets the "chat_id" field to the value that was provided on create.
+func (u *PrivateChatUpsertBulk) UpdateChatID() *PrivateChatUpsertBulk {
+	return u.Update(func(s *PrivateChatUpsert) {
+		s.UpdateChatID()
+	})
+}
+
+// SetUser1ID sets the "user1_id" field.
+func (u *PrivateChatUpsertBulk) SetUser1ID(v int) *PrivateChatUpsertBulk {
+	return u.Update(func(s *PrivateChatUpsert) {
+		s.SetUser1ID(v)
+	})
+}
+
+// UpdateUser1ID sets the "user1_id" field to the value that was provided on create.
+func (u *PrivateChatUpsertBulk) UpdateUser1ID() *PrivateChatUpsertBulk {
+	return u.Update(func(s *PrivateChatUpsert) {
+		s.UpdateUser1ID()
+	})
+}
+
+// SetUser2ID sets the "user2_id" field.
+func (u *PrivateChatUpsertBulk) SetUser2ID(v int) *PrivateChatUpsertBulk {
+	return u.Update(func(s *PrivateChatUpsert) {
+		s.SetUser2ID(v)
+	})
+}
+
+// UpdateUser2ID sets the "user2_id" field to the value that was provided on create.
+func (u *PrivateChatUpsertBulk) UpdateUser2ID() *PrivateChatUpsertBulk {
+	return u.Update(func(s *PrivateChatUpsert) {
+		s.UpdateUser2ID()
+	})
+}
+
+// SetUser1LastReadAt sets the "user1_last_read_at" field.
+func (u *PrivateChatUpsertBulk) SetUser1LastReadAt(v time.Time) *PrivateChatUpsertBulk {
+	return u.Update(func(s *PrivateChatUpsert) {
+		s.SetUser1LastReadAt(v)
+	})
+}
+
+// UpdateUser1LastReadAt sets the "user1_last_read_at" field to the value that was provided on create.
+func (u *PrivateChatUpsertBulk) UpdateUser1LastReadAt() *PrivateChatUpsertBulk {
+	return u.Update(func(s *PrivateChatUpsert) {
+		s.UpdateUser1LastReadAt()
+	})
+}
+
+// ClearUser1LastReadAt clears the value of the "user1_last_read_at" field.
+func (u *PrivateChatUpsertBulk) ClearUser1LastReadAt() *PrivateChatUpsertBulk {
+	return u.Update(func(s *PrivateChatUpsert) {
+		s.ClearUser1LastReadAt()
+	})
+}
+
+// SetUser2LastReadAt sets the "user2_last_read_at" field.
+func (u *PrivateChatUpsertBulk) SetUser2LastReadAt(v time.Time) *PrivateChatUpsertBulk {
+	return u.Update(func(s *PrivateChatUpsert) {
+		s.SetUser2LastReadAt(v)
+	})
+}
+
+// UpdateUser2LastReadAt sets the "user2_last_read_at" field to the value that was provided on create.
+func (u *PrivateChatUpsertBulk) UpdateUser2LastReadAt() *PrivateChatUpsertBulk {
+	return u.Update(func(s *PrivateChatUpsert) {
+		s.UpdateUser2LastReadAt()
+	})
+}
+
+// ClearUser2LastReadAt clears the value of the "user2_last_read_at" field.
+func (u *PrivateChatUpsertBulk) ClearUser2LastReadAt() *PrivateChatUpsertBulk {
+	return u.Update(func(s *PrivateChatUpsert) {
+		s.ClearUser2LastReadAt()
+	})
+}
+
+// SetUser1HiddenAt sets the "user1_hidden_at" field.
+func (u *PrivateChatUpsertBulk) SetUser1HiddenAt(v time.Time) *PrivateChatUpsertBulk {
+	return u.Update(func(s *PrivateChatUpsert) {
+		s.SetUser1HiddenAt(v)
+	})
+}
+
+// UpdateUser1HiddenAt sets the "user1_hidden_at" field to the value that was provided on create.
+func (u *PrivateChatUpsertBulk) UpdateUser1HiddenAt() *PrivateChatUpsertBulk {
+	return u.Update(func(s *PrivateChatUpsert) {
+		s.UpdateUser1HiddenAt()
+	})
+}
+
+// ClearUser1HiddenAt clears the value of the "user1_hidden_at" field.
+func (u *PrivateChatUpsertBulk) ClearUser1HiddenAt() *PrivateChatUpsertBulk {
+	return u.Update(func(s *PrivateChatUpsert) {
+		s.ClearUser1HiddenAt()
+	})
+}
+
+// SetUser2HiddenAt sets the "user2_hidden_at" field.
+func (u *PrivateChatUpsertBulk) SetUser2HiddenAt(v time.Time) *PrivateChatUpsertBulk {
+	return u.Update(func(s *PrivateChatUpsert) {
+		s.SetUser2HiddenAt(v)
+	})
+}
+
+// UpdateUser2HiddenAt sets the "user2_hidden_at" field to the value that was provided on create.
+func (u *PrivateChatUpsertBulk) UpdateUser2HiddenAt() *PrivateChatUpsertBulk {
+	return u.Update(func(s *PrivateChatUpsert) {
+		s.UpdateUser2HiddenAt()
+	})
+}
+
+// ClearUser2HiddenAt clears the value of the "user2_hidden_at" field.
+func (u *PrivateChatUpsertBulk) ClearUser2HiddenAt() *PrivateChatUpsertBulk {
+	return u.Update(func(s *PrivateChatUpsert) {
+		s.ClearUser2HiddenAt()
+	})
+}
+
+// SetUser1UnreadCount sets the "user1_unread_count" field.
+func (u *PrivateChatUpsertBulk) SetUser1UnreadCount(v int) *PrivateChatUpsertBulk {
+	return u.Update(func(s *PrivateChatUpsert) {
+		s.SetUser1UnreadCount(v)
+	})
+}
+
+// AddUser1UnreadCount adds v to the "user1_unread_count" field.
+func (u *PrivateChatUpsertBulk) AddUser1UnreadCount(v int) *PrivateChatUpsertBulk {
+	return u.Update(func(s *PrivateChatUpsert) {
+		s.AddUser1UnreadCount(v)
+	})
+}
+
+// UpdateUser1UnreadCount sets the "user1_unread_count" field to the value that was provided on create.
+func (u *PrivateChatUpsertBulk) UpdateUser1UnreadCount() *PrivateChatUpsertBulk {
+	return u.Update(func(s *PrivateChatUpsert) {
+		s.UpdateUser1UnreadCount()
+	})
+}
+
+// SetUser2UnreadCount sets the "user2_unread_count" field.
+func (u *PrivateChatUpsertBulk) SetUser2UnreadCount(v int) *PrivateChatUpsertBulk {
+	return u.Update(func(s *PrivateChatUpsert) {
+		s.SetUser2UnreadCount(v)
+	})
+}
+
+// AddUser2UnreadCount adds v to the "user2_unread_count" field.
+func (u *PrivateChatUpsertBulk) AddUser2UnreadCount(v int) *PrivateChatUpsertBulk {
+	return u.Update(func(s *PrivateChatUpsert) {
+		s.AddUser2UnreadCount(v)
+	})
+}
+
+// UpdateUser2UnreadCount sets the "user2_unread_count" field to the value that was provided on create.
+func (u *PrivateChatUpsertBulk) UpdateUser2UnreadCount() *PrivateChatUpsertBulk {
+	return u.Update(func(s *PrivateChatUpsert) {
+		s.UpdateUser2UnreadCount()
+	})
+}
+
+// Exec executes the query.
+func (u *PrivateChatUpsertBulk) Exec(ctx context.Context) error {
+	if u.create.err != nil {
+		return u.create.err
+	}
+	for i, b := range u.create.builders {
+		if len(b.conflict) != 0 {
+			return fmt.Errorf("ent: OnConflict was set for builder %d. Set it on the PrivateChatCreateBulk instead", i)
+		}
+	}
+	if len(u.create.conflict) == 0 {
+		return errors.New("ent: missing options for PrivateChatCreateBulk.OnConflict")
+	}
+	return u.create.Exec(ctx)
+}
+
+// ExecX is like Exec, but panics if an error occurs.
+func (u *PrivateChatUpsertBulk) ExecX(ctx context.Context) {
+	if err := u.create.Exec(ctx); err != nil {
 		panic(err)
 	}
 }

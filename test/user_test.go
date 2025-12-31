@@ -4,6 +4,7 @@ import (
 	"AtoiTalkAPI/ent"
 	"AtoiTalkAPI/ent/chat"
 	"AtoiTalkAPI/ent/user"
+	"AtoiTalkAPI/ent/userblock"
 	"AtoiTalkAPI/internal/helper"
 	"bytes"
 	"context"
@@ -39,6 +40,7 @@ func createTestImage(t *testing.T, width, height int) []byte {
 
 func TestGetCurrentUser(t *testing.T) {
 	validEmail := "current@example.com"
+	validUsername := "currentuser"
 	validName := "Current User"
 	validBio := "I am current user"
 
@@ -47,6 +49,7 @@ func TestGetCurrentUser(t *testing.T) {
 
 		u, err := testClient.User.Create().
 			SetEmail(validEmail).
+			SetUsername(validUsername).
 			SetFullName(validName).
 			SetBio(validBio).
 			Save(context.Background())
@@ -68,6 +71,7 @@ func TestGetCurrentUser(t *testing.T) {
 		dataMap, ok := resp.Data.(map[string]interface{})
 		assert.True(t, ok)
 		assert.Equal(t, validEmail, dataMap["email"])
+		assert.Equal(t, validUsername, dataMap["username"])
 		assert.Equal(t, validName, dataMap["full_name"])
 		assert.Equal(t, validBio, dataMap["bio"])
 	})
@@ -83,12 +87,131 @@ func TestGetCurrentUser(t *testing.T) {
 	})
 }
 
+func TestGetUserProfile(t *testing.T) {
+	validEmail := "other@example.com"
+	validUsername := "otheruser"
+	validName := "Other User"
+	validBio := "I am another user"
+
+	t.Run("Success", func(t *testing.T) {
+		clearDatabase(context.Background())
+
+		targetUser, err := testClient.User.Create().
+			SetEmail(validEmail).
+			SetUsername(validUsername).
+			SetFullName(validName).
+			SetBio(validBio).
+			Save(context.Background())
+		assert.NoError(t, err)
+
+		requestingUser, err := testClient.User.Create().
+			SetEmail("requester@example.com").
+			SetUsername("requester").
+			SetFullName("Requester").
+			Save(context.Background())
+		assert.NoError(t, err)
+
+		token, _ := helper.GenerateJWT(testConfig.JWTSecret, testConfig.JWTExp, requestingUser.ID)
+
+		req, _ := http.NewRequest("GET", fmt.Sprintf("/api/users/%d", targetUser.ID), nil)
+		req.Header.Set("Authorization", "Bearer "+token)
+
+		rr := executeRequest(req)
+
+		if !assert.Equal(t, http.StatusOK, rr.Code) {
+			printBody(t, rr)
+		}
+		var resp helper.ResponseSuccess
+		json.Unmarshal(rr.Body.Bytes(), &resp)
+
+		dataMap, ok := resp.Data.(map[string]interface{})
+		assert.True(t, ok)
+		assert.Equal(t, float64(targetUser.ID), dataMap["id"])
+		assert.Nil(t, dataMap["email"])
+		assert.Equal(t, validUsername, dataMap["username"])
+		assert.Equal(t, validName, dataMap["full_name"])
+		assert.Equal(t, validBio, dataMap["bio"])
+	})
+
+	t.Run("Blocked User (Should Return NotFound)", func(t *testing.T) {
+		clearDatabase(context.Background())
+
+		targetUser, _ := testClient.User.Create().SetEmail("target@test.com").SetUsername("target").SetFullName("Target").Save(context.Background())
+		blockerUser, _ := testClient.User.Create().SetEmail("blocker@test.com").SetUsername("blocker").SetFullName("Blocker").Save(context.Background())
+
+		testClient.UserBlock.Create().SetBlockerID(blockerUser.ID).SetBlockedID(targetUser.ID).Save(context.Background())
+
+		token, _ := helper.GenerateJWT(testConfig.JWTSecret, testConfig.JWTExp, targetUser.ID)
+
+		req, _ := http.NewRequest("GET", fmt.Sprintf("/api/users/%d", blockerUser.ID), nil)
+		req.Header.Set("Authorization", "Bearer "+token)
+
+		rr := executeRequest(req)
+		assert.Equal(t, http.StatusNotFound, rr.Code)
+	})
+
+	t.Run("User Not Found", func(t *testing.T) {
+		clearDatabase(context.Background())
+
+		requestingUser, err := testClient.User.Create().
+			SetEmail("requester@example.com").
+			SetUsername("requester").
+			SetFullName("Requester").
+			Save(context.Background())
+		assert.NoError(t, err)
+
+		token, _ := helper.GenerateJWT(testConfig.JWTSecret, testConfig.JWTExp, requestingUser.ID)
+
+		req, _ := http.NewRequest("GET", "/api/users/99999", nil)
+		req.Header.Set("Authorization", "Bearer "+token)
+
+		rr := executeRequest(req)
+
+		if !assert.Equal(t, http.StatusNotFound, rr.Code) {
+			printBody(t, rr)
+		}
+	})
+
+	t.Run("Invalid ID Format", func(t *testing.T) {
+		clearDatabase(context.Background())
+
+		requestingUser, err := testClient.User.Create().
+			SetEmail("requester@example.com").
+			SetUsername("requester").
+			SetFullName("Requester").
+			Save(context.Background())
+		assert.NoError(t, err)
+
+		token, _ := helper.GenerateJWT(testConfig.JWTSecret, testConfig.JWTExp, requestingUser.ID)
+
+		req, _ := http.NewRequest("GET", "/api/users/invalid-id", nil)
+		req.Header.Set("Authorization", "Bearer "+token)
+
+		rr := executeRequest(req)
+
+		if !assert.Equal(t, http.StatusBadRequest, rr.Code) {
+			printBody(t, rr)
+		}
+	})
+
+	t.Run("Unauthorized", func(t *testing.T) {
+		req, _ := http.NewRequest("GET", "/api/users/1", nil)
+
+		rr := executeRequest(req)
+
+		if !assert.Equal(t, http.StatusUnauthorized, rr.Code) {
+			printBody(t, rr)
+		}
+	})
+}
+
 func TestUpdateProfile(t *testing.T) {
 	if testConfig.StorageMode != "local" {
 		t.Skip("Skipping Update Profile test: Storage mode is not local")
 	}
 
 	validEmail := "profile@example.com"
+	validUsername := "profileuser"
 	validPassword := "Password123!"
 
 	t.Run("Success Update Info Only", func(t *testing.T) {
@@ -98,6 +221,7 @@ func TestUpdateProfile(t *testing.T) {
 		hashedPassword, _ := helper.HashPassword(validPassword)
 		u, err := testClient.User.Create().
 			SetEmail(validEmail).
+			SetUsername(validUsername).
 			SetFullName("Old Name").
 			SetPasswordHash(hashedPassword).
 			Save(context.Background())
@@ -109,6 +233,7 @@ func TestUpdateProfile(t *testing.T) {
 		writer := multipart.NewWriter(body)
 		_ = writer.WriteField("full_name", "New Name")
 		_ = writer.WriteField("bio", "New Bio")
+		_ = writer.WriteField("username", "newusername")
 		_ = writer.Close()
 
 		req, _ := http.NewRequest("PUT", "/api/user/profile", body)
@@ -126,11 +251,36 @@ func TestUpdateProfile(t *testing.T) {
 		dataMap, ok := resp.Data.(map[string]interface{})
 		assert.True(t, ok)
 		assert.Equal(t, "New Name", dataMap["full_name"])
+		assert.Equal(t, "newusername", dataMap["username"])
 
 		updatedUser, err := testClient.User.Query().Where(user.ID(u.ID)).Only(context.Background())
 		assert.NoError(t, err)
 		assert.Equal(t, "New Name", updatedUser.FullName)
 		assert.Equal(t, "New Bio", *updatedUser.Bio)
+		assert.Equal(t, "newusername", updatedUser.Username)
+	})
+
+	t.Run("Fail Update Username Taken", func(t *testing.T) {
+		clearDatabase(context.Background())
+		cleanupStorage(true)
+
+		u1, _ := testClient.User.Create().SetEmail("u1@test.com").SetUsername("user1").SetFullName("User 1").Save(context.Background())
+		testClient.User.Create().SetEmail("u2@test.com").SetUsername("user2").SetFullName("User 2").Save(context.Background())
+
+		token, _ := helper.GenerateJWT(testConfig.JWTSecret, testConfig.JWTExp, u1.ID)
+
+		body := &bytes.Buffer{}
+		writer := multipart.NewWriter(body)
+		_ = writer.WriteField("full_name", "User 1")
+		_ = writer.WriteField("username", "user2")
+		_ = writer.Close()
+
+		req, _ := http.NewRequest("PUT", "/api/user/profile", body)
+		req.Header.Set("Content-Type", writer.FormDataContentType())
+		req.Header.Set("Authorization", "Bearer "+token)
+
+		rr := executeRequest(req)
+		assert.Equal(t, http.StatusConflict, rr.Code)
 	})
 
 	t.Run("Success Update Avatar", func(t *testing.T) {
@@ -140,6 +290,7 @@ func TestUpdateProfile(t *testing.T) {
 		hashedPassword, _ := helper.HashPassword(validPassword)
 		u, err := testClient.User.Create().
 			SetEmail(validEmail).
+			SetUsername(validUsername).
 			SetFullName("Old Name").
 			SetPasswordHash(hashedPassword).
 			Save(context.Background())
@@ -192,7 +343,7 @@ func TestUpdateProfile(t *testing.T) {
 		cleanupStorage(true)
 
 		u, err := testClient.User.Create().
-			SetEmail(validEmail).SetFullName("User With Avatar").
+			SetEmail(validEmail).SetUsername(validUsername).SetFullName("User With Avatar").
 			Save(context.Background())
 		assert.NoError(t, err)
 
@@ -235,6 +386,7 @@ func TestUpdateProfile(t *testing.T) {
 		hashedPassword, _ := helper.HashPassword(validPassword)
 		u, err := testClient.User.Create().
 			SetEmail(validEmail).
+			SetUsername(validUsername).
 			SetFullName("User").
 			SetPasswordHash(hashedPassword).
 			Save(context.Background())
@@ -268,6 +420,7 @@ func TestUpdateProfile(t *testing.T) {
 		hashedPassword, _ := helper.HashPassword(validPassword)
 		u, err := testClient.User.Create().
 			SetEmail(validEmail).
+			SetUsername(validUsername).
 			SetFullName("User").
 			SetPasswordHash(hashedPassword).
 			Save(context.Background())
@@ -302,6 +455,7 @@ func TestUpdateProfile(t *testing.T) {
 		hashedPassword, _ := helper.HashPassword(validPassword)
 		u, err := testClient.User.Create().
 			SetEmail(validEmail).
+			SetUsername(validUsername).
 			SetFullName("User").
 			SetPasswordHash(hashedPassword).
 			Save(context.Background())
@@ -353,9 +507,11 @@ func TestSearchUsers(t *testing.T) {
 	users := make(map[string]*ent.User)
 	for _, name := range names {
 		email := strings.ToLower(name) + "@test.com"
+		username := strings.ToLower(name)
 		hashedPassword, _ := helper.HashPassword("Password123!")
 		u, _ := testClient.User.Create().
 			SetEmail(email).
+			SetUsername(username).
 			SetFullName(name).
 			SetPasswordHash(hashedPassword).
 			Save(context.Background())
@@ -364,6 +520,7 @@ func TestSearchUsers(t *testing.T) {
 
 	searcher, _ := testClient.User.Create().
 		SetEmail("searcher@test.com").
+		SetUsername("searcher").
 		SetFullName("Searcher").
 		SetPasswordHash("hash").
 		Save(context.Background())
@@ -473,6 +630,86 @@ func TestSearchUsers(t *testing.T) {
 		assert.Nil(t, userBob["private_chat_id"])
 	})
 
+	t.Run("Success - Search by Username", func(t *testing.T) {
+		req, _ := http.NewRequest("GET", "/api/users?query=alice", nil)
+		req.Header.Set("Authorization", "Bearer "+token)
+		rr := executeRequest(req)
+
+		if !assert.Equal(t, http.StatusOK, rr.Code) {
+			printBody(t, rr)
+		}
+		var resp helper.ResponseWithPagination
+		json.Unmarshal(rr.Body.Bytes(), &resp)
+
+		dataList := resp.Data.([]interface{})
+		assert.Len(t, dataList, 1)
+		userAlice := dataList[0].(map[string]interface{})
+		assert.Equal(t, "Alice", userAlice["full_name"])
+	})
+
+	t.Run("Success - Search by Email Exact Match", func(t *testing.T) {
+		req, _ := http.NewRequest("GET", "/api/users?query=alice@test.com", nil)
+		req.Header.Set("Authorization", "Bearer "+token)
+		rr := executeRequest(req)
+
+		if !assert.Equal(t, http.StatusOK, rr.Code) {
+			printBody(t, rr)
+		}
+		var resp helper.ResponseWithPagination
+		json.Unmarshal(rr.Body.Bytes(), &resp)
+
+		dataList := resp.Data.([]interface{})
+		if assert.NotEmpty(t, dataList) {
+			userAlice := dataList[0].(map[string]interface{})
+			assert.Equal(t, "Alice", userAlice["full_name"])
+		}
+	})
+
+	t.Run("Fail - Search by Partial Email (Should be Empty)", func(t *testing.T) {
+		req, _ := http.NewRequest("GET", "/api/users?query=alice@test", nil)
+		req.Header.Set("Authorization", "Bearer "+token)
+		rr := executeRequest(req)
+
+		if !assert.Equal(t, http.StatusOK, rr.Code) {
+			printBody(t, rr)
+		}
+		var resp helper.ResponseWithPagination
+		json.Unmarshal(rr.Body.Bytes(), &resp)
+
+		dataList := resp.Data.([]interface{})
+		assert.Len(t, dataList, 0)
+	})
+
+	t.Run("Success - Exclude Blocked Users", func(t *testing.T) {
+
+		testClient.UserBlock.Create().SetBlockerID(searcher.ID).SetBlockedID(users["Bob"].ID).Save(context.Background())
+
+		req, _ := http.NewRequest("GET", "/api/users?query=Bob", nil)
+		req.Header.Set("Authorization", "Bearer "+token)
+		rr := executeRequest(req)
+
+		var resp helper.ResponseWithPagination
+		json.Unmarshal(rr.Body.Bytes(), &resp)
+		dataList := resp.Data.([]interface{})
+		assert.Len(t, dataList, 0, "Blocked user should not appear in search")
+	})
+
+	t.Run("Success - Mutual Block (Both should not see each other)", func(t *testing.T) {
+
+		testClient.UserBlock.Create().SetBlockerID(users["Eve"].ID).SetBlockedID(searcher.ID).Save(context.Background())
+
+		testClient.UserBlock.Create().SetBlockerID(searcher.ID).SetBlockedID(users["Eve"].ID).Save(context.Background())
+
+		req, _ := http.NewRequest("GET", "/api/users?query=Eve", nil)
+		req.Header.Set("Authorization", "Bearer "+token)
+		rr := executeRequest(req)
+
+		var resp helper.ResponseWithPagination
+		json.Unmarshal(rr.Body.Bytes(), &resp)
+		dataList := resp.Data.([]interface{})
+		assert.Len(t, dataList, 0, "Mutually blocked user should not appear in search")
+	})
+
 	t.Run("Empty Result", func(t *testing.T) {
 		req, _ := http.NewRequest("GET", "/api/users?query=zoro", nil)
 		req.Header.Set("Authorization", "Bearer "+token)
@@ -505,5 +742,48 @@ func TestSearchUsers(t *testing.T) {
 		if !assert.Equal(t, http.StatusUnauthorized, rr.Code) {
 			printBody(t, rr)
 		}
+	})
+}
+
+func TestBlockUser(t *testing.T) {
+	clearDatabase(context.Background())
+
+	u1, _ := testClient.User.Create().SetEmail("u1@test.com").SetUsername("u1").SetFullName("User 1").Save(context.Background())
+	u2, _ := testClient.User.Create().SetEmail("u2@test.com").SetUsername("u2").SetFullName("User 2").Save(context.Background())
+
+	token, _ := helper.GenerateJWT(testConfig.JWTSecret, testConfig.JWTExp, u1.ID)
+
+	t.Run("Success Block", func(t *testing.T) {
+		req, _ := http.NewRequest("POST", fmt.Sprintf("/api/users/%d/block", u2.ID), nil)
+		req.Header.Set("Authorization", "Bearer "+token)
+		rr := executeRequest(req)
+		assert.Equal(t, http.StatusOK, rr.Code)
+
+		exists, _ := testClient.UserBlock.Query().Where(userblock.BlockerID(u1.ID), userblock.BlockedID(u2.ID)).Exist(context.Background())
+		assert.True(t, exists)
+	})
+
+	t.Run("Success Unblock", func(t *testing.T) {
+		req, _ := http.NewRequest("POST", fmt.Sprintf("/api/users/%d/unblock", u2.ID), nil)
+		req.Header.Set("Authorization", "Bearer "+token)
+		rr := executeRequest(req)
+		assert.Equal(t, http.StatusOK, rr.Code)
+
+		exists, _ := testClient.UserBlock.Query().Where(userblock.BlockerID(u1.ID), userblock.BlockedID(u2.ID)).Exist(context.Background())
+		assert.False(t, exists)
+	})
+
+	t.Run("Block Self", func(t *testing.T) {
+		req, _ := http.NewRequest("POST", fmt.Sprintf("/api/users/%d/block", u1.ID), nil)
+		req.Header.Set("Authorization", "Bearer "+token)
+		rr := executeRequest(req)
+		assert.Equal(t, http.StatusBadRequest, rr.Code)
+	})
+
+	t.Run("Block Non-Existent User", func(t *testing.T) {
+		req, _ := http.NewRequest("POST", "/api/users/99999/block", nil)
+		req.Header.Set("Authorization", "Bearer "+token)
+		rr := executeRequest(req)
+		assert.Equal(t, http.StatusNotFound, rr.Code)
 	})
 }

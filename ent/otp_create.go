@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"time"
 
+	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 )
@@ -18,6 +19,7 @@ type OTPCreate struct {
 	config
 	mutation *OTPMutation
 	hooks    []Hook
+	conflict []sql.ConflictOption
 }
 
 // SetCreatedAt sets the "created_at" field.
@@ -190,6 +192,7 @@ func (_c *OTPCreate) createSpec() (*OTP, *sqlgraph.CreateSpec) {
 		_node = &OTP{config: _c.config}
 		_spec = sqlgraph.NewCreateSpec(otp.Table, sqlgraph.NewFieldSpec(otp.FieldID, field.TypeInt))
 	)
+	_spec.OnConflict = _c.conflict
 	if value, ok := _c.mutation.CreatedAt(); ok {
 		_spec.SetField(otp.FieldCreatedAt, field.TypeTime, value)
 		_node.CreatedAt = value
@@ -217,11 +220,269 @@ func (_c *OTPCreate) createSpec() (*OTP, *sqlgraph.CreateSpec) {
 	return _node, _spec
 }
 
+// OnConflict allows configuring the `ON CONFLICT` / `ON DUPLICATE KEY` clause
+// of the `INSERT` statement. For example:
+//
+//	client.OTP.Create().
+//		SetCreatedAt(v).
+//		OnConflict(
+//			// Update the row with the new values
+//			// the was proposed for insertion.
+//			sql.ResolveWithNewValues(),
+//		).
+//		// Override some of the fields with custom
+//		// update values.
+//		Update(func(u *ent.OTPUpsert) {
+//			SetCreatedAt(v+v).
+//		}).
+//		Exec(ctx)
+func (_c *OTPCreate) OnConflict(opts ...sql.ConflictOption) *OTPUpsertOne {
+	_c.conflict = opts
+	return &OTPUpsertOne{
+		create: _c,
+	}
+}
+
+// OnConflictColumns calls `OnConflict` and configures the columns
+// as conflict target. Using this option is equivalent to using:
+//
+//	client.OTP.Create().
+//		OnConflict(sql.ConflictColumns(columns...)).
+//		Exec(ctx)
+func (_c *OTPCreate) OnConflictColumns(columns ...string) *OTPUpsertOne {
+	_c.conflict = append(_c.conflict, sql.ConflictColumns(columns...))
+	return &OTPUpsertOne{
+		create: _c,
+	}
+}
+
+type (
+	// OTPUpsertOne is the builder for "upsert"-ing
+	//  one OTP node.
+	OTPUpsertOne struct {
+		create *OTPCreate
+	}
+
+	// OTPUpsert is the "OnConflict" setter.
+	OTPUpsert struct {
+		*sql.UpdateSet
+	}
+)
+
+// SetUpdatedAt sets the "updated_at" field.
+func (u *OTPUpsert) SetUpdatedAt(v time.Time) *OTPUpsert {
+	u.Set(otp.FieldUpdatedAt, v)
+	return u
+}
+
+// UpdateUpdatedAt sets the "updated_at" field to the value that was provided on create.
+func (u *OTPUpsert) UpdateUpdatedAt() *OTPUpsert {
+	u.SetExcluded(otp.FieldUpdatedAt)
+	return u
+}
+
+// SetEmail sets the "email" field.
+func (u *OTPUpsert) SetEmail(v string) *OTPUpsert {
+	u.Set(otp.FieldEmail, v)
+	return u
+}
+
+// UpdateEmail sets the "email" field to the value that was provided on create.
+func (u *OTPUpsert) UpdateEmail() *OTPUpsert {
+	u.SetExcluded(otp.FieldEmail)
+	return u
+}
+
+// SetCode sets the "code" field.
+func (u *OTPUpsert) SetCode(v string) *OTPUpsert {
+	u.Set(otp.FieldCode, v)
+	return u
+}
+
+// UpdateCode sets the "code" field to the value that was provided on create.
+func (u *OTPUpsert) UpdateCode() *OTPUpsert {
+	u.SetExcluded(otp.FieldCode)
+	return u
+}
+
+// SetMode sets the "mode" field.
+func (u *OTPUpsert) SetMode(v otp.Mode) *OTPUpsert {
+	u.Set(otp.FieldMode, v)
+	return u
+}
+
+// UpdateMode sets the "mode" field to the value that was provided on create.
+func (u *OTPUpsert) UpdateMode() *OTPUpsert {
+	u.SetExcluded(otp.FieldMode)
+	return u
+}
+
+// SetExpiresAt sets the "expires_at" field.
+func (u *OTPUpsert) SetExpiresAt(v time.Time) *OTPUpsert {
+	u.Set(otp.FieldExpiresAt, v)
+	return u
+}
+
+// UpdateExpiresAt sets the "expires_at" field to the value that was provided on create.
+func (u *OTPUpsert) UpdateExpiresAt() *OTPUpsert {
+	u.SetExcluded(otp.FieldExpiresAt)
+	return u
+}
+
+// UpdateNewValues updates the mutable fields using the new values that were set on create.
+// Using this option is equivalent to using:
+//
+//	client.OTP.Create().
+//		OnConflict(
+//			sql.ResolveWithNewValues(),
+//		).
+//		Exec(ctx)
+func (u *OTPUpsertOne) UpdateNewValues() *OTPUpsertOne {
+	u.create.conflict = append(u.create.conflict, sql.ResolveWithNewValues())
+	u.create.conflict = append(u.create.conflict, sql.ResolveWith(func(s *sql.UpdateSet) {
+		if _, exists := u.create.mutation.CreatedAt(); exists {
+			s.SetIgnore(otp.FieldCreatedAt)
+		}
+	}))
+	return u
+}
+
+// Ignore sets each column to itself in case of conflict.
+// Using this option is equivalent to using:
+//
+//	client.OTP.Create().
+//	    OnConflict(sql.ResolveWithIgnore()).
+//	    Exec(ctx)
+func (u *OTPUpsertOne) Ignore() *OTPUpsertOne {
+	u.create.conflict = append(u.create.conflict, sql.ResolveWithIgnore())
+	return u
+}
+
+// DoNothing configures the conflict_action to `DO NOTHING`.
+// Supported only by SQLite and PostgreSQL.
+func (u *OTPUpsertOne) DoNothing() *OTPUpsertOne {
+	u.create.conflict = append(u.create.conflict, sql.DoNothing())
+	return u
+}
+
+// Update allows overriding fields `UPDATE` values. See the OTPCreate.OnConflict
+// documentation for more info.
+func (u *OTPUpsertOne) Update(set func(*OTPUpsert)) *OTPUpsertOne {
+	u.create.conflict = append(u.create.conflict, sql.ResolveWith(func(update *sql.UpdateSet) {
+		set(&OTPUpsert{UpdateSet: update})
+	}))
+	return u
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (u *OTPUpsertOne) SetUpdatedAt(v time.Time) *OTPUpsertOne {
+	return u.Update(func(s *OTPUpsert) {
+		s.SetUpdatedAt(v)
+	})
+}
+
+// UpdateUpdatedAt sets the "updated_at" field to the value that was provided on create.
+func (u *OTPUpsertOne) UpdateUpdatedAt() *OTPUpsertOne {
+	return u.Update(func(s *OTPUpsert) {
+		s.UpdateUpdatedAt()
+	})
+}
+
+// SetEmail sets the "email" field.
+func (u *OTPUpsertOne) SetEmail(v string) *OTPUpsertOne {
+	return u.Update(func(s *OTPUpsert) {
+		s.SetEmail(v)
+	})
+}
+
+// UpdateEmail sets the "email" field to the value that was provided on create.
+func (u *OTPUpsertOne) UpdateEmail() *OTPUpsertOne {
+	return u.Update(func(s *OTPUpsert) {
+		s.UpdateEmail()
+	})
+}
+
+// SetCode sets the "code" field.
+func (u *OTPUpsertOne) SetCode(v string) *OTPUpsertOne {
+	return u.Update(func(s *OTPUpsert) {
+		s.SetCode(v)
+	})
+}
+
+// UpdateCode sets the "code" field to the value that was provided on create.
+func (u *OTPUpsertOne) UpdateCode() *OTPUpsertOne {
+	return u.Update(func(s *OTPUpsert) {
+		s.UpdateCode()
+	})
+}
+
+// SetMode sets the "mode" field.
+func (u *OTPUpsertOne) SetMode(v otp.Mode) *OTPUpsertOne {
+	return u.Update(func(s *OTPUpsert) {
+		s.SetMode(v)
+	})
+}
+
+// UpdateMode sets the "mode" field to the value that was provided on create.
+func (u *OTPUpsertOne) UpdateMode() *OTPUpsertOne {
+	return u.Update(func(s *OTPUpsert) {
+		s.UpdateMode()
+	})
+}
+
+// SetExpiresAt sets the "expires_at" field.
+func (u *OTPUpsertOne) SetExpiresAt(v time.Time) *OTPUpsertOne {
+	return u.Update(func(s *OTPUpsert) {
+		s.SetExpiresAt(v)
+	})
+}
+
+// UpdateExpiresAt sets the "expires_at" field to the value that was provided on create.
+func (u *OTPUpsertOne) UpdateExpiresAt() *OTPUpsertOne {
+	return u.Update(func(s *OTPUpsert) {
+		s.UpdateExpiresAt()
+	})
+}
+
+// Exec executes the query.
+func (u *OTPUpsertOne) Exec(ctx context.Context) error {
+	if len(u.create.conflict) == 0 {
+		return errors.New("ent: missing options for OTPCreate.OnConflict")
+	}
+	return u.create.Exec(ctx)
+}
+
+// ExecX is like Exec, but panics if an error occurs.
+func (u *OTPUpsertOne) ExecX(ctx context.Context) {
+	if err := u.create.Exec(ctx); err != nil {
+		panic(err)
+	}
+}
+
+// Exec executes the UPSERT query and returns the inserted/updated ID.
+func (u *OTPUpsertOne) ID(ctx context.Context) (id int, err error) {
+	node, err := u.create.Save(ctx)
+	if err != nil {
+		return id, err
+	}
+	return node.ID, nil
+}
+
+// IDX is like ID, but panics if an error occurs.
+func (u *OTPUpsertOne) IDX(ctx context.Context) int {
+	id, err := u.ID(ctx)
+	if err != nil {
+		panic(err)
+	}
+	return id
+}
+
 // OTPCreateBulk is the builder for creating many OTP entities in bulk.
 type OTPCreateBulk struct {
 	config
 	err      error
 	builders []*OTPCreate
+	conflict []sql.ConflictOption
 }
 
 // Save creates the OTP entities in the database.
@@ -251,6 +512,7 @@ func (_c *OTPCreateBulk) Save(ctx context.Context) ([]*OTP, error) {
 					_, err = mutators[i+1].Mutate(root, _c.builders[i+1].mutation)
 				} else {
 					spec := &sqlgraph.BatchCreateSpec{Nodes: specs}
+					spec.OnConflict = _c.conflict
 					// Invoke the actual operation on the latest mutation in the chain.
 					if err = sqlgraph.BatchCreate(ctx, _c.driver, spec); err != nil {
 						if sqlgraph.IsConstraintError(err) {
@@ -301,6 +563,187 @@ func (_c *OTPCreateBulk) Exec(ctx context.Context) error {
 // ExecX is like Exec, but panics if an error occurs.
 func (_c *OTPCreateBulk) ExecX(ctx context.Context) {
 	if err := _c.Exec(ctx); err != nil {
+		panic(err)
+	}
+}
+
+// OnConflict allows configuring the `ON CONFLICT` / `ON DUPLICATE KEY` clause
+// of the `INSERT` statement. For example:
+//
+//	client.OTP.CreateBulk(builders...).
+//		OnConflict(
+//			// Update the row with the new values
+//			// the was proposed for insertion.
+//			sql.ResolveWithNewValues(),
+//		).
+//		// Override some of the fields with custom
+//		// update values.
+//		Update(func(u *ent.OTPUpsert) {
+//			SetCreatedAt(v+v).
+//		}).
+//		Exec(ctx)
+func (_c *OTPCreateBulk) OnConflict(opts ...sql.ConflictOption) *OTPUpsertBulk {
+	_c.conflict = opts
+	return &OTPUpsertBulk{
+		create: _c,
+	}
+}
+
+// OnConflictColumns calls `OnConflict` and configures the columns
+// as conflict target. Using this option is equivalent to using:
+//
+//	client.OTP.Create().
+//		OnConflict(sql.ConflictColumns(columns...)).
+//		Exec(ctx)
+func (_c *OTPCreateBulk) OnConflictColumns(columns ...string) *OTPUpsertBulk {
+	_c.conflict = append(_c.conflict, sql.ConflictColumns(columns...))
+	return &OTPUpsertBulk{
+		create: _c,
+	}
+}
+
+// OTPUpsertBulk is the builder for "upsert"-ing
+// a bulk of OTP nodes.
+type OTPUpsertBulk struct {
+	create *OTPCreateBulk
+}
+
+// UpdateNewValues updates the mutable fields using the new values that
+// were set on create. Using this option is equivalent to using:
+//
+//	client.OTP.Create().
+//		OnConflict(
+//			sql.ResolveWithNewValues(),
+//		).
+//		Exec(ctx)
+func (u *OTPUpsertBulk) UpdateNewValues() *OTPUpsertBulk {
+	u.create.conflict = append(u.create.conflict, sql.ResolveWithNewValues())
+	u.create.conflict = append(u.create.conflict, sql.ResolveWith(func(s *sql.UpdateSet) {
+		for _, b := range u.create.builders {
+			if _, exists := b.mutation.CreatedAt(); exists {
+				s.SetIgnore(otp.FieldCreatedAt)
+			}
+		}
+	}))
+	return u
+}
+
+// Ignore sets each column to itself in case of conflict.
+// Using this option is equivalent to using:
+//
+//	client.OTP.Create().
+//		OnConflict(sql.ResolveWithIgnore()).
+//		Exec(ctx)
+func (u *OTPUpsertBulk) Ignore() *OTPUpsertBulk {
+	u.create.conflict = append(u.create.conflict, sql.ResolveWithIgnore())
+	return u
+}
+
+// DoNothing configures the conflict_action to `DO NOTHING`.
+// Supported only by SQLite and PostgreSQL.
+func (u *OTPUpsertBulk) DoNothing() *OTPUpsertBulk {
+	u.create.conflict = append(u.create.conflict, sql.DoNothing())
+	return u
+}
+
+// Update allows overriding fields `UPDATE` values. See the OTPCreateBulk.OnConflict
+// documentation for more info.
+func (u *OTPUpsertBulk) Update(set func(*OTPUpsert)) *OTPUpsertBulk {
+	u.create.conflict = append(u.create.conflict, sql.ResolveWith(func(update *sql.UpdateSet) {
+		set(&OTPUpsert{UpdateSet: update})
+	}))
+	return u
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (u *OTPUpsertBulk) SetUpdatedAt(v time.Time) *OTPUpsertBulk {
+	return u.Update(func(s *OTPUpsert) {
+		s.SetUpdatedAt(v)
+	})
+}
+
+// UpdateUpdatedAt sets the "updated_at" field to the value that was provided on create.
+func (u *OTPUpsertBulk) UpdateUpdatedAt() *OTPUpsertBulk {
+	return u.Update(func(s *OTPUpsert) {
+		s.UpdateUpdatedAt()
+	})
+}
+
+// SetEmail sets the "email" field.
+func (u *OTPUpsertBulk) SetEmail(v string) *OTPUpsertBulk {
+	return u.Update(func(s *OTPUpsert) {
+		s.SetEmail(v)
+	})
+}
+
+// UpdateEmail sets the "email" field to the value that was provided on create.
+func (u *OTPUpsertBulk) UpdateEmail() *OTPUpsertBulk {
+	return u.Update(func(s *OTPUpsert) {
+		s.UpdateEmail()
+	})
+}
+
+// SetCode sets the "code" field.
+func (u *OTPUpsertBulk) SetCode(v string) *OTPUpsertBulk {
+	return u.Update(func(s *OTPUpsert) {
+		s.SetCode(v)
+	})
+}
+
+// UpdateCode sets the "code" field to the value that was provided on create.
+func (u *OTPUpsertBulk) UpdateCode() *OTPUpsertBulk {
+	return u.Update(func(s *OTPUpsert) {
+		s.UpdateCode()
+	})
+}
+
+// SetMode sets the "mode" field.
+func (u *OTPUpsertBulk) SetMode(v otp.Mode) *OTPUpsertBulk {
+	return u.Update(func(s *OTPUpsert) {
+		s.SetMode(v)
+	})
+}
+
+// UpdateMode sets the "mode" field to the value that was provided on create.
+func (u *OTPUpsertBulk) UpdateMode() *OTPUpsertBulk {
+	return u.Update(func(s *OTPUpsert) {
+		s.UpdateMode()
+	})
+}
+
+// SetExpiresAt sets the "expires_at" field.
+func (u *OTPUpsertBulk) SetExpiresAt(v time.Time) *OTPUpsertBulk {
+	return u.Update(func(s *OTPUpsert) {
+		s.SetExpiresAt(v)
+	})
+}
+
+// UpdateExpiresAt sets the "expires_at" field to the value that was provided on create.
+func (u *OTPUpsertBulk) UpdateExpiresAt() *OTPUpsertBulk {
+	return u.Update(func(s *OTPUpsert) {
+		s.UpdateExpiresAt()
+	})
+}
+
+// Exec executes the query.
+func (u *OTPUpsertBulk) Exec(ctx context.Context) error {
+	if u.create.err != nil {
+		return u.create.err
+	}
+	for i, b := range u.create.builders {
+		if len(b.conflict) != 0 {
+			return fmt.Errorf("ent: OnConflict was set for builder %d. Set it on the OTPCreateBulk instead", i)
+		}
+	}
+	if len(u.create.conflict) == 0 {
+		return errors.New("ent: missing options for OTPCreateBulk.OnConflict")
+	}
+	return u.create.Exec(ctx)
+}
+
+// ExecX is like Exec, but panics if an error occurs.
+func (u *OTPUpsertBulk) ExecX(ctx context.Context) {
+	if err := u.create.Exec(ctx); err != nil {
 		panic(err)
 	}
 }

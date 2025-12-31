@@ -21,8 +21,9 @@ import (
 // GroupChatUpdate is the builder for updating GroupChat entities.
 type GroupChatUpdate struct {
 	config
-	hooks    []Hook
-	mutation *GroupChatMutation
+	hooks     []Hook
+	mutation  *GroupChatMutation
+	modifiers []func(*sql.UpdateBuilder)
 }
 
 // Where appends a list predicates to the GroupChatUpdate builder.
@@ -236,6 +237,12 @@ func (_u *GroupChatUpdate) check() error {
 	return nil
 }
 
+// Modify adds a statement modifier for attaching custom logic to the UPDATE statement.
+func (_u *GroupChatUpdate) Modify(modifiers ...func(u *sql.UpdateBuilder)) *GroupChatUpdate {
+	_u.modifiers = append(_u.modifiers, modifiers...)
+	return _u
+}
+
 func (_u *GroupChatUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	if err := _u.check(); err != nil {
 		return _node, err
@@ -389,6 +396,7 @@ func (_u *GroupChatUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
+	_spec.AddModifiers(_u.modifiers...)
 	if _node, err = sqlgraph.UpdateNodes(ctx, _u.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{groupchat.Label}
@@ -404,9 +412,10 @@ func (_u *GroupChatUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 // GroupChatUpdateOne is the builder for updating a single GroupChat entity.
 type GroupChatUpdateOne struct {
 	config
-	fields   []string
-	hooks    []Hook
-	mutation *GroupChatMutation
+	fields    []string
+	hooks     []Hook
+	mutation  *GroupChatMutation
+	modifiers []func(*sql.UpdateBuilder)
 }
 
 // SetChatID sets the "chat_id" field.
@@ -627,6 +636,12 @@ func (_u *GroupChatUpdateOne) check() error {
 	return nil
 }
 
+// Modify adds a statement modifier for attaching custom logic to the UPDATE statement.
+func (_u *GroupChatUpdateOne) Modify(modifiers ...func(u *sql.UpdateBuilder)) *GroupChatUpdateOne {
+	_u.modifiers = append(_u.modifiers, modifiers...)
+	return _u
+}
+
 func (_u *GroupChatUpdateOne) sqlSave(ctx context.Context) (_node *GroupChat, err error) {
 	if err := _u.check(); err != nil {
 		return _node, err
@@ -797,6 +812,7 @@ func (_u *GroupChatUpdateOne) sqlSave(ctx context.Context) (_node *GroupChat, er
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
+	_spec.AddModifiers(_u.modifiers...)
 	_node = &GroupChat{config: _u.config}
 	_spec.Assign = _node.assignValues
 	_spec.ScanValues = _node.scanValues

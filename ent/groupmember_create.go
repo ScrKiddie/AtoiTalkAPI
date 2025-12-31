@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"time"
 
+	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 )
@@ -20,6 +21,7 @@ type GroupMemberCreate struct {
 	config
 	mutation *GroupMemberMutation
 	hooks    []Hook
+	conflict []sql.ConflictOption
 }
 
 // SetGroupChatID sets the "group_chat_id" field.
@@ -203,6 +205,7 @@ func (_c *GroupMemberCreate) createSpec() (*GroupMember, *sqlgraph.CreateSpec) {
 		_node = &GroupMember{config: _c.config}
 		_spec = sqlgraph.NewCreateSpec(groupmember.Table, sqlgraph.NewFieldSpec(groupmember.FieldID, field.TypeInt))
 	)
+	_spec.OnConflict = _c.conflict
 	if value, ok := _c.mutation.Role(); ok {
 		_spec.SetField(groupmember.FieldRole, field.TypeEnum, value)
 		_node.Role = value
@@ -256,11 +259,295 @@ func (_c *GroupMemberCreate) createSpec() (*GroupMember, *sqlgraph.CreateSpec) {
 	return _node, _spec
 }
 
+// OnConflict allows configuring the `ON CONFLICT` / `ON DUPLICATE KEY` clause
+// of the `INSERT` statement. For example:
+//
+//	client.GroupMember.Create().
+//		SetGroupChatID(v).
+//		OnConflict(
+//			// Update the row with the new values
+//			// the was proposed for insertion.
+//			sql.ResolveWithNewValues(),
+//		).
+//		// Override some of the fields with custom
+//		// update values.
+//		Update(func(u *ent.GroupMemberUpsert) {
+//			SetGroupChatID(v+v).
+//		}).
+//		Exec(ctx)
+func (_c *GroupMemberCreate) OnConflict(opts ...sql.ConflictOption) *GroupMemberUpsertOne {
+	_c.conflict = opts
+	return &GroupMemberUpsertOne{
+		create: _c,
+	}
+}
+
+// OnConflictColumns calls `OnConflict` and configures the columns
+// as conflict target. Using this option is equivalent to using:
+//
+//	client.GroupMember.Create().
+//		OnConflict(sql.ConflictColumns(columns...)).
+//		Exec(ctx)
+func (_c *GroupMemberCreate) OnConflictColumns(columns ...string) *GroupMemberUpsertOne {
+	_c.conflict = append(_c.conflict, sql.ConflictColumns(columns...))
+	return &GroupMemberUpsertOne{
+		create: _c,
+	}
+}
+
+type (
+	// GroupMemberUpsertOne is the builder for "upsert"-ing
+	//  one GroupMember node.
+	GroupMemberUpsertOne struct {
+		create *GroupMemberCreate
+	}
+
+	// GroupMemberUpsert is the "OnConflict" setter.
+	GroupMemberUpsert struct {
+		*sql.UpdateSet
+	}
+)
+
+// SetGroupChatID sets the "group_chat_id" field.
+func (u *GroupMemberUpsert) SetGroupChatID(v int) *GroupMemberUpsert {
+	u.Set(groupmember.FieldGroupChatID, v)
+	return u
+}
+
+// UpdateGroupChatID sets the "group_chat_id" field to the value that was provided on create.
+func (u *GroupMemberUpsert) UpdateGroupChatID() *GroupMemberUpsert {
+	u.SetExcluded(groupmember.FieldGroupChatID)
+	return u
+}
+
+// SetUserID sets the "user_id" field.
+func (u *GroupMemberUpsert) SetUserID(v int) *GroupMemberUpsert {
+	u.Set(groupmember.FieldUserID, v)
+	return u
+}
+
+// UpdateUserID sets the "user_id" field to the value that was provided on create.
+func (u *GroupMemberUpsert) UpdateUserID() *GroupMemberUpsert {
+	u.SetExcluded(groupmember.FieldUserID)
+	return u
+}
+
+// SetRole sets the "role" field.
+func (u *GroupMemberUpsert) SetRole(v groupmember.Role) *GroupMemberUpsert {
+	u.Set(groupmember.FieldRole, v)
+	return u
+}
+
+// UpdateRole sets the "role" field to the value that was provided on create.
+func (u *GroupMemberUpsert) UpdateRole() *GroupMemberUpsert {
+	u.SetExcluded(groupmember.FieldRole)
+	return u
+}
+
+// SetLastReadAt sets the "last_read_at" field.
+func (u *GroupMemberUpsert) SetLastReadAt(v time.Time) *GroupMemberUpsert {
+	u.Set(groupmember.FieldLastReadAt, v)
+	return u
+}
+
+// UpdateLastReadAt sets the "last_read_at" field to the value that was provided on create.
+func (u *GroupMemberUpsert) UpdateLastReadAt() *GroupMemberUpsert {
+	u.SetExcluded(groupmember.FieldLastReadAt)
+	return u
+}
+
+// ClearLastReadAt clears the value of the "last_read_at" field.
+func (u *GroupMemberUpsert) ClearLastReadAt() *GroupMemberUpsert {
+	u.SetNull(groupmember.FieldLastReadAt)
+	return u
+}
+
+// SetUnreadCount sets the "unread_count" field.
+func (u *GroupMemberUpsert) SetUnreadCount(v int) *GroupMemberUpsert {
+	u.Set(groupmember.FieldUnreadCount, v)
+	return u
+}
+
+// UpdateUnreadCount sets the "unread_count" field to the value that was provided on create.
+func (u *GroupMemberUpsert) UpdateUnreadCount() *GroupMemberUpsert {
+	u.SetExcluded(groupmember.FieldUnreadCount)
+	return u
+}
+
+// AddUnreadCount adds v to the "unread_count" field.
+func (u *GroupMemberUpsert) AddUnreadCount(v int) *GroupMemberUpsert {
+	u.Add(groupmember.FieldUnreadCount, v)
+	return u
+}
+
+// UpdateNewValues updates the mutable fields using the new values that were set on create.
+// Using this option is equivalent to using:
+//
+//	client.GroupMember.Create().
+//		OnConflict(
+//			sql.ResolveWithNewValues(),
+//		).
+//		Exec(ctx)
+func (u *GroupMemberUpsertOne) UpdateNewValues() *GroupMemberUpsertOne {
+	u.create.conflict = append(u.create.conflict, sql.ResolveWithNewValues())
+	u.create.conflict = append(u.create.conflict, sql.ResolveWith(func(s *sql.UpdateSet) {
+		if _, exists := u.create.mutation.JoinedAt(); exists {
+			s.SetIgnore(groupmember.FieldJoinedAt)
+		}
+	}))
+	return u
+}
+
+// Ignore sets each column to itself in case of conflict.
+// Using this option is equivalent to using:
+//
+//	client.GroupMember.Create().
+//	    OnConflict(sql.ResolveWithIgnore()).
+//	    Exec(ctx)
+func (u *GroupMemberUpsertOne) Ignore() *GroupMemberUpsertOne {
+	u.create.conflict = append(u.create.conflict, sql.ResolveWithIgnore())
+	return u
+}
+
+// DoNothing configures the conflict_action to `DO NOTHING`.
+// Supported only by SQLite and PostgreSQL.
+func (u *GroupMemberUpsertOne) DoNothing() *GroupMemberUpsertOne {
+	u.create.conflict = append(u.create.conflict, sql.DoNothing())
+	return u
+}
+
+// Update allows overriding fields `UPDATE` values. See the GroupMemberCreate.OnConflict
+// documentation for more info.
+func (u *GroupMemberUpsertOne) Update(set func(*GroupMemberUpsert)) *GroupMemberUpsertOne {
+	u.create.conflict = append(u.create.conflict, sql.ResolveWith(func(update *sql.UpdateSet) {
+		set(&GroupMemberUpsert{UpdateSet: update})
+	}))
+	return u
+}
+
+// SetGroupChatID sets the "group_chat_id" field.
+func (u *GroupMemberUpsertOne) SetGroupChatID(v int) *GroupMemberUpsertOne {
+	return u.Update(func(s *GroupMemberUpsert) {
+		s.SetGroupChatID(v)
+	})
+}
+
+// UpdateGroupChatID sets the "group_chat_id" field to the value that was provided on create.
+func (u *GroupMemberUpsertOne) UpdateGroupChatID() *GroupMemberUpsertOne {
+	return u.Update(func(s *GroupMemberUpsert) {
+		s.UpdateGroupChatID()
+	})
+}
+
+// SetUserID sets the "user_id" field.
+func (u *GroupMemberUpsertOne) SetUserID(v int) *GroupMemberUpsertOne {
+	return u.Update(func(s *GroupMemberUpsert) {
+		s.SetUserID(v)
+	})
+}
+
+// UpdateUserID sets the "user_id" field to the value that was provided on create.
+func (u *GroupMemberUpsertOne) UpdateUserID() *GroupMemberUpsertOne {
+	return u.Update(func(s *GroupMemberUpsert) {
+		s.UpdateUserID()
+	})
+}
+
+// SetRole sets the "role" field.
+func (u *GroupMemberUpsertOne) SetRole(v groupmember.Role) *GroupMemberUpsertOne {
+	return u.Update(func(s *GroupMemberUpsert) {
+		s.SetRole(v)
+	})
+}
+
+// UpdateRole sets the "role" field to the value that was provided on create.
+func (u *GroupMemberUpsertOne) UpdateRole() *GroupMemberUpsertOne {
+	return u.Update(func(s *GroupMemberUpsert) {
+		s.UpdateRole()
+	})
+}
+
+// SetLastReadAt sets the "last_read_at" field.
+func (u *GroupMemberUpsertOne) SetLastReadAt(v time.Time) *GroupMemberUpsertOne {
+	return u.Update(func(s *GroupMemberUpsert) {
+		s.SetLastReadAt(v)
+	})
+}
+
+// UpdateLastReadAt sets the "last_read_at" field to the value that was provided on create.
+func (u *GroupMemberUpsertOne) UpdateLastReadAt() *GroupMemberUpsertOne {
+	return u.Update(func(s *GroupMemberUpsert) {
+		s.UpdateLastReadAt()
+	})
+}
+
+// ClearLastReadAt clears the value of the "last_read_at" field.
+func (u *GroupMemberUpsertOne) ClearLastReadAt() *GroupMemberUpsertOne {
+	return u.Update(func(s *GroupMemberUpsert) {
+		s.ClearLastReadAt()
+	})
+}
+
+// SetUnreadCount sets the "unread_count" field.
+func (u *GroupMemberUpsertOne) SetUnreadCount(v int) *GroupMemberUpsertOne {
+	return u.Update(func(s *GroupMemberUpsert) {
+		s.SetUnreadCount(v)
+	})
+}
+
+// AddUnreadCount adds v to the "unread_count" field.
+func (u *GroupMemberUpsertOne) AddUnreadCount(v int) *GroupMemberUpsertOne {
+	return u.Update(func(s *GroupMemberUpsert) {
+		s.AddUnreadCount(v)
+	})
+}
+
+// UpdateUnreadCount sets the "unread_count" field to the value that was provided on create.
+func (u *GroupMemberUpsertOne) UpdateUnreadCount() *GroupMemberUpsertOne {
+	return u.Update(func(s *GroupMemberUpsert) {
+		s.UpdateUnreadCount()
+	})
+}
+
+// Exec executes the query.
+func (u *GroupMemberUpsertOne) Exec(ctx context.Context) error {
+	if len(u.create.conflict) == 0 {
+		return errors.New("ent: missing options for GroupMemberCreate.OnConflict")
+	}
+	return u.create.Exec(ctx)
+}
+
+// ExecX is like Exec, but panics if an error occurs.
+func (u *GroupMemberUpsertOne) ExecX(ctx context.Context) {
+	if err := u.create.Exec(ctx); err != nil {
+		panic(err)
+	}
+}
+
+// Exec executes the UPSERT query and returns the inserted/updated ID.
+func (u *GroupMemberUpsertOne) ID(ctx context.Context) (id int, err error) {
+	node, err := u.create.Save(ctx)
+	if err != nil {
+		return id, err
+	}
+	return node.ID, nil
+}
+
+// IDX is like ID, but panics if an error occurs.
+func (u *GroupMemberUpsertOne) IDX(ctx context.Context) int {
+	id, err := u.ID(ctx)
+	if err != nil {
+		panic(err)
+	}
+	return id
+}
+
 // GroupMemberCreateBulk is the builder for creating many GroupMember entities in bulk.
 type GroupMemberCreateBulk struct {
 	config
 	err      error
 	builders []*GroupMemberCreate
+	conflict []sql.ConflictOption
 }
 
 // Save creates the GroupMember entities in the database.
@@ -290,6 +577,7 @@ func (_c *GroupMemberCreateBulk) Save(ctx context.Context) ([]*GroupMember, erro
 					_, err = mutators[i+1].Mutate(root, _c.builders[i+1].mutation)
 				} else {
 					spec := &sqlgraph.BatchCreateSpec{Nodes: specs}
+					spec.OnConflict = _c.conflict
 					// Invoke the actual operation on the latest mutation in the chain.
 					if err = sqlgraph.BatchCreate(ctx, _c.driver, spec); err != nil {
 						if sqlgraph.IsConstraintError(err) {
@@ -340,6 +628,201 @@ func (_c *GroupMemberCreateBulk) Exec(ctx context.Context) error {
 // ExecX is like Exec, but panics if an error occurs.
 func (_c *GroupMemberCreateBulk) ExecX(ctx context.Context) {
 	if err := _c.Exec(ctx); err != nil {
+		panic(err)
+	}
+}
+
+// OnConflict allows configuring the `ON CONFLICT` / `ON DUPLICATE KEY` clause
+// of the `INSERT` statement. For example:
+//
+//	client.GroupMember.CreateBulk(builders...).
+//		OnConflict(
+//			// Update the row with the new values
+//			// the was proposed for insertion.
+//			sql.ResolveWithNewValues(),
+//		).
+//		// Override some of the fields with custom
+//		// update values.
+//		Update(func(u *ent.GroupMemberUpsert) {
+//			SetGroupChatID(v+v).
+//		}).
+//		Exec(ctx)
+func (_c *GroupMemberCreateBulk) OnConflict(opts ...sql.ConflictOption) *GroupMemberUpsertBulk {
+	_c.conflict = opts
+	return &GroupMemberUpsertBulk{
+		create: _c,
+	}
+}
+
+// OnConflictColumns calls `OnConflict` and configures the columns
+// as conflict target. Using this option is equivalent to using:
+//
+//	client.GroupMember.Create().
+//		OnConflict(sql.ConflictColumns(columns...)).
+//		Exec(ctx)
+func (_c *GroupMemberCreateBulk) OnConflictColumns(columns ...string) *GroupMemberUpsertBulk {
+	_c.conflict = append(_c.conflict, sql.ConflictColumns(columns...))
+	return &GroupMemberUpsertBulk{
+		create: _c,
+	}
+}
+
+// GroupMemberUpsertBulk is the builder for "upsert"-ing
+// a bulk of GroupMember nodes.
+type GroupMemberUpsertBulk struct {
+	create *GroupMemberCreateBulk
+}
+
+// UpdateNewValues updates the mutable fields using the new values that
+// were set on create. Using this option is equivalent to using:
+//
+//	client.GroupMember.Create().
+//		OnConflict(
+//			sql.ResolveWithNewValues(),
+//		).
+//		Exec(ctx)
+func (u *GroupMemberUpsertBulk) UpdateNewValues() *GroupMemberUpsertBulk {
+	u.create.conflict = append(u.create.conflict, sql.ResolveWithNewValues())
+	u.create.conflict = append(u.create.conflict, sql.ResolveWith(func(s *sql.UpdateSet) {
+		for _, b := range u.create.builders {
+			if _, exists := b.mutation.JoinedAt(); exists {
+				s.SetIgnore(groupmember.FieldJoinedAt)
+			}
+		}
+	}))
+	return u
+}
+
+// Ignore sets each column to itself in case of conflict.
+// Using this option is equivalent to using:
+//
+//	client.GroupMember.Create().
+//		OnConflict(sql.ResolveWithIgnore()).
+//		Exec(ctx)
+func (u *GroupMemberUpsertBulk) Ignore() *GroupMemberUpsertBulk {
+	u.create.conflict = append(u.create.conflict, sql.ResolveWithIgnore())
+	return u
+}
+
+// DoNothing configures the conflict_action to `DO NOTHING`.
+// Supported only by SQLite and PostgreSQL.
+func (u *GroupMemberUpsertBulk) DoNothing() *GroupMemberUpsertBulk {
+	u.create.conflict = append(u.create.conflict, sql.DoNothing())
+	return u
+}
+
+// Update allows overriding fields `UPDATE` values. See the GroupMemberCreateBulk.OnConflict
+// documentation for more info.
+func (u *GroupMemberUpsertBulk) Update(set func(*GroupMemberUpsert)) *GroupMemberUpsertBulk {
+	u.create.conflict = append(u.create.conflict, sql.ResolveWith(func(update *sql.UpdateSet) {
+		set(&GroupMemberUpsert{UpdateSet: update})
+	}))
+	return u
+}
+
+// SetGroupChatID sets the "group_chat_id" field.
+func (u *GroupMemberUpsertBulk) SetGroupChatID(v int) *GroupMemberUpsertBulk {
+	return u.Update(func(s *GroupMemberUpsert) {
+		s.SetGroupChatID(v)
+	})
+}
+
+// UpdateGroupChatID sets the "group_chat_id" field to the value that was provided on create.
+func (u *GroupMemberUpsertBulk) UpdateGroupChatID() *GroupMemberUpsertBulk {
+	return u.Update(func(s *GroupMemberUpsert) {
+		s.UpdateGroupChatID()
+	})
+}
+
+// SetUserID sets the "user_id" field.
+func (u *GroupMemberUpsertBulk) SetUserID(v int) *GroupMemberUpsertBulk {
+	return u.Update(func(s *GroupMemberUpsert) {
+		s.SetUserID(v)
+	})
+}
+
+// UpdateUserID sets the "user_id" field to the value that was provided on create.
+func (u *GroupMemberUpsertBulk) UpdateUserID() *GroupMemberUpsertBulk {
+	return u.Update(func(s *GroupMemberUpsert) {
+		s.UpdateUserID()
+	})
+}
+
+// SetRole sets the "role" field.
+func (u *GroupMemberUpsertBulk) SetRole(v groupmember.Role) *GroupMemberUpsertBulk {
+	return u.Update(func(s *GroupMemberUpsert) {
+		s.SetRole(v)
+	})
+}
+
+// UpdateRole sets the "role" field to the value that was provided on create.
+func (u *GroupMemberUpsertBulk) UpdateRole() *GroupMemberUpsertBulk {
+	return u.Update(func(s *GroupMemberUpsert) {
+		s.UpdateRole()
+	})
+}
+
+// SetLastReadAt sets the "last_read_at" field.
+func (u *GroupMemberUpsertBulk) SetLastReadAt(v time.Time) *GroupMemberUpsertBulk {
+	return u.Update(func(s *GroupMemberUpsert) {
+		s.SetLastReadAt(v)
+	})
+}
+
+// UpdateLastReadAt sets the "last_read_at" field to the value that was provided on create.
+func (u *GroupMemberUpsertBulk) UpdateLastReadAt() *GroupMemberUpsertBulk {
+	return u.Update(func(s *GroupMemberUpsert) {
+		s.UpdateLastReadAt()
+	})
+}
+
+// ClearLastReadAt clears the value of the "last_read_at" field.
+func (u *GroupMemberUpsertBulk) ClearLastReadAt() *GroupMemberUpsertBulk {
+	return u.Update(func(s *GroupMemberUpsert) {
+		s.ClearLastReadAt()
+	})
+}
+
+// SetUnreadCount sets the "unread_count" field.
+func (u *GroupMemberUpsertBulk) SetUnreadCount(v int) *GroupMemberUpsertBulk {
+	return u.Update(func(s *GroupMemberUpsert) {
+		s.SetUnreadCount(v)
+	})
+}
+
+// AddUnreadCount adds v to the "unread_count" field.
+func (u *GroupMemberUpsertBulk) AddUnreadCount(v int) *GroupMemberUpsertBulk {
+	return u.Update(func(s *GroupMemberUpsert) {
+		s.AddUnreadCount(v)
+	})
+}
+
+// UpdateUnreadCount sets the "unread_count" field to the value that was provided on create.
+func (u *GroupMemberUpsertBulk) UpdateUnreadCount() *GroupMemberUpsertBulk {
+	return u.Update(func(s *GroupMemberUpsert) {
+		s.UpdateUnreadCount()
+	})
+}
+
+// Exec executes the query.
+func (u *GroupMemberUpsertBulk) Exec(ctx context.Context) error {
+	if u.create.err != nil {
+		return u.create.err
+	}
+	for i, b := range u.create.builders {
+		if len(b.conflict) != 0 {
+			return fmt.Errorf("ent: OnConflict was set for builder %d. Set it on the GroupMemberCreateBulk instead", i)
+		}
+	}
+	if len(u.create.conflict) == 0 {
+		return errors.New("ent: missing options for GroupMemberCreateBulk.OnConflict")
+	}
+	return u.create.Exec(ctx)
+}
+
+// ExecX is like Exec, but panics if an error occurs.
+func (u *GroupMemberUpsertBulk) ExecX(ctx context.Context) {
+	if err := u.create.Exec(ctx); err != nil {
 		panic(err)
 	}
 }

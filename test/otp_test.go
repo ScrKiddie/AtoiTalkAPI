@@ -65,6 +65,7 @@ func TestSendOTP(t *testing.T) {
 		hashedPassword, _ := helper.HashPassword("Password123!")
 		testClient.User.Create().
 			SetEmail(email).
+			SetUsername("testupdate").
 			SetFullName("Existing User").
 			SetPasswordHash(hashedPassword).
 			Save(ctx)
@@ -79,7 +80,10 @@ func TestSendOTP(t *testing.T) {
 		req1.Header.Set("Content-Type", "application/json")
 		executeRequest(req1)
 
-		firstCode, _ := testClient.OTP.Query().Where(otp.Email(email)).Only(ctx)
+		firstCode, err := testClient.OTP.Query().Where(otp.Email(email)).Only(ctx)
+		if !assert.NoError(t, err) {
+			return
+		}
 
 		time.Sleep(2 * time.Second)
 
@@ -102,7 +106,10 @@ func TestSendOTP(t *testing.T) {
 			printBody(t, rr)
 		}
 
-		secondCode, _ := testClient.OTP.Query().Where(otp.Email(email)).Only(ctx)
+		secondCode, err := testClient.OTP.Query().Where(otp.Email(email)).Only(ctx)
+		if !assert.NoError(t, err) {
+			return
+		}
 		assert.NotEqual(t, firstCode.Code, secondCode.Code)
 		assert.Equal(t, otp.Mode(constant.OTPModeReset), secondCode.Mode)
 	})
@@ -231,6 +238,7 @@ func TestSendOTP(t *testing.T) {
 		hashedPassword, _ := helper.HashPassword("Password123!")
 		testClient.User.Create().
 			SetEmail(email).
+			SetUsername("existinguser").
 			SetFullName("Existing User").
 			SetPasswordHash(hashedPassword).
 			Save(ctx)
@@ -288,6 +296,7 @@ func TestSendOTP(t *testing.T) {
 		hashedPassword, _ := helper.HashPassword("Password123!")
 		testClient.User.Create().
 			SetEmail("existing@example.com").
+			SetUsername("existinguser").
 			SetFullName("Existing User").
 			SetPasswordHash(hashedPassword).
 			Save(ctx)

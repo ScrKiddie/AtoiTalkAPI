@@ -15,12 +15,22 @@ var (
 		{Name: "created_at", Type: field.TypeTime, Default: "CURRENT_TIMESTAMP"},
 		{Name: "updated_at", Type: field.TypeTime, Default: "CURRENT_TIMESTAMP"},
 		{Name: "type", Type: field.TypeEnum, Enums: []string{"private", "group"}},
+		{Name: "last_message_at", Type: field.TypeTime, Nullable: true},
+		{Name: "last_message_id", Type: field.TypeInt, Nullable: true},
 	}
 	// ChatsTable holds the schema information for the "chats" table.
 	ChatsTable = &schema.Table{
 		Name:       "chats",
 		Columns:    ChatsColumns,
 		PrimaryKey: []*schema.Column{ChatsColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "chats_messages_last_message",
+				Columns:    []*schema.Column{ChatsColumns[5]},
+				RefColumns: []*schema.Column{MessagesColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
+		},
 	}
 	// GroupChatsColumns holds the columns for the "group_chats" table.
 	GroupChatsColumns = []*schema.Column{
@@ -274,6 +284,7 @@ var (
 		{Name: "created_at", Type: field.TypeTime, Default: "CURRENT_TIMESTAMP"},
 		{Name: "updated_at", Type: field.TypeTime, Default: "CURRENT_TIMESTAMP"},
 		{Name: "email", Type: field.TypeString, Unique: true, Size: 255},
+		{Name: "username", Type: field.TypeString, Unique: true, Size: 50},
 		{Name: "password_hash", Type: field.TypeString, Nullable: true, Size: 255},
 		{Name: "full_name", Type: field.TypeString, Size: 100},
 		{Name: "bio", Type: field.TypeString, Nullable: true, Size: 255},
@@ -289,7 +300,7 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "users_media_user_avatar",
-				Columns:    []*schema.Column{UsersColumns[9]},
+				Columns:    []*schema.Column{UsersColumns[10]},
 				RefColumns: []*schema.Column{MediaColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
@@ -382,6 +393,7 @@ var (
 )
 
 func init() {
+	ChatsTable.ForeignKeys[0].RefTable = MessagesTable
 	GroupChatsTable.ForeignKeys[0].RefTable = ChatsTable
 	GroupChatsTable.ForeignKeys[1].RefTable = MediaTable
 	GroupChatsTable.ForeignKeys[2].RefTable = UsersTable

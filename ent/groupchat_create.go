@@ -12,6 +12,7 @@ import (
 	"errors"
 	"fmt"
 
+	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 )
@@ -21,6 +22,7 @@ type GroupChatCreate struct {
 	config
 	mutation *GroupChatMutation
 	hooks    []Hook
+	conflict []sql.ConflictOption
 }
 
 // SetChatID sets the "chat_id" field.
@@ -185,6 +187,7 @@ func (_c *GroupChatCreate) createSpec() (*GroupChat, *sqlgraph.CreateSpec) {
 		_node = &GroupChat{config: _c.config}
 		_spec = sqlgraph.NewCreateSpec(groupchat.Table, sqlgraph.NewFieldSpec(groupchat.FieldID, field.TypeInt))
 	)
+	_spec.OnConflict = _c.conflict
 	if value, ok := _c.mutation.Name(); ok {
 		_spec.SetField(groupchat.FieldName, field.TypeString, value)
 		_node.Name = value
@@ -263,11 +266,290 @@ func (_c *GroupChatCreate) createSpec() (*GroupChat, *sqlgraph.CreateSpec) {
 	return _node, _spec
 }
 
+// OnConflict allows configuring the `ON CONFLICT` / `ON DUPLICATE KEY` clause
+// of the `INSERT` statement. For example:
+//
+//	client.GroupChat.Create().
+//		SetChatID(v).
+//		OnConflict(
+//			// Update the row with the new values
+//			// the was proposed for insertion.
+//			sql.ResolveWithNewValues(),
+//		).
+//		// Override some of the fields with custom
+//		// update values.
+//		Update(func(u *ent.GroupChatUpsert) {
+//			SetChatID(v+v).
+//		}).
+//		Exec(ctx)
+func (_c *GroupChatCreate) OnConflict(opts ...sql.ConflictOption) *GroupChatUpsertOne {
+	_c.conflict = opts
+	return &GroupChatUpsertOne{
+		create: _c,
+	}
+}
+
+// OnConflictColumns calls `OnConflict` and configures the columns
+// as conflict target. Using this option is equivalent to using:
+//
+//	client.GroupChat.Create().
+//		OnConflict(sql.ConflictColumns(columns...)).
+//		Exec(ctx)
+func (_c *GroupChatCreate) OnConflictColumns(columns ...string) *GroupChatUpsertOne {
+	_c.conflict = append(_c.conflict, sql.ConflictColumns(columns...))
+	return &GroupChatUpsertOne{
+		create: _c,
+	}
+}
+
+type (
+	// GroupChatUpsertOne is the builder for "upsert"-ing
+	//  one GroupChat node.
+	GroupChatUpsertOne struct {
+		create *GroupChatCreate
+	}
+
+	// GroupChatUpsert is the "OnConflict" setter.
+	GroupChatUpsert struct {
+		*sql.UpdateSet
+	}
+)
+
+// SetChatID sets the "chat_id" field.
+func (u *GroupChatUpsert) SetChatID(v int) *GroupChatUpsert {
+	u.Set(groupchat.FieldChatID, v)
+	return u
+}
+
+// UpdateChatID sets the "chat_id" field to the value that was provided on create.
+func (u *GroupChatUpsert) UpdateChatID() *GroupChatUpsert {
+	u.SetExcluded(groupchat.FieldChatID)
+	return u
+}
+
+// SetCreatedBy sets the "created_by" field.
+func (u *GroupChatUpsert) SetCreatedBy(v int) *GroupChatUpsert {
+	u.Set(groupchat.FieldCreatedBy, v)
+	return u
+}
+
+// UpdateCreatedBy sets the "created_by" field to the value that was provided on create.
+func (u *GroupChatUpsert) UpdateCreatedBy() *GroupChatUpsert {
+	u.SetExcluded(groupchat.FieldCreatedBy)
+	return u
+}
+
+// SetName sets the "name" field.
+func (u *GroupChatUpsert) SetName(v string) *GroupChatUpsert {
+	u.Set(groupchat.FieldName, v)
+	return u
+}
+
+// UpdateName sets the "name" field to the value that was provided on create.
+func (u *GroupChatUpsert) UpdateName() *GroupChatUpsert {
+	u.SetExcluded(groupchat.FieldName)
+	return u
+}
+
+// SetDescription sets the "description" field.
+func (u *GroupChatUpsert) SetDescription(v string) *GroupChatUpsert {
+	u.Set(groupchat.FieldDescription, v)
+	return u
+}
+
+// UpdateDescription sets the "description" field to the value that was provided on create.
+func (u *GroupChatUpsert) UpdateDescription() *GroupChatUpsert {
+	u.SetExcluded(groupchat.FieldDescription)
+	return u
+}
+
+// ClearDescription clears the value of the "description" field.
+func (u *GroupChatUpsert) ClearDescription() *GroupChatUpsert {
+	u.SetNull(groupchat.FieldDescription)
+	return u
+}
+
+// SetAvatarID sets the "avatar_id" field.
+func (u *GroupChatUpsert) SetAvatarID(v int) *GroupChatUpsert {
+	u.Set(groupchat.FieldAvatarID, v)
+	return u
+}
+
+// UpdateAvatarID sets the "avatar_id" field to the value that was provided on create.
+func (u *GroupChatUpsert) UpdateAvatarID() *GroupChatUpsert {
+	u.SetExcluded(groupchat.FieldAvatarID)
+	return u
+}
+
+// ClearAvatarID clears the value of the "avatar_id" field.
+func (u *GroupChatUpsert) ClearAvatarID() *GroupChatUpsert {
+	u.SetNull(groupchat.FieldAvatarID)
+	return u
+}
+
+// UpdateNewValues updates the mutable fields using the new values that were set on create.
+// Using this option is equivalent to using:
+//
+//	client.GroupChat.Create().
+//		OnConflict(
+//			sql.ResolveWithNewValues(),
+//		).
+//		Exec(ctx)
+func (u *GroupChatUpsertOne) UpdateNewValues() *GroupChatUpsertOne {
+	u.create.conflict = append(u.create.conflict, sql.ResolveWithNewValues())
+	return u
+}
+
+// Ignore sets each column to itself in case of conflict.
+// Using this option is equivalent to using:
+//
+//	client.GroupChat.Create().
+//	    OnConflict(sql.ResolveWithIgnore()).
+//	    Exec(ctx)
+func (u *GroupChatUpsertOne) Ignore() *GroupChatUpsertOne {
+	u.create.conflict = append(u.create.conflict, sql.ResolveWithIgnore())
+	return u
+}
+
+// DoNothing configures the conflict_action to `DO NOTHING`.
+// Supported only by SQLite and PostgreSQL.
+func (u *GroupChatUpsertOne) DoNothing() *GroupChatUpsertOne {
+	u.create.conflict = append(u.create.conflict, sql.DoNothing())
+	return u
+}
+
+// Update allows overriding fields `UPDATE` values. See the GroupChatCreate.OnConflict
+// documentation for more info.
+func (u *GroupChatUpsertOne) Update(set func(*GroupChatUpsert)) *GroupChatUpsertOne {
+	u.create.conflict = append(u.create.conflict, sql.ResolveWith(func(update *sql.UpdateSet) {
+		set(&GroupChatUpsert{UpdateSet: update})
+	}))
+	return u
+}
+
+// SetChatID sets the "chat_id" field.
+func (u *GroupChatUpsertOne) SetChatID(v int) *GroupChatUpsertOne {
+	return u.Update(func(s *GroupChatUpsert) {
+		s.SetChatID(v)
+	})
+}
+
+// UpdateChatID sets the "chat_id" field to the value that was provided on create.
+func (u *GroupChatUpsertOne) UpdateChatID() *GroupChatUpsertOne {
+	return u.Update(func(s *GroupChatUpsert) {
+		s.UpdateChatID()
+	})
+}
+
+// SetCreatedBy sets the "created_by" field.
+func (u *GroupChatUpsertOne) SetCreatedBy(v int) *GroupChatUpsertOne {
+	return u.Update(func(s *GroupChatUpsert) {
+		s.SetCreatedBy(v)
+	})
+}
+
+// UpdateCreatedBy sets the "created_by" field to the value that was provided on create.
+func (u *GroupChatUpsertOne) UpdateCreatedBy() *GroupChatUpsertOne {
+	return u.Update(func(s *GroupChatUpsert) {
+		s.UpdateCreatedBy()
+	})
+}
+
+// SetName sets the "name" field.
+func (u *GroupChatUpsertOne) SetName(v string) *GroupChatUpsertOne {
+	return u.Update(func(s *GroupChatUpsert) {
+		s.SetName(v)
+	})
+}
+
+// UpdateName sets the "name" field to the value that was provided on create.
+func (u *GroupChatUpsertOne) UpdateName() *GroupChatUpsertOne {
+	return u.Update(func(s *GroupChatUpsert) {
+		s.UpdateName()
+	})
+}
+
+// SetDescription sets the "description" field.
+func (u *GroupChatUpsertOne) SetDescription(v string) *GroupChatUpsertOne {
+	return u.Update(func(s *GroupChatUpsert) {
+		s.SetDescription(v)
+	})
+}
+
+// UpdateDescription sets the "description" field to the value that was provided on create.
+func (u *GroupChatUpsertOne) UpdateDescription() *GroupChatUpsertOne {
+	return u.Update(func(s *GroupChatUpsert) {
+		s.UpdateDescription()
+	})
+}
+
+// ClearDescription clears the value of the "description" field.
+func (u *GroupChatUpsertOne) ClearDescription() *GroupChatUpsertOne {
+	return u.Update(func(s *GroupChatUpsert) {
+		s.ClearDescription()
+	})
+}
+
+// SetAvatarID sets the "avatar_id" field.
+func (u *GroupChatUpsertOne) SetAvatarID(v int) *GroupChatUpsertOne {
+	return u.Update(func(s *GroupChatUpsert) {
+		s.SetAvatarID(v)
+	})
+}
+
+// UpdateAvatarID sets the "avatar_id" field to the value that was provided on create.
+func (u *GroupChatUpsertOne) UpdateAvatarID() *GroupChatUpsertOne {
+	return u.Update(func(s *GroupChatUpsert) {
+		s.UpdateAvatarID()
+	})
+}
+
+// ClearAvatarID clears the value of the "avatar_id" field.
+func (u *GroupChatUpsertOne) ClearAvatarID() *GroupChatUpsertOne {
+	return u.Update(func(s *GroupChatUpsert) {
+		s.ClearAvatarID()
+	})
+}
+
+// Exec executes the query.
+func (u *GroupChatUpsertOne) Exec(ctx context.Context) error {
+	if len(u.create.conflict) == 0 {
+		return errors.New("ent: missing options for GroupChatCreate.OnConflict")
+	}
+	return u.create.Exec(ctx)
+}
+
+// ExecX is like Exec, but panics if an error occurs.
+func (u *GroupChatUpsertOne) ExecX(ctx context.Context) {
+	if err := u.create.Exec(ctx); err != nil {
+		panic(err)
+	}
+}
+
+// Exec executes the UPSERT query and returns the inserted/updated ID.
+func (u *GroupChatUpsertOne) ID(ctx context.Context) (id int, err error) {
+	node, err := u.create.Save(ctx)
+	if err != nil {
+		return id, err
+	}
+	return node.ID, nil
+}
+
+// IDX is like ID, but panics if an error occurs.
+func (u *GroupChatUpsertOne) IDX(ctx context.Context) int {
+	id, err := u.ID(ctx)
+	if err != nil {
+		panic(err)
+	}
+	return id
+}
+
 // GroupChatCreateBulk is the builder for creating many GroupChat entities in bulk.
 type GroupChatCreateBulk struct {
 	config
 	err      error
 	builders []*GroupChatCreate
+	conflict []sql.ConflictOption
 }
 
 // Save creates the GroupChat entities in the database.
@@ -296,6 +578,7 @@ func (_c *GroupChatCreateBulk) Save(ctx context.Context) ([]*GroupChat, error) {
 					_, err = mutators[i+1].Mutate(root, _c.builders[i+1].mutation)
 				} else {
 					spec := &sqlgraph.BatchCreateSpec{Nodes: specs}
+					spec.OnConflict = _c.conflict
 					// Invoke the actual operation on the latest mutation in the chain.
 					if err = sqlgraph.BatchCreate(ctx, _c.driver, spec); err != nil {
 						if sqlgraph.IsConstraintError(err) {
@@ -346,6 +629,194 @@ func (_c *GroupChatCreateBulk) Exec(ctx context.Context) error {
 // ExecX is like Exec, but panics if an error occurs.
 func (_c *GroupChatCreateBulk) ExecX(ctx context.Context) {
 	if err := _c.Exec(ctx); err != nil {
+		panic(err)
+	}
+}
+
+// OnConflict allows configuring the `ON CONFLICT` / `ON DUPLICATE KEY` clause
+// of the `INSERT` statement. For example:
+//
+//	client.GroupChat.CreateBulk(builders...).
+//		OnConflict(
+//			// Update the row with the new values
+//			// the was proposed for insertion.
+//			sql.ResolveWithNewValues(),
+//		).
+//		// Override some of the fields with custom
+//		// update values.
+//		Update(func(u *ent.GroupChatUpsert) {
+//			SetChatID(v+v).
+//		}).
+//		Exec(ctx)
+func (_c *GroupChatCreateBulk) OnConflict(opts ...sql.ConflictOption) *GroupChatUpsertBulk {
+	_c.conflict = opts
+	return &GroupChatUpsertBulk{
+		create: _c,
+	}
+}
+
+// OnConflictColumns calls `OnConflict` and configures the columns
+// as conflict target. Using this option is equivalent to using:
+//
+//	client.GroupChat.Create().
+//		OnConflict(sql.ConflictColumns(columns...)).
+//		Exec(ctx)
+func (_c *GroupChatCreateBulk) OnConflictColumns(columns ...string) *GroupChatUpsertBulk {
+	_c.conflict = append(_c.conflict, sql.ConflictColumns(columns...))
+	return &GroupChatUpsertBulk{
+		create: _c,
+	}
+}
+
+// GroupChatUpsertBulk is the builder for "upsert"-ing
+// a bulk of GroupChat nodes.
+type GroupChatUpsertBulk struct {
+	create *GroupChatCreateBulk
+}
+
+// UpdateNewValues updates the mutable fields using the new values that
+// were set on create. Using this option is equivalent to using:
+//
+//	client.GroupChat.Create().
+//		OnConflict(
+//			sql.ResolveWithNewValues(),
+//		).
+//		Exec(ctx)
+func (u *GroupChatUpsertBulk) UpdateNewValues() *GroupChatUpsertBulk {
+	u.create.conflict = append(u.create.conflict, sql.ResolveWithNewValues())
+	return u
+}
+
+// Ignore sets each column to itself in case of conflict.
+// Using this option is equivalent to using:
+//
+//	client.GroupChat.Create().
+//		OnConflict(sql.ResolveWithIgnore()).
+//		Exec(ctx)
+func (u *GroupChatUpsertBulk) Ignore() *GroupChatUpsertBulk {
+	u.create.conflict = append(u.create.conflict, sql.ResolveWithIgnore())
+	return u
+}
+
+// DoNothing configures the conflict_action to `DO NOTHING`.
+// Supported only by SQLite and PostgreSQL.
+func (u *GroupChatUpsertBulk) DoNothing() *GroupChatUpsertBulk {
+	u.create.conflict = append(u.create.conflict, sql.DoNothing())
+	return u
+}
+
+// Update allows overriding fields `UPDATE` values. See the GroupChatCreateBulk.OnConflict
+// documentation for more info.
+func (u *GroupChatUpsertBulk) Update(set func(*GroupChatUpsert)) *GroupChatUpsertBulk {
+	u.create.conflict = append(u.create.conflict, sql.ResolveWith(func(update *sql.UpdateSet) {
+		set(&GroupChatUpsert{UpdateSet: update})
+	}))
+	return u
+}
+
+// SetChatID sets the "chat_id" field.
+func (u *GroupChatUpsertBulk) SetChatID(v int) *GroupChatUpsertBulk {
+	return u.Update(func(s *GroupChatUpsert) {
+		s.SetChatID(v)
+	})
+}
+
+// UpdateChatID sets the "chat_id" field to the value that was provided on create.
+func (u *GroupChatUpsertBulk) UpdateChatID() *GroupChatUpsertBulk {
+	return u.Update(func(s *GroupChatUpsert) {
+		s.UpdateChatID()
+	})
+}
+
+// SetCreatedBy sets the "created_by" field.
+func (u *GroupChatUpsertBulk) SetCreatedBy(v int) *GroupChatUpsertBulk {
+	return u.Update(func(s *GroupChatUpsert) {
+		s.SetCreatedBy(v)
+	})
+}
+
+// UpdateCreatedBy sets the "created_by" field to the value that was provided on create.
+func (u *GroupChatUpsertBulk) UpdateCreatedBy() *GroupChatUpsertBulk {
+	return u.Update(func(s *GroupChatUpsert) {
+		s.UpdateCreatedBy()
+	})
+}
+
+// SetName sets the "name" field.
+func (u *GroupChatUpsertBulk) SetName(v string) *GroupChatUpsertBulk {
+	return u.Update(func(s *GroupChatUpsert) {
+		s.SetName(v)
+	})
+}
+
+// UpdateName sets the "name" field to the value that was provided on create.
+func (u *GroupChatUpsertBulk) UpdateName() *GroupChatUpsertBulk {
+	return u.Update(func(s *GroupChatUpsert) {
+		s.UpdateName()
+	})
+}
+
+// SetDescription sets the "description" field.
+func (u *GroupChatUpsertBulk) SetDescription(v string) *GroupChatUpsertBulk {
+	return u.Update(func(s *GroupChatUpsert) {
+		s.SetDescription(v)
+	})
+}
+
+// UpdateDescription sets the "description" field to the value that was provided on create.
+func (u *GroupChatUpsertBulk) UpdateDescription() *GroupChatUpsertBulk {
+	return u.Update(func(s *GroupChatUpsert) {
+		s.UpdateDescription()
+	})
+}
+
+// ClearDescription clears the value of the "description" field.
+func (u *GroupChatUpsertBulk) ClearDescription() *GroupChatUpsertBulk {
+	return u.Update(func(s *GroupChatUpsert) {
+		s.ClearDescription()
+	})
+}
+
+// SetAvatarID sets the "avatar_id" field.
+func (u *GroupChatUpsertBulk) SetAvatarID(v int) *GroupChatUpsertBulk {
+	return u.Update(func(s *GroupChatUpsert) {
+		s.SetAvatarID(v)
+	})
+}
+
+// UpdateAvatarID sets the "avatar_id" field to the value that was provided on create.
+func (u *GroupChatUpsertBulk) UpdateAvatarID() *GroupChatUpsertBulk {
+	return u.Update(func(s *GroupChatUpsert) {
+		s.UpdateAvatarID()
+	})
+}
+
+// ClearAvatarID clears the value of the "avatar_id" field.
+func (u *GroupChatUpsertBulk) ClearAvatarID() *GroupChatUpsertBulk {
+	return u.Update(func(s *GroupChatUpsert) {
+		s.ClearAvatarID()
+	})
+}
+
+// Exec executes the query.
+func (u *GroupChatUpsertBulk) Exec(ctx context.Context) error {
+	if u.create.err != nil {
+		return u.create.err
+	}
+	for i, b := range u.create.builders {
+		if len(b.conflict) != 0 {
+			return fmt.Errorf("ent: OnConflict was set for builder %d. Set it on the GroupChatCreateBulk instead", i)
+		}
+	}
+	if len(u.create.conflict) == 0 {
+		return errors.New("ent: missing options for GroupChatCreateBulk.OnConflict")
+	}
+	return u.create.Exec(ctx)
+}
+
+// ExecX is like Exec, but panics if an error occurs.
+func (u *GroupChatUpsertBulk) ExecX(ctx context.Context) {
+	if err := u.create.Exec(ctx); err != nil {
 		panic(err)
 	}
 }

@@ -5,6 +5,7 @@ import (
 	"AtoiTalkAPI/ent/media"
 	"AtoiTalkAPI/ent/privatechat"
 	"AtoiTalkAPI/ent/user"
+	"AtoiTalkAPI/ent/userblock"
 	"AtoiTalkAPI/internal/adapter"
 	"AtoiTalkAPI/internal/config"
 	"AtoiTalkAPI/internal/helper"
@@ -14,6 +15,7 @@ import (
 	"mime/multipart"
 	"path/filepath"
 
+	"entgo.io/ent/dialect/sql"
 	"github.com/go-playground/validator/v10"
 )
 
@@ -60,6 +62,66 @@ func (s *UserService) GetCurrentUser(ctx context.Context, userID int) (*model.Us
 	return &model.UserDTO{
 		ID:          u.ID,
 		Email:       u.Email,
+		Username:    u.Username,
+		FullName:    u.FullName,
+		Avatar:      avatarURL,
+		Bio:         bio,
+		HasPassword: u.PasswordHash != nil,
+	}, nil
+}
+
+func (s *UserService) GetUserProfile(ctx context.Context, currentUserID int, targetUserID int) (*model.UserDTO, error) {
+
+	isBlocked, err := s.client.UserBlock.Query().
+		Where(
+			userblock.Or(
+				userblock.And(
+					userblock.BlockerID(currentUserID),
+					userblock.BlockedID(targetUserID),
+				),
+				userblock.And(
+					userblock.BlockerID(targetUserID),
+					userblock.BlockedID(currentUserID),
+				),
+			),
+		).
+		Exist(ctx)
+
+	if err != nil {
+		slog.Error("Failed to check block status", "error", err)
+		return nil, helper.NewInternalServerError("")
+	}
+
+	if isBlocked {
+		return nil, helper.NewNotFoundError("User not found")
+	}
+
+	u, err := s.client.User.Query().
+		Where(user.ID(targetUserID)).
+		WithAvatar().
+		Only(ctx)
+
+	if err != nil {
+		if ent.IsNotFound(err) {
+			return nil, helper.NewNotFoundError("User not found")
+		}
+		slog.Error("Failed to query user profile", "error", err, "targetUserID", targetUserID)
+		return nil, helper.NewInternalServerError("")
+	}
+
+	avatarURL := ""
+	if u.Edges.Avatar != nil {
+		avatarURL = helper.BuildImageURL(s.cfg.StorageMode, s.cfg.AppURL, s.cfg.StorageCDNURL, s.cfg.StorageProfile, u.Edges.Avatar.FileName)
+	}
+
+	bio := ""
+	if u.Bio != nil {
+		bio = *u.Bio
+	}
+
+	return &model.UserDTO{
+		ID:          u.ID,
+		Username:    u.Username,
 		FullName:    u.FullName,
 		Avatar:      avatarURL,
 		Bio:         bio,
@@ -105,6 +167,21 @@ func (s *UserService) UpdateProfile(ctx context.Context, userID int, req model.U
 		update.SetBio(req.Bio)
 	} else {
 		update.ClearBio()
+	}
+
+	if req.Username != "" {
+		normalizedUsername := helper.NormalizeUsername(req.Username)
+		if normalizedUsername != u.Username {
+			exists, err := tx.User.Query().Where(user.UsernameEQ(normalizedUsername)).Exist(ctx)
+			if err != nil {
+				slog.Error("Failed to check username existence", "error", err)
+				return nil, helper.NewInternalServerError("")
+			}
+			if exists {
+				return nil, helper.NewConflictError("Username already taken")
+			}
+			update.SetUsername(normalizedUsername)
+		}
 	}
 
 	var newAvatarFileName string
@@ -154,6 +231,9 @@ func (s *UserService) UpdateProfile(ctx context.Context, userID int, req model.U
 
 	updatedUser, err := update.Save(ctx)
 	if err != nil {
+		if ent.IsConstraintError(err) {
+			return nil, helper.NewConflictError("Username already taken")
+		}
 		slog.Error("Failed to save user profile update", "error", err, "userID", userID)
 		return nil, helper.NewInternalServerError("")
 	}
@@ -203,6 +283,7 @@ func (s *UserService) UpdateProfile(ctx context.Context, userID int, req model.U
 	return &model.UserDTO{
 		ID:          updatedUser.ID,
 		Email:       updatedUser.Email,
+		Username:    updatedUser.Username,
 		FullName:    updatedUser.FullName,
 		Avatar:      avatarURL,
 		Bio:         bio,
@@ -219,13 +300,38 @@ func (s *UserService) SearchUsers(ctx context.Context, currentUserID int, req mo
 		req.Limit = 10
 	}
 
-	query := s.client.User.Query()
+	query := s.client.User.Query().
+		Where(
+			user.IDNEQ(currentUserID),
+			func(s *sql.Selector) {
+				t := sql.Table(userblock.Table)
+				s.Where(
+					sql.Not(
+						sql.Exists(
+							sql.Select(userblock.FieldID).From(t).Where(
+								sql.Or(
+									sql.And(
+										sql.EQ(t.C(userblock.FieldBlockerID), currentUserID),
+										sql.ColumnsEQ(t.C(userblock.FieldBlockedID), s.C(user.FieldID)),
+									),
+									sql.And(
+										sql.ColumnsEQ(t.C(userblock.FieldBlockerID), s.C(user.FieldID)),
+										sql.EQ(t.C(userblock.FieldBlockedID), currentUserID),
+									),
+								),
+							),
+						),
+					),
+				)
+			},
+		)
 
 	if req.Query != "" {
 		query = query.Where(
 			user.Or(
 				user.FullNameContainsFold(req.Query),
-				user.EmailContainsFold(req.Query),
+				user.EmailEQ(req.Query),
+				user.UsernameContainsFold(req.Query),
 			),
 		)
 	}
@@ -321,7 +427,7 @@ func (s *UserService) SearchUsers(ctx context.Context, currentUserID int, req mo
 
 		dto := model.UserDTO{
 			ID:          u.ID,
-			Email:       u.Email,
+			Username:    u.Username,
 			FullName:    u.FullName,
 			Avatar:      avatarURL,
 			Bio:         bio,
@@ -336,4 +442,50 @@ func (s *UserService) SearchUsers(ctx context.Context, currentUserID int, req mo
 	}
 
 	return userDTOs, nextCursor, hasNext, nil
+}
+
+func (s *UserService) BlockUser(ctx context.Context, blockerID int, blockedID int) error {
+	if blockerID == blockedID {
+		return helper.NewBadRequestError("Cannot block yourself")
+	}
+
+	exists, err := s.client.User.Query().Where(user.ID(blockedID)).Exist(ctx)
+	if err != nil {
+		slog.Error("Failed to check user existence", "error", err)
+		return helper.NewInternalServerError("")
+	}
+	if !exists {
+		return helper.NewNotFoundError("User not found")
+	}
+
+	_, err = s.client.UserBlock.Create().
+		SetBlockerID(blockerID).
+		SetBlockedID(blockedID).
+		Save(ctx)
+
+	if err != nil {
+		if ent.IsConstraintError(err) {
+			return nil
+		}
+		slog.Error("Failed to block user", "error", err)
+		return helper.NewInternalServerError("")
+	}
+
+	return nil
+}
+
+func (s *UserService) UnblockUser(ctx context.Context, blockerID int, blockedID int) error {
+	_, err := s.client.UserBlock.Delete().
+		Where(
+			userblock.BlockerID(blockerID),
+			userblock.BlockedID(blockedID),
+		).
+		Exec(ctx)
+
+	if err != nil {
+		slog.Error("Failed to unblock user", "error", err)
+		return helper.NewInternalServerError("")
+	}
+
+	return nil
 }

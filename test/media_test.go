@@ -28,6 +28,7 @@ func TestUploadMedia(t *testing.T) {
 	hashedPassword, _ := helper.HashPassword("Password123!")
 	u, _ := testClient.User.Create().
 		SetEmail("uploader@test.com").
+		SetUsername("uploader").
 		SetFullName("Uploader").
 		SetPasswordHash(hashedPassword).
 		Save(context.Background())

@@ -4,7 +4,8 @@ import "mime/multipart"
 
 type UserDTO struct {
 	ID            int    `json:"id"`
-	Email         string `json:"email"`
+	Email         string `json:"email,omitempty"`
+	Username      string `json:"username"`
 	FullName      string `json:"full_name"`
 	Avatar        string `json:"avatar"`
 	Bio           string `json:"bio"`
@@ -14,11 +15,13 @@ type UserDTO struct {
 
 type CreateUserDTO struct {
 	Email    string
+	Username string
 	FullName string
 	Avatar   string
 }
 
 type UpdateProfileRequest struct {
+	Username      string                `form:"username" validate:"omitempty,min=3,max=50,alphanum"`
 	FullName      string                `form:"full_name" validate:"required,min=3,max=100"`
 	Bio           string                `form:"bio" validate:"max=255"`
 	Avatar        *multipart.FileHeader `form:"avatar" validate:"omitempty,imagevalid=800_800_2"`
