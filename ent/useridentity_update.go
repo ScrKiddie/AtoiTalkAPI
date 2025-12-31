@@ -19,8 +19,9 @@ import (
 // UserIdentityUpdate is the builder for updating UserIdentity entities.
 type UserIdentityUpdate struct {
 	config
-	hooks    []Hook
-	mutation *UserIdentityMutation
+	hooks     []Hook
+	mutation  *UserIdentityMutation
+	modifiers []func(*sql.UpdateBuilder)
 }
 
 // Where appends a list predicates to the UserIdentityUpdate builder.
@@ -172,6 +173,12 @@ func (_u *UserIdentityUpdate) check() error {
 	return nil
 }
 
+// Modify adds a statement modifier for attaching custom logic to the UPDATE statement.
+func (_u *UserIdentityUpdate) Modify(modifiers ...func(u *sql.UpdateBuilder)) *UserIdentityUpdate {
+	_u.modifiers = append(_u.modifiers, modifiers...)
+	return _u
+}
+
 func (_u *UserIdentityUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	if err := _u.check(); err != nil {
 		return _node, err
@@ -228,6 +235,7 @@ func (_u *UserIdentityUpdate) sqlSave(ctx context.Context) (_node int, err error
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
+	_spec.AddModifiers(_u.modifiers...)
 	if _node, err = sqlgraph.UpdateNodes(ctx, _u.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{useridentity.Label}
@@ -243,9 +251,10 @@ func (_u *UserIdentityUpdate) sqlSave(ctx context.Context) (_node int, err error
 // UserIdentityUpdateOne is the builder for updating a single UserIdentity entity.
 type UserIdentityUpdateOne struct {
 	config
-	fields   []string
-	hooks    []Hook
-	mutation *UserIdentityMutation
+	fields    []string
+	hooks     []Hook
+	mutation  *UserIdentityMutation
+	modifiers []func(*sql.UpdateBuilder)
 }
 
 // SetUpdatedAt sets the "updated_at" field.
@@ -404,6 +413,12 @@ func (_u *UserIdentityUpdateOne) check() error {
 	return nil
 }
 
+// Modify adds a statement modifier for attaching custom logic to the UPDATE statement.
+func (_u *UserIdentityUpdateOne) Modify(modifiers ...func(u *sql.UpdateBuilder)) *UserIdentityUpdateOne {
+	_u.modifiers = append(_u.modifiers, modifiers...)
+	return _u
+}
+
 func (_u *UserIdentityUpdateOne) sqlSave(ctx context.Context) (_node *UserIdentity, err error) {
 	if err := _u.check(); err != nil {
 		return _node, err
@@ -477,6 +492,7 @@ func (_u *UserIdentityUpdateOne) sqlSave(ctx context.Context) (_node *UserIdenti
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
+	_spec.AddModifiers(_u.modifiers...)
 	_node = &UserIdentity{config: _u.config}
 	_spec.Assign = _node.assignValues
 	_spec.ScanValues = _node.scanValues

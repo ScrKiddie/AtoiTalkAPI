@@ -12,6 +12,7 @@ import (
 	"fmt"
 	"time"
 
+	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 )
@@ -21,6 +22,7 @@ type ChatCreate struct {
 	config
 	mutation *ChatMutation
 	hooks    []Hook
+	conflict []sql.ConflictOption
 }
 
 // SetCreatedAt sets the "created_at" field.
@@ -54,6 +56,34 @@ func (_c *ChatCreate) SetNillableUpdatedAt(v *time.Time) *ChatCreate {
 // SetType sets the "type" field.
 func (_c *ChatCreate) SetType(v chat.Type) *ChatCreate {
 	_c.mutation.SetType(v)
+	return _c
+}
+
+// SetLastMessageID sets the "last_message_id" field.
+func (_c *ChatCreate) SetLastMessageID(v int) *ChatCreate {
+	_c.mutation.SetLastMessageID(v)
+	return _c
+}
+
+// SetNillableLastMessageID sets the "last_message_id" field if the given value is not nil.
+func (_c *ChatCreate) SetNillableLastMessageID(v *int) *ChatCreate {
+	if v != nil {
+		_c.SetLastMessageID(*v)
+	}
+	return _c
+}
+
+// SetLastMessageAt sets the "last_message_at" field.
+func (_c *ChatCreate) SetLastMessageAt(v time.Time) *ChatCreate {
+	_c.mutation.SetLastMessageAt(v)
+	return _c
+}
+
+// SetNillableLastMessageAt sets the "last_message_at" field if the given value is not nil.
+func (_c *ChatCreate) SetNillableLastMessageAt(v *time.Time) *ChatCreate {
+	if v != nil {
+		_c.SetLastMessageAt(*v)
+	}
 	return _c
 }
 
@@ -108,6 +138,11 @@ func (_c *ChatCreate) SetNillableGroupChatID(id *int) *ChatCreate {
 // SetGroupChat sets the "group_chat" edge to the GroupChat entity.
 func (_c *ChatCreate) SetGroupChat(v *GroupChat) *ChatCreate {
 	return _c.SetGroupChatID(v.ID)
+}
+
+// SetLastMessage sets the "last_message" edge to the Message entity.
+func (_c *ChatCreate) SetLastMessage(v *Message) *ChatCreate {
+	return _c.SetLastMessageID(v.ID)
 }
 
 // Mutation returns the ChatMutation object of the builder.
@@ -197,6 +232,7 @@ func (_c *ChatCreate) createSpec() (*Chat, *sqlgraph.CreateSpec) {
 		_node = &Chat{config: _c.config}
 		_spec = sqlgraph.NewCreateSpec(chat.Table, sqlgraph.NewFieldSpec(chat.FieldID, field.TypeInt))
 	)
+	_spec.OnConflict = _c.conflict
 	if value, ok := _c.mutation.CreatedAt(); ok {
 		_spec.SetField(chat.FieldCreatedAt, field.TypeTime, value)
 		_node.CreatedAt = value
@@ -208,6 +244,10 @@ func (_c *ChatCreate) createSpec() (*Chat, *sqlgraph.CreateSpec) {
 	if value, ok := _c.mutation.GetType(); ok {
 		_spec.SetField(chat.FieldType, field.TypeEnum, value)
 		_node.Type = value
+	}
+	if value, ok := _c.mutation.LastMessageAt(); ok {
+		_spec.SetField(chat.FieldLastMessageAt, field.TypeTime, value)
+		_node.LastMessageAt = &value
 	}
 	if nodes := _c.mutation.MessagesIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
@@ -257,7 +297,258 @@ func (_c *ChatCreate) createSpec() (*Chat, *sqlgraph.CreateSpec) {
 		}
 		_spec.Edges = append(_spec.Edges, edge)
 	}
+	if nodes := _c.mutation.LastMessageIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: false,
+			Table:   chat.LastMessageTable,
+			Columns: []string{chat.LastMessageColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(message.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_node.LastMessageID = &nodes[0]
+		_spec.Edges = append(_spec.Edges, edge)
+	}
 	return _node, _spec
+}
+
+// OnConflict allows configuring the `ON CONFLICT` / `ON DUPLICATE KEY` clause
+// of the `INSERT` statement. For example:
+//
+//	client.Chat.Create().
+//		SetCreatedAt(v).
+//		OnConflict(
+//			// Update the row with the new values
+//			// the was proposed for insertion.
+//			sql.ResolveWithNewValues(),
+//		).
+//		// Override some of the fields with custom
+//		// update values.
+//		Update(func(u *ent.ChatUpsert) {
+//			SetCreatedAt(v+v).
+//		}).
+//		Exec(ctx)
+func (_c *ChatCreate) OnConflict(opts ...sql.ConflictOption) *ChatUpsertOne {
+	_c.conflict = opts
+	return &ChatUpsertOne{
+		create: _c,
+	}
+}
+
+// OnConflictColumns calls `OnConflict` and configures the columns
+// as conflict target. Using this option is equivalent to using:
+//
+//	client.Chat.Create().
+//		OnConflict(sql.ConflictColumns(columns...)).
+//		Exec(ctx)
+func (_c *ChatCreate) OnConflictColumns(columns ...string) *ChatUpsertOne {
+	_c.conflict = append(_c.conflict, sql.ConflictColumns(columns...))
+	return &ChatUpsertOne{
+		create: _c,
+	}
+}
+
+type (
+	// ChatUpsertOne is the builder for "upsert"-ing
+	//  one Chat node.
+	ChatUpsertOne struct {
+		create *ChatCreate
+	}
+
+	// ChatUpsert is the "OnConflict" setter.
+	ChatUpsert struct {
+		*sql.UpdateSet
+	}
+)
+
+// SetUpdatedAt sets the "updated_at" field.
+func (u *ChatUpsert) SetUpdatedAt(v time.Time) *ChatUpsert {
+	u.Set(chat.FieldUpdatedAt, v)
+	return u
+}
+
+// UpdateUpdatedAt sets the "updated_at" field to the value that was provided on create.
+func (u *ChatUpsert) UpdateUpdatedAt() *ChatUpsert {
+	u.SetExcluded(chat.FieldUpdatedAt)
+	return u
+}
+
+// SetLastMessageID sets the "last_message_id" field.
+func (u *ChatUpsert) SetLastMessageID(v int) *ChatUpsert {
+	u.Set(chat.FieldLastMessageID, v)
+	return u
+}
+
+// UpdateLastMessageID sets the "last_message_id" field to the value that was provided on create.
+func (u *ChatUpsert) UpdateLastMessageID() *ChatUpsert {
+	u.SetExcluded(chat.FieldLastMessageID)
+	return u
+}
+
+// ClearLastMessageID clears the value of the "last_message_id" field.
+func (u *ChatUpsert) ClearLastMessageID() *ChatUpsert {
+	u.SetNull(chat.FieldLastMessageID)
+	return u
+}
+
+// SetLastMessageAt sets the "last_message_at" field.
+func (u *ChatUpsert) SetLastMessageAt(v time.Time) *ChatUpsert {
+	u.Set(chat.FieldLastMessageAt, v)
+	return u
+}
+
+// UpdateLastMessageAt sets the "last_message_at" field to the value that was provided on create.
+func (u *ChatUpsert) UpdateLastMessageAt() *ChatUpsert {
+	u.SetExcluded(chat.FieldLastMessageAt)
+	return u
+}
+
+// ClearLastMessageAt clears the value of the "last_message_at" field.
+func (u *ChatUpsert) ClearLastMessageAt() *ChatUpsert {
+	u.SetNull(chat.FieldLastMessageAt)
+	return u
+}
+
+// UpdateNewValues updates the mutable fields using the new values that were set on create.
+// Using this option is equivalent to using:
+//
+//	client.Chat.Create().
+//		OnConflict(
+//			sql.ResolveWithNewValues(),
+//		).
+//		Exec(ctx)
+func (u *ChatUpsertOne) UpdateNewValues() *ChatUpsertOne {
+	u.create.conflict = append(u.create.conflict, sql.ResolveWithNewValues())
+	u.create.conflict = append(u.create.conflict, sql.ResolveWith(func(s *sql.UpdateSet) {
+		if _, exists := u.create.mutation.CreatedAt(); exists {
+			s.SetIgnore(chat.FieldCreatedAt)
+		}
+		if _, exists := u.create.mutation.GetType(); exists {
+			s.SetIgnore(chat.FieldType)
+		}
+	}))
+	return u
+}
+
+// Ignore sets each column to itself in case of conflict.
+// Using this option is equivalent to using:
+//
+//	client.Chat.Create().
+//	    OnConflict(sql.ResolveWithIgnore()).
+//	    Exec(ctx)
+func (u *ChatUpsertOne) Ignore() *ChatUpsertOne {
+	u.create.conflict = append(u.create.conflict, sql.ResolveWithIgnore())
+	return u
+}
+
+// DoNothing configures the conflict_action to `DO NOTHING`.
+// Supported only by SQLite and PostgreSQL.
+func (u *ChatUpsertOne) DoNothing() *ChatUpsertOne {
+	u.create.conflict = append(u.create.conflict, sql.DoNothing())
+	return u
+}
+
+// Update allows overriding fields `UPDATE` values. See the ChatCreate.OnConflict
+// documentation for more info.
+func (u *ChatUpsertOne) Update(set func(*ChatUpsert)) *ChatUpsertOne {
+	u.create.conflict = append(u.create.conflict, sql.ResolveWith(func(update *sql.UpdateSet) {
+		set(&ChatUpsert{UpdateSet: update})
+	}))
+	return u
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (u *ChatUpsertOne) SetUpdatedAt(v time.Time) *ChatUpsertOne {
+	return u.Update(func(s *ChatUpsert) {
+		s.SetUpdatedAt(v)
+	})
+}
+
+// UpdateUpdatedAt sets the "updated_at" field to the value that was provided on create.
+func (u *ChatUpsertOne) UpdateUpdatedAt() *ChatUpsertOne {
+	return u.Update(func(s *ChatUpsert) {
+		s.UpdateUpdatedAt()
+	})
+}
+
+// SetLastMessageID sets the "last_message_id" field.
+func (u *ChatUpsertOne) SetLastMessageID(v int) *ChatUpsertOne {
+	return u.Update(func(s *ChatUpsert) {
+		s.SetLastMessageID(v)
+	})
+}
+
+// UpdateLastMessageID sets the "last_message_id" field to the value that was provided on create.
+func (u *ChatUpsertOne) UpdateLastMessageID() *ChatUpsertOne {
+	return u.Update(func(s *ChatUpsert) {
+		s.UpdateLastMessageID()
+	})
+}
+
+// ClearLastMessageID clears the value of the "last_message_id" field.
+func (u *ChatUpsertOne) ClearLastMessageID() *ChatUpsertOne {
+	return u.Update(func(s *ChatUpsert) {
+		s.ClearLastMessageID()
+	})
+}
+
+// SetLastMessageAt sets the "last_message_at" field.
+func (u *ChatUpsertOne) SetLastMessageAt(v time.Time) *ChatUpsertOne {
+	return u.Update(func(s *ChatUpsert) {
+		s.SetLastMessageAt(v)
+	})
+}
+
+// UpdateLastMessageAt sets the "last_message_at" field to the value that was provided on create.
+func (u *ChatUpsertOne) UpdateLastMessageAt() *ChatUpsertOne {
+	return u.Update(func(s *ChatUpsert) {
+		s.UpdateLastMessageAt()
+	})
+}
+
+// ClearLastMessageAt clears the value of the "last_message_at" field.
+func (u *ChatUpsertOne) ClearLastMessageAt() *ChatUpsertOne {
+	return u.Update(func(s *ChatUpsert) {
+		s.ClearLastMessageAt()
+	})
+}
+
+// Exec executes the query.
+func (u *ChatUpsertOne) Exec(ctx context.Context) error {
+	if len(u.create.conflict) == 0 {
+		return errors.New("ent: missing options for ChatCreate.OnConflict")
+	}
+	return u.create.Exec(ctx)
+}
+
+// ExecX is like Exec, but panics if an error occurs.
+func (u *ChatUpsertOne) ExecX(ctx context.Context) {
+	if err := u.create.Exec(ctx); err != nil {
+		panic(err)
+	}
+}
+
+// Exec executes the UPSERT query and returns the inserted/updated ID.
+func (u *ChatUpsertOne) ID(ctx context.Context) (id int, err error) {
+	node, err := u.create.Save(ctx)
+	if err != nil {
+		return id, err
+	}
+	return node.ID, nil
+}
+
+// IDX is like ID, but panics if an error occurs.
+func (u *ChatUpsertOne) IDX(ctx context.Context) int {
+	id, err := u.ID(ctx)
+	if err != nil {
+		panic(err)
+	}
+	return id
 }
 
 // ChatCreateBulk is the builder for creating many Chat entities in bulk.
@@ -265,6 +556,7 @@ type ChatCreateBulk struct {
 	config
 	err      error
 	builders []*ChatCreate
+	conflict []sql.ConflictOption
 }
 
 // Save creates the Chat entities in the database.
@@ -294,6 +586,7 @@ func (_c *ChatCreateBulk) Save(ctx context.Context) ([]*Chat, error) {
 					_, err = mutators[i+1].Mutate(root, _c.builders[i+1].mutation)
 				} else {
 					spec := &sqlgraph.BatchCreateSpec{Nodes: specs}
+					spec.OnConflict = _c.conflict
 					// Invoke the actual operation on the latest mutation in the chain.
 					if err = sqlgraph.BatchCreate(ctx, _c.driver, spec); err != nil {
 						if sqlgraph.IsConstraintError(err) {
@@ -344,6 +637,176 @@ func (_c *ChatCreateBulk) Exec(ctx context.Context) error {
 // ExecX is like Exec, but panics if an error occurs.
 func (_c *ChatCreateBulk) ExecX(ctx context.Context) {
 	if err := _c.Exec(ctx); err != nil {
+		panic(err)
+	}
+}
+
+// OnConflict allows configuring the `ON CONFLICT` / `ON DUPLICATE KEY` clause
+// of the `INSERT` statement. For example:
+//
+//	client.Chat.CreateBulk(builders...).
+//		OnConflict(
+//			// Update the row with the new values
+//			// the was proposed for insertion.
+//			sql.ResolveWithNewValues(),
+//		).
+//		// Override some of the fields with custom
+//		// update values.
+//		Update(func(u *ent.ChatUpsert) {
+//			SetCreatedAt(v+v).
+//		}).
+//		Exec(ctx)
+func (_c *ChatCreateBulk) OnConflict(opts ...sql.ConflictOption) *ChatUpsertBulk {
+	_c.conflict = opts
+	return &ChatUpsertBulk{
+		create: _c,
+	}
+}
+
+// OnConflictColumns calls `OnConflict` and configures the columns
+// as conflict target. Using this option is equivalent to using:
+//
+//	client.Chat.Create().
+//		OnConflict(sql.ConflictColumns(columns...)).
+//		Exec(ctx)
+func (_c *ChatCreateBulk) OnConflictColumns(columns ...string) *ChatUpsertBulk {
+	_c.conflict = append(_c.conflict, sql.ConflictColumns(columns...))
+	return &ChatUpsertBulk{
+		create: _c,
+	}
+}
+
+// ChatUpsertBulk is the builder for "upsert"-ing
+// a bulk of Chat nodes.
+type ChatUpsertBulk struct {
+	create *ChatCreateBulk
+}
+
+// UpdateNewValues updates the mutable fields using the new values that
+// were set on create. Using this option is equivalent to using:
+//
+//	client.Chat.Create().
+//		OnConflict(
+//			sql.ResolveWithNewValues(),
+//		).
+//		Exec(ctx)
+func (u *ChatUpsertBulk) UpdateNewValues() *ChatUpsertBulk {
+	u.create.conflict = append(u.create.conflict, sql.ResolveWithNewValues())
+	u.create.conflict = append(u.create.conflict, sql.ResolveWith(func(s *sql.UpdateSet) {
+		for _, b := range u.create.builders {
+			if _, exists := b.mutation.CreatedAt(); exists {
+				s.SetIgnore(chat.FieldCreatedAt)
+			}
+			if _, exists := b.mutation.GetType(); exists {
+				s.SetIgnore(chat.FieldType)
+			}
+		}
+	}))
+	return u
+}
+
+// Ignore sets each column to itself in case of conflict.
+// Using this option is equivalent to using:
+//
+//	client.Chat.Create().
+//		OnConflict(sql.ResolveWithIgnore()).
+//		Exec(ctx)
+func (u *ChatUpsertBulk) Ignore() *ChatUpsertBulk {
+	u.create.conflict = append(u.create.conflict, sql.ResolveWithIgnore())
+	return u
+}
+
+// DoNothing configures the conflict_action to `DO NOTHING`.
+// Supported only by SQLite and PostgreSQL.
+func (u *ChatUpsertBulk) DoNothing() *ChatUpsertBulk {
+	u.create.conflict = append(u.create.conflict, sql.DoNothing())
+	return u
+}
+
+// Update allows overriding fields `UPDATE` values. See the ChatCreateBulk.OnConflict
+// documentation for more info.
+func (u *ChatUpsertBulk) Update(set func(*ChatUpsert)) *ChatUpsertBulk {
+	u.create.conflict = append(u.create.conflict, sql.ResolveWith(func(update *sql.UpdateSet) {
+		set(&ChatUpsert{UpdateSet: update})
+	}))
+	return u
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (u *ChatUpsertBulk) SetUpdatedAt(v time.Time) *ChatUpsertBulk {
+	return u.Update(func(s *ChatUpsert) {
+		s.SetUpdatedAt(v)
+	})
+}
+
+// UpdateUpdatedAt sets the "updated_at" field to the value that was provided on create.
+func (u *ChatUpsertBulk) UpdateUpdatedAt() *ChatUpsertBulk {
+	return u.Update(func(s *ChatUpsert) {
+		s.UpdateUpdatedAt()
+	})
+}
+
+// SetLastMessageID sets the "last_message_id" field.
+func (u *ChatUpsertBulk) SetLastMessageID(v int) *ChatUpsertBulk {
+	return u.Update(func(s *ChatUpsert) {
+		s.SetLastMessageID(v)
+	})
+}
+
+// UpdateLastMessageID sets the "last_message_id" field to the value that was provided on create.
+func (u *ChatUpsertBulk) UpdateLastMessageID() *ChatUpsertBulk {
+	return u.Update(func(s *ChatUpsert) {
+		s.UpdateLastMessageID()
+	})
+}
+
+// ClearLastMessageID clears the value of the "last_message_id" field.
+func (u *ChatUpsertBulk) ClearLastMessageID() *ChatUpsertBulk {
+	return u.Update(func(s *ChatUpsert) {
+		s.ClearLastMessageID()
+	})
+}
+
+// SetLastMessageAt sets the "last_message_at" field.
+func (u *ChatUpsertBulk) SetLastMessageAt(v time.Time) *ChatUpsertBulk {
+	return u.Update(func(s *ChatUpsert) {
+		s.SetLastMessageAt(v)
+	})
+}
+
+// UpdateLastMessageAt sets the "last_message_at" field to the value that was provided on create.
+func (u *ChatUpsertBulk) UpdateLastMessageAt() *ChatUpsertBulk {
+	return u.Update(func(s *ChatUpsert) {
+		s.UpdateLastMessageAt()
+	})
+}
+
+// ClearLastMessageAt clears the value of the "last_message_at" field.
+func (u *ChatUpsertBulk) ClearLastMessageAt() *ChatUpsertBulk {
+	return u.Update(func(s *ChatUpsert) {
+		s.ClearLastMessageAt()
+	})
+}
+
+// Exec executes the query.
+func (u *ChatUpsertBulk) Exec(ctx context.Context) error {
+	if u.create.err != nil {
+		return u.create.err
+	}
+	for i, b := range u.create.builders {
+		if len(b.conflict) != 0 {
+			return fmt.Errorf("ent: OnConflict was set for builder %d. Set it on the ChatCreateBulk instead", i)
+		}
+	}
+	if len(u.create.conflict) == 0 {
+		return errors.New("ent: missing options for ChatCreateBulk.OnConflict")
+	}
+	return u.create.Exec(ctx)
+}
+
+// ExecX is like Exec, but panics if an error occurs.
+func (u *ChatUpsertBulk) ExecX(ctx context.Context) {
+	if err := u.create.Exec(ctx); err != nil {
 		panic(err)
 	}
 }

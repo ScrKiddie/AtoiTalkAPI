@@ -25,8 +25,9 @@ import (
 // UserUpdate is the builder for updating User entities.
 type UserUpdate struct {
 	config
-	hooks    []Hook
-	mutation *UserMutation
+	hooks     []Hook
+	mutation  *UserMutation
+	modifiers []func(*sql.UpdateBuilder)
 }
 
 // Where appends a list predicates to the UserUpdate builder.
@@ -51,6 +52,20 @@ func (_u *UserUpdate) SetEmail(v string) *UserUpdate {
 func (_u *UserUpdate) SetNillableEmail(v *string) *UserUpdate {
 	if v != nil {
 		_u.SetEmail(*v)
+	}
+	return _u
+}
+
+// SetUsername sets the "username" field.
+func (_u *UserUpdate) SetUsername(v string) *UserUpdate {
+	_u.mutation.SetUsername(v)
+	return _u
+}
+
+// SetNillableUsername sets the "username" field if the given value is not nil.
+func (_u *UserUpdate) SetNillableUsername(v *string) *UserUpdate {
+	if v != nil {
+		_u.SetUsername(*v)
 	}
 	return _u
 }
@@ -546,6 +561,11 @@ func (_u *UserUpdate) check() error {
 			return &ValidationError{Name: "email", err: fmt.Errorf(`ent: validator failed for field "User.email": %w`, err)}
 		}
 	}
+	if v, ok := _u.mutation.Username(); ok {
+		if err := user.UsernameValidator(v); err != nil {
+			return &ValidationError{Name: "username", err: fmt.Errorf(`ent: validator failed for field "User.username": %w`, err)}
+		}
+	}
 	if v, ok := _u.mutation.PasswordHash(); ok {
 		if err := user.PasswordHashValidator(v); err != nil {
 			return &ValidationError{Name: "password_hash", err: fmt.Errorf(`ent: validator failed for field "User.password_hash": %w`, err)}
@@ -562,6 +582,12 @@ func (_u *UserUpdate) check() error {
 		}
 	}
 	return nil
+}
+
+// Modify adds a statement modifier for attaching custom logic to the UPDATE statement.
+func (_u *UserUpdate) Modify(modifiers ...func(u *sql.UpdateBuilder)) *UserUpdate {
+	_u.modifiers = append(_u.modifiers, modifiers...)
+	return _u
 }
 
 func (_u *UserUpdate) sqlSave(ctx context.Context) (_node int, err error) {
@@ -581,6 +607,9 @@ func (_u *UserUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	}
 	if value, ok := _u.mutation.Email(); ok {
 		_spec.SetField(user.FieldEmail, field.TypeString, value)
+	}
+	if value, ok := _u.mutation.Username(); ok {
+		_spec.SetField(user.FieldUsername, field.TypeString, value)
 	}
 	if value, ok := _u.mutation.PasswordHash(); ok {
 		_spec.SetField(user.FieldPasswordHash, field.TypeString, value)
@@ -1040,6 +1069,7 @@ func (_u *UserUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
+	_spec.AddModifiers(_u.modifiers...)
 	if _node, err = sqlgraph.UpdateNodes(ctx, _u.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{user.Label}
@@ -1055,9 +1085,10 @@ func (_u *UserUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 // UserUpdateOne is the builder for updating a single User entity.
 type UserUpdateOne struct {
 	config
-	fields   []string
-	hooks    []Hook
-	mutation *UserMutation
+	fields    []string
+	hooks     []Hook
+	mutation  *UserMutation
+	modifiers []func(*sql.UpdateBuilder)
 }
 
 // SetUpdatedAt sets the "updated_at" field.
@@ -1076,6 +1107,20 @@ func (_u *UserUpdateOne) SetEmail(v string) *UserUpdateOne {
 func (_u *UserUpdateOne) SetNillableEmail(v *string) *UserUpdateOne {
 	if v != nil {
 		_u.SetEmail(*v)
+	}
+	return _u
+}
+
+// SetUsername sets the "username" field.
+func (_u *UserUpdateOne) SetUsername(v string) *UserUpdateOne {
+	_u.mutation.SetUsername(v)
+	return _u
+}
+
+// SetNillableUsername sets the "username" field if the given value is not nil.
+func (_u *UserUpdateOne) SetNillableUsername(v *string) *UserUpdateOne {
+	if v != nil {
+		_u.SetUsername(*v)
 	}
 	return _u
 }
@@ -1584,6 +1629,11 @@ func (_u *UserUpdateOne) check() error {
 			return &ValidationError{Name: "email", err: fmt.Errorf(`ent: validator failed for field "User.email": %w`, err)}
 		}
 	}
+	if v, ok := _u.mutation.Username(); ok {
+		if err := user.UsernameValidator(v); err != nil {
+			return &ValidationError{Name: "username", err: fmt.Errorf(`ent: validator failed for field "User.username": %w`, err)}
+		}
+	}
 	if v, ok := _u.mutation.PasswordHash(); ok {
 		if err := user.PasswordHashValidator(v); err != nil {
 			return &ValidationError{Name: "password_hash", err: fmt.Errorf(`ent: validator failed for field "User.password_hash": %w`, err)}
@@ -1600,6 +1650,12 @@ func (_u *UserUpdateOne) check() error {
 		}
 	}
 	return nil
+}
+
+// Modify adds a statement modifier for attaching custom logic to the UPDATE statement.
+func (_u *UserUpdateOne) Modify(modifiers ...func(u *sql.UpdateBuilder)) *UserUpdateOne {
+	_u.modifiers = append(_u.modifiers, modifiers...)
+	return _u
 }
 
 func (_u *UserUpdateOne) sqlSave(ctx context.Context) (_node *User, err error) {
@@ -1636,6 +1692,9 @@ func (_u *UserUpdateOne) sqlSave(ctx context.Context) (_node *User, err error) {
 	}
 	if value, ok := _u.mutation.Email(); ok {
 		_spec.SetField(user.FieldEmail, field.TypeString, value)
+	}
+	if value, ok := _u.mutation.Username(); ok {
+		_spec.SetField(user.FieldUsername, field.TypeString, value)
 	}
 	if value, ok := _u.mutation.PasswordHash(); ok {
 		_spec.SetField(user.FieldPasswordHash, field.TypeString, value)
@@ -2095,6 +2154,7 @@ func (_u *UserUpdateOne) sqlSave(ctx context.Context) (_node *User, err error) {
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
+	_spec.AddModifiers(_u.modifiers...)
 	_node = &User{config: _u.config}
 	_spec.Assign = _node.assignValues
 	_spec.ScanValues = _node.scanValues

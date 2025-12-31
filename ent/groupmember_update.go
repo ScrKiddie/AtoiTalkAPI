@@ -20,8 +20,9 @@ import (
 // GroupMemberUpdate is the builder for updating GroupMember entities.
 type GroupMemberUpdate struct {
 	config
-	hooks    []Hook
-	mutation *GroupMemberMutation
+	hooks     []Hook
+	mutation  *GroupMemberMutation
+	modifiers []func(*sql.UpdateBuilder)
 }
 
 // Where appends a list predicates to the GroupMemberUpdate builder.
@@ -183,6 +184,12 @@ func (_u *GroupMemberUpdate) check() error {
 	return nil
 }
 
+// Modify adds a statement modifier for attaching custom logic to the UPDATE statement.
+func (_u *GroupMemberUpdate) Modify(modifiers ...func(u *sql.UpdateBuilder)) *GroupMemberUpdate {
+	_u.modifiers = append(_u.modifiers, modifiers...)
+	return _u
+}
+
 func (_u *GroupMemberUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	if err := _u.check(); err != nil {
 		return _node, err
@@ -268,6 +275,7 @@ func (_u *GroupMemberUpdate) sqlSave(ctx context.Context) (_node int, err error)
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
+	_spec.AddModifiers(_u.modifiers...)
 	if _node, err = sqlgraph.UpdateNodes(ctx, _u.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{groupmember.Label}
@@ -283,9 +291,10 @@ func (_u *GroupMemberUpdate) sqlSave(ctx context.Context) (_node int, err error)
 // GroupMemberUpdateOne is the builder for updating a single GroupMember entity.
 type GroupMemberUpdateOne struct {
 	config
-	fields   []string
-	hooks    []Hook
-	mutation *GroupMemberMutation
+	fields    []string
+	hooks     []Hook
+	mutation  *GroupMemberMutation
+	modifiers []func(*sql.UpdateBuilder)
 }
 
 // SetGroupChatID sets the "group_chat_id" field.
@@ -454,6 +463,12 @@ func (_u *GroupMemberUpdateOne) check() error {
 	return nil
 }
 
+// Modify adds a statement modifier for attaching custom logic to the UPDATE statement.
+func (_u *GroupMemberUpdateOne) Modify(modifiers ...func(u *sql.UpdateBuilder)) *GroupMemberUpdateOne {
+	_u.modifiers = append(_u.modifiers, modifiers...)
+	return _u
+}
+
 func (_u *GroupMemberUpdateOne) sqlSave(ctx context.Context) (_node *GroupMember, err error) {
 	if err := _u.check(); err != nil {
 		return _node, err
@@ -556,6 +571,7 @@ func (_u *GroupMemberUpdateOne) sqlSave(ctx context.Context) (_node *GroupMember
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
+	_spec.AddModifiers(_u.modifiers...)
 	_node = &GroupMember{config: _u.config}
 	_spec.Assign = _node.assignValues
 	_spec.ScanValues = _node.scanValues

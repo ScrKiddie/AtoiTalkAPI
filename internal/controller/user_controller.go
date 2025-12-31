@@ -8,6 +8,8 @@ import (
 	"log/slog"
 	"net/http"
 	"strconv"
+
+	"github.com/go-chi/chi/v5"
 )
 
 type UserController struct {
@@ -47,12 +49,50 @@ func (c *UserController) GetCurrentUser(w http.ResponseWriter, r *http.Request) 
 	helper.WriteSuccess(w, resp)
 }
 
+// GetUserProfile godoc
+// @Summary      Get User Profile
+// @Description  Get another user's profile by ID.
+// @Tags         user
+// @Accept       json
+// @Produce      json
+// @Param        id path int true "User ID"
+// @Success      200  {object}  helper.ResponseSuccess{data=model.UserDTO}
+// @Failure      400  {object}  helper.ResponseError
+// @Failure      401  {object}  helper.ResponseError
+// @Failure      404  {object}  helper.ResponseError
+// @Failure      500  {object}  helper.ResponseError
+// @Security     BearerAuth
+// @Router       /api/users/{id} [get]
+func (c *UserController) GetUserProfile(w http.ResponseWriter, r *http.Request) {
+	userContext, ok := r.Context().Value(middleware.UserContextKey).(*model.UserDTO)
+	if !ok {
+		helper.WriteError(w, helper.NewUnauthorizedError(""))
+		return
+	}
+
+	idStr := chi.URLParam(r, "id")
+	targetUserID, err := strconv.Atoi(idStr)
+	if err != nil {
+		helper.WriteError(w, helper.NewBadRequestError("Invalid user ID"))
+		return
+	}
+
+	resp, err := c.userService.GetUserProfile(r.Context(), userContext.ID, targetUserID)
+	if err != nil {
+		helper.WriteError(w, err)
+		return
+	}
+
+	helper.WriteSuccess(w, resp)
+}
+
 // UpdateProfile godoc
 // @Summary      Update User Profile
 // @Description  Update user's full name, bio, and avatar.
 // @Tags         user
 // @Accept       multipart/form-data
 // @Produce      json
+// @Param        username formData string false "Username"
 // @Param        full_name formData string true "Full Name"
 // @Param        bio formData string false "Bio"
 // @Param        avatar formData file false "Avatar Image"
@@ -78,6 +118,7 @@ func (c *UserController) UpdateProfile(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var req model.UpdateProfileRequest
+	req.Username = r.FormValue("username")
 	req.FullName = r.FormValue("full_name")
 	req.Bio = r.FormValue("bio")
 	req.DeleteAvatar, _ = strconv.ParseBool(r.FormValue("delete_avatar"))
@@ -157,4 +198,75 @@ func (c *UserController) SearchUsers(w http.ResponseWriter, r *http.Request) {
 	}
 
 	helper.WriteSuccessWithPagination(w, users, nextCursor, hasNext)
+}
+
+// BlockUser godoc
+// @Summary      Block a User
+// @Description  Block a user by their ID.
+// @Tags         user
+// @Accept       json
+// @Produce      json
+// @Param        id path int true "User ID to block"
+// @Success      200  {object}  helper.ResponseSuccess
+// @Failure      400  {object}  helper.ResponseError
+// @Failure      401  {object}  helper.ResponseError
+// @Failure      404  {object}  helper.ResponseError
+// @Failure      500  {object}  helper.ResponseError
+// @Security     BearerAuth
+// @Router       /api/users/{id}/block [post]
+func (c *UserController) BlockUser(w http.ResponseWriter, r *http.Request) {
+	userContext, ok := r.Context().Value(middleware.UserContextKey).(*model.UserDTO)
+	if !ok {
+		helper.WriteError(w, helper.NewUnauthorizedError(""))
+		return
+	}
+
+	idStr := chi.URLParam(r, "id")
+	blockedID, err := strconv.Atoi(idStr)
+	if err != nil {
+		helper.WriteError(w, helper.NewBadRequestError("Invalid user ID"))
+		return
+	}
+
+	if err := c.userService.BlockUser(r.Context(), userContext.ID, blockedID); err != nil {
+		helper.WriteError(w, err)
+		return
+	}
+
+	helper.WriteSuccess(w, nil)
+}
+
+// UnblockUser godoc
+// @Summary      Unblock a User
+// @Description  Unblock a user by their ID.
+// @Tags         user
+// @Accept       json
+// @Produce      json
+// @Param        id path int true "User ID to unblock"
+// @Success      200  {object}  helper.ResponseSuccess
+// @Failure      400  {object}  helper.ResponseError
+// @Failure      401  {object}  helper.ResponseError
+// @Failure      500  {object}  helper.ResponseError
+// @Security     BearerAuth
+// @Router       /api/users/{id}/unblock [post]
+func (c *UserController) UnblockUser(w http.ResponseWriter, r *http.Request) {
+	userContext, ok := r.Context().Value(middleware.UserContextKey).(*model.UserDTO)
+	if !ok {
+		helper.WriteError(w, helper.NewUnauthorizedError(""))
+		return
+	}
+
+	idStr := chi.URLParam(r, "id")
+	blockedID, err := strconv.Atoi(idStr)
+	if err != nil {
+		helper.WriteError(w, helper.NewBadRequestError("Invalid user ID"))
+		return
+	}
+
+	if err := c.userService.UnblockUser(r.Context(), userContext.ID, blockedID); err != nil {
+		helper.WriteError(w, err)
+		return
+	}
+
+	helper.WriteSuccess(w, nil)
 }

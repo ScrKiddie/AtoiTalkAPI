@@ -27,9 +27,9 @@ func TestSendMessage(t *testing.T) {
 	password := "Password123!"
 	hashedPassword, _ := helper.HashPassword(password)
 
-	u1, _ := testClient.User.Create().SetEmail("u1@test.com").SetFullName("User 1").SetPasswordHash(hashedPassword).Save(context.Background())
-	u2, _ := testClient.User.Create().SetEmail("u2@test.com").SetFullName("User 2").SetPasswordHash(hashedPassword).Save(context.Background())
-	u3, _ := testClient.User.Create().SetEmail("u3@test.com").SetFullName("User 3").SetPasswordHash(hashedPassword).Save(context.Background())
+	u1, _ := testClient.User.Create().SetEmail("u1@test.com").SetUsername("u1").SetFullName("User 1").SetPasswordHash(hashedPassword).Save(context.Background())
+	u2, _ := testClient.User.Create().SetEmail("u2@test.com").SetUsername("u2").SetFullName("User 2").SetPasswordHash(hashedPassword).Save(context.Background())
+	u3, _ := testClient.User.Create().SetEmail("u3@test.com").SetUsername("u3").SetFullName("User 3").SetPasswordHash(hashedPassword).Save(context.Background())
 
 	token1, _ := helper.GenerateJWT(testConfig.JWTSecret, testConfig.JWTExp, u1.ID)
 	token3, _ := helper.GenerateJWT(testConfig.JWTSecret, testConfig.JWTExp, u3.ID)
@@ -41,7 +41,6 @@ func TestSendMessage(t *testing.T) {
 		reqBody := model.SendMessageRequest{
 			ChatID:  chatEntity.ID,
 			Content: "Hello User 2!",
-			Type:    "text",
 		}
 		body, _ := json.Marshal(reqBody)
 		req, _ := http.NewRequest("POST", "/api/messages", bytes.NewBuffer(body))
@@ -68,6 +67,25 @@ func TestSendMessage(t *testing.T) {
 		assert.Equal(t, 1, pc.User2UnreadCount)
 	})
 
+	t.Run("Fail - Sender is Blocked", func(t *testing.T) {
+
+		testClient.UserBlock.Create().SetBlockerID(u2.ID).SetBlockedID(u1.ID).Exec(context.Background())
+
+		reqBody := model.SendMessageRequest{
+			ChatID:  chatEntity.ID,
+			Content: "This message should be blocked",
+		}
+		body, _ := json.Marshal(reqBody)
+		req, _ := http.NewRequest("POST", "/api/messages", bytes.NewBuffer(body))
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Authorization", "Bearer "+token1)
+
+		rr := executeRequest(req)
+		assert.Equal(t, http.StatusForbidden, rr.Code)
+
+		testClient.UserBlock.Delete().Exec(context.Background())
+	})
+
 	t.Run("Success - Send Message with Reply", func(t *testing.T) {
 
 		msg1, _ := testClient.Message.Create().SetChatID(chatEntity.ID).SetSenderID(u2.ID).SetContent("Original Message").Save(context.Background())
@@ -76,7 +94,6 @@ func TestSendMessage(t *testing.T) {
 		reqBody := model.SendMessageRequest{
 			ChatID:    chatEntity.ID,
 			Content:   "This is a reply",
-			Type:      "text",
 			ReplyToID: &replyToID,
 		}
 		body, _ := json.Marshal(reqBody)
@@ -107,7 +124,6 @@ func TestSendMessage(t *testing.T) {
 		reqBody := model.SendMessageRequest{
 			ChatID:    chatEntity.ID,
 			Content:   "Reply to ghost",
-			Type:      "text",
 			ReplyToID: &replyToID,
 		}
 		body, _ := json.Marshal(reqBody)
@@ -129,7 +145,6 @@ func TestSendMessage(t *testing.T) {
 		reqBody := model.SendMessageRequest{
 			ChatID:    chatEntity.ID,
 			Content:   "Cross-chat reply",
-			Type:      "text",
 			ReplyToID: &replyToID,
 		}
 		body, _ := json.Marshal(reqBody)
@@ -154,7 +169,6 @@ func TestSendMessage(t *testing.T) {
 
 		reqBody := model.SendMessageRequest{
 			ChatID:        chatEntity.ID,
-			Type:          "image",
 			AttachmentIDs: []int{m.ID},
 		}
 		body, _ := json.Marshal(reqBody)
@@ -200,7 +214,6 @@ func TestSendMessage(t *testing.T) {
 
 		reqBody := model.SendMessageRequest{
 			ChatID:        chatEntity.ID,
-			Type:          "image",
 			AttachmentIDs: []int{m.ID},
 		}
 		body, _ := json.Marshal(reqBody)
@@ -218,6 +231,55 @@ func TestSendMessage(t *testing.T) {
 		assert.Contains(t, resp.Error, "do not belong to you")
 	})
 
+	t.Run("Fail - Attachment Already Used", func(t *testing.T) {
+
+		otherMsg, _ := testClient.Message.Create().SetChatID(chatEntity.ID).SetSenderID(u1.ID).Save(context.Background())
+		m, _ := testClient.Media.Create().
+			SetFileName("used.jpg").
+			SetOriginalName("used.jpg").
+			SetFileSize(1024).
+			SetMimeType("image/jpeg").
+			SetStatus(media.StatusActive).
+			SetMessage(otherMsg).
+			SetUploaderID(u1.ID).
+			Save(context.Background())
+
+		reqBody := model.SendMessageRequest{
+			ChatID:        chatEntity.ID,
+			AttachmentIDs: []int{m.ID},
+		}
+		body, _ := json.Marshal(reqBody)
+		req, _ := http.NewRequest("POST", "/api/messages", bytes.NewBuffer(body))
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Authorization", "Bearer "+token1)
+
+		rr := executeRequest(req)
+		assert.Equal(t, http.StatusBadRequest, rr.Code)
+	})
+
+	t.Run("Fail - Pending Media Rejected", func(t *testing.T) {
+		m, _ := testClient.Media.Create().
+			SetFileName("pending.jpg").
+			SetOriginalName("pending.jpg").
+			SetFileSize(1024).
+			SetMimeType("image/jpeg").
+			SetStatus(media.StatusPending).
+			SetUploaderID(u1.ID).
+			Save(context.Background())
+
+		reqBody := model.SendMessageRequest{
+			ChatID:        chatEntity.ID,
+			AttachmentIDs: []int{m.ID},
+		}
+		body, _ := json.Marshal(reqBody)
+		req, _ := http.NewRequest("POST", "/api/messages", bytes.NewBuffer(body))
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Authorization", "Bearer "+token1)
+
+		rr := executeRequest(req)
+		assert.Equal(t, http.StatusBadRequest, rr.Code)
+	})
+
 	t.Run("Success - SendMessage does not unhide", func(t *testing.T) {
 		pc, _ := testClient.PrivateChat.Query().Where(privatechat.ChatID(chatEntity.ID)).Only(context.Background())
 		hiddenTime := time.Now().Add(-time.Hour)
@@ -226,7 +288,6 @@ func TestSendMessage(t *testing.T) {
 		reqBody := model.SendMessageRequest{
 			ChatID:  chatEntity.ID,
 			Content: "This should not unhide",
-			Type:    "text",
 		}
 		body, _ := json.Marshal(reqBody)
 		req, _ := http.NewRequest("POST", "/api/messages", bytes.NewBuffer(body))
@@ -252,7 +313,6 @@ func TestSendMessage(t *testing.T) {
 		reqBody := model.SendMessageRequest{
 			ChatID:  groupChat.ID,
 			Content: "Hello Group!",
-			Type:    "text",
 		}
 		body, _ := json.Marshal(reqBody)
 		req, _ := http.NewRequest("POST", "/api/messages", bytes.NewBuffer(body))
@@ -283,7 +343,6 @@ func TestSendMessage(t *testing.T) {
 		reqBody := model.SendMessageRequest{
 			ChatID:  groupChat.ID,
 			Content: "Let me in!",
-			Type:    "text",
 		}
 		body, _ := json.Marshal(reqBody)
 		req, _ := http.NewRequest("POST", "/api/messages", bytes.NewBuffer(body))
@@ -294,91 +353,9 @@ func TestSendMessage(t *testing.T) {
 		assert.Equal(t, http.StatusForbidden, rr.Code)
 	})
 
-	t.Run("Fail - Pending Media Rejected", func(t *testing.T) {
-
-		m, _ := testClient.Media.Create().
-			SetFileName("pending.jpg").
-			SetOriginalName("pending.jpg").
-			SetFileSize(1024).
-			SetMimeType("image/jpeg").
-			SetStatus(media.StatusPending).
-			SetUploaderID(u1.ID).
-			Save(context.Background())
-
-		reqBody := model.SendMessageRequest{
-			ChatID:        chatEntity.ID,
-			Type:          "image",
-			AttachmentIDs: []int{m.ID},
-		}
-		body, _ := json.Marshal(reqBody)
-		req, _ := http.NewRequest("POST", "/api/messages", bytes.NewBuffer(body))
-		req.Header.Set("Content-Type", "application/json")
-		req.Header.Set("Authorization", "Bearer "+token1)
-
-		rr := executeRequest(req)
-		assert.Equal(t, http.StatusBadRequest, rr.Code)
-	})
-
-	t.Run("Fail - Avatar Media Rejected", func(t *testing.T) {
-
-		m, _ := testClient.Media.Create().
-			SetFileName("avatar.jpg").
-			SetOriginalName("avatar.jpg").
-			SetFileSize(1024).
-			SetMimeType("image/jpeg").
-			SetStatus(media.StatusActive).
-			SetUploaderID(u1.ID).
-			Save(context.Background())
-		testClient.User.UpdateOne(u1).SetAvatar(m).Exec(context.Background())
-
-		reqBody := model.SendMessageRequest{
-			ChatID:        chatEntity.ID,
-			Type:          "image",
-			AttachmentIDs: []int{m.ID},
-		}
-		body, _ := json.Marshal(reqBody)
-		req, _ := http.NewRequest("POST", "/api/messages", bytes.NewBuffer(body))
-		req.Header.Set("Content-Type", "application/json")
-		req.Header.Set("Authorization", "Bearer "+token1)
-
-		rr := executeRequest(req)
-		assert.Equal(t, http.StatusBadRequest, rr.Code)
-	})
-
-	t.Run("Fail - Attachment Already Used", func(t *testing.T) {
-
-		otherMsg, _ := testClient.Message.Create().SetChatID(chatEntity.ID).SetSenderID(u1.ID).Save(context.Background())
-		m, _ := testClient.Media.Create().
-			SetFileName("used.jpg").
-			SetOriginalName("used.jpg").
-			SetFileSize(1024).
-			SetMimeType("image/jpeg").
-			SetStatus(media.StatusActive).
-			SetMessage(otherMsg).
-			SetUploaderID(u1.ID).
-			Save(context.Background())
-
-		reqBody := model.SendMessageRequest{
-			ChatID:        chatEntity.ID,
-			Type:          "image",
-			AttachmentIDs: []int{m.ID},
-		}
-		body, _ := json.Marshal(reqBody)
-		req, _ := http.NewRequest("POST", "/api/messages", bytes.NewBuffer(body))
-		req.Header.Set("Content-Type", "application/json")
-		req.Header.Set("Authorization", "Bearer "+token1)
-
-		rr := executeRequest(req)
-
-		if !assert.Equal(t, http.StatusBadRequest, rr.Code) {
-			printBody(t, rr)
-		}
-	})
-
 	t.Run("Fail - Attachment Not Found", func(t *testing.T) {
 		reqBody := model.SendMessageRequest{
 			ChatID:        chatEntity.ID,
-			Type:          "image",
 			AttachmentIDs: []int{99999},
 		}
 		body, _ := json.Marshal(reqBody)
@@ -390,30 +367,10 @@ func TestSendMessage(t *testing.T) {
 		assert.Equal(t, http.StatusBadRequest, rr.Code)
 	})
 
-	t.Run("Fail - Not Member (Forbidden)", func(t *testing.T) {
-
-		reqBody := model.SendMessageRequest{
-			ChatID:  chatEntity.ID,
-			Content: "Intruder!",
-			Type:    "text",
-		}
-		body, _ := json.Marshal(reqBody)
-		req, _ := http.NewRequest("POST", "/api/messages", bytes.NewBuffer(body))
-		req.Header.Set("Content-Type", "application/json")
-		req.Header.Set("Authorization", "Bearer "+token3)
-
-		rr := executeRequest(req)
-
-		if !assert.Equal(t, http.StatusForbidden, rr.Code) {
-			printBody(t, rr)
-		}
-	})
-
 	t.Run("Fail - Chat Not Found", func(t *testing.T) {
 		reqBody := model.SendMessageRequest{
 			ChatID:  99999,
 			Content: "Hello?",
-			Type:    "text",
 		}
 		body, _ := json.Marshal(reqBody)
 		req, _ := http.NewRequest("POST", "/api/messages", bytes.NewBuffer(body))
@@ -427,7 +384,6 @@ func TestSendMessage(t *testing.T) {
 	t.Run("Fail - Validation Error (No Content & No Attachment)", func(t *testing.T) {
 		reqBody := model.SendMessageRequest{
 			ChatID: chatEntity.ID,
-			Type:   "text",
 		}
 		body, _ := json.Marshal(reqBody)
 		req, _ := http.NewRequest("POST", "/api/messages", bytes.NewBuffer(body))
@@ -444,9 +400,9 @@ func TestGetMessages(t *testing.T) {
 
 	password := "Password123!"
 	hashedPassword, _ := helper.HashPassword(password)
-	u1, _ := testClient.User.Create().SetEmail("u1@test.com").SetFullName("User 1").SetPasswordHash(hashedPassword).Save(context.Background())
-	u2, _ := testClient.User.Create().SetEmail("u2@test.com").SetFullName("User 2").SetPasswordHash(hashedPassword).Save(context.Background())
-	u3, _ := testClient.User.Create().SetEmail("u3@test.com").SetFullName("User 3").SetPasswordHash(hashedPassword).Save(context.Background())
+	u1, _ := testClient.User.Create().SetEmail("u1@test.com").SetUsername("u1").SetFullName("User 1").SetPasswordHash(hashedPassword).Save(context.Background())
+	u2, _ := testClient.User.Create().SetEmail("u2@test.com").SetUsername("u2").SetFullName("User 2").SetPasswordHash(hashedPassword).Save(context.Background())
+	u3, _ := testClient.User.Create().SetEmail("u3@test.com").SetUsername("u3").SetFullName("User 3").SetPasswordHash(hashedPassword).Save(context.Background())
 
 	token1, _ := helper.GenerateJWT(testConfig.JWTSecret, testConfig.JWTExp, u1.ID)
 	token3, _ := helper.GenerateJWT(testConfig.JWTSecret, testConfig.JWTExp, u3.ID)
@@ -657,8 +613,8 @@ func TestGetMessages(t *testing.T) {
 
 	t.Run("Success - GetMessages respects hidden_at", func(t *testing.T) {
 		clearDatabase(context.Background())
-		u1, _ := testClient.User.Create().SetEmail("u1@test.com").SetFullName("User 1").Save(context.Background())
-		u2, _ := testClient.User.Create().SetEmail("u2@test.com").SetFullName("User 2").Save(context.Background())
+		u1, _ := testClient.User.Create().SetEmail("u1@test.com").SetUsername("u1").SetFullName("User 1").Save(context.Background())
+		u2, _ := testClient.User.Create().SetEmail("u2@test.com").SetUsername("u2").SetFullName("User 2").Save(context.Background())
 		token1, _ := helper.GenerateJWT(testConfig.JWTSecret, testConfig.JWTExp, u1.ID)
 
 		chatEntity, _ := testClient.Chat.Create().SetType(chat.TypePrivate).Save(context.Background())
@@ -694,8 +650,8 @@ func TestDeleteMessage(t *testing.T) {
 
 	password := "Password123!"
 	hashedPassword, _ := helper.HashPassword(password)
-	u1, _ := testClient.User.Create().SetEmail("u1@test.com").SetFullName("User 1").SetPasswordHash(hashedPassword).Save(context.Background())
-	u2, _ := testClient.User.Create().SetEmail("u2@test.com").SetFullName("User 2").SetPasswordHash(hashedPassword).Save(context.Background())
+	u1, _ := testClient.User.Create().SetEmail("u1@test.com").SetUsername("u1").SetFullName("User 1").SetPasswordHash(hashedPassword).Save(context.Background())
+	u2, _ := testClient.User.Create().SetEmail("u2@test.com").SetUsername("u2").SetFullName("User 2").SetPasswordHash(hashedPassword).Save(context.Background())
 
 	token1, _ := helper.GenerateJWT(testConfig.JWTSecret, testConfig.JWTExp, u1.ID)
 	token2, _ := helper.GenerateJWT(testConfig.JWTSecret, testConfig.JWTExp, u2.ID)

@@ -3,12 +3,11 @@ package service
 import (
 	"AtoiTalkAPI/ent"
 	"AtoiTalkAPI/ent/chat"
-	"AtoiTalkAPI/ent/groupchat"
 	"AtoiTalkAPI/ent/groupmember"
 	"AtoiTalkAPI/ent/media"
 	"AtoiTalkAPI/ent/message"
-	"AtoiTalkAPI/ent/privatechat"
 	"AtoiTalkAPI/ent/user"
+	"AtoiTalkAPI/ent/userblock"
 	"AtoiTalkAPI/internal/adapter"
 	"AtoiTalkAPI/internal/config"
 	"AtoiTalkAPI/internal/helper"
@@ -59,38 +58,64 @@ func (s *MessageService) SendMessage(ctx context.Context, userID int, req model.
 		}
 	}()
 
-	exists, err := tx.Chat.Query().
-		Where(
-			chat.ID(req.ChatID),
-			chat.Or(
-				chat.HasPrivateChatWith(
-					privatechat.Or(
-						privatechat.User1ID(userID),
-						privatechat.User2ID(userID),
-					),
-				),
-				chat.HasGroupChatWith(
-					groupchat.HasMembersWith(
-						groupmember.UserID(userID),
-					),
-				),
-			),
-		).
-		Exist(ctx)
+	chatInfo, err := tx.Chat.Query().
+		Where(chat.ID(req.ChatID)).
+		ForUpdate().
+		WithPrivateChat().
+		WithGroupChat(func(q *ent.GroupChatQuery) {
+			q.WithMembers(func(mq *ent.GroupMemberQuery) {
+				mq.Where(groupmember.UserID(userID))
+			})
+		}).
+		Only(ctx)
 
 	if err != nil {
-		slog.Error("Failed to check chat membership", "error", err, "chatID", req.ChatID)
+		if ent.IsNotFound(err) {
+			return nil, helper.NewNotFoundError("Chat not found")
+		}
+		slog.Error("Failed to query chat info with lock", "error", err, "chatID", req.ChatID)
 		return nil, helper.NewInternalServerError("")
 	}
 
-	if !exists {
-
-		chatExists, _ := tx.Chat.Query().Where(chat.ID(req.ChatID)).Exist(ctx)
-
-		if !chatExists {
-			return nil, helper.NewNotFoundError("")
+	if chatInfo.Type == chat.TypePrivate && chatInfo.Edges.PrivateChat != nil {
+		pc := chatInfo.Edges.PrivateChat
+		var otherUserID int
+		if pc.User1ID == userID {
+			otherUserID = pc.User2ID
+		} else if pc.User2ID == userID {
+			otherUserID = pc.User1ID
+		} else {
+			return nil, helper.NewForbiddenError("You are not part of this chat")
 		}
-		return nil, helper.NewForbiddenError("")
+
+		isBlocked, err := tx.UserBlock.Query().
+			Where(
+				userblock.Or(
+					userblock.And(
+						userblock.BlockerID(userID),
+						userblock.BlockedID(otherUserID),
+					),
+					userblock.And(
+						userblock.BlockerID(otherUserID),
+						userblock.BlockedID(userID),
+					),
+				),
+			).
+			Exist(ctx)
+		if err != nil {
+			slog.Error("Failed to check block status", "error", err)
+			return nil, helper.NewInternalServerError("")
+		}
+		if isBlocked {
+			return nil, helper.NewForbiddenError("Cannot send message to a blocked user")
+		}
+
+	} else if chatInfo.Type == chat.TypeGroup && chatInfo.Edges.GroupChat != nil {
+		if len(chatInfo.Edges.GroupChat.Edges.Members) == 0 {
+			return nil, helper.NewForbiddenError("You are not a member of this group")
+		}
+	} else {
+		return nil, helper.NewInternalServerError("Invalid chat state")
 	}
 
 	if req.ReplyToID != nil {
@@ -107,12 +132,11 @@ func (s *MessageService) SendMessage(ctx context.Context, userID int, req model.
 			return nil, helper.NewInternalServerError("")
 		}
 		if !replyMsgExists {
-			return nil, helper.NewBadRequestError("")
+			return nil, helper.NewBadRequestError("Reply message not found")
 		}
 	}
 
 	if len(req.AttachmentIDs) > 0 {
-
 		count, err := tx.Media.Query().
 			Where(
 				media.IDIn(req.AttachmentIDs...),
@@ -153,18 +177,25 @@ func (s *MessageService) SendMessage(ctx context.Context, userID int, req model.
 		return nil, helper.NewInternalServerError("")
 	}
 
-	pc, err := tx.PrivateChat.Query().
-		Where(privatechat.ChatID(req.ChatID)).
-		Only(ctx)
+	if chatInfo.LastMessageID == nil || *chatInfo.LastMessageID < msg.ID {
+		err = tx.Chat.UpdateOne(chatInfo).
+			SetLastMessageID(msg.ID).
+			SetLastMessageAt(msg.CreatedAt).
+			Exec(ctx)
+		if err != nil {
+			slog.Error("Failed to update chat last message", "error", err)
 
-	if err == nil && pc != nil {
+		}
+	}
+
+	if chatInfo.Type == chat.TypePrivate && chatInfo.Edges.PrivateChat != nil {
+		pc := chatInfo.Edges.PrivateChat
 		update := tx.PrivateChat.UpdateOneID(pc.ID)
 
 		if pc.User1ID == userID {
 			update.SetUser1LastReadAt(time.Now())
 			update.SetUser1UnreadCount(0)
 			update.AddUser2UnreadCount(1)
-
 		} else {
 			update.SetUser2LastReadAt(time.Now())
 			update.SetUser2UnreadCount(0)
@@ -174,13 +205,10 @@ func (s *MessageService) SendMessage(ctx context.Context, userID int, req model.
 		if err := update.Exec(ctx); err != nil {
 			slog.Error("Failed to update private chat counters", "error", err)
 		}
-	} else if !ent.IsNotFound(err) {
-		slog.Error("Failed to query private chat for metadata update", "error", err)
 	}
 
-	gc, err := tx.GroupChat.Query().Where(groupchat.ChatID(req.ChatID)).Only(ctx)
-	if err == nil && gc != nil {
-
+	if chatInfo.Type == chat.TypeGroup && chatInfo.Edges.GroupChat != nil {
+		gc := chatInfo.Edges.GroupChat
 		err := tx.GroupMember.Update().
 			Where(
 				groupmember.GroupChatID(gc.ID),
@@ -207,13 +235,6 @@ func (s *MessageService) SendMessage(ctx context.Context, userID int, req model.
 		}
 	}
 
-	err = tx.Chat.UpdateOneID(req.ChatID).
-		SetUpdatedAt(time.Now()).
-		Exec(ctx)
-	if err != nil {
-		slog.Error("Failed to update chat timestamp", "error", err)
-	}
-
 	if err := tx.Commit(); err != nil {
 		slog.Error("Failed to commit transaction", "error", err)
 		return nil, helper.NewInternalServerError("")
@@ -224,7 +245,10 @@ func (s *MessageService) SendMessage(ctx context.Context, userID int, req model.
 		WithSender().
 		WithAttachments().
 		WithReplyTo(func(q *ent.MessageQuery) {
-			q.WithSender().WithAttachments()
+			q.WithSender()
+			q.WithAttachments(func(aq *ent.MediaQuery) {
+				aq.Limit(1)
+			})
 		}).
 		Only(ctx)
 
@@ -299,7 +323,10 @@ func (s *MessageService) GetMessages(ctx context.Context, userID int, req model.
 		WithSender().
 		WithAttachments().
 		WithReplyTo(func(q *ent.MessageQuery) {
-			q.WithSender().WithAttachments()
+			q.WithSender()
+			q.WithAttachments(func(aq *ent.MediaQuery) {
+				aq.Limit(1)
+			})
 		})
 
 	if req.Cursor > 0 {

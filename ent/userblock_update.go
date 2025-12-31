@@ -19,8 +19,9 @@ import (
 // UserBlockUpdate is the builder for updating UserBlock entities.
 type UserBlockUpdate struct {
 	config
-	hooks    []Hook
-	mutation *UserBlockMutation
+	hooks     []Hook
+	mutation  *UserBlockMutation
+	modifiers []func(*sql.UpdateBuilder)
 }
 
 // Where appends a list predicates to the UserBlockUpdate builder.
@@ -137,6 +138,12 @@ func (_u *UserBlockUpdate) check() error {
 	return nil
 }
 
+// Modify adds a statement modifier for attaching custom logic to the UPDATE statement.
+func (_u *UserBlockUpdate) Modify(modifiers ...func(u *sql.UpdateBuilder)) *UserBlockUpdate {
+	_u.modifiers = append(_u.modifiers, modifiers...)
+	return _u
+}
+
 func (_u *UserBlockUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	if err := _u.check(); err != nil {
 		return _node, err
@@ -210,6 +217,7 @@ func (_u *UserBlockUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
+	_spec.AddModifiers(_u.modifiers...)
 	if _node, err = sqlgraph.UpdateNodes(ctx, _u.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{userblock.Label}
@@ -225,9 +233,10 @@ func (_u *UserBlockUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 // UserBlockUpdateOne is the builder for updating a single UserBlock entity.
 type UserBlockUpdateOne struct {
 	config
-	fields   []string
-	hooks    []Hook
-	mutation *UserBlockMutation
+	fields    []string
+	hooks     []Hook
+	mutation  *UserBlockMutation
+	modifiers []func(*sql.UpdateBuilder)
 }
 
 // SetUpdatedAt sets the "updated_at" field.
@@ -351,6 +360,12 @@ func (_u *UserBlockUpdateOne) check() error {
 	return nil
 }
 
+// Modify adds a statement modifier for attaching custom logic to the UPDATE statement.
+func (_u *UserBlockUpdateOne) Modify(modifiers ...func(u *sql.UpdateBuilder)) *UserBlockUpdateOne {
+	_u.modifiers = append(_u.modifiers, modifiers...)
+	return _u
+}
+
 func (_u *UserBlockUpdateOne) sqlSave(ctx context.Context) (_node *UserBlock, err error) {
 	if err := _u.check(); err != nil {
 		return _node, err
@@ -441,6 +456,7 @@ func (_u *UserBlockUpdateOne) sqlSave(ctx context.Context) (_node *UserBlock, er
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
+	_spec.AddModifiers(_u.modifiers...)
 	_node = &UserBlock{config: _u.config}
 	_spec.Assign = _node.assignValues
 	_spec.ScanValues = _node.scanValues

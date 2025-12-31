@@ -21,8 +21,9 @@ import (
 // ChatUpdate is the builder for updating Chat entities.
 type ChatUpdate struct {
 	config
-	hooks    []Hook
-	mutation *ChatMutation
+	hooks     []Hook
+	mutation  *ChatMutation
+	modifiers []func(*sql.UpdateBuilder)
 }
 
 // Where appends a list predicates to the ChatUpdate builder.
@@ -34,6 +35,46 @@ func (_u *ChatUpdate) Where(ps ...predicate.Chat) *ChatUpdate {
 // SetUpdatedAt sets the "updated_at" field.
 func (_u *ChatUpdate) SetUpdatedAt(v time.Time) *ChatUpdate {
 	_u.mutation.SetUpdatedAt(v)
+	return _u
+}
+
+// SetLastMessageID sets the "last_message_id" field.
+func (_u *ChatUpdate) SetLastMessageID(v int) *ChatUpdate {
+	_u.mutation.SetLastMessageID(v)
+	return _u
+}
+
+// SetNillableLastMessageID sets the "last_message_id" field if the given value is not nil.
+func (_u *ChatUpdate) SetNillableLastMessageID(v *int) *ChatUpdate {
+	if v != nil {
+		_u.SetLastMessageID(*v)
+	}
+	return _u
+}
+
+// ClearLastMessageID clears the value of the "last_message_id" field.
+func (_u *ChatUpdate) ClearLastMessageID() *ChatUpdate {
+	_u.mutation.ClearLastMessageID()
+	return _u
+}
+
+// SetLastMessageAt sets the "last_message_at" field.
+func (_u *ChatUpdate) SetLastMessageAt(v time.Time) *ChatUpdate {
+	_u.mutation.SetLastMessageAt(v)
+	return _u
+}
+
+// SetNillableLastMessageAt sets the "last_message_at" field if the given value is not nil.
+func (_u *ChatUpdate) SetNillableLastMessageAt(v *time.Time) *ChatUpdate {
+	if v != nil {
+		_u.SetLastMessageAt(*v)
+	}
+	return _u
+}
+
+// ClearLastMessageAt clears the value of the "last_message_at" field.
+func (_u *ChatUpdate) ClearLastMessageAt() *ChatUpdate {
+	_u.mutation.ClearLastMessageAt()
 	return _u
 }
 
@@ -90,6 +131,11 @@ func (_u *ChatUpdate) SetGroupChat(v *GroupChat) *ChatUpdate {
 	return _u.SetGroupChatID(v.ID)
 }
 
+// SetLastMessage sets the "last_message" edge to the Message entity.
+func (_u *ChatUpdate) SetLastMessage(v *Message) *ChatUpdate {
+	return _u.SetLastMessageID(v.ID)
+}
+
 // Mutation returns the ChatMutation object of the builder.
 func (_u *ChatUpdate) Mutation() *ChatMutation {
 	return _u.mutation
@@ -125,6 +171,12 @@ func (_u *ChatUpdate) ClearPrivateChat() *ChatUpdate {
 // ClearGroupChat clears the "group_chat" edge to the GroupChat entity.
 func (_u *ChatUpdate) ClearGroupChat() *ChatUpdate {
 	_u.mutation.ClearGroupChat()
+	return _u
+}
+
+// ClearLastMessage clears the "last_message" edge to the Message entity.
+func (_u *ChatUpdate) ClearLastMessage() *ChatUpdate {
+	_u.mutation.ClearLastMessage()
 	return _u
 }
 
@@ -164,6 +216,12 @@ func (_u *ChatUpdate) defaults() {
 	}
 }
 
+// Modify adds a statement modifier for attaching custom logic to the UPDATE statement.
+func (_u *ChatUpdate) Modify(modifiers ...func(u *sql.UpdateBuilder)) *ChatUpdate {
+	_u.modifiers = append(_u.modifiers, modifiers...)
+	return _u
+}
+
 func (_u *ChatUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	_spec := sqlgraph.NewUpdateSpec(chat.Table, chat.Columns, sqlgraph.NewFieldSpec(chat.FieldID, field.TypeInt))
 	if ps := _u.mutation.predicates; len(ps) > 0 {
@@ -175,6 +233,12 @@ func (_u *ChatUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	}
 	if value, ok := _u.mutation.UpdatedAt(); ok {
 		_spec.SetField(chat.FieldUpdatedAt, field.TypeTime, value)
+	}
+	if value, ok := _u.mutation.LastMessageAt(); ok {
+		_spec.SetField(chat.FieldLastMessageAt, field.TypeTime, value)
+	}
+	if _u.mutation.LastMessageAtCleared() {
+		_spec.ClearField(chat.FieldLastMessageAt, field.TypeTime)
 	}
 	if _u.mutation.MessagesCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -279,6 +343,36 @@ func (_u *ChatUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
+	if _u.mutation.LastMessageCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: false,
+			Table:   chat.LastMessageTable,
+			Columns: []string{chat.LastMessageColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(message.FieldID, field.TypeInt),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.LastMessageIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: false,
+			Table:   chat.LastMessageTable,
+			Columns: []string{chat.LastMessageColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(message.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	_spec.AddModifiers(_u.modifiers...)
 	if _node, err = sqlgraph.UpdateNodes(ctx, _u.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{chat.Label}
@@ -294,14 +388,55 @@ func (_u *ChatUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 // ChatUpdateOne is the builder for updating a single Chat entity.
 type ChatUpdateOne struct {
 	config
-	fields   []string
-	hooks    []Hook
-	mutation *ChatMutation
+	fields    []string
+	hooks     []Hook
+	mutation  *ChatMutation
+	modifiers []func(*sql.UpdateBuilder)
 }
 
 // SetUpdatedAt sets the "updated_at" field.
 func (_u *ChatUpdateOne) SetUpdatedAt(v time.Time) *ChatUpdateOne {
 	_u.mutation.SetUpdatedAt(v)
+	return _u
+}
+
+// SetLastMessageID sets the "last_message_id" field.
+func (_u *ChatUpdateOne) SetLastMessageID(v int) *ChatUpdateOne {
+	_u.mutation.SetLastMessageID(v)
+	return _u
+}
+
+// SetNillableLastMessageID sets the "last_message_id" field if the given value is not nil.
+func (_u *ChatUpdateOne) SetNillableLastMessageID(v *int) *ChatUpdateOne {
+	if v != nil {
+		_u.SetLastMessageID(*v)
+	}
+	return _u
+}
+
+// ClearLastMessageID clears the value of the "last_message_id" field.
+func (_u *ChatUpdateOne) ClearLastMessageID() *ChatUpdateOne {
+	_u.mutation.ClearLastMessageID()
+	return _u
+}
+
+// SetLastMessageAt sets the "last_message_at" field.
+func (_u *ChatUpdateOne) SetLastMessageAt(v time.Time) *ChatUpdateOne {
+	_u.mutation.SetLastMessageAt(v)
+	return _u
+}
+
+// SetNillableLastMessageAt sets the "last_message_at" field if the given value is not nil.
+func (_u *ChatUpdateOne) SetNillableLastMessageAt(v *time.Time) *ChatUpdateOne {
+	if v != nil {
+		_u.SetLastMessageAt(*v)
+	}
+	return _u
+}
+
+// ClearLastMessageAt clears the value of the "last_message_at" field.
+func (_u *ChatUpdateOne) ClearLastMessageAt() *ChatUpdateOne {
+	_u.mutation.ClearLastMessageAt()
 	return _u
 }
 
@@ -358,6 +493,11 @@ func (_u *ChatUpdateOne) SetGroupChat(v *GroupChat) *ChatUpdateOne {
 	return _u.SetGroupChatID(v.ID)
 }
 
+// SetLastMessage sets the "last_message" edge to the Message entity.
+func (_u *ChatUpdateOne) SetLastMessage(v *Message) *ChatUpdateOne {
+	return _u.SetLastMessageID(v.ID)
+}
+
 // Mutation returns the ChatMutation object of the builder.
 func (_u *ChatUpdateOne) Mutation() *ChatMutation {
 	return _u.mutation
@@ -393,6 +533,12 @@ func (_u *ChatUpdateOne) ClearPrivateChat() *ChatUpdateOne {
 // ClearGroupChat clears the "group_chat" edge to the GroupChat entity.
 func (_u *ChatUpdateOne) ClearGroupChat() *ChatUpdateOne {
 	_u.mutation.ClearGroupChat()
+	return _u
+}
+
+// ClearLastMessage clears the "last_message" edge to the Message entity.
+func (_u *ChatUpdateOne) ClearLastMessage() *ChatUpdateOne {
+	_u.mutation.ClearLastMessage()
 	return _u
 }
 
@@ -445,6 +591,12 @@ func (_u *ChatUpdateOne) defaults() {
 	}
 }
 
+// Modify adds a statement modifier for attaching custom logic to the UPDATE statement.
+func (_u *ChatUpdateOne) Modify(modifiers ...func(u *sql.UpdateBuilder)) *ChatUpdateOne {
+	_u.modifiers = append(_u.modifiers, modifiers...)
+	return _u
+}
+
 func (_u *ChatUpdateOne) sqlSave(ctx context.Context) (_node *Chat, err error) {
 	_spec := sqlgraph.NewUpdateSpec(chat.Table, chat.Columns, sqlgraph.NewFieldSpec(chat.FieldID, field.TypeInt))
 	id, ok := _u.mutation.ID()
@@ -473,6 +625,12 @@ func (_u *ChatUpdateOne) sqlSave(ctx context.Context) (_node *Chat, err error) {
 	}
 	if value, ok := _u.mutation.UpdatedAt(); ok {
 		_spec.SetField(chat.FieldUpdatedAt, field.TypeTime, value)
+	}
+	if value, ok := _u.mutation.LastMessageAt(); ok {
+		_spec.SetField(chat.FieldLastMessageAt, field.TypeTime, value)
+	}
+	if _u.mutation.LastMessageAtCleared() {
+		_spec.ClearField(chat.FieldLastMessageAt, field.TypeTime)
 	}
 	if _u.mutation.MessagesCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -577,6 +735,36 @@ func (_u *ChatUpdateOne) sqlSave(ctx context.Context) (_node *Chat, err error) {
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
+	if _u.mutation.LastMessageCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: false,
+			Table:   chat.LastMessageTable,
+			Columns: []string{chat.LastMessageColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(message.FieldID, field.TypeInt),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.LastMessageIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: false,
+			Table:   chat.LastMessageTable,
+			Columns: []string{chat.LastMessageColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(message.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	_spec.AddModifiers(_u.modifiers...)
 	_node = &Chat{config: _u.config}
 	_spec.Assign = _node.assignValues
 	_spec.ScanValues = _node.scanValues

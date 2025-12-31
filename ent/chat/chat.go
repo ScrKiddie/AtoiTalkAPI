@@ -21,12 +21,18 @@ const (
 	FieldUpdatedAt = "updated_at"
 	// FieldType holds the string denoting the type field in the database.
 	FieldType = "type"
+	// FieldLastMessageID holds the string denoting the last_message_id field in the database.
+	FieldLastMessageID = "last_message_id"
+	// FieldLastMessageAt holds the string denoting the last_message_at field in the database.
+	FieldLastMessageAt = "last_message_at"
 	// EdgeMessages holds the string denoting the messages edge name in mutations.
 	EdgeMessages = "messages"
 	// EdgePrivateChat holds the string denoting the private_chat edge name in mutations.
 	EdgePrivateChat = "private_chat"
 	// EdgeGroupChat holds the string denoting the group_chat edge name in mutations.
 	EdgeGroupChat = "group_chat"
+	// EdgeLastMessage holds the string denoting the last_message edge name in mutations.
+	EdgeLastMessage = "last_message"
 	// Table holds the table name of the chat in the database.
 	Table = "chats"
 	// MessagesTable is the table that holds the messages relation/edge.
@@ -50,6 +56,13 @@ const (
 	GroupChatInverseTable = "group_chats"
 	// GroupChatColumn is the table column denoting the group_chat relation/edge.
 	GroupChatColumn = "chat_id"
+	// LastMessageTable is the table that holds the last_message relation/edge.
+	LastMessageTable = "chats"
+	// LastMessageInverseTable is the table name for the Message entity.
+	// It exists in this package in order to avoid circular dependency with the "message" package.
+	LastMessageInverseTable = "messages"
+	// LastMessageColumn is the table column denoting the last_message relation/edge.
+	LastMessageColumn = "last_message_id"
 )
 
 // Columns holds all SQL columns for chat fields.
@@ -58,6 +71,8 @@ var Columns = []string{
 	FieldCreatedAt,
 	FieldUpdatedAt,
 	FieldType,
+	FieldLastMessageID,
+	FieldLastMessageAt,
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
@@ -125,6 +140,16 @@ func ByType(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldType, opts...).ToFunc()
 }
 
+// ByLastMessageID orders the results by the last_message_id field.
+func ByLastMessageID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldLastMessageID, opts...).ToFunc()
+}
+
+// ByLastMessageAt orders the results by the last_message_at field.
+func ByLastMessageAt(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldLastMessageAt, opts...).ToFunc()
+}
+
 // ByMessagesCount orders the results by messages count.
 func ByMessagesCount(opts ...sql.OrderTermOption) OrderOption {
 	return func(s *sql.Selector) {
@@ -152,6 +177,13 @@ func ByGroupChatField(field string, opts ...sql.OrderTermOption) OrderOption {
 		sqlgraph.OrderByNeighborTerms(s, newGroupChatStep(), sql.OrderByField(field, opts...))
 	}
 }
+
+// ByLastMessageField orders the results by last_message field.
+func ByLastMessageField(field string, opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newLastMessageStep(), sql.OrderByField(field, opts...))
+	}
+}
 func newMessagesStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
@@ -171,5 +203,12 @@ func newGroupChatStep() *sqlgraph.Step {
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(GroupChatInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.O2O, false, GroupChatTable, GroupChatColumn),
+	)
+}
+func newLastMessageStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(LastMessageInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.M2O, false, LastMessageTable, LastMessageColumn),
 	)
 }

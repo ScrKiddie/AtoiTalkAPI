@@ -65,6 +65,16 @@ func UpdatedAt(v time.Time) predicate.Chat {
 	return predicate.Chat(sql.FieldEQ(FieldUpdatedAt, v))
 }
 
+// LastMessageID applies equality check predicate on the "last_message_id" field. It's identical to LastMessageIDEQ.
+func LastMessageID(v int) predicate.Chat {
+	return predicate.Chat(sql.FieldEQ(FieldLastMessageID, v))
+}
+
+// LastMessageAt applies equality check predicate on the "last_message_at" field. It's identical to LastMessageAtEQ.
+func LastMessageAt(v time.Time) predicate.Chat {
+	return predicate.Chat(sql.FieldEQ(FieldLastMessageAt, v))
+}
+
 // CreatedAtEQ applies the EQ predicate on the "created_at" field.
 func CreatedAtEQ(v time.Time) predicate.Chat {
 	return predicate.Chat(sql.FieldEQ(FieldCreatedAt, v))
@@ -165,6 +175,86 @@ func TypeNotIn(vs ...Type) predicate.Chat {
 	return predicate.Chat(sql.FieldNotIn(FieldType, vs...))
 }
 
+// LastMessageIDEQ applies the EQ predicate on the "last_message_id" field.
+func LastMessageIDEQ(v int) predicate.Chat {
+	return predicate.Chat(sql.FieldEQ(FieldLastMessageID, v))
+}
+
+// LastMessageIDNEQ applies the NEQ predicate on the "last_message_id" field.
+func LastMessageIDNEQ(v int) predicate.Chat {
+	return predicate.Chat(sql.FieldNEQ(FieldLastMessageID, v))
+}
+
+// LastMessageIDIn applies the In predicate on the "last_message_id" field.
+func LastMessageIDIn(vs ...int) predicate.Chat {
+	return predicate.Chat(sql.FieldIn(FieldLastMessageID, vs...))
+}
+
+// LastMessageIDNotIn applies the NotIn predicate on the "last_message_id" field.
+func LastMessageIDNotIn(vs ...int) predicate.Chat {
+	return predicate.Chat(sql.FieldNotIn(FieldLastMessageID, vs...))
+}
+
+// LastMessageIDIsNil applies the IsNil predicate on the "last_message_id" field.
+func LastMessageIDIsNil() predicate.Chat {
+	return predicate.Chat(sql.FieldIsNull(FieldLastMessageID))
+}
+
+// LastMessageIDNotNil applies the NotNil predicate on the "last_message_id" field.
+func LastMessageIDNotNil() predicate.Chat {
+	return predicate.Chat(sql.FieldNotNull(FieldLastMessageID))
+}
+
+// LastMessageAtEQ applies the EQ predicate on the "last_message_at" field.
+func LastMessageAtEQ(v time.Time) predicate.Chat {
+	return predicate.Chat(sql.FieldEQ(FieldLastMessageAt, v))
+}
+
+// LastMessageAtNEQ applies the NEQ predicate on the "last_message_at" field.
+func LastMessageAtNEQ(v time.Time) predicate.Chat {
+	return predicate.Chat(sql.FieldNEQ(FieldLastMessageAt, v))
+}
+
+// LastMessageAtIn applies the In predicate on the "last_message_at" field.
+func LastMessageAtIn(vs ...time.Time) predicate.Chat {
+	return predicate.Chat(sql.FieldIn(FieldLastMessageAt, vs...))
+}
+
+// LastMessageAtNotIn applies the NotIn predicate on the "last_message_at" field.
+func LastMessageAtNotIn(vs ...time.Time) predicate.Chat {
+	return predicate.Chat(sql.FieldNotIn(FieldLastMessageAt, vs...))
+}
+
+// LastMessageAtGT applies the GT predicate on the "last_message_at" field.
+func LastMessageAtGT(v time.Time) predicate.Chat {
+	return predicate.Chat(sql.FieldGT(FieldLastMessageAt, v))
+}
+
+// LastMessageAtGTE applies the GTE predicate on the "last_message_at" field.
+func LastMessageAtGTE(v time.Time) predicate.Chat {
+	return predicate.Chat(sql.FieldGTE(FieldLastMessageAt, v))
+}
+
+// LastMessageAtLT applies the LT predicate on the "last_message_at" field.
+func LastMessageAtLT(v time.Time) predicate.Chat {
+	return predicate.Chat(sql.FieldLT(FieldLastMessageAt, v))
+}
+
+// LastMessageAtLTE applies the LTE predicate on the "last_message_at" field.
+func LastMessageAtLTE(v time.Time) predicate.Chat {
+	return predicate.Chat(sql.FieldLTE(FieldLastMessageAt, v))
+}
+
+// LastMessageAtIsNil applies the IsNil predicate on the "last_message_at" field.
+func LastMessageAtIsNil() predicate.Chat {
+	return predicate.Chat(sql.FieldIsNull(FieldLastMessageAt))
+}
+
+// LastMessageAtNotNil applies the NotNil predicate on the "last_message_at" field.
+func LastMessageAtNotNil() predicate.Chat {
+	return predicate.Chat(sql.FieldNotNull(FieldLastMessageAt))
+}
+
 // HasMessages applies the HasEdge predicate on the "messages" edge.
 func HasMessages() predicate.Chat {
 	return predicate.Chat(func(s *sql.Selector) {
@@ -226,6 +316,29 @@ func HasGroupChat() predicate.Chat {
 func HasGroupChatWith(preds ...predicate.GroupChat) predicate.Chat {
 	return predicate.Chat(func(s *sql.Selector) {
 		step := newGroupChatStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
+// HasLastMessage applies the HasEdge predicate on the "last_message" edge.
+func HasLastMessage() predicate.Chat {
+	return predicate.Chat(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, false, LastMessageTable, LastMessageColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasLastMessageWith applies the HasEdge predicate on the "last_message" edge with a given conditions (other predicates).
+func HasLastMessageWith(preds ...predicate.Message) predicate.Chat {
+	return predicate.Chat(func(s *sql.Selector) {
+		step := newLastMessageStep()
 		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
 			for _, p := range preds {
 				p(s)

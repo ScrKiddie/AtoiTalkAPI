@@ -1091,6 +1091,12 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
+                        "description": "Username",
+                        "name": "username",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
                         "description": "Full Name",
                         "name": "full_name",
                         "in": "formData",
@@ -1247,6 +1253,195 @@ const docTemplate = `{
                     }
                 }
             }
+        },
+        "/api/users/{id}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Get another user's profile by ID.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "user"
+                ],
+                "summary": "Get User Profile",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "User ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/helper.ResponseSuccess"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/model.UserDTO"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/users/{id}/block": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Block a user by their ID.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "user"
+                ],
+                "summary": "Block a User",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "User ID to block",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseSuccess"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/users/{id}/unblock": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Unblock a user by their ID.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "user"
+                ],
+                "summary": "Unblock a User",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "User ID to unblock",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseSuccess"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    }
+                }
+            }
         }
     },
     "definitions": {
@@ -1338,9 +1533,6 @@ const docTemplate = `{
                 },
                 "id": {
                     "type": "integer"
-                },
-                "is_pinned": {
-                    "type": "boolean"
                 },
                 "last_message": {
                     "$ref": "#/definitions/model.MessageResponse"
@@ -1475,7 +1667,8 @@ const docTemplate = `{
                 "code",
                 "email",
                 "full_name",
-                "password"
+                "password",
+                "username"
             ],
             "properties": {
                 "captcha_token": {
@@ -1496,6 +1689,11 @@ const docTemplate = `{
                     "type": "string",
                     "maxLength": 72,
                     "minLength": 8
+                },
+                "username": {
+                    "type": "string",
+                    "maxLength": 50,
+                    "minLength": 3
                 }
             }
         },
@@ -1545,8 +1743,7 @@ const docTemplate = `{
         "model.SendMessageRequest": {
             "type": "object",
             "required": [
-                "chat_id",
-                "type"
+                "chat_id"
             ],
             "properties": {
                 "attachment_ids": {
@@ -1563,16 +1760,6 @@ const docTemplate = `{
                 },
                 "reply_to_id": {
                     "type": "integer"
-                },
-                "type": {
-                    "type": "string",
-                    "enum": [
-                        "text",
-                        "image",
-                        "video",
-                        "file",
-                        "audio"
-                    ]
                 }
             }
         },
@@ -1618,6 +1805,9 @@ const docTemplate = `{
                 },
                 "private_chat_id": {
                     "type": "integer"
+                },
+                "username": {
+                    "type": "string"
                 }
             }
         }

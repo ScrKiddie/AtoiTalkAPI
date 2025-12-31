@@ -5,6 +5,7 @@ package ent
 import (
 	"AtoiTalkAPI/ent/chat"
 	"AtoiTalkAPI/ent/groupchat"
+	"AtoiTalkAPI/ent/message"
 	"AtoiTalkAPI/ent/privatechat"
 	"fmt"
 	"strings"
@@ -25,6 +26,10 @@ type Chat struct {
 	UpdatedAt time.Time `json:"updated_at,omitempty"`
 	// Type holds the value of the "type" field.
 	Type chat.Type `json:"type,omitempty"`
+	// LastMessageID holds the value of the "last_message_id" field.
+	LastMessageID *int `json:"last_message_id,omitempty"`
+	// LastMessageAt holds the value of the "last_message_at" field.
+	LastMessageAt *time.Time `json:"last_message_at,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the ChatQuery when eager-loading is set.
 	Edges        ChatEdges `json:"edges"`
@@ -39,9 +44,11 @@ type ChatEdges struct {
 	PrivateChat *PrivateChat `json:"private_chat,omitempty"`
 	// GroupChat holds the value of the group_chat edge.
 	GroupChat *GroupChat `json:"group_chat,omitempty"`
+	// LastMessage holds the value of the last_message edge.
+	LastMessage *Message `json:"last_message,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [3]bool
+	loadedTypes [4]bool
 }
 
 // MessagesOrErr returns the Messages value or an error if the edge
@@ -75,16 +82,27 @@ func (e ChatEdges) GroupChatOrErr() (*GroupChat, error) {
 	return nil, &NotLoadedError{edge: "group_chat"}
 }
 
+// LastMessageOrErr returns the LastMessage value or an error if the edge
+// was not loaded in eager-loading, or loaded but was not found.
+func (e ChatEdges) LastMessageOrErr() (*Message, error) {
+	if e.LastMessage != nil {
+		return e.LastMessage, nil
+	} else if e.loadedTypes[3] {
+		return nil, &NotFoundError{label: message.Label}
+	}
+	return nil, &NotLoadedError{edge: "last_message"}
+}
+
 // scanValues returns the types for scanning values from sql.Rows.
 func (*Chat) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case chat.FieldID:
+		case chat.FieldID, chat.FieldLastMessageID:
 			values[i] = new(sql.NullInt64)
 		case chat.FieldType:
 			values[i] = new(sql.NullString)
-		case chat.FieldCreatedAt, chat.FieldUpdatedAt:
+		case chat.FieldCreatedAt, chat.FieldUpdatedAt, chat.FieldLastMessageAt:
 			values[i] = new(sql.NullTime)
 		default:
 			values[i] = new(sql.UnknownType)
@@ -125,6 +143,20 @@ func (_m *Chat) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				_m.Type = chat.Type(value.String)
 			}
+		case chat.FieldLastMessageID:
+			if value, ok := values[i].(*sql.NullInt64); !ok {
+				return fmt.Errorf("unexpected type %T for field last_message_id", values[i])
+			} else if value.Valid {
+				_m.LastMessageID = new(int)
+				*_m.LastMessageID = int(value.Int64)
+			}
+		case chat.FieldLastMessageAt:
+			if value, ok := values[i].(*sql.NullTime); !ok {
+				return fmt.Errorf("unexpected type %T for field last_message_at", values[i])
+			} else if value.Valid {
+				_m.LastMessageAt = new(time.Time)
+				*_m.LastMessageAt = value.Time
+			}
 		default:
 			_m.selectValues.Set(columns[i], values[i])
 		}
@@ -151,6 +183,11 @@ func (_m *Chat) QueryPrivateChat() *PrivateChatQuery {
 // QueryGroupChat queries the "group_chat" edge of the Chat entity.
 func (_m *Chat) QueryGroupChat() *GroupChatQuery {
 	return NewChatClient(_m.config).QueryGroupChat(_m)
+}
+
+// QueryLastMessage queries the "last_message" edge of the Chat entity.
+func (_m *Chat) QueryLastMessage() *MessageQuery {
+	return NewChatClient(_m.config).QueryLastMessage(_m)
 }
 
 // Update returns a builder for updating this Chat.
@@ -184,6 +221,16 @@ func (_m *Chat) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("type=")
 	builder.WriteString(fmt.Sprintf("%v", _m.Type))
+	builder.WriteString(", ")
+	if v := _m.LastMessageID; v != nil {
+		builder.WriteString("last_message_id=")
+		builder.WriteString(fmt.Sprintf("%v", *v))
+	}
+	builder.WriteString(", ")
+	if v := _m.LastMessageAt; v != nil {
+		builder.WriteString("last_message_at=")
+		builder.WriteString(v.Format(time.ANSIC))
+	}
 	builder.WriteByte(')')
 	return builder.String()
 }

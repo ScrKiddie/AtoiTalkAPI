@@ -436,6 +436,22 @@ func (c *ChatClient) QueryGroupChat(_m *Chat) *GroupChatQuery {
 	return query
 }
 
+// QueryLastMessage queries the last_message edge of a Chat.
+func (c *ChatClient) QueryLastMessage(_m *Chat) *MessageQuery {
+	query := (&MessageClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(chat.Table, chat.FieldID, id),
+			sqlgraph.To(message.Table, message.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, false, chat.LastMessageTable, chat.LastMessageColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
 // Hooks returns the client hooks.
 func (c *ChatClient) Hooks() []Hook {
 	return c.hooks.Chat

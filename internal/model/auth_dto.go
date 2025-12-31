@@ -23,6 +23,7 @@ type SendOTPRequest struct {
 
 type RegisterUserRequest struct {
 	Email        string `json:"email" validate:"required,email"`
+	Username     string `json:"username" validate:"required,min=3,max=50,alphanum"`
 	Code         string `json:"code" validate:"required,len=6"`
 	FullName     string `json:"full_name" validate:"required,min=3,max=100"`
 	Password     string `json:"password" validate:"required,min=8,max=72,password_complexity"`

@@ -5,9 +5,9 @@ import (
 	"AtoiTalkAPI/ent/chat"
 	"AtoiTalkAPI/ent/groupchat"
 	"AtoiTalkAPI/ent/groupmember"
-	"AtoiTalkAPI/ent/message"
 	"AtoiTalkAPI/ent/privatechat"
 	"AtoiTalkAPI/ent/user"
+	"AtoiTalkAPI/ent/userblock"
 	"AtoiTalkAPI/internal/config"
 	"AtoiTalkAPI/internal/helper"
 	"AtoiTalkAPI/internal/model"
@@ -44,7 +44,7 @@ func (s *ChatService) CreatePrivateChat(ctx context.Context, userID int, req mod
 	}
 
 	if userID == req.TargetUserID {
-		return nil, helper.NewBadRequestError("")
+		return nil, helper.NewBadRequestError("Cannot create chat with yourself")
 	}
 
 	targetUserExists, err := s.client.User.Query().
@@ -56,6 +56,28 @@ func (s *ChatService) CreatePrivateChat(ctx context.Context, userID int, req mod
 	}
 	if !targetUserExists {
 		return nil, helper.NewNotFoundError("Target user not found")
+	}
+
+	isBlocked, err := s.client.UserBlock.Query().
+		Where(
+			userblock.Or(
+				userblock.And(
+					userblock.BlockerID(userID),
+					userblock.BlockedID(req.TargetUserID),
+				),
+				userblock.And(
+					userblock.BlockerID(req.TargetUserID),
+					userblock.BlockedID(userID),
+				),
+			),
+		).
+		Exist(ctx)
+	if err != nil {
+		slog.Error("Failed to check block status", "error", err)
+		return nil, helper.NewInternalServerError("")
+	}
+	if isBlocked {
+		return nil, helper.NewForbiddenError("Cannot create chat with a blocked user")
 	}
 
 	existingChat, err := s.client.PrivateChat.Query().
@@ -156,12 +178,18 @@ func (s *ChatService) GetChats(ctx context.Context, userID int, req model.GetCha
 										sql.And(
 											sql.EQ(t.C(privatechat.FieldUser1ID), userID),
 											sql.NotNull(t.C(privatechat.FieldUser1HiddenAt)),
-											sql.ColumnsGTE(t.C(privatechat.FieldUser1HiddenAt), s.C(chat.FieldUpdatedAt)),
+											sql.Or(
+												sql.ColumnsGTE(t.C(privatechat.FieldUser1HiddenAt), s.C(chat.FieldLastMessageAt)),
+												sql.IsNull(s.C(chat.FieldLastMessageAt)),
+											),
 										),
 										sql.And(
 											sql.EQ(t.C(privatechat.FieldUser2ID), userID),
 											sql.NotNull(t.C(privatechat.FieldUser2HiddenAt)),
-											sql.ColumnsGTE(t.C(privatechat.FieldUser2HiddenAt), s.C(chat.FieldUpdatedAt)),
+											sql.Or(
+												sql.ColumnsGTE(t.C(privatechat.FieldUser2HiddenAt), s.C(chat.FieldLastMessageAt)),
+												sql.IsNull(s.C(chat.FieldLastMessageAt)),
+											),
 										),
 									),
 								),
@@ -175,7 +203,7 @@ func (s *ChatService) GetChats(ctx context.Context, userID int, req model.GetCha
 	if req.Query != "" {
 		otherUserPredicate := user.Or(
 			user.FullNameContainsFold(req.Query),
-			user.EmailContainsFold(req.Query),
+			user.UsernameContainsFold(req.Query),
 		)
 		query = query.Where(
 			chat.Or(
@@ -232,6 +260,9 @@ func (s *ChatService) GetChats(ctx context.Context, userID int, req model.GetCha
 				mq.Where(groupmember.UserID(userID))
 			})
 		}).
+		WithLastMessage(func(q *ent.MessageQuery) {
+			q.WithAttachments()
+		}).
 		All(ctx)
 
 	if err != nil {
@@ -247,47 +278,6 @@ func (s *ChatService) GetChats(ctx context.Context, userID int, req model.GetCha
 		lastChat := chats[len(chats)-1]
 		cursorString := fmt.Sprintf("%d,%d", lastChat.UpdatedAt.UnixMicro(), lastChat.ID)
 		nextCursor = base64.URLEncoding.EncodeToString([]byte(cursorString))
-	}
-
-	chatIDs := make([]int, len(chats))
-	for i, c := range chats {
-		chatIDs[i] = c.ID
-	}
-
-	lastMessages := make(map[int]*ent.Message)
-	if len(chatIDs) > 0 {
-		var lastMsgData []struct {
-			ChatID int `json:"chat_id"`
-			Max    int `json:"max"`
-		}
-		err := s.client.Message.Query().
-			Where(message.ChatIDIn(chatIDs...)).
-			GroupBy(message.FieldChatID).
-			Aggregate(ent.Max(message.FieldID)).
-			Scan(ctx, &lastMsgData)
-
-		if err != nil {
-			slog.Error("Failed to get last message IDs", "error", err)
-		} else {
-			var lastMsgIDs []int
-			for _, d := range lastMsgData {
-				lastMsgIDs = append(lastMsgIDs, d.Max)
-			}
-
-			if len(lastMsgIDs) > 0 {
-				msgs, _ := s.client.Message.Query().
-					Where(message.IDIn(lastMsgIDs...)).
-					WithSender().
-					WithAttachments().
-					WithReplyTo(func(q *ent.MessageQuery) {
-						q.WithSender().WithAttachments()
-					}).
-					All(ctx)
-				for _, msg := range msgs {
-					lastMessages[msg.ChatID] = msg
-				}
-			}
-		}
 	}
 
 	response := make([]model.ChatListResponse, 0)
@@ -335,8 +325,8 @@ func (s *ChatService) GetChats(ctx context.Context, userID int, req model.GetCha
 		}
 
 		var lastMsgResp *model.MessageResponse
-		if msg, ok := lastMessages[c.ID]; ok {
-			lastMsgResp = helper.ToMessageResponse(msg, s.cfg.StorageMode, s.cfg.AppURL, s.cfg.StorageCDNURL, s.cfg.StorageAttachment)
+		if c.Edges.LastMessage != nil {
+			lastMsgResp = helper.ToMessageResponse(c.Edges.LastMessage, s.cfg.StorageMode, s.cfg.AppURL, s.cfg.StorageCDNURL, s.cfg.StorageAttachment)
 		}
 
 		response = append(response, model.ChatListResponse{ID: c.ID, Type: string(c.Type), Name: name, Avatar: avatar, LastMessage: lastMsgResp, UnreadCount: unreadCount, LastReadAt: lastReadAt})
@@ -345,46 +335,31 @@ func (s *ChatService) GetChats(ctx context.Context, userID int, req model.GetCha
 	return response, nextCursor, hasNext, nil
 }
 
-func (s *ChatService) IncrementUnreadCount(ctx context.Context, groupID *int, chatID int, senderID int) error {
-	if groupID != nil {
-
-		return s.client.GroupMember.Update().
-			Where(
-				groupmember.GroupChatID(*groupID),
-				groupmember.UserIDNEQ(senderID),
-			).
-			AddUnreadCount(1).
-			Exec(ctx)
-	}
-
-	pc, err := s.client.PrivateChat.Query().Where(privatechat.ChatID(chatID)).Only(ctx)
-	if err != nil {
-		return err
-	}
-
-	update := s.client.PrivateChat.UpdateOne(pc)
-	if pc.User1ID == senderID {
-		update.AddUser2UnreadCount(1)
-	} else {
-		update.AddUser1UnreadCount(1)
-	}
-	return update.Exec(ctx)
-}
-
 func (s *ChatService) MarkAsRead(ctx context.Context, userID int, chatID int) error {
+	tx, err := s.client.Tx(ctx)
+	if err != nil {
+		slog.Error("Failed to start transaction", "error", err)
+		return helper.NewInternalServerError("")
+	}
+	defer tx.Rollback()
 
-	c, err := s.client.Chat.Query().
+	c, err := tx.Chat.Query().
 		Where(chat.ID(chatID)).
+		ForUpdate().
 		WithPrivateChat().
 		WithGroupChat().
 		Only(ctx)
 	if err != nil {
-		return helper.NewNotFoundError("Chat not found")
+		if ent.IsNotFound(err) {
+			return helper.NewNotFoundError("Chat not found")
+		}
+		slog.Error("Failed to query chat for update", "error", err)
+		return helper.NewInternalServerError("")
 	}
 
 	if c.Type == chat.TypePrivate && c.Edges.PrivateChat != nil {
 		pc := c.Edges.PrivateChat
-		update := s.client.PrivateChat.UpdateOneID(pc.ID)
+		update := tx.PrivateChat.UpdateOneID(pc.ID)
 
 		if pc.User1ID == userID {
 			update.SetUser1UnreadCount(0).SetUser1LastReadAt(time.Now())
@@ -393,11 +368,13 @@ func (s *ChatService) MarkAsRead(ctx context.Context, userID int, chatID int) er
 		} else {
 			return helper.NewForbiddenError("You are not part of this chat")
 		}
-		return update.Exec(ctx)
+		if err := update.Exec(ctx); err != nil {
+			slog.Error("Failed to mark private chat as read", "error", err)
+			return helper.NewInternalServerError("")
+		}
 
 	} else if c.Type == chat.TypeGroup && c.Edges.GroupChat != nil {
-
-		return s.client.GroupMember.Update().
+		err := tx.GroupMember.Update().
 			Where(
 				groupmember.GroupChatID(c.Edges.GroupChat.ID),
 				groupmember.UserID(userID),
@@ -405,9 +382,13 @@ func (s *ChatService) MarkAsRead(ctx context.Context, userID int, chatID int) er
 			SetUnreadCount(0).
 			SetLastReadAt(time.Now()).
 			Exec(ctx)
+		if err != nil {
+			slog.Error("Failed to mark group chat as read", "error", err)
+			return helper.NewInternalServerError("")
+		}
 	}
 
-	return nil
+	return tx.Commit()
 }
 
 func (s *ChatService) HideChat(ctx context.Context, userID int, chatID int) error {

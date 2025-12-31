@@ -254,12 +254,30 @@ func init() {
 			return nil
 		}
 	}()
+	// userDescUsername is the schema descriptor for username field.
+	userDescUsername := userFields[1].Descriptor()
+	// user.UsernameValidator is a validator for the "username" field. It is called by the builders before save.
+	user.UsernameValidator = func() func(string) error {
+		validators := userDescUsername.Validators
+		fns := [...]func(string) error{
+			validators[0].(func(string) error),
+			validators[1].(func(string) error),
+		}
+		return func(username string) error {
+			for _, fn := range fns {
+				if err := fn(username); err != nil {
+					return err
+				}
+			}
+			return nil
+		}
+	}()
 	// userDescPasswordHash is the schema descriptor for password_hash field.
-	userDescPasswordHash := userFields[1].Descriptor()
+	userDescPasswordHash := userFields[2].Descriptor()
 	// user.PasswordHashValidator is a validator for the "password_hash" field. It is called by the builders before save.
 	user.PasswordHashValidator = userDescPasswordHash.Validators[0].(func(string) error)
 	// userDescFullName is the schema descriptor for full_name field.
-	userDescFullName := userFields[2].Descriptor()
+	userDescFullName := userFields[3].Descriptor()
 	// user.FullNameValidator is a validator for the "full_name" field. It is called by the builders before save.
 	user.FullNameValidator = func() func(string) error {
 		validators := userDescFullName.Validators
@@ -277,11 +295,11 @@ func init() {
 		}
 	}()
 	// userDescBio is the schema descriptor for bio field.
-	userDescBio := userFields[3].Descriptor()
+	userDescBio := userFields[4].Descriptor()
 	// user.BioValidator is a validator for the "bio" field. It is called by the builders before save.
 	user.BioValidator = userDescBio.Validators[0].(func(string) error)
 	// userDescIsOnline is the schema descriptor for is_online field.
-	userDescIsOnline := userFields[5].Descriptor()
+	userDescIsOnline := userFields[6].Descriptor()
 	// user.DefaultIsOnline holds the default value on creation for the is_online field.
 	user.DefaultIsOnline = userDescIsOnline.Default.(bool)
 	userblockMixin := schema.UserBlock{}.Mixin()

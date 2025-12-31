@@ -3,9 +3,8 @@ package model
 type SendMessageRequest struct {
 	ChatID        int    `json:"chat_id" validate:"required"`
 	Content       string `json:"content" validate:"required_without=AttachmentIDs"`
-	Type          string `json:"type" validate:"required,oneof=text image video file audio"`
-	AttachmentIDs []int  `json:"attachment_ids" validate:"omitempty"`
-	ReplyToID     *int   `json:"reply_to_id" validate:"omitempty"`
+	AttachmentIDs []int  `json:"attachment_ids" validate:"omitempty,dive,gt=0"`
+	ReplyToID     *int   `json:"reply_to_id" validate:"omitempty,gt=0"`
 }
 
 type GetMessagesRequest struct {

@@ -16,6 +16,7 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"math/rand"
 	"path/filepath"
 	"strings"
 	"time"
@@ -125,6 +126,7 @@ func (s *AuthService) Login(ctx context.Context, req model.LoginRequest) (*model
 		User: model.UserDTO{
 			ID:       u.ID,
 			Email:    u.Email,
+			Username: u.Username,
 			FullName: u.FullName,
 			Avatar:   avatarURL,
 		},
@@ -197,8 +199,34 @@ func (s *AuthService) GoogleExchange(ctx context.Context, req model.GoogleLoginR
 			}
 		}()
 
+		baseUsername := strings.Split(email, "@")[0]
+		baseUsername = helper.NormalizeUsername(baseUsername)
+		if len(baseUsername) > 40 {
+			baseUsername = baseUsername[:40]
+		}
+		if len(baseUsername) < 3 {
+			baseUsername = "user" + baseUsername
+		}
+
+		var finalUsername string
+		for i := 0; i < 3; i++ {
+			randNum := rand.Intn(10000)
+			candidate := fmt.Sprintf("%s%04d", baseUsername, randNum)
+
+			exists, _ := tx.User.Query().Where(user.UsernameEQ(candidate)).Exist(ctx)
+			if !exists {
+				finalUsername = candidate
+				break
+			}
+		}
+
+		if finalUsername == "" {
+			return nil, helper.NewConflictError("Failed to generate a unique username. Please try again.")
+		}
+
 		u, err = tx.User.Create().
 			SetEmail(email).
+			SetUsername(finalUsername).
 			SetFullName(name).
 			Save(ctx)
 		if err != nil {
@@ -325,6 +353,7 @@ func (s *AuthService) GoogleExchange(ctx context.Context, req model.GoogleLoginR
 		User: model.UserDTO{
 			ID:       u.ID,
 			Email:    u.Email,
+			Username: u.Username,
 			FullName: u.FullName,
 			Avatar:   avatarURL,
 		},
@@ -343,6 +372,7 @@ func (s *AuthService) Register(ctx context.Context, req model.RegisterUserReques
 	}
 
 	req.Email = helper.NormalizeEmail(req.Email)
+	req.Username = helper.NormalizeUsername(req.Username)
 
 	tx, err := s.client.Tx(ctx)
 	if err != nil {
@@ -393,6 +423,17 @@ func (s *AuthService) Register(ctx context.Context, req model.RegisterUserReques
 		return nil, helper.NewConflictError("Email already registered")
 	}
 
+	usernameExists, err := tx.User.Query().
+		Where(user.UsernameEQ(req.Username)).
+		Exist(ctx)
+	if err != nil {
+		slog.Error("Failed to check username existence", "error", err)
+		return nil, helper.NewInternalServerError("")
+	}
+	if usernameExists {
+		return nil, helper.NewConflictError("Username already taken")
+	}
+
 	hashedPassword, err := helper.HashPassword(req.Password)
 	if err != nil {
 		slog.Error("Failed to hash password", "error", err)
@@ -401,6 +442,7 @@ func (s *AuthService) Register(ctx context.Context, req model.RegisterUserReques
 
 	newUser, err := tx.User.Create().
 		SetEmail(req.Email).
+		SetUsername(req.Username).
 		SetFullName(req.FullName).
 		SetPasswordHash(hashedPassword).
 		Save(ctx)
@@ -425,6 +467,7 @@ func (s *AuthService) Register(ctx context.Context, req model.RegisterUserReques
 		User: model.UserDTO{
 			ID:       newUser.ID,
 			Email:    newUser.Email,
+			Username: newUser.Username,
 			FullName: newUser.FullName,
 		},
 	}, nil

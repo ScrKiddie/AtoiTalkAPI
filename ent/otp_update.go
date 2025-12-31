@@ -18,8 +18,9 @@ import (
 // OTPUpdate is the builder for updating OTP entities.
 type OTPUpdate struct {
 	config
-	hooks    []Hook
-	mutation *OTPMutation
+	hooks     []Hook
+	mutation  *OTPMutation
+	modifiers []func(*sql.UpdateBuilder)
 }
 
 // Where appends a list predicates to the OTPUpdate builder.
@@ -151,6 +152,12 @@ func (_u *OTPUpdate) check() error {
 	return nil
 }
 
+// Modify adds a statement modifier for attaching custom logic to the UPDATE statement.
+func (_u *OTPUpdate) Modify(modifiers ...func(u *sql.UpdateBuilder)) *OTPUpdate {
+	_u.modifiers = append(_u.modifiers, modifiers...)
+	return _u
+}
+
 func (_u *OTPUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	if err := _u.check(); err != nil {
 		return _node, err
@@ -178,6 +185,7 @@ func (_u *OTPUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	if value, ok := _u.mutation.ExpiresAt(); ok {
 		_spec.SetField(otp.FieldExpiresAt, field.TypeTime, value)
 	}
+	_spec.AddModifiers(_u.modifiers...)
 	if _node, err = sqlgraph.UpdateNodes(ctx, _u.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{otp.Label}
@@ -193,9 +201,10 @@ func (_u *OTPUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 // OTPUpdateOne is the builder for updating a single OTP entity.
 type OTPUpdateOne struct {
 	config
-	fields   []string
-	hooks    []Hook
-	mutation *OTPMutation
+	fields    []string
+	hooks     []Hook
+	mutation  *OTPMutation
+	modifiers []func(*sql.UpdateBuilder)
 }
 
 // SetUpdatedAt sets the "updated_at" field.
@@ -334,6 +343,12 @@ func (_u *OTPUpdateOne) check() error {
 	return nil
 }
 
+// Modify adds a statement modifier for attaching custom logic to the UPDATE statement.
+func (_u *OTPUpdateOne) Modify(modifiers ...func(u *sql.UpdateBuilder)) *OTPUpdateOne {
+	_u.modifiers = append(_u.modifiers, modifiers...)
+	return _u
+}
+
 func (_u *OTPUpdateOne) sqlSave(ctx context.Context) (_node *OTP, err error) {
 	if err := _u.check(); err != nil {
 		return _node, err
@@ -378,6 +393,7 @@ func (_u *OTPUpdateOne) sqlSave(ctx context.Context) (_node *OTP, err error) {
 	if value, ok := _u.mutation.ExpiresAt(); ok {
 		_spec.SetField(otp.FieldExpiresAt, field.TypeTime, value)
 	}
+	_spec.AddModifiers(_u.modifiers...)
 	_node = &OTP{config: _u.config}
 	_spec.Assign = _node.assignValues
 	_spec.ScanValues = _node.scanValues

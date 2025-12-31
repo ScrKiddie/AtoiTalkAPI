@@ -12,6 +12,7 @@ import (
 	"fmt"
 	"time"
 
+	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 )
@@ -21,6 +22,7 @@ type MediaCreate struct {
 	config
 	mutation *MediaMutation
 	hooks    []Hook
+	conflict []sql.ConflictOption
 }
 
 // SetCreatedAt sets the "created_at" field.
@@ -292,6 +294,7 @@ func (_c *MediaCreate) createSpec() (*Media, *sqlgraph.CreateSpec) {
 		_node = &Media{config: _c.config}
 		_spec = sqlgraph.NewCreateSpec(media.Table, sqlgraph.NewFieldSpec(media.FieldID, field.TypeInt))
 	)
+	_spec.OnConflict = _c.conflict
 	if value, ok := _c.mutation.CreatedAt(); ok {
 		_spec.SetField(media.FieldCreatedAt, field.TypeTime, value)
 		_node.CreatedAt = value
@@ -389,11 +392,373 @@ func (_c *MediaCreate) createSpec() (*Media, *sqlgraph.CreateSpec) {
 	return _node, _spec
 }
 
+// OnConflict allows configuring the `ON CONFLICT` / `ON DUPLICATE KEY` clause
+// of the `INSERT` statement. For example:
+//
+//	client.Media.Create().
+//		SetCreatedAt(v).
+//		OnConflict(
+//			// Update the row with the new values
+//			// the was proposed for insertion.
+//			sql.ResolveWithNewValues(),
+//		).
+//		// Override some of the fields with custom
+//		// update values.
+//		Update(func(u *ent.MediaUpsert) {
+//			SetCreatedAt(v+v).
+//		}).
+//		Exec(ctx)
+func (_c *MediaCreate) OnConflict(opts ...sql.ConflictOption) *MediaUpsertOne {
+	_c.conflict = opts
+	return &MediaUpsertOne{
+		create: _c,
+	}
+}
+
+// OnConflictColumns calls `OnConflict` and configures the columns
+// as conflict target. Using this option is equivalent to using:
+//
+//	client.Media.Create().
+//		OnConflict(sql.ConflictColumns(columns...)).
+//		Exec(ctx)
+func (_c *MediaCreate) OnConflictColumns(columns ...string) *MediaUpsertOne {
+	_c.conflict = append(_c.conflict, sql.ConflictColumns(columns...))
+	return &MediaUpsertOne{
+		create: _c,
+	}
+}
+
+type (
+	// MediaUpsertOne is the builder for "upsert"-ing
+	//  one Media node.
+	MediaUpsertOne struct {
+		create *MediaCreate
+	}
+
+	// MediaUpsert is the "OnConflict" setter.
+	MediaUpsert struct {
+		*sql.UpdateSet
+	}
+)
+
+// SetUpdatedAt sets the "updated_at" field.
+func (u *MediaUpsert) SetUpdatedAt(v time.Time) *MediaUpsert {
+	u.Set(media.FieldUpdatedAt, v)
+	return u
+}
+
+// UpdateUpdatedAt sets the "updated_at" field to the value that was provided on create.
+func (u *MediaUpsert) UpdateUpdatedAt() *MediaUpsert {
+	u.SetExcluded(media.FieldUpdatedAt)
+	return u
+}
+
+// SetFileName sets the "file_name" field.
+func (u *MediaUpsert) SetFileName(v string) *MediaUpsert {
+	u.Set(media.FieldFileName, v)
+	return u
+}
+
+// UpdateFileName sets the "file_name" field to the value that was provided on create.
+func (u *MediaUpsert) UpdateFileName() *MediaUpsert {
+	u.SetExcluded(media.FieldFileName)
+	return u
+}
+
+// SetOriginalName sets the "original_name" field.
+func (u *MediaUpsert) SetOriginalName(v string) *MediaUpsert {
+	u.Set(media.FieldOriginalName, v)
+	return u
+}
+
+// UpdateOriginalName sets the "original_name" field to the value that was provided on create.
+func (u *MediaUpsert) UpdateOriginalName() *MediaUpsert {
+	u.SetExcluded(media.FieldOriginalName)
+	return u
+}
+
+// SetFileSize sets the "file_size" field.
+func (u *MediaUpsert) SetFileSize(v int64) *MediaUpsert {
+	u.Set(media.FieldFileSize, v)
+	return u
+}
+
+// UpdateFileSize sets the "file_size" field to the value that was provided on create.
+func (u *MediaUpsert) UpdateFileSize() *MediaUpsert {
+	u.SetExcluded(media.FieldFileSize)
+	return u
+}
+
+// AddFileSize adds v to the "file_size" field.
+func (u *MediaUpsert) AddFileSize(v int64) *MediaUpsert {
+	u.Add(media.FieldFileSize, v)
+	return u
+}
+
+// SetMimeType sets the "mime_type" field.
+func (u *MediaUpsert) SetMimeType(v string) *MediaUpsert {
+	u.Set(media.FieldMimeType, v)
+	return u
+}
+
+// UpdateMimeType sets the "mime_type" field to the value that was provided on create.
+func (u *MediaUpsert) UpdateMimeType() *MediaUpsert {
+	u.SetExcluded(media.FieldMimeType)
+	return u
+}
+
+// SetStatus sets the "status" field.
+func (u *MediaUpsert) SetStatus(v media.Status) *MediaUpsert {
+	u.Set(media.FieldStatus, v)
+	return u
+}
+
+// UpdateStatus sets the "status" field to the value that was provided on create.
+func (u *MediaUpsert) UpdateStatus() *MediaUpsert {
+	u.SetExcluded(media.FieldStatus)
+	return u
+}
+
+// SetMessageID sets the "message_id" field.
+func (u *MediaUpsert) SetMessageID(v int) *MediaUpsert {
+	u.Set(media.FieldMessageID, v)
+	return u
+}
+
+// UpdateMessageID sets the "message_id" field to the value that was provided on create.
+func (u *MediaUpsert) UpdateMessageID() *MediaUpsert {
+	u.SetExcluded(media.FieldMessageID)
+	return u
+}
+
+// ClearMessageID clears the value of the "message_id" field.
+func (u *MediaUpsert) ClearMessageID() *MediaUpsert {
+	u.SetNull(media.FieldMessageID)
+	return u
+}
+
+// SetUploadedByID sets the "uploaded_by_id" field.
+func (u *MediaUpsert) SetUploadedByID(v int) *MediaUpsert {
+	u.Set(media.FieldUploadedByID, v)
+	return u
+}
+
+// UpdateUploadedByID sets the "uploaded_by_id" field to the value that was provided on create.
+func (u *MediaUpsert) UpdateUploadedByID() *MediaUpsert {
+	u.SetExcluded(media.FieldUploadedByID)
+	return u
+}
+
+// UpdateNewValues updates the mutable fields using the new values that were set on create.
+// Using this option is equivalent to using:
+//
+//	client.Media.Create().
+//		OnConflict(
+//			sql.ResolveWithNewValues(),
+//		).
+//		Exec(ctx)
+func (u *MediaUpsertOne) UpdateNewValues() *MediaUpsertOne {
+	u.create.conflict = append(u.create.conflict, sql.ResolveWithNewValues())
+	u.create.conflict = append(u.create.conflict, sql.ResolveWith(func(s *sql.UpdateSet) {
+		if _, exists := u.create.mutation.CreatedAt(); exists {
+			s.SetIgnore(media.FieldCreatedAt)
+		}
+	}))
+	return u
+}
+
+// Ignore sets each column to itself in case of conflict.
+// Using this option is equivalent to using:
+//
+//	client.Media.Create().
+//	    OnConflict(sql.ResolveWithIgnore()).
+//	    Exec(ctx)
+func (u *MediaUpsertOne) Ignore() *MediaUpsertOne {
+	u.create.conflict = append(u.create.conflict, sql.ResolveWithIgnore())
+	return u
+}
+
+// DoNothing configures the conflict_action to `DO NOTHING`.
+// Supported only by SQLite and PostgreSQL.
+func (u *MediaUpsertOne) DoNothing() *MediaUpsertOne {
+	u.create.conflict = append(u.create.conflict, sql.DoNothing())
+	return u
+}
+
+// Update allows overriding fields `UPDATE` values. See the MediaCreate.OnConflict
+// documentation for more info.
+func (u *MediaUpsertOne) Update(set func(*MediaUpsert)) *MediaUpsertOne {
+	u.create.conflict = append(u.create.conflict, sql.ResolveWith(func(update *sql.UpdateSet) {
+		set(&MediaUpsert{UpdateSet: update})
+	}))
+	return u
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (u *MediaUpsertOne) SetUpdatedAt(v time.Time) *MediaUpsertOne {
+	return u.Update(func(s *MediaUpsert) {
+		s.SetUpdatedAt(v)
+	})
+}
+
+// UpdateUpdatedAt sets the "updated_at" field to the value that was provided on create.
+func (u *MediaUpsertOne) UpdateUpdatedAt() *MediaUpsertOne {
+	return u.Update(func(s *MediaUpsert) {
+		s.UpdateUpdatedAt()
+	})
+}
+
+// SetFileName sets the "file_name" field.
+func (u *MediaUpsertOne) SetFileName(v string) *MediaUpsertOne {
+	return u.Update(func(s *MediaUpsert) {
+		s.SetFileName(v)
+	})
+}
+
+// UpdateFileName sets the "file_name" field to the value that was provided on create.
+func (u *MediaUpsertOne) UpdateFileName() *MediaUpsertOne {
+	return u.Update(func(s *MediaUpsert) {
+		s.UpdateFileName()
+	})
+}
+
+// SetOriginalName sets the "original_name" field.
+func (u *MediaUpsertOne) SetOriginalName(v string) *MediaUpsertOne {
+	return u.Update(func(s *MediaUpsert) {
+		s.SetOriginalName(v)
+	})
+}
+
+// UpdateOriginalName sets the "original_name" field to the value that was provided on create.
+func (u *MediaUpsertOne) UpdateOriginalName() *MediaUpsertOne {
+	return u.Update(func(s *MediaUpsert) {
+		s.UpdateOriginalName()
+	})
+}
+
+// SetFileSize sets the "file_size" field.
+func (u *MediaUpsertOne) SetFileSize(v int64) *MediaUpsertOne {
+	return u.Update(func(s *MediaUpsert) {
+		s.SetFileSize(v)
+	})
+}
+
+// AddFileSize adds v to the "file_size" field.
+func (u *MediaUpsertOne) AddFileSize(v int64) *MediaUpsertOne {
+	return u.Update(func(s *MediaUpsert) {
+		s.AddFileSize(v)
+	})
+}
+
+// UpdateFileSize sets the "file_size" field to the value that was provided on create.
+func (u *MediaUpsertOne) UpdateFileSize() *MediaUpsertOne {
+	return u.Update(func(s *MediaUpsert) {
+		s.UpdateFileSize()
+	})
+}
+
+// SetMimeType sets the "mime_type" field.
+func (u *MediaUpsertOne) SetMimeType(v string) *MediaUpsertOne {
+	return u.Update(func(s *MediaUpsert) {
+		s.SetMimeType(v)
+	})
+}
+
+// UpdateMimeType sets the "mime_type" field to the value that was provided on create.
+func (u *MediaUpsertOne) UpdateMimeType() *MediaUpsertOne {
+	return u.Update(func(s *MediaUpsert) {
+		s.UpdateMimeType()
+	})
+}
+
+// SetStatus sets the "status" field.
+func (u *MediaUpsertOne) SetStatus(v media.Status) *MediaUpsertOne {
+	return u.Update(func(s *MediaUpsert) {
+		s.SetStatus(v)
+	})
+}
+
+// UpdateStatus sets the "status" field to the value that was provided on create.
+func (u *MediaUpsertOne) UpdateStatus() *MediaUpsertOne {
+	return u.Update(func(s *MediaUpsert) {
+		s.UpdateStatus()
+	})
+}
+
+// SetMessageID sets the "message_id" field.
+func (u *MediaUpsertOne) SetMessageID(v int) *MediaUpsertOne {
+	return u.Update(func(s *MediaUpsert) {
+		s.SetMessageID(v)
+	})
+}
+
+// UpdateMessageID sets the "message_id" field to the value that was provided on create.
+func (u *MediaUpsertOne) UpdateMessageID() *MediaUpsertOne {
+	return u.Update(func(s *MediaUpsert) {
+		s.UpdateMessageID()
+	})
+}
+
+// ClearMessageID clears the value of the "message_id" field.
+func (u *MediaUpsertOne) ClearMessageID() *MediaUpsertOne {
+	return u.Update(func(s *MediaUpsert) {
+		s.ClearMessageID()
+	})
+}
+
+// SetUploadedByID sets the "uploaded_by_id" field.
+func (u *MediaUpsertOne) SetUploadedByID(v int) *MediaUpsertOne {
+	return u.Update(func(s *MediaUpsert) {
+		s.SetUploadedByID(v)
+	})
+}
+
+// UpdateUploadedByID sets the "uploaded_by_id" field to the value that was provided on create.
+func (u *MediaUpsertOne) UpdateUploadedByID() *MediaUpsertOne {
+	return u.Update(func(s *MediaUpsert) {
+		s.UpdateUploadedByID()
+	})
+}
+
+// Exec executes the query.
+func (u *MediaUpsertOne) Exec(ctx context.Context) error {
+	if len(u.create.conflict) == 0 {
+		return errors.New("ent: missing options for MediaCreate.OnConflict")
+	}
+	return u.create.Exec(ctx)
+}
+
+// ExecX is like Exec, but panics if an error occurs.
+func (u *MediaUpsertOne) ExecX(ctx context.Context) {
+	if err := u.create.Exec(ctx); err != nil {
+		panic(err)
+	}
+}
+
+// Exec executes the UPSERT query and returns the inserted/updated ID.
+func (u *MediaUpsertOne) ID(ctx context.Context) (id int, err error) {
+	node, err := u.create.Save(ctx)
+	if err != nil {
+		return id, err
+	}
+	return node.ID, nil
+}
+
+// IDX is like ID, but panics if an error occurs.
+func (u *MediaUpsertOne) IDX(ctx context.Context) int {
+	id, err := u.ID(ctx)
+	if err != nil {
+		panic(err)
+	}
+	return id
+}
+
 // MediaCreateBulk is the builder for creating many Media entities in bulk.
 type MediaCreateBulk struct {
 	config
 	err      error
 	builders []*MediaCreate
+	conflict []sql.ConflictOption
 }
 
 // Save creates the Media entities in the database.
@@ -423,6 +788,7 @@ func (_c *MediaCreateBulk) Save(ctx context.Context) ([]*Media, error) {
 					_, err = mutators[i+1].Mutate(root, _c.builders[i+1].mutation)
 				} else {
 					spec := &sqlgraph.BatchCreateSpec{Nodes: specs}
+					spec.OnConflict = _c.conflict
 					// Invoke the actual operation on the latest mutation in the chain.
 					if err = sqlgraph.BatchCreate(ctx, _c.driver, spec); err != nil {
 						if sqlgraph.IsConstraintError(err) {
@@ -473,6 +839,243 @@ func (_c *MediaCreateBulk) Exec(ctx context.Context) error {
 // ExecX is like Exec, but panics if an error occurs.
 func (_c *MediaCreateBulk) ExecX(ctx context.Context) {
 	if err := _c.Exec(ctx); err != nil {
+		panic(err)
+	}
+}
+
+// OnConflict allows configuring the `ON CONFLICT` / `ON DUPLICATE KEY` clause
+// of the `INSERT` statement. For example:
+//
+//	client.Media.CreateBulk(builders...).
+//		OnConflict(
+//			// Update the row with the new values
+//			// the was proposed for insertion.
+//			sql.ResolveWithNewValues(),
+//		).
+//		// Override some of the fields with custom
+//		// update values.
+//		Update(func(u *ent.MediaUpsert) {
+//			SetCreatedAt(v+v).
+//		}).
+//		Exec(ctx)
+func (_c *MediaCreateBulk) OnConflict(opts ...sql.ConflictOption) *MediaUpsertBulk {
+	_c.conflict = opts
+	return &MediaUpsertBulk{
+		create: _c,
+	}
+}
+
+// OnConflictColumns calls `OnConflict` and configures the columns
+// as conflict target. Using this option is equivalent to using:
+//
+//	client.Media.Create().
+//		OnConflict(sql.ConflictColumns(columns...)).
+//		Exec(ctx)
+func (_c *MediaCreateBulk) OnConflictColumns(columns ...string) *MediaUpsertBulk {
+	_c.conflict = append(_c.conflict, sql.ConflictColumns(columns...))
+	return &MediaUpsertBulk{
+		create: _c,
+	}
+}
+
+// MediaUpsertBulk is the builder for "upsert"-ing
+// a bulk of Media nodes.
+type MediaUpsertBulk struct {
+	create *MediaCreateBulk
+}
+
+// UpdateNewValues updates the mutable fields using the new values that
+// were set on create. Using this option is equivalent to using:
+//
+//	client.Media.Create().
+//		OnConflict(
+//			sql.ResolveWithNewValues(),
+//		).
+//		Exec(ctx)
+func (u *MediaUpsertBulk) UpdateNewValues() *MediaUpsertBulk {
+	u.create.conflict = append(u.create.conflict, sql.ResolveWithNewValues())
+	u.create.conflict = append(u.create.conflict, sql.ResolveWith(func(s *sql.UpdateSet) {
+		for _, b := range u.create.builders {
+			if _, exists := b.mutation.CreatedAt(); exists {
+				s.SetIgnore(media.FieldCreatedAt)
+			}
+		}
+	}))
+	return u
+}
+
+// Ignore sets each column to itself in case of conflict.
+// Using this option is equivalent to using:
+//
+//	client.Media.Create().
+//		OnConflict(sql.ResolveWithIgnore()).
+//		Exec(ctx)
+func (u *MediaUpsertBulk) Ignore() *MediaUpsertBulk {
+	u.create.conflict = append(u.create.conflict, sql.ResolveWithIgnore())
+	return u
+}
+
+// DoNothing configures the conflict_action to `DO NOTHING`.
+// Supported only by SQLite and PostgreSQL.
+func (u *MediaUpsertBulk) DoNothing() *MediaUpsertBulk {
+	u.create.conflict = append(u.create.conflict, sql.DoNothing())
+	return u
+}
+
+// Update allows overriding fields `UPDATE` values. See the MediaCreateBulk.OnConflict
+// documentation for more info.
+func (u *MediaUpsertBulk) Update(set func(*MediaUpsert)) *MediaUpsertBulk {
+	u.create.conflict = append(u.create.conflict, sql.ResolveWith(func(update *sql.UpdateSet) {
+		set(&MediaUpsert{UpdateSet: update})
+	}))
+	return u
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (u *MediaUpsertBulk) SetUpdatedAt(v time.Time) *MediaUpsertBulk {
+	return u.Update(func(s *MediaUpsert) {
+		s.SetUpdatedAt(v)
+	})
+}
+
+// UpdateUpdatedAt sets the "updated_at" field to the value that was provided on create.
+func (u *MediaUpsertBulk) UpdateUpdatedAt() *MediaUpsertBulk {
+	return u.Update(func(s *MediaUpsert) {
+		s.UpdateUpdatedAt()
+	})
+}
+
+// SetFileName sets the "file_name" field.
+func (u *MediaUpsertBulk) SetFileName(v string) *MediaUpsertBulk {
+	return u.Update(func(s *MediaUpsert) {
+		s.SetFileName(v)
+	})
+}
+
+// UpdateFileName sets the "file_name" field to the value that was provided on create.
+func (u *MediaUpsertBulk) UpdateFileName() *MediaUpsertBulk {
+	return u.Update(func(s *MediaUpsert) {
+		s.UpdateFileName()
+	})
+}
+
+// SetOriginalName sets the "original_name" field.
+func (u *MediaUpsertBulk) SetOriginalName(v string) *MediaUpsertBulk {
+	return u.Update(func(s *MediaUpsert) {
+		s.SetOriginalName(v)
+	})
+}
+
+// UpdateOriginalName sets the "original_name" field to the value that was provided on create.
+func (u *MediaUpsertBulk) UpdateOriginalName() *MediaUpsertBulk {
+	return u.Update(func(s *MediaUpsert) {
+		s.UpdateOriginalName()
+	})
+}
+
+// SetFileSize sets the "file_size" field.
+func (u *MediaUpsertBulk) SetFileSize(v int64) *MediaUpsertBulk {
+	return u.Update(func(s *MediaUpsert) {
+		s.SetFileSize(v)
+	})
+}
+
+// AddFileSize adds v to the "file_size" field.
+func (u *MediaUpsertBulk) AddFileSize(v int64) *MediaUpsertBulk {
+	return u.Update(func(s *MediaUpsert) {
+		s.AddFileSize(v)
+	})
+}
+
+// UpdateFileSize sets the "file_size" field to the value that was provided on create.
+func (u *MediaUpsertBulk) UpdateFileSize() *MediaUpsertBulk {
+	return u.Update(func(s *MediaUpsert) {
+		s.UpdateFileSize()
+	})
+}
+
+// SetMimeType sets the "mime_type" field.
+func (u *MediaUpsertBulk) SetMimeType(v string) *MediaUpsertBulk {
+	return u.Update(func(s *MediaUpsert) {
+		s.SetMimeType(v)
+	})
+}
+
+// UpdateMimeType sets the "mime_type" field to the value that was provided on create.
+func (u *MediaUpsertBulk) UpdateMimeType() *MediaUpsertBulk {
+	return u.Update(func(s *MediaUpsert) {
+		s.UpdateMimeType()
+	})
+}
+
+// SetStatus sets the "status" field.
+func (u *MediaUpsertBulk) SetStatus(v media.Status) *MediaUpsertBulk {
+	return u.Update(func(s *MediaUpsert) {
+		s.SetStatus(v)
+	})
+}
+
+// UpdateStatus sets the "status" field to the value that was provided on create.
+func (u *MediaUpsertBulk) UpdateStatus() *MediaUpsertBulk {
+	return u.Update(func(s *MediaUpsert) {
+		s.UpdateStatus()
+	})
+}
+
+// SetMessageID sets the "message_id" field.
+func (u *MediaUpsertBulk) SetMessageID(v int) *MediaUpsertBulk {
+	return u.Update(func(s *MediaUpsert) {
+		s.SetMessageID(v)
+	})
+}
+
+// UpdateMessageID sets the "message_id" field to the value that was provided on create.
+func (u *MediaUpsertBulk) UpdateMessageID() *MediaUpsertBulk {
+	return u.Update(func(s *MediaUpsert) {
+		s.UpdateMessageID()
+	})
+}
+
+// ClearMessageID clears the value of the "message_id" field.
+func (u *MediaUpsertBulk) ClearMessageID() *MediaUpsertBulk {
+	return u.Update(func(s *MediaUpsert) {
+		s.ClearMessageID()
+	})
+}
+
+// SetUploadedByID sets the "uploaded_by_id" field.
+func (u *MediaUpsertBulk) SetUploadedByID(v int) *MediaUpsertBulk {
+	return u.Update(func(s *MediaUpsert) {
+		s.SetUploadedByID(v)
+	})
+}
+
+// UpdateUploadedByID sets the "uploaded_by_id" field to the value that was provided on create.
+func (u *MediaUpsertBulk) UpdateUploadedByID() *MediaUpsertBulk {
+	return u.Update(func(s *MediaUpsert) {
+		s.UpdateUploadedByID()
+	})
+}
+
+// Exec executes the query.
+func (u *MediaUpsertBulk) Exec(ctx context.Context) error {
+	if u.create.err != nil {
+		return u.create.err
+	}
+	for i, b := range u.create.builders {
+		if len(b.conflict) != 0 {
+			return fmt.Errorf("ent: OnConflict was set for builder %d. Set it on the MediaCreateBulk instead", i)
+		}
+	}
+	if len(u.create.conflict) == 0 {
+		return errors.New("ent: missing options for MediaCreateBulk.OnConflict")
+	}
+	return u.create.Exec(ctx)
+}
+
+// ExecX is like Exec, but panics if an error occurs.
+func (u *MediaUpsertBulk) ExecX(ctx context.Context) {
+	if err := u.create.Exec(ctx); err != nil {
 		panic(err)
 	}
 }
