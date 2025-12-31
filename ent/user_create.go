@@ -9,6 +9,7 @@ import (
 	"AtoiTalkAPI/ent/message"
 	"AtoiTalkAPI/ent/privatechat"
 	"AtoiTalkAPI/ent/user"
+	"AtoiTalkAPI/ent/userblock"
 	"AtoiTalkAPI/ent/useridentity"
 	"context"
 	"errors"
@@ -244,6 +245,36 @@ func (_c *UserCreate) AddUploadedMedia(v ...*Media) *UserCreate {
 		ids[i] = v[i].ID
 	}
 	return _c.AddUploadedMediumIDs(ids...)
+}
+
+// AddBlockedUsersRelIDs adds the "blocked_users_rel" edge to the UserBlock entity by IDs.
+func (_c *UserCreate) AddBlockedUsersRelIDs(ids ...int) *UserCreate {
+	_c.mutation.AddBlockedUsersRelIDs(ids...)
+	return _c
+}
+
+// AddBlockedUsersRel adds the "blocked_users_rel" edges to the UserBlock entity.
+func (_c *UserCreate) AddBlockedUsersRel(v ...*UserBlock) *UserCreate {
+	ids := make([]int, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _c.AddBlockedUsersRelIDs(ids...)
+}
+
+// AddBlockedByRelIDs adds the "blocked_by_rel" edge to the UserBlock entity by IDs.
+func (_c *UserCreate) AddBlockedByRelIDs(ids ...int) *UserCreate {
+	_c.mutation.AddBlockedByRelIDs(ids...)
+	return _c
+}
+
+// AddBlockedByRel adds the "blocked_by_rel" edges to the UserBlock entity.
+func (_c *UserCreate) AddBlockedByRel(v ...*UserBlock) *UserCreate {
+	ids := make([]int, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _c.AddBlockedByRelIDs(ids...)
 }
 
 // Mutation returns the UserMutation object of the builder.
@@ -512,6 +543,38 @@ func (_c *UserCreate) createSpec() (*User, *sqlgraph.CreateSpec) {
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(media.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.BlockedUsersRelIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.BlockedUsersRelTable,
+			Columns: []string{user.BlockedUsersRelColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(userblock.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.BlockedByRelIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.BlockedByRelTable,
+			Columns: []string{user.BlockedByRelColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(userblock.FieldID, field.TypeInt),
 			},
 		}
 		for _, k := range nodes {

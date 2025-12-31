@@ -104,6 +104,18 @@ func (f UserFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error)
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.UserMutation", m)
 }
 
+// The UserBlockFunc type is an adapter to allow the use of ordinary
+// function as UserBlock mutator.
+type UserBlockFunc func(context.Context, *ent.UserBlockMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f UserBlockFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.UserBlockMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.UserBlockMutation", m)
+}
+
 // The UserIdentityFunc type is an adapter to allow the use of ordinary
 // function as UserIdentity mutator.
 type UserIdentityFunc func(context.Context, *ent.UserIdentityMutation) (ent.Value, error)

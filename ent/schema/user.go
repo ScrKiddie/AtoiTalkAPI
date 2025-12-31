@@ -31,7 +31,6 @@ func (User) Edges() []ent.Edge {
 			Ref("user_avatar").
 			Unique().
 			Field("avatar_id"),
-
 		edge.To("identities", UserIdentity.Type).
 			Annotations(entsql.OnDelete(entsql.Cascade)),
 		edge.To("sent_messages", Message.Type).
@@ -44,8 +43,11 @@ func (User) Edges() []ent.Edge {
 			Annotations(entsql.OnDelete(entsql.Cascade)),
 		edge.To("private_chats_as_user2", PrivateChat.Type).
 			Annotations(entsql.OnDelete(entsql.Cascade)),
-
 		edge.To("uploaded_media", Media.Type).
+			Annotations(entsql.OnDelete(entsql.Cascade)),
+		edge.To("blocked_users_rel", UserBlock.Type).
+			Annotations(entsql.OnDelete(entsql.Cascade)),
+		edge.To("blocked_by_rel", UserBlock.Type).
 			Annotations(entsql.OnDelete(entsql.Cascade)),
 	}
 }

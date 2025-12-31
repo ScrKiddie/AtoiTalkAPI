@@ -734,6 +734,52 @@ func HasUploadedMediaWith(preds ...predicate.Media) predicate.User {
 	})
 }
 
+// HasBlockedUsersRel applies the HasEdge predicate on the "blocked_users_rel" edge.
+func HasBlockedUsersRel() predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, BlockedUsersRelTable, BlockedUsersRelColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasBlockedUsersRelWith applies the HasEdge predicate on the "blocked_users_rel" edge with a given conditions (other predicates).
+func HasBlockedUsersRelWith(preds ...predicate.UserBlock) predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		step := newBlockedUsersRelStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
+// HasBlockedByRel applies the HasEdge predicate on the "blocked_by_rel" edge.
+func HasBlockedByRel() predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, BlockedByRelTable, BlockedByRelColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasBlockedByRelWith applies the HasEdge predicate on the "blocked_by_rel" edge with a given conditions (other predicates).
+func HasBlockedByRelWith(preds ...predicate.UserBlock) predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		step := newBlockedByRelStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
 // And groups predicates with the AND operator between them.
 func And(predicates ...predicate.User) predicate.User {
 	return predicate.User(sql.AndPredicates(predicates...))

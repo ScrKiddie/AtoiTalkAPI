@@ -15,21 +15,12 @@ var (
 		{Name: "created_at", Type: field.TypeTime, Default: "CURRENT_TIMESTAMP"},
 		{Name: "updated_at", Type: field.TypeTime, Default: "CURRENT_TIMESTAMP"},
 		{Name: "type", Type: field.TypeEnum, Enums: []string{"private", "group"}},
-		{Name: "pinned_message_id", Type: field.TypeInt, Nullable: true},
 	}
 	// ChatsTable holds the schema information for the "chats" table.
 	ChatsTable = &schema.Table{
 		Name:       "chats",
 		Columns:    ChatsColumns,
 		PrimaryKey: []*schema.Column{ChatsColumns[0]},
-		ForeignKeys: []*schema.ForeignKey{
-			{
-				Symbol:     "chats_messages_pinned_message",
-				Columns:    []*schema.Column{ChatsColumns[4]},
-				RefColumns: []*schema.Column{MessagesColumns[0]},
-				OnDelete:   schema.SetNull,
-			},
-		},
 	}
 	// GroupChatsColumns holds the columns for the "group_chats" table.
 	GroupChatsColumns = []*schema.Column{
@@ -304,6 +295,41 @@ var (
 			},
 		},
 	}
+	// UserBlocksColumns holds the columns for the "user_blocks" table.
+	UserBlocksColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "created_at", Type: field.TypeTime, Default: "CURRENT_TIMESTAMP"},
+		{Name: "updated_at", Type: field.TypeTime, Default: "CURRENT_TIMESTAMP"},
+		{Name: "blocker_id", Type: field.TypeInt},
+		{Name: "blocked_id", Type: field.TypeInt},
+	}
+	// UserBlocksTable holds the schema information for the "user_blocks" table.
+	UserBlocksTable = &schema.Table{
+		Name:       "user_blocks",
+		Columns:    UserBlocksColumns,
+		PrimaryKey: []*schema.Column{UserBlocksColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "user_blocks_users_blocked_users_rel",
+				Columns:    []*schema.Column{UserBlocksColumns[3]},
+				RefColumns: []*schema.Column{UsersColumns[0]},
+				OnDelete:   schema.Cascade,
+			},
+			{
+				Symbol:     "user_blocks_users_blocked_by_rel",
+				Columns:    []*schema.Column{UserBlocksColumns[4]},
+				RefColumns: []*schema.Column{UsersColumns[0]},
+				OnDelete:   schema.Cascade,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "userblock_blocker_id_blocked_id",
+				Unique:  true,
+				Columns: []*schema.Column{UserBlocksColumns[3], UserBlocksColumns[4]},
+			},
+		},
+	}
 	// UserIdentitiesColumns holds the columns for the "user_identities" table.
 	UserIdentitiesColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt, Increment: true},
@@ -350,12 +376,12 @@ var (
 		OtpsTable,
 		PrivateChatsTable,
 		UsersTable,
+		UserBlocksTable,
 		UserIdentitiesTable,
 	}
 )
 
 func init() {
-	ChatsTable.ForeignKeys[0].RefTable = MessagesTable
 	GroupChatsTable.ForeignKeys[0].RefTable = ChatsTable
 	GroupChatsTable.ForeignKeys[1].RefTable = MediaTable
 	GroupChatsTable.ForeignKeys[2].RefTable = UsersTable
@@ -373,5 +399,7 @@ func init() {
 	PrivateChatsTable.ForeignKeys[1].RefTable = UsersTable
 	PrivateChatsTable.ForeignKeys[2].RefTable = UsersTable
 	UsersTable.ForeignKeys[0].RefTable = MediaTable
+	UserBlocksTable.ForeignKeys[0].RefTable = UsersTable
+	UserBlocksTable.ForeignKeys[1].RefTable = UsersTable
 	UserIdentitiesTable.ForeignKeys[0].RefTable = UsersTable
 }

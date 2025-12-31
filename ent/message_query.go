@@ -22,16 +22,15 @@ import (
 // MessageQuery is the builder for querying Message entities.
 type MessageQuery struct {
 	config
-	ctx               *QueryContext
-	order             []message.OrderOption
-	inters            []Interceptor
-	predicates        []predicate.Message
-	withChat          *ChatQuery
-	withSender        *UserQuery
-	withReplies       *MessageQuery
-	withReplyTo       *MessageQuery
-	withAttachments   *MediaQuery
-	withPinnedInChats *ChatQuery
+	ctx             *QueryContext
+	order           []message.OrderOption
+	inters          []Interceptor
+	predicates      []predicate.Message
+	withChat        *ChatQuery
+	withSender      *UserQuery
+	withReplies     *MessageQuery
+	withReplyTo     *MessageQuery
+	withAttachments *MediaQuery
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
@@ -171,28 +170,6 @@ func (_q *MessageQuery) QueryAttachments() *MediaQuery {
 			sqlgraph.From(message.Table, message.FieldID, selector),
 			sqlgraph.To(media.Table, media.FieldID),
 			sqlgraph.Edge(sqlgraph.O2M, false, message.AttachmentsTable, message.AttachmentsColumn),
-		)
-		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
-		return fromU, nil
-	}
-	return query
-}
-
-// QueryPinnedInChats chains the current query on the "pinned_in_chats" edge.
-func (_q *MessageQuery) QueryPinnedInChats() *ChatQuery {
-	query := (&ChatClient{config: _q.config}).Query()
-	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
-		if err := _q.prepareQuery(ctx); err != nil {
-			return nil, err
-		}
-		selector := _q.sqlQuery(ctx)
-		if err := selector.Err(); err != nil {
-			return nil, err
-		}
-		step := sqlgraph.NewStep(
-			sqlgraph.From(message.Table, message.FieldID, selector),
-			sqlgraph.To(chat.Table, chat.FieldID),
-			sqlgraph.Edge(sqlgraph.O2M, true, message.PinnedInChatsTable, message.PinnedInChatsColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
 		return fromU, nil
@@ -387,17 +364,16 @@ func (_q *MessageQuery) Clone() *MessageQuery {
 		return nil
 	}
 	return &MessageQuery{
-		config:            _q.config,
-		ctx:               _q.ctx.Clone(),
-		order:             append([]message.OrderOption{}, _q.order...),
-		inters:            append([]Interceptor{}, _q.inters...),
-		predicates:        append([]predicate.Message{}, _q.predicates...),
-		withChat:          _q.withChat.Clone(),
-		withSender:        _q.withSender.Clone(),
-		withReplies:       _q.withReplies.Clone(),
-		withReplyTo:       _q.withReplyTo.Clone(),
-		withAttachments:   _q.withAttachments.Clone(),
-		withPinnedInChats: _q.withPinnedInChats.Clone(),
+		config:          _q.config,
+		ctx:             _q.ctx.Clone(),
+		order:           append([]message.OrderOption{}, _q.order...),
+		inters:          append([]Interceptor{}, _q.inters...),
+		predicates:      append([]predicate.Message{}, _q.predicates...),
+		withChat:        _q.withChat.Clone(),
+		withSender:      _q.withSender.Clone(),
+		withReplies:     _q.withReplies.Clone(),
+		withReplyTo:     _q.withReplyTo.Clone(),
+		withAttachments: _q.withAttachments.Clone(),
 		// clone intermediate query.
 		sql:  _q.sql.Clone(),
 		path: _q.path,
@@ -456,17 +432,6 @@ func (_q *MessageQuery) WithAttachments(opts ...func(*MediaQuery)) *MessageQuery
 		opt(query)
 	}
 	_q.withAttachments = query
-	return _q
-}
-
-// WithPinnedInChats tells the query-builder to eager-load the nodes that are connected to
-// the "pinned_in_chats" edge. The optional arguments are used to configure the query builder of the edge.
-func (_q *MessageQuery) WithPinnedInChats(opts ...func(*ChatQuery)) *MessageQuery {
-	query := (&ChatClient{config: _q.config}).Query()
-	for _, opt := range opts {
-		opt(query)
-	}
-	_q.withPinnedInChats = query
 	return _q
 }
 
@@ -548,13 +513,12 @@ func (_q *MessageQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Mess
 	var (
 		nodes       = []*Message{}
 		_spec       = _q.querySpec()
-		loadedTypes = [6]bool{
+		loadedTypes = [5]bool{
 			_q.withChat != nil,
 			_q.withSender != nil,
 			_q.withReplies != nil,
 			_q.withReplyTo != nil,
 			_q.withAttachments != nil,
-			_q.withPinnedInChats != nil,
 		}
 	)
 	_spec.ScanValues = func(columns []string) ([]any, error) {
@@ -604,13 +568,6 @@ func (_q *MessageQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Mess
 		if err := _q.loadAttachments(ctx, query, nodes,
 			func(n *Message) { n.Edges.Attachments = []*Media{} },
 			func(n *Message, e *Media) { n.Edges.Attachments = append(n.Edges.Attachments, e) }); err != nil {
-			return nil, err
-		}
-	}
-	if query := _q.withPinnedInChats; query != nil {
-		if err := _q.loadPinnedInChats(ctx, query, nodes,
-			func(n *Message) { n.Edges.PinnedInChats = []*Chat{} },
-			func(n *Message, e *Chat) { n.Edges.PinnedInChats = append(n.Edges.PinnedInChats, e) }); err != nil {
 			return nil, err
 		}
 	}
@@ -768,39 +725,6 @@ func (_q *MessageQuery) loadAttachments(ctx context.Context, query *MediaQuery, 
 		node, ok := nodeids[*fk]
 		if !ok {
 			return fmt.Errorf(`unexpected referenced foreign-key "message_id" returned %v for node %v`, *fk, n.ID)
-		}
-		assign(node, n)
-	}
-	return nil
-}
-func (_q *MessageQuery) loadPinnedInChats(ctx context.Context, query *ChatQuery, nodes []*Message, init func(*Message), assign func(*Message, *Chat)) error {
-	fks := make([]driver.Value, 0, len(nodes))
-	nodeids := make(map[int]*Message)
-	for i := range nodes {
-		fks = append(fks, nodes[i].ID)
-		nodeids[nodes[i].ID] = nodes[i]
-		if init != nil {
-			init(nodes[i])
-		}
-	}
-	if len(query.ctx.Fields) > 0 {
-		query.ctx.AppendFieldOnce(chat.FieldPinnedMessageID)
-	}
-	query.Where(predicate.Chat(func(s *sql.Selector) {
-		s.Where(sql.InValues(s.C(message.PinnedInChatsColumn), fks...))
-	}))
-	neighbors, err := query.All(ctx)
-	if err != nil {
-		return err
-	}
-	for _, n := range neighbors {
-		fk := n.PinnedMessageID
-		if fk == nil {
-			return fmt.Errorf(`foreign-key "pinned_message_id" is nil for node %v`, n.ID)
-		}
-		node, ok := nodeids[*fk]
-		if !ok {
-			return fmt.Errorf(`unexpected referenced foreign-key "pinned_message_id" returned %v for node %v`, *fk, n.ID)
 		}
 		assign(node, n)
 	}

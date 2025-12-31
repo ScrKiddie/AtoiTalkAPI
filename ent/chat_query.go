@@ -22,14 +22,13 @@ import (
 // ChatQuery is the builder for querying Chat entities.
 type ChatQuery struct {
 	config
-	ctx               *QueryContext
-	order             []chat.OrderOption
-	inters            []Interceptor
-	predicates        []predicate.Chat
-	withMessages      *MessageQuery
-	withPinnedMessage *MessageQuery
-	withPrivateChat   *PrivateChatQuery
-	withGroupChat     *GroupChatQuery
+	ctx             *QueryContext
+	order           []chat.OrderOption
+	inters          []Interceptor
+	predicates      []predicate.Chat
+	withMessages    *MessageQuery
+	withPrivateChat *PrivateChatQuery
+	withGroupChat   *GroupChatQuery
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
@@ -81,28 +80,6 @@ func (_q *ChatQuery) QueryMessages() *MessageQuery {
 			sqlgraph.From(chat.Table, chat.FieldID, selector),
 			sqlgraph.To(message.Table, message.FieldID),
 			sqlgraph.Edge(sqlgraph.O2M, false, chat.MessagesTable, chat.MessagesColumn),
-		)
-		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
-		return fromU, nil
-	}
-	return query
-}
-
-// QueryPinnedMessage chains the current query on the "pinned_message" edge.
-func (_q *ChatQuery) QueryPinnedMessage() *MessageQuery {
-	query := (&MessageClient{config: _q.config}).Query()
-	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
-		if err := _q.prepareQuery(ctx); err != nil {
-			return nil, err
-		}
-		selector := _q.sqlQuery(ctx)
-		if err := selector.Err(); err != nil {
-			return nil, err
-		}
-		step := sqlgraph.NewStep(
-			sqlgraph.From(chat.Table, chat.FieldID, selector),
-			sqlgraph.To(message.Table, message.FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, false, chat.PinnedMessageTable, chat.PinnedMessageColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
 		return fromU, nil
@@ -341,15 +318,14 @@ func (_q *ChatQuery) Clone() *ChatQuery {
 		return nil
 	}
 	return &ChatQuery{
-		config:            _q.config,
-		ctx:               _q.ctx.Clone(),
-		order:             append([]chat.OrderOption{}, _q.order...),
-		inters:            append([]Interceptor{}, _q.inters...),
-		predicates:        append([]predicate.Chat{}, _q.predicates...),
-		withMessages:      _q.withMessages.Clone(),
-		withPinnedMessage: _q.withPinnedMessage.Clone(),
-		withPrivateChat:   _q.withPrivateChat.Clone(),
-		withGroupChat:     _q.withGroupChat.Clone(),
+		config:          _q.config,
+		ctx:             _q.ctx.Clone(),
+		order:           append([]chat.OrderOption{}, _q.order...),
+		inters:          append([]Interceptor{}, _q.inters...),
+		predicates:      append([]predicate.Chat{}, _q.predicates...),
+		withMessages:    _q.withMessages.Clone(),
+		withPrivateChat: _q.withPrivateChat.Clone(),
+		withGroupChat:   _q.withGroupChat.Clone(),
 		// clone intermediate query.
 		sql:  _q.sql.Clone(),
 		path: _q.path,
@@ -364,17 +340,6 @@ func (_q *ChatQuery) WithMessages(opts ...func(*MessageQuery)) *ChatQuery {
 		opt(query)
 	}
 	_q.withMessages = query
-	return _q
-}
-
-// WithPinnedMessage tells the query-builder to eager-load the nodes that are connected to
-// the "pinned_message" edge. The optional arguments are used to configure the query builder of the edge.
-func (_q *ChatQuery) WithPinnedMessage(opts ...func(*MessageQuery)) *ChatQuery {
-	query := (&MessageClient{config: _q.config}).Query()
-	for _, opt := range opts {
-		opt(query)
-	}
-	_q.withPinnedMessage = query
 	return _q
 }
 
@@ -478,9 +443,8 @@ func (_q *ChatQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Chat, e
 	var (
 		nodes       = []*Chat{}
 		_spec       = _q.querySpec()
-		loadedTypes = [4]bool{
+		loadedTypes = [3]bool{
 			_q.withMessages != nil,
-			_q.withPinnedMessage != nil,
 			_q.withPrivateChat != nil,
 			_q.withGroupChat != nil,
 		}
@@ -507,12 +471,6 @@ func (_q *ChatQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Chat, e
 		if err := _q.loadMessages(ctx, query, nodes,
 			func(n *Chat) { n.Edges.Messages = []*Message{} },
 			func(n *Chat, e *Message) { n.Edges.Messages = append(n.Edges.Messages, e) }); err != nil {
-			return nil, err
-		}
-	}
-	if query := _q.withPinnedMessage; query != nil {
-		if err := _q.loadPinnedMessage(ctx, query, nodes, nil,
-			func(n *Chat, e *Message) { n.Edges.PinnedMessage = e }); err != nil {
 			return nil, err
 		}
 	}
@@ -558,38 +516,6 @@ func (_q *ChatQuery) loadMessages(ctx context.Context, query *MessageQuery, node
 			return fmt.Errorf(`unexpected referenced foreign-key "chat_id" returned %v for node %v`, fk, n.ID)
 		}
 		assign(node, n)
-	}
-	return nil
-}
-func (_q *ChatQuery) loadPinnedMessage(ctx context.Context, query *MessageQuery, nodes []*Chat, init func(*Chat), assign func(*Chat, *Message)) error {
-	ids := make([]int, 0, len(nodes))
-	nodeids := make(map[int][]*Chat)
-	for i := range nodes {
-		if nodes[i].PinnedMessageID == nil {
-			continue
-		}
-		fk := *nodes[i].PinnedMessageID
-		if _, ok := nodeids[fk]; !ok {
-			ids = append(ids, fk)
-		}
-		nodeids[fk] = append(nodeids[fk], nodes[i])
-	}
-	if len(ids) == 0 {
-		return nil
-	}
-	query.Where(message.IDIn(ids...))
-	neighbors, err := query.All(ctx)
-	if err != nil {
-		return err
-	}
-	for _, n := range neighbors {
-		nodes, ok := nodeids[n.ID]
-		if !ok {
-			return fmt.Errorf(`unexpected foreign-key "pinned_message_id" returned %v`, n.ID)
-		}
-		for i := range nodes {
-			assign(nodes[i], n)
-		}
 	}
 	return nil
 }
@@ -672,9 +598,6 @@ func (_q *ChatQuery) querySpec() *sqlgraph.QuerySpec {
 			if fields[i] != chat.FieldID {
 				_spec.Node.Columns = append(_spec.Node.Columns, fields[i])
 			}
-		}
-		if _q.withPinnedMessage != nil {
-			_spec.Node.AddColumnOnce(chat.FieldPinnedMessageID)
 		}
 	}
 	if ps := _q.predicates; len(ps) > 0 {

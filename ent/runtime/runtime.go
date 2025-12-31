@@ -12,6 +12,7 @@ import (
 	"AtoiTalkAPI/ent/privatechat"
 	"AtoiTalkAPI/ent/schema"
 	"AtoiTalkAPI/ent/user"
+	"AtoiTalkAPI/ent/userblock"
 	"AtoiTalkAPI/ent/useridentity"
 	"time"
 )
@@ -283,6 +284,21 @@ func init() {
 	userDescIsOnline := userFields[5].Descriptor()
 	// user.DefaultIsOnline holds the default value on creation for the is_online field.
 	user.DefaultIsOnline = userDescIsOnline.Default.(bool)
+	userblockMixin := schema.UserBlock{}.Mixin()
+	userblockMixinFields0 := userblockMixin[0].Fields()
+	_ = userblockMixinFields0
+	userblockFields := schema.UserBlock{}.Fields()
+	_ = userblockFields
+	// userblockDescCreatedAt is the schema descriptor for created_at field.
+	userblockDescCreatedAt := userblockMixinFields0[0].Descriptor()
+	// userblock.DefaultCreatedAt holds the default value on creation for the created_at field.
+	userblock.DefaultCreatedAt = userblockDescCreatedAt.Default.(func() time.Time)
+	// userblockDescUpdatedAt is the schema descriptor for updated_at field.
+	userblockDescUpdatedAt := userblockMixinFields0[1].Descriptor()
+	// userblock.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	userblock.DefaultUpdatedAt = userblockDescUpdatedAt.Default.(func() time.Time)
+	// userblock.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	userblock.UpdateDefaultUpdatedAt = userblockDescUpdatedAt.UpdateDefault.(func() time.Time)
 	useridentityMixin := schema.UserIdentity{}.Mixin()
 	useridentityMixinFields0 := useridentityMixin[0].Fields()
 	_ = useridentityMixinFields0

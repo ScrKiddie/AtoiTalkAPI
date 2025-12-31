@@ -28,6 +28,8 @@ type Tx struct {
 	PrivateChat *PrivateChatClient
 	// User is the client for interacting with the User builders.
 	User *UserClient
+	// UserBlock is the client for interacting with the UserBlock builders.
+	UserBlock *UserBlockClient
 	// UserIdentity is the client for interacting with the UserIdentity builders.
 	UserIdentity *UserIdentityClient
 
@@ -169,6 +171,7 @@ func (tx *Tx) init() {
 	tx.OTP = NewOTPClient(tx.config)
 	tx.PrivateChat = NewPrivateChatClient(tx.config)
 	tx.User = NewUserClient(tx.config)
+	tx.UserBlock = NewUserBlockClient(tx.config)
 	tx.UserIdentity = NewUserIdentityClient(tx.config)
 }
 

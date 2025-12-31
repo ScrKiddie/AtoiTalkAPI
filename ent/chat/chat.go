@@ -21,12 +21,8 @@ const (
 	FieldUpdatedAt = "updated_at"
 	// FieldType holds the string denoting the type field in the database.
 	FieldType = "type"
-	// FieldPinnedMessageID holds the string denoting the pinned_message_id field in the database.
-	FieldPinnedMessageID = "pinned_message_id"
 	// EdgeMessages holds the string denoting the messages edge name in mutations.
 	EdgeMessages = "messages"
-	// EdgePinnedMessage holds the string denoting the pinned_message edge name in mutations.
-	EdgePinnedMessage = "pinned_message"
 	// EdgePrivateChat holds the string denoting the private_chat edge name in mutations.
 	EdgePrivateChat = "private_chat"
 	// EdgeGroupChat holds the string denoting the group_chat edge name in mutations.
@@ -40,13 +36,6 @@ const (
 	MessagesInverseTable = "messages"
 	// MessagesColumn is the table column denoting the messages relation/edge.
 	MessagesColumn = "chat_id"
-	// PinnedMessageTable is the table that holds the pinned_message relation/edge.
-	PinnedMessageTable = "chats"
-	// PinnedMessageInverseTable is the table name for the Message entity.
-	// It exists in this package in order to avoid circular dependency with the "message" package.
-	PinnedMessageInverseTable = "messages"
-	// PinnedMessageColumn is the table column denoting the pinned_message relation/edge.
-	PinnedMessageColumn = "pinned_message_id"
 	// PrivateChatTable is the table that holds the private_chat relation/edge.
 	PrivateChatTable = "private_chats"
 	// PrivateChatInverseTable is the table name for the PrivateChat entity.
@@ -69,7 +58,6 @@ var Columns = []string{
 	FieldCreatedAt,
 	FieldUpdatedAt,
 	FieldType,
-	FieldPinnedMessageID,
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
@@ -137,11 +125,6 @@ func ByType(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldType, opts...).ToFunc()
 }
 
-// ByPinnedMessageID orders the results by the pinned_message_id field.
-func ByPinnedMessageID(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldPinnedMessageID, opts...).ToFunc()
-}
-
 // ByMessagesCount orders the results by messages count.
 func ByMessagesCount(opts ...sql.OrderTermOption) OrderOption {
 	return func(s *sql.Selector) {
@@ -153,13 +136,6 @@ func ByMessagesCount(opts ...sql.OrderTermOption) OrderOption {
 func ByMessages(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
 	return func(s *sql.Selector) {
 		sqlgraph.OrderByNeighborTerms(s, newMessagesStep(), append([]sql.OrderTerm{term}, terms...)...)
-	}
-}
-
-// ByPinnedMessageField orders the results by pinned_message field.
-func ByPinnedMessageField(field string, opts ...sql.OrderTermOption) OrderOption {
-	return func(s *sql.Selector) {
-		sqlgraph.OrderByNeighborTerms(s, newPinnedMessageStep(), sql.OrderByField(field, opts...))
 	}
 }
 
@@ -181,13 +157,6 @@ func newMessagesStep() *sqlgraph.Step {
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(MessagesInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.O2M, false, MessagesTable, MessagesColumn),
-	)
-}
-func newPinnedMessageStep() *sqlgraph.Step {
-	return sqlgraph.NewStep(
-		sqlgraph.From(Table, FieldID),
-		sqlgraph.To(PinnedMessageInverseTable, FieldID),
-		sqlgraph.Edge(sqlgraph.M2O, false, PinnedMessageTable, PinnedMessageColumn),
 	)
 }
 func newPrivateChatStep() *sqlgraph.Step {

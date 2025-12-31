@@ -184,21 +184,6 @@ func (_u *MessageUpdate) AddAttachments(v ...*Media) *MessageUpdate {
 	return _u.AddAttachmentIDs(ids...)
 }
 
-// AddPinnedInChatIDs adds the "pinned_in_chats" edge to the Chat entity by IDs.
-func (_u *MessageUpdate) AddPinnedInChatIDs(ids ...int) *MessageUpdate {
-	_u.mutation.AddPinnedInChatIDs(ids...)
-	return _u
-}
-
-// AddPinnedInChats adds the "pinned_in_chats" edges to the Chat entity.
-func (_u *MessageUpdate) AddPinnedInChats(v ...*Chat) *MessageUpdate {
-	ids := make([]int, len(v))
-	for i := range v {
-		ids[i] = v[i].ID
-	}
-	return _u.AddPinnedInChatIDs(ids...)
-}
-
 // Mutation returns the MessageMutation object of the builder.
 func (_u *MessageUpdate) Mutation() *MessageMutation {
 	return _u.mutation
@@ -262,27 +247,6 @@ func (_u *MessageUpdate) RemoveAttachments(v ...*Media) *MessageUpdate {
 		ids[i] = v[i].ID
 	}
 	return _u.RemoveAttachmentIDs(ids...)
-}
-
-// ClearPinnedInChats clears all "pinned_in_chats" edges to the Chat entity.
-func (_u *MessageUpdate) ClearPinnedInChats() *MessageUpdate {
-	_u.mutation.ClearPinnedInChats()
-	return _u
-}
-
-// RemovePinnedInChatIDs removes the "pinned_in_chats" edge to Chat entities by IDs.
-func (_u *MessageUpdate) RemovePinnedInChatIDs(ids ...int) *MessageUpdate {
-	_u.mutation.RemovePinnedInChatIDs(ids...)
-	return _u
-}
-
-// RemovePinnedInChats removes "pinned_in_chats" edges to Chat entities.
-func (_u *MessageUpdate) RemovePinnedInChats(v ...*Chat) *MessageUpdate {
-	ids := make([]int, len(v))
-	for i := range v {
-		ids[i] = v[i].ID
-	}
-	return _u.RemovePinnedInChatIDs(ids...)
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
@@ -539,51 +503,6 @@ func (_u *MessageUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
-	if _u.mutation.PinnedInChatsCleared() {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
-			Inverse: true,
-			Table:   message.PinnedInChatsTable,
-			Columns: []string{message.PinnedInChatsColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(chat.FieldID, field.TypeInt),
-			},
-		}
-		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
-	}
-	if nodes := _u.mutation.RemovedPinnedInChatsIDs(); len(nodes) > 0 && !_u.mutation.PinnedInChatsCleared() {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
-			Inverse: true,
-			Table:   message.PinnedInChatsTable,
-			Columns: []string{message.PinnedInChatsColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(chat.FieldID, field.TypeInt),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
-	}
-	if nodes := _u.mutation.PinnedInChatsIDs(); len(nodes) > 0 {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
-			Inverse: true,
-			Table:   message.PinnedInChatsTable,
-			Columns: []string{message.PinnedInChatsColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(chat.FieldID, field.TypeInt),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_spec.Edges.Add = append(_spec.Edges.Add, edge)
-	}
 	if _node, err = sqlgraph.UpdateNodes(ctx, _u.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{message.Label}
@@ -757,21 +676,6 @@ func (_u *MessageUpdateOne) AddAttachments(v ...*Media) *MessageUpdateOne {
 	return _u.AddAttachmentIDs(ids...)
 }
 
-// AddPinnedInChatIDs adds the "pinned_in_chats" edge to the Chat entity by IDs.
-func (_u *MessageUpdateOne) AddPinnedInChatIDs(ids ...int) *MessageUpdateOne {
-	_u.mutation.AddPinnedInChatIDs(ids...)
-	return _u
-}
-
-// AddPinnedInChats adds the "pinned_in_chats" edges to the Chat entity.
-func (_u *MessageUpdateOne) AddPinnedInChats(v ...*Chat) *MessageUpdateOne {
-	ids := make([]int, len(v))
-	for i := range v {
-		ids[i] = v[i].ID
-	}
-	return _u.AddPinnedInChatIDs(ids...)
-}
-
 // Mutation returns the MessageMutation object of the builder.
 func (_u *MessageUpdateOne) Mutation() *MessageMutation {
 	return _u.mutation
@@ -835,27 +739,6 @@ func (_u *MessageUpdateOne) RemoveAttachments(v ...*Media) *MessageUpdateOne {
 		ids[i] = v[i].ID
 	}
 	return _u.RemoveAttachmentIDs(ids...)
-}
-
-// ClearPinnedInChats clears all "pinned_in_chats" edges to the Chat entity.
-func (_u *MessageUpdateOne) ClearPinnedInChats() *MessageUpdateOne {
-	_u.mutation.ClearPinnedInChats()
-	return _u
-}
-
-// RemovePinnedInChatIDs removes the "pinned_in_chats" edge to Chat entities by IDs.
-func (_u *MessageUpdateOne) RemovePinnedInChatIDs(ids ...int) *MessageUpdateOne {
-	_u.mutation.RemovePinnedInChatIDs(ids...)
-	return _u
-}
-
-// RemovePinnedInChats removes "pinned_in_chats" edges to Chat entities.
-func (_u *MessageUpdateOne) RemovePinnedInChats(v ...*Chat) *MessageUpdateOne {
-	ids := make([]int, len(v))
-	for i := range v {
-		ids[i] = v[i].ID
-	}
-	return _u.RemovePinnedInChatIDs(ids...)
 }
 
 // Where appends a list predicates to the MessageUpdate builder.
@@ -1135,51 +1018,6 @@ func (_u *MessageUpdateOne) sqlSave(ctx context.Context) (_node *Message, err er
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(media.FieldID, field.TypeInt),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_spec.Edges.Add = append(_spec.Edges.Add, edge)
-	}
-	if _u.mutation.PinnedInChatsCleared() {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
-			Inverse: true,
-			Table:   message.PinnedInChatsTable,
-			Columns: []string{message.PinnedInChatsColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(chat.FieldID, field.TypeInt),
-			},
-		}
-		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
-	}
-	if nodes := _u.mutation.RemovedPinnedInChatsIDs(); len(nodes) > 0 && !_u.mutation.PinnedInChatsCleared() {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
-			Inverse: true,
-			Table:   message.PinnedInChatsTable,
-			Columns: []string{message.PinnedInChatsColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(chat.FieldID, field.TypeInt),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
-	}
-	if nodes := _u.mutation.PinnedInChatsIDs(); len(nodes) > 0 {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
-			Inverse: true,
-			Table:   message.PinnedInChatsTable,
-			Columns: []string{message.PinnedInChatsColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(chat.FieldID, field.TypeInt),
 			},
 		}
 		for _, k := range nodes {
