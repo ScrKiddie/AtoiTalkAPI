@@ -30,5 +30,8 @@ type PrivateChat func(*sql.Selector)
 // User is the predicate function for user builders.
 type User func(*sql.Selector)
 
+// UserBlock is the predicate function for userblock builders.
+type UserBlock func(*sql.Selector)
+
 // UserIdentity is the predicate function for useridentity builders.
 type UserIdentity func(*sql.Selector)

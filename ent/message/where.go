@@ -495,29 +495,6 @@ func HasAttachmentsWith(preds ...predicate.Media) predicate.Message {
 	})
 }
 
-// HasPinnedInChats applies the HasEdge predicate on the "pinned_in_chats" edge.
-func HasPinnedInChats() predicate.Message {
-	return predicate.Message(func(s *sql.Selector) {
-		step := sqlgraph.NewStep(
-			sqlgraph.From(Table, FieldID),
-			sqlgraph.Edge(sqlgraph.O2M, true, PinnedInChatsTable, PinnedInChatsColumn),
-		)
-		sqlgraph.HasNeighbors(s, step)
-	})
-}
-
-// HasPinnedInChatsWith applies the HasEdge predicate on the "pinned_in_chats" edge with a given conditions (other predicates).
-func HasPinnedInChatsWith(preds ...predicate.Chat) predicate.Message {
-	return predicate.Message(func(s *sql.Selector) {
-		step := newPinnedInChatsStep()
-		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
-			for _, p := range preds {
-				p(s)
-			}
-		})
-	})
-}
-
 // And groups predicates with the AND operator between them.
 func And(predicates ...predicate.Message) predicate.Message {
 	return predicate.Message(sql.AndPredicates(predicates...))

@@ -19,6 +19,7 @@ import (
 	"AtoiTalkAPI/ent/otp"
 	"AtoiTalkAPI/ent/privatechat"
 	"AtoiTalkAPI/ent/user"
+	"AtoiTalkAPI/ent/userblock"
 	"AtoiTalkAPI/ent/useridentity"
 
 	"entgo.io/ent"
@@ -48,6 +49,8 @@ type Client struct {
 	PrivateChat *PrivateChatClient
 	// User is the client for interacting with the User builders.
 	User *UserClient
+	// UserBlock is the client for interacting with the UserBlock builders.
+	UserBlock *UserBlockClient
 	// UserIdentity is the client for interacting with the UserIdentity builders.
 	UserIdentity *UserIdentityClient
 }
@@ -69,6 +72,7 @@ func (c *Client) init() {
 	c.OTP = NewOTPClient(c.config)
 	c.PrivateChat = NewPrivateChatClient(c.config)
 	c.User = NewUserClient(c.config)
+	c.UserBlock = NewUserBlockClient(c.config)
 	c.UserIdentity = NewUserIdentityClient(c.config)
 }
 
@@ -170,6 +174,7 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 		OTP:          NewOTPClient(cfg),
 		PrivateChat:  NewPrivateChatClient(cfg),
 		User:         NewUserClient(cfg),
+		UserBlock:    NewUserBlockClient(cfg),
 		UserIdentity: NewUserIdentityClient(cfg),
 	}, nil
 }
@@ -198,6 +203,7 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 		OTP:          NewOTPClient(cfg),
 		PrivateChat:  NewPrivateChatClient(cfg),
 		User:         NewUserClient(cfg),
+		UserBlock:    NewUserBlockClient(cfg),
 		UserIdentity: NewUserIdentityClient(cfg),
 	}, nil
 }
@@ -229,7 +235,7 @@ func (c *Client) Close() error {
 func (c *Client) Use(hooks ...Hook) {
 	for _, n := range []interface{ Use(...Hook) }{
 		c.Chat, c.GroupChat, c.GroupMember, c.Media, c.Message, c.OTP, c.PrivateChat,
-		c.User, c.UserIdentity,
+		c.User, c.UserBlock, c.UserIdentity,
 	} {
 		n.Use(hooks...)
 	}
@@ -240,7 +246,7 @@ func (c *Client) Use(hooks ...Hook) {
 func (c *Client) Intercept(interceptors ...Interceptor) {
 	for _, n := range []interface{ Intercept(...Interceptor) }{
 		c.Chat, c.GroupChat, c.GroupMember, c.Media, c.Message, c.OTP, c.PrivateChat,
-		c.User, c.UserIdentity,
+		c.User, c.UserBlock, c.UserIdentity,
 	} {
 		n.Intercept(interceptors...)
 	}
@@ -265,6 +271,8 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.PrivateChat.mutate(ctx, m)
 	case *UserMutation:
 		return c.User.mutate(ctx, m)
+	case *UserBlockMutation:
+		return c.UserBlock.mutate(ctx, m)
 	case *UserIdentityMutation:
 		return c.UserIdentity.mutate(ctx, m)
 	default:
@@ -389,22 +397,6 @@ func (c *ChatClient) QueryMessages(_m *Chat) *MessageQuery {
 			sqlgraph.From(chat.Table, chat.FieldID, id),
 			sqlgraph.To(message.Table, message.FieldID),
 			sqlgraph.Edge(sqlgraph.O2M, false, chat.MessagesTable, chat.MessagesColumn),
-		)
-		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
-		return fromV, nil
-	}
-	return query
-}
-
-// QueryPinnedMessage queries the pinned_message edge of a Chat.
-func (c *ChatClient) QueryPinnedMessage(_m *Chat) *MessageQuery {
-	query := (&MessageClient{config: c.config}).Query()
-	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
-		id := _m.ID
-		step := sqlgraph.NewStep(
-			sqlgraph.From(chat.Table, chat.FieldID, id),
-			sqlgraph.To(message.Table, message.FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, false, chat.PinnedMessageTable, chat.PinnedMessageColumn),
 		)
 		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
 		return fromV, nil
@@ -1216,22 +1208,6 @@ func (c *MessageClient) QueryAttachments(_m *Message) *MediaQuery {
 	return query
 }
 
-// QueryPinnedInChats queries the pinned_in_chats edge of a Message.
-func (c *MessageClient) QueryPinnedInChats(_m *Message) *ChatQuery {
-	query := (&ChatClient{config: c.config}).Query()
-	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
-		id := _m.ID
-		step := sqlgraph.NewStep(
-			sqlgraph.From(message.Table, message.FieldID, id),
-			sqlgraph.To(chat.Table, chat.FieldID),
-			sqlgraph.Edge(sqlgraph.O2M, true, message.PinnedInChatsTable, message.PinnedInChatsColumn),
-		)
-		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
-		return fromV, nil
-	}
-	return query
-}
-
 // Hooks returns the client hooks.
 func (c *MessageClient) Hooks() []Hook {
 	return c.hooks.Message
@@ -1808,6 +1784,38 @@ func (c *UserClient) QueryUploadedMedia(_m *User) *MediaQuery {
 	return query
 }
 
+// QueryBlockedUsersRel queries the blocked_users_rel edge of a User.
+func (c *UserClient) QueryBlockedUsersRel(_m *User) *UserBlockQuery {
+	query := (&UserBlockClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(user.Table, user.FieldID, id),
+			sqlgraph.To(userblock.Table, userblock.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, user.BlockedUsersRelTable, user.BlockedUsersRelColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryBlockedByRel queries the blocked_by_rel edge of a User.
+func (c *UserClient) QueryBlockedByRel(_m *User) *UserBlockQuery {
+	query := (&UserBlockClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(user.Table, user.FieldID, id),
+			sqlgraph.To(userblock.Table, userblock.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, user.BlockedByRelTable, user.BlockedByRelColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
 // Hooks returns the client hooks.
 func (c *UserClient) Hooks() []Hook {
 	return c.hooks.User
@@ -1830,6 +1838,171 @@ func (c *UserClient) mutate(ctx context.Context, m *UserMutation) (Value, error)
 		return (&UserDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
 	default:
 		return nil, fmt.Errorf("ent: unknown User mutation op: %q", m.Op())
+	}
+}
+
+// UserBlockClient is a client for the UserBlock schema.
+type UserBlockClient struct {
+	config
+}
+
+// NewUserBlockClient returns a client for the UserBlock from the given config.
+func NewUserBlockClient(c config) *UserBlockClient {
+	return &UserBlockClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `userblock.Hooks(f(g(h())))`.
+func (c *UserBlockClient) Use(hooks ...Hook) {
+	c.hooks.UserBlock = append(c.hooks.UserBlock, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `userblock.Intercept(f(g(h())))`.
+func (c *UserBlockClient) Intercept(interceptors ...Interceptor) {
+	c.inters.UserBlock = append(c.inters.UserBlock, interceptors...)
+}
+
+// Create returns a builder for creating a UserBlock entity.
+func (c *UserBlockClient) Create() *UserBlockCreate {
+	mutation := newUserBlockMutation(c.config, OpCreate)
+	return &UserBlockCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of UserBlock entities.
+func (c *UserBlockClient) CreateBulk(builders ...*UserBlockCreate) *UserBlockCreateBulk {
+	return &UserBlockCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *UserBlockClient) MapCreateBulk(slice any, setFunc func(*UserBlockCreate, int)) *UserBlockCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &UserBlockCreateBulk{err: fmt.Errorf("calling to UserBlockClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*UserBlockCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &UserBlockCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for UserBlock.
+func (c *UserBlockClient) Update() *UserBlockUpdate {
+	mutation := newUserBlockMutation(c.config, OpUpdate)
+	return &UserBlockUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *UserBlockClient) UpdateOne(_m *UserBlock) *UserBlockUpdateOne {
+	mutation := newUserBlockMutation(c.config, OpUpdateOne, withUserBlock(_m))
+	return &UserBlockUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *UserBlockClient) UpdateOneID(id int) *UserBlockUpdateOne {
+	mutation := newUserBlockMutation(c.config, OpUpdateOne, withUserBlockID(id))
+	return &UserBlockUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for UserBlock.
+func (c *UserBlockClient) Delete() *UserBlockDelete {
+	mutation := newUserBlockMutation(c.config, OpDelete)
+	return &UserBlockDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *UserBlockClient) DeleteOne(_m *UserBlock) *UserBlockDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *UserBlockClient) DeleteOneID(id int) *UserBlockDeleteOne {
+	builder := c.Delete().Where(userblock.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &UserBlockDeleteOne{builder}
+}
+
+// Query returns a query builder for UserBlock.
+func (c *UserBlockClient) Query() *UserBlockQuery {
+	return &UserBlockQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeUserBlock},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a UserBlock entity by its id.
+func (c *UserBlockClient) Get(ctx context.Context, id int) (*UserBlock, error) {
+	return c.Query().Where(userblock.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *UserBlockClient) GetX(ctx context.Context, id int) *UserBlock {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QueryBlocker queries the blocker edge of a UserBlock.
+func (c *UserBlockClient) QueryBlocker(_m *UserBlock) *UserQuery {
+	query := (&UserClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(userblock.Table, userblock.FieldID, id),
+			sqlgraph.To(user.Table, user.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, userblock.BlockerTable, userblock.BlockerColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryBlocked queries the blocked edge of a UserBlock.
+func (c *UserBlockClient) QueryBlocked(_m *UserBlock) *UserQuery {
+	query := (&UserClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(userblock.Table, userblock.FieldID, id),
+			sqlgraph.To(user.Table, user.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, userblock.BlockedTable, userblock.BlockedColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *UserBlockClient) Hooks() []Hook {
+	return c.hooks.UserBlock
+}
+
+// Interceptors returns the client interceptors.
+func (c *UserBlockClient) Interceptors() []Interceptor {
+	return c.inters.UserBlock
+}
+
+func (c *UserBlockClient) mutate(ctx context.Context, m *UserBlockMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&UserBlockCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&UserBlockUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&UserBlockUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&UserBlockDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown UserBlock mutation op: %q", m.Op())
 	}
 }
 
@@ -1985,11 +2158,11 @@ func (c *UserIdentityClient) mutate(ctx context.Context, m *UserIdentityMutation
 // hooks and interceptors per client, for fast access.
 type (
 	hooks struct {
-		Chat, GroupChat, GroupMember, Media, Message, OTP, PrivateChat, User,
+		Chat, GroupChat, GroupMember, Media, Message, OTP, PrivateChat, User, UserBlock,
 		UserIdentity []ent.Hook
 	}
 	inters struct {
-		Chat, GroupChat, GroupMember, Media, Message, OTP, PrivateChat, User,
+		Chat, GroupChat, GroupMember, Media, Message, OTP, PrivateChat, User, UserBlock,
 		UserIdentity []ent.Interceptor
 	}
 )

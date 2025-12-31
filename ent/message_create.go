@@ -164,21 +164,6 @@ func (_c *MessageCreate) AddAttachments(v ...*Media) *MessageCreate {
 	return _c.AddAttachmentIDs(ids...)
 }
 
-// AddPinnedInChatIDs adds the "pinned_in_chats" edge to the Chat entity by IDs.
-func (_c *MessageCreate) AddPinnedInChatIDs(ids ...int) *MessageCreate {
-	_c.mutation.AddPinnedInChatIDs(ids...)
-	return _c
-}
-
-// AddPinnedInChats adds the "pinned_in_chats" edges to the Chat entity.
-func (_c *MessageCreate) AddPinnedInChats(v ...*Chat) *MessageCreate {
-	ids := make([]int, len(v))
-	for i := range v {
-		ids[i] = v[i].ID
-	}
-	return _c.AddPinnedInChatIDs(ids...)
-}
-
 // Mutation returns the MessageMutation object of the builder.
 func (_c *MessageCreate) Mutation() *MessageMutation {
 	return _c.mutation
@@ -373,22 +358,6 @@ func (_c *MessageCreate) createSpec() (*Message, *sqlgraph.CreateSpec) {
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(media.FieldID, field.TypeInt),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_spec.Edges = append(_spec.Edges, edge)
-	}
-	if nodes := _c.mutation.PinnedInChatsIDs(); len(nodes) > 0 {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
-			Inverse: true,
-			Table:   message.PinnedInChatsTable,
-			Columns: []string{message.PinnedInChatsColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(chat.FieldID, field.TypeInt),
 			},
 		}
 		for _, k := range nodes {

@@ -294,7 +294,6 @@ func (s *ChatService) GetChats(ctx context.Context, userID int, req model.GetCha
 	for _, c := range chats {
 		var name, avatar string
 		var lastReadAt *string
-		var isPinned bool
 		var unreadCount int
 
 		if c.Type == chat.TypePrivate && c.Edges.PrivateChat != nil {
@@ -340,7 +339,7 @@ func (s *ChatService) GetChats(ctx context.Context, userID int, req model.GetCha
 			lastMsgResp = helper.ToMessageResponse(msg, s.cfg.StorageMode, s.cfg.AppURL, s.cfg.StorageCDNURL, s.cfg.StorageAttachment)
 		}
 
-		response = append(response, model.ChatListResponse{ID: c.ID, Type: string(c.Type), Name: name, Avatar: avatar, LastMessage: lastMsgResp, UnreadCount: unreadCount, LastReadAt: lastReadAt, IsPinned: isPinned})
+		response = append(response, model.ChatListResponse{ID: c.ID, Type: string(c.Type), Name: name, Avatar: avatar, LastMessage: lastMsgResp, UnreadCount: unreadCount, LastReadAt: lastReadAt})
 	}
 
 	return response, nextCursor, hasNext, nil

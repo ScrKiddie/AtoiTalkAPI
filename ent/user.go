@@ -60,9 +60,13 @@ type UserEdges struct {
 	PrivateChatsAsUser2 []*PrivateChat `json:"private_chats_as_user2,omitempty"`
 	// UploadedMedia holds the value of the uploaded_media edge.
 	UploadedMedia []*Media `json:"uploaded_media,omitempty"`
+	// BlockedUsersRel holds the value of the blocked_users_rel edge.
+	BlockedUsersRel []*UserBlock `json:"blocked_users_rel,omitempty"`
+	// BlockedByRel holds the value of the blocked_by_rel edge.
+	BlockedByRel []*UserBlock `json:"blocked_by_rel,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [8]bool
+	loadedTypes [10]bool
 }
 
 // AvatarOrErr returns the Avatar value or an error if the edge
@@ -137,6 +141,24 @@ func (e UserEdges) UploadedMediaOrErr() ([]*Media, error) {
 		return e.UploadedMedia, nil
 	}
 	return nil, &NotLoadedError{edge: "uploaded_media"}
+}
+
+// BlockedUsersRelOrErr returns the BlockedUsersRel value or an error if the edge
+// was not loaded in eager-loading.
+func (e UserEdges) BlockedUsersRelOrErr() ([]*UserBlock, error) {
+	if e.loadedTypes[8] {
+		return e.BlockedUsersRel, nil
+	}
+	return nil, &NotLoadedError{edge: "blocked_users_rel"}
+}
+
+// BlockedByRelOrErr returns the BlockedByRel value or an error if the edge
+// was not loaded in eager-loading.
+func (e UserEdges) BlockedByRelOrErr() ([]*UserBlock, error) {
+	if e.loadedTypes[9] {
+		return e.BlockedByRel, nil
+	}
+	return nil, &NotLoadedError{edge: "blocked_by_rel"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -282,6 +304,16 @@ func (_m *User) QueryPrivateChatsAsUser2() *PrivateChatQuery {
 // QueryUploadedMedia queries the "uploaded_media" edge of the User entity.
 func (_m *User) QueryUploadedMedia() *MediaQuery {
 	return NewUserClient(_m.config).QueryUploadedMedia(_m)
+}
+
+// QueryBlockedUsersRel queries the "blocked_users_rel" edge of the User entity.
+func (_m *User) QueryBlockedUsersRel() *UserBlockQuery {
+	return NewUserClient(_m.config).QueryBlockedUsersRel(_m)
+}
+
+// QueryBlockedByRel queries the "blocked_by_rel" edge of the User entity.
+func (_m *User) QueryBlockedByRel() *UserBlockQuery {
+	return NewUserClient(_m.config).QueryBlockedByRel(_m)
 }
 
 // Update returns a builder for updating this User.

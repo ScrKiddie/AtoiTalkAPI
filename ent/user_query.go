@@ -10,6 +10,7 @@ import (
 	"AtoiTalkAPI/ent/predicate"
 	"AtoiTalkAPI/ent/privatechat"
 	"AtoiTalkAPI/ent/user"
+	"AtoiTalkAPI/ent/userblock"
 	"AtoiTalkAPI/ent/useridentity"
 	"context"
 	"database/sql/driver"
@@ -37,6 +38,8 @@ type UserQuery struct {
 	withPrivateChatsAsUser1 *PrivateChatQuery
 	withPrivateChatsAsUser2 *PrivateChatQuery
 	withUploadedMedia       *MediaQuery
+	withBlockedUsersRel     *UserBlockQuery
+	withBlockedByRel        *UserBlockQuery
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
@@ -249,6 +252,50 @@ func (_q *UserQuery) QueryUploadedMedia() *MediaQuery {
 	return query
 }
 
+// QueryBlockedUsersRel chains the current query on the "blocked_users_rel" edge.
+func (_q *UserQuery) QueryBlockedUsersRel() *UserBlockQuery {
+	query := (&UserBlockClient{config: _q.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := _q.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := _q.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(user.Table, user.FieldID, selector),
+			sqlgraph.To(userblock.Table, userblock.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, user.BlockedUsersRelTable, user.BlockedUsersRelColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryBlockedByRel chains the current query on the "blocked_by_rel" edge.
+func (_q *UserQuery) QueryBlockedByRel() *UserBlockQuery {
+	query := (&UserBlockClient{config: _q.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := _q.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := _q.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(user.Table, user.FieldID, selector),
+			sqlgraph.To(userblock.Table, userblock.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, user.BlockedByRelTable, user.BlockedByRelColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
 // First returns the first User entity from the query.
 // Returns a *NotFoundError when no User was found.
 func (_q *UserQuery) First(ctx context.Context) (*User, error) {
@@ -449,6 +496,8 @@ func (_q *UserQuery) Clone() *UserQuery {
 		withPrivateChatsAsUser1: _q.withPrivateChatsAsUser1.Clone(),
 		withPrivateChatsAsUser2: _q.withPrivateChatsAsUser2.Clone(),
 		withUploadedMedia:       _q.withUploadedMedia.Clone(),
+		withBlockedUsersRel:     _q.withBlockedUsersRel.Clone(),
+		withBlockedByRel:        _q.withBlockedByRel.Clone(),
 		// clone intermediate query.
 		sql:  _q.sql.Clone(),
 		path: _q.path,
@@ -543,6 +592,28 @@ func (_q *UserQuery) WithUploadedMedia(opts ...func(*MediaQuery)) *UserQuery {
 	return _q
 }
 
+// WithBlockedUsersRel tells the query-builder to eager-load the nodes that are connected to
+// the "blocked_users_rel" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *UserQuery) WithBlockedUsersRel(opts ...func(*UserBlockQuery)) *UserQuery {
+	query := (&UserBlockClient{config: _q.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	_q.withBlockedUsersRel = query
+	return _q
+}
+
+// WithBlockedByRel tells the query-builder to eager-load the nodes that are connected to
+// the "blocked_by_rel" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *UserQuery) WithBlockedByRel(opts ...func(*UserBlockQuery)) *UserQuery {
+	query := (&UserBlockClient{config: _q.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	_q.withBlockedByRel = query
+	return _q
+}
+
 // GroupBy is used to group vertices by one or more fields/columns.
 // It is often used with aggregate functions, like: count, max, mean, min, sum.
 //
@@ -621,7 +692,7 @@ func (_q *UserQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*User, e
 	var (
 		nodes       = []*User{}
 		_spec       = _q.querySpec()
-		loadedTypes = [8]bool{
+		loadedTypes = [10]bool{
 			_q.withAvatar != nil,
 			_q.withIdentities != nil,
 			_q.withSentMessages != nil,
@@ -630,6 +701,8 @@ func (_q *UserQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*User, e
 			_q.withPrivateChatsAsUser1 != nil,
 			_q.withPrivateChatsAsUser2 != nil,
 			_q.withUploadedMedia != nil,
+			_q.withBlockedUsersRel != nil,
+			_q.withBlockedByRel != nil,
 		}
 	)
 	_spec.ScanValues = func(columns []string) ([]any, error) {
@@ -702,6 +775,20 @@ func (_q *UserQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*User, e
 		if err := _q.loadUploadedMedia(ctx, query, nodes,
 			func(n *User) { n.Edges.UploadedMedia = []*Media{} },
 			func(n *User, e *Media) { n.Edges.UploadedMedia = append(n.Edges.UploadedMedia, e) }); err != nil {
+			return nil, err
+		}
+	}
+	if query := _q.withBlockedUsersRel; query != nil {
+		if err := _q.loadBlockedUsersRel(ctx, query, nodes,
+			func(n *User) { n.Edges.BlockedUsersRel = []*UserBlock{} },
+			func(n *User, e *UserBlock) { n.Edges.BlockedUsersRel = append(n.Edges.BlockedUsersRel, e) }); err != nil {
+			return nil, err
+		}
+	}
+	if query := _q.withBlockedByRel; query != nil {
+		if err := _q.loadBlockedByRel(ctx, query, nodes,
+			func(n *User) { n.Edges.BlockedByRel = []*UserBlock{} },
+			func(n *User, e *UserBlock) { n.Edges.BlockedByRel = append(n.Edges.BlockedByRel, e) }); err != nil {
 			return nil, err
 		}
 	}
@@ -945,6 +1032,66 @@ func (_q *UserQuery) loadUploadedMedia(ctx context.Context, query *MediaQuery, n
 		node, ok := nodeids[fk]
 		if !ok {
 			return fmt.Errorf(`unexpected referenced foreign-key "uploaded_by_id" returned %v for node %v`, fk, n.ID)
+		}
+		assign(node, n)
+	}
+	return nil
+}
+func (_q *UserQuery) loadBlockedUsersRel(ctx context.Context, query *UserBlockQuery, nodes []*User, init func(*User), assign func(*User, *UserBlock)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[int]*User)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+		if init != nil {
+			init(nodes[i])
+		}
+	}
+	if len(query.ctx.Fields) > 0 {
+		query.ctx.AppendFieldOnce(userblock.FieldBlockerID)
+	}
+	query.Where(predicate.UserBlock(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(user.BlockedUsersRelColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.BlockerID
+		node, ok := nodeids[fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "blocker_id" returned %v for node %v`, fk, n.ID)
+		}
+		assign(node, n)
+	}
+	return nil
+}
+func (_q *UserQuery) loadBlockedByRel(ctx context.Context, query *UserBlockQuery, nodes []*User, init func(*User), assign func(*User, *UserBlock)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[int]*User)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+		if init != nil {
+			init(nodes[i])
+		}
+	}
+	if len(query.ctx.Fields) > 0 {
+		query.ctx.AppendFieldOnce(userblock.FieldBlockedID)
+	}
+	query.Where(predicate.UserBlock(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(user.BlockedByRelColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.BlockedID
+		node, ok := nodeids[fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "blocked_id" returned %v for node %v`, fk, n.ID)
 		}
 		assign(node, n)
 	}

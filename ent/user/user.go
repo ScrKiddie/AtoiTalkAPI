@@ -48,6 +48,10 @@ const (
 	EdgePrivateChatsAsUser2 = "private_chats_as_user2"
 	// EdgeUploadedMedia holds the string denoting the uploaded_media edge name in mutations.
 	EdgeUploadedMedia = "uploaded_media"
+	// EdgeBlockedUsersRel holds the string denoting the blocked_users_rel edge name in mutations.
+	EdgeBlockedUsersRel = "blocked_users_rel"
+	// EdgeBlockedByRel holds the string denoting the blocked_by_rel edge name in mutations.
+	EdgeBlockedByRel = "blocked_by_rel"
 	// Table holds the table name of the user in the database.
 	Table = "users"
 	// AvatarTable is the table that holds the avatar relation/edge.
@@ -106,6 +110,20 @@ const (
 	UploadedMediaInverseTable = "media"
 	// UploadedMediaColumn is the table column denoting the uploaded_media relation/edge.
 	UploadedMediaColumn = "uploaded_by_id"
+	// BlockedUsersRelTable is the table that holds the blocked_users_rel relation/edge.
+	BlockedUsersRelTable = "user_blocks"
+	// BlockedUsersRelInverseTable is the table name for the UserBlock entity.
+	// It exists in this package in order to avoid circular dependency with the "userblock" package.
+	BlockedUsersRelInverseTable = "user_blocks"
+	// BlockedUsersRelColumn is the table column denoting the blocked_users_rel relation/edge.
+	BlockedUsersRelColumn = "blocker_id"
+	// BlockedByRelTable is the table that holds the blocked_by_rel relation/edge.
+	BlockedByRelTable = "user_blocks"
+	// BlockedByRelInverseTable is the table name for the UserBlock entity.
+	// It exists in this package in order to avoid circular dependency with the "userblock" package.
+	BlockedByRelInverseTable = "user_blocks"
+	// BlockedByRelColumn is the table column denoting the blocked_by_rel relation/edge.
+	BlockedByRelColumn = "blocked_id"
 )
 
 // Columns holds all SQL columns for user fields.
@@ -308,6 +326,34 @@ func ByUploadedMedia(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
 		sqlgraph.OrderByNeighborTerms(s, newUploadedMediaStep(), append([]sql.OrderTerm{term}, terms...)...)
 	}
 }
+
+// ByBlockedUsersRelCount orders the results by blocked_users_rel count.
+func ByBlockedUsersRelCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newBlockedUsersRelStep(), opts...)
+	}
+}
+
+// ByBlockedUsersRel orders the results by blocked_users_rel terms.
+func ByBlockedUsersRel(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newBlockedUsersRelStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
+
+// ByBlockedByRelCount orders the results by blocked_by_rel count.
+func ByBlockedByRelCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newBlockedByRelStep(), opts...)
+	}
+}
+
+// ByBlockedByRel orders the results by blocked_by_rel terms.
+func ByBlockedByRel(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newBlockedByRelStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
 func newAvatarStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
@@ -362,5 +408,19 @@ func newUploadedMediaStep() *sqlgraph.Step {
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(UploadedMediaInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.O2M, false, UploadedMediaTable, UploadedMediaColumn),
+	)
+}
+func newBlockedUsersRelStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(BlockedUsersRelInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, BlockedUsersRelTable, BlockedUsersRelColumn),
+	)
+}
+func newBlockedByRelStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(BlockedByRelInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, BlockedByRelTable, BlockedByRelColumn),
 	)
 }

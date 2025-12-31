@@ -32,7 +32,6 @@ func (Message) Edges() []ent.Edge {
 		edge.To("reply_to", Message.Type).Field("reply_to_id").Unique().From("replies").
 			Annotations(entsql.OnDelete(entsql.SetNull)),
 		edge.To("attachments", Media.Type).Annotations(entsql.OnDelete(entsql.Cascade)),
-		edge.From("pinned_in_chats", Chat.Type).Ref("pinned_message"),
 	}
 }
 

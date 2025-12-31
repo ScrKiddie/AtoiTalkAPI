@@ -57,20 +57,6 @@ func (_c *ChatCreate) SetType(v chat.Type) *ChatCreate {
 	return _c
 }
 
-// SetPinnedMessageID sets the "pinned_message_id" field.
-func (_c *ChatCreate) SetPinnedMessageID(v int) *ChatCreate {
-	_c.mutation.SetPinnedMessageID(v)
-	return _c
-}
-
-// SetNillablePinnedMessageID sets the "pinned_message_id" field if the given value is not nil.
-func (_c *ChatCreate) SetNillablePinnedMessageID(v *int) *ChatCreate {
-	if v != nil {
-		_c.SetPinnedMessageID(*v)
-	}
-	return _c
-}
-
 // AddMessageIDs adds the "messages" edge to the Message entity by IDs.
 func (_c *ChatCreate) AddMessageIDs(ids ...int) *ChatCreate {
 	_c.mutation.AddMessageIDs(ids...)
@@ -84,11 +70,6 @@ func (_c *ChatCreate) AddMessages(v ...*Message) *ChatCreate {
 		ids[i] = v[i].ID
 	}
 	return _c.AddMessageIDs(ids...)
-}
-
-// SetPinnedMessage sets the "pinned_message" edge to the Message entity.
-func (_c *ChatCreate) SetPinnedMessage(v *Message) *ChatCreate {
-	return _c.SetPinnedMessageID(v.ID)
 }
 
 // SetPrivateChatID sets the "private_chat" edge to the PrivateChat entity by ID.
@@ -242,23 +223,6 @@ func (_c *ChatCreate) createSpec() (*Chat, *sqlgraph.CreateSpec) {
 		for _, k := range nodes {
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
-		_spec.Edges = append(_spec.Edges, edge)
-	}
-	if nodes := _c.mutation.PinnedMessageIDs(); len(nodes) > 0 {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2O,
-			Inverse: false,
-			Table:   chat.PinnedMessageTable,
-			Columns: []string{chat.PinnedMessageColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(message.FieldID, field.TypeInt),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_node.PinnedMessageID = &nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
 	if nodes := _c.mutation.PrivateChatIDs(); len(nodes) > 0 {

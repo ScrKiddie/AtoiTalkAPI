@@ -40,8 +40,6 @@ const (
 	EdgeReplyTo = "reply_to"
 	// EdgeAttachments holds the string denoting the attachments edge name in mutations.
 	EdgeAttachments = "attachments"
-	// EdgePinnedInChats holds the string denoting the pinned_in_chats edge name in mutations.
-	EdgePinnedInChats = "pinned_in_chats"
 	// Table holds the table name of the message in the database.
 	Table = "messages"
 	// ChatTable is the table that holds the chat relation/edge.
@@ -73,13 +71,6 @@ const (
 	AttachmentsInverseTable = "media"
 	// AttachmentsColumn is the table column denoting the attachments relation/edge.
 	AttachmentsColumn = "message_id"
-	// PinnedInChatsTable is the table that holds the pinned_in_chats relation/edge.
-	PinnedInChatsTable = "chats"
-	// PinnedInChatsInverseTable is the table name for the Chat entity.
-	// It exists in this package in order to avoid circular dependency with the "chat" package.
-	PinnedInChatsInverseTable = "chats"
-	// PinnedInChatsColumn is the table column denoting the pinned_in_chats relation/edge.
-	PinnedInChatsColumn = "pinned_message_id"
 )
 
 // Columns holds all SQL columns for message fields.
@@ -212,20 +203,6 @@ func ByAttachments(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
 		sqlgraph.OrderByNeighborTerms(s, newAttachmentsStep(), append([]sql.OrderTerm{term}, terms...)...)
 	}
 }
-
-// ByPinnedInChatsCount orders the results by pinned_in_chats count.
-func ByPinnedInChatsCount(opts ...sql.OrderTermOption) OrderOption {
-	return func(s *sql.Selector) {
-		sqlgraph.OrderByNeighborsCount(s, newPinnedInChatsStep(), opts...)
-	}
-}
-
-// ByPinnedInChats orders the results by pinned_in_chats terms.
-func ByPinnedInChats(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
-	return func(s *sql.Selector) {
-		sqlgraph.OrderByNeighborTerms(s, newPinnedInChatsStep(), append([]sql.OrderTerm{term}, terms...)...)
-	}
-}
 func newChatStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
@@ -259,12 +236,5 @@ func newAttachmentsStep() *sqlgraph.Step {
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(AttachmentsInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.O2M, false, AttachmentsTable, AttachmentsColumn),
-	)
-}
-func newPinnedInChatsStep() *sqlgraph.Step {
-	return sqlgraph.NewStep(
-		sqlgraph.From(Table, FieldID),
-		sqlgraph.To(PinnedInChatsInverseTable, FieldID),
-		sqlgraph.Edge(sqlgraph.O2M, true, PinnedInChatsTable, PinnedInChatsColumn),
 	)
 }

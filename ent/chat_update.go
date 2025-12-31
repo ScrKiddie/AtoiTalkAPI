@@ -37,26 +37,6 @@ func (_u *ChatUpdate) SetUpdatedAt(v time.Time) *ChatUpdate {
 	return _u
 }
 
-// SetPinnedMessageID sets the "pinned_message_id" field.
-func (_u *ChatUpdate) SetPinnedMessageID(v int) *ChatUpdate {
-	_u.mutation.SetPinnedMessageID(v)
-	return _u
-}
-
-// SetNillablePinnedMessageID sets the "pinned_message_id" field if the given value is not nil.
-func (_u *ChatUpdate) SetNillablePinnedMessageID(v *int) *ChatUpdate {
-	if v != nil {
-		_u.SetPinnedMessageID(*v)
-	}
-	return _u
-}
-
-// ClearPinnedMessageID clears the value of the "pinned_message_id" field.
-func (_u *ChatUpdate) ClearPinnedMessageID() *ChatUpdate {
-	_u.mutation.ClearPinnedMessageID()
-	return _u
-}
-
 // AddMessageIDs adds the "messages" edge to the Message entity by IDs.
 func (_u *ChatUpdate) AddMessageIDs(ids ...int) *ChatUpdate {
 	_u.mutation.AddMessageIDs(ids...)
@@ -70,11 +50,6 @@ func (_u *ChatUpdate) AddMessages(v ...*Message) *ChatUpdate {
 		ids[i] = v[i].ID
 	}
 	return _u.AddMessageIDs(ids...)
-}
-
-// SetPinnedMessage sets the "pinned_message" edge to the Message entity.
-func (_u *ChatUpdate) SetPinnedMessage(v *Message) *ChatUpdate {
-	return _u.SetPinnedMessageID(v.ID)
 }
 
 // SetPrivateChatID sets the "private_chat" edge to the PrivateChat entity by ID.
@@ -139,12 +114,6 @@ func (_u *ChatUpdate) RemoveMessages(v ...*Message) *ChatUpdate {
 		ids[i] = v[i].ID
 	}
 	return _u.RemoveMessageIDs(ids...)
-}
-
-// ClearPinnedMessage clears the "pinned_message" edge to the Message entity.
-func (_u *ChatUpdate) ClearPinnedMessage() *ChatUpdate {
-	_u.mutation.ClearPinnedMessage()
-	return _u
 }
 
 // ClearPrivateChat clears the "private_chat" edge to the PrivateChat entity.
@@ -252,35 +221,6 @@ func (_u *ChatUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
-	if _u.mutation.PinnedMessageCleared() {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2O,
-			Inverse: false,
-			Table:   chat.PinnedMessageTable,
-			Columns: []string{chat.PinnedMessageColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(message.FieldID, field.TypeInt),
-			},
-		}
-		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
-	}
-	if nodes := _u.mutation.PinnedMessageIDs(); len(nodes) > 0 {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2O,
-			Inverse: false,
-			Table:   chat.PinnedMessageTable,
-			Columns: []string{chat.PinnedMessageColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(message.FieldID, field.TypeInt),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_spec.Edges.Add = append(_spec.Edges.Add, edge)
-	}
 	if _u.mutation.PrivateChatCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2O,
@@ -365,26 +305,6 @@ func (_u *ChatUpdateOne) SetUpdatedAt(v time.Time) *ChatUpdateOne {
 	return _u
 }
 
-// SetPinnedMessageID sets the "pinned_message_id" field.
-func (_u *ChatUpdateOne) SetPinnedMessageID(v int) *ChatUpdateOne {
-	_u.mutation.SetPinnedMessageID(v)
-	return _u
-}
-
-// SetNillablePinnedMessageID sets the "pinned_message_id" field if the given value is not nil.
-func (_u *ChatUpdateOne) SetNillablePinnedMessageID(v *int) *ChatUpdateOne {
-	if v != nil {
-		_u.SetPinnedMessageID(*v)
-	}
-	return _u
-}
-
-// ClearPinnedMessageID clears the value of the "pinned_message_id" field.
-func (_u *ChatUpdateOne) ClearPinnedMessageID() *ChatUpdateOne {
-	_u.mutation.ClearPinnedMessageID()
-	return _u
-}
-
 // AddMessageIDs adds the "messages" edge to the Message entity by IDs.
 func (_u *ChatUpdateOne) AddMessageIDs(ids ...int) *ChatUpdateOne {
 	_u.mutation.AddMessageIDs(ids...)
@@ -398,11 +318,6 @@ func (_u *ChatUpdateOne) AddMessages(v ...*Message) *ChatUpdateOne {
 		ids[i] = v[i].ID
 	}
 	return _u.AddMessageIDs(ids...)
-}
-
-// SetPinnedMessage sets the "pinned_message" edge to the Message entity.
-func (_u *ChatUpdateOne) SetPinnedMessage(v *Message) *ChatUpdateOne {
-	return _u.SetPinnedMessageID(v.ID)
 }
 
 // SetPrivateChatID sets the "private_chat" edge to the PrivateChat entity by ID.
@@ -467,12 +382,6 @@ func (_u *ChatUpdateOne) RemoveMessages(v ...*Message) *ChatUpdateOne {
 		ids[i] = v[i].ID
 	}
 	return _u.RemoveMessageIDs(ids...)
-}
-
-// ClearPinnedMessage clears the "pinned_message" edge to the Message entity.
-func (_u *ChatUpdateOne) ClearPinnedMessage() *ChatUpdateOne {
-	_u.mutation.ClearPinnedMessage()
-	return _u
 }
 
 // ClearPrivateChat clears the "private_chat" edge to the PrivateChat entity.
@@ -600,35 +509,6 @@ func (_u *ChatUpdateOne) sqlSave(ctx context.Context) (_node *Chat, err error) {
 			Inverse: false,
 			Table:   chat.MessagesTable,
 			Columns: []string{chat.MessagesColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(message.FieldID, field.TypeInt),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_spec.Edges.Add = append(_spec.Edges.Add, edge)
-	}
-	if _u.mutation.PinnedMessageCleared() {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2O,
-			Inverse: false,
-			Table:   chat.PinnedMessageTable,
-			Columns: []string{chat.PinnedMessageColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(message.FieldID, field.TypeInt),
-			},
-		}
-		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
-	}
-	if nodes := _u.mutation.PinnedMessageIDs(); len(nodes) > 0 {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2O,
-			Inverse: false,
-			Table:   chat.PinnedMessageTable,
-			Columns: []string{chat.PinnedMessageColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(message.FieldID, field.TypeInt),

@@ -5,7 +5,6 @@ package ent
 import (
 	"AtoiTalkAPI/ent/chat"
 	"AtoiTalkAPI/ent/groupchat"
-	"AtoiTalkAPI/ent/message"
 	"AtoiTalkAPI/ent/privatechat"
 	"fmt"
 	"strings"
@@ -26,8 +25,6 @@ type Chat struct {
 	UpdatedAt time.Time `json:"updated_at,omitempty"`
 	// Type holds the value of the "type" field.
 	Type chat.Type `json:"type,omitempty"`
-	// PinnedMessageID holds the value of the "pinned_message_id" field.
-	PinnedMessageID *int `json:"pinned_message_id,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the ChatQuery when eager-loading is set.
 	Edges        ChatEdges `json:"edges"`
@@ -38,15 +35,13 @@ type Chat struct {
 type ChatEdges struct {
 	// Messages holds the value of the messages edge.
 	Messages []*Message `json:"messages,omitempty"`
-	// PinnedMessage holds the value of the pinned_message edge.
-	PinnedMessage *Message `json:"pinned_message,omitempty"`
 	// PrivateChat holds the value of the private_chat edge.
 	PrivateChat *PrivateChat `json:"private_chat,omitempty"`
 	// GroupChat holds the value of the group_chat edge.
 	GroupChat *GroupChat `json:"group_chat,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [4]bool
+	loadedTypes [3]bool
 }
 
 // MessagesOrErr returns the Messages value or an error if the edge
@@ -58,23 +53,12 @@ func (e ChatEdges) MessagesOrErr() ([]*Message, error) {
 	return nil, &NotLoadedError{edge: "messages"}
 }
 
-// PinnedMessageOrErr returns the PinnedMessage value or an error if the edge
-// was not loaded in eager-loading, or loaded but was not found.
-func (e ChatEdges) PinnedMessageOrErr() (*Message, error) {
-	if e.PinnedMessage != nil {
-		return e.PinnedMessage, nil
-	} else if e.loadedTypes[1] {
-		return nil, &NotFoundError{label: message.Label}
-	}
-	return nil, &NotLoadedError{edge: "pinned_message"}
-}
-
 // PrivateChatOrErr returns the PrivateChat value or an error if the edge
 // was not loaded in eager-loading, or loaded but was not found.
 func (e ChatEdges) PrivateChatOrErr() (*PrivateChat, error) {
 	if e.PrivateChat != nil {
 		return e.PrivateChat, nil
-	} else if e.loadedTypes[2] {
+	} else if e.loadedTypes[1] {
 		return nil, &NotFoundError{label: privatechat.Label}
 	}
 	return nil, &NotLoadedError{edge: "private_chat"}
@@ -85,7 +69,7 @@ func (e ChatEdges) PrivateChatOrErr() (*PrivateChat, error) {
 func (e ChatEdges) GroupChatOrErr() (*GroupChat, error) {
 	if e.GroupChat != nil {
 		return e.GroupChat, nil
-	} else if e.loadedTypes[3] {
+	} else if e.loadedTypes[2] {
 		return nil, &NotFoundError{label: groupchat.Label}
 	}
 	return nil, &NotLoadedError{edge: "group_chat"}
@@ -96,7 +80,7 @@ func (*Chat) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case chat.FieldID, chat.FieldPinnedMessageID:
+		case chat.FieldID:
 			values[i] = new(sql.NullInt64)
 		case chat.FieldType:
 			values[i] = new(sql.NullString)
@@ -141,13 +125,6 @@ func (_m *Chat) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				_m.Type = chat.Type(value.String)
 			}
-		case chat.FieldPinnedMessageID:
-			if value, ok := values[i].(*sql.NullInt64); !ok {
-				return fmt.Errorf("unexpected type %T for field pinned_message_id", values[i])
-			} else if value.Valid {
-				_m.PinnedMessageID = new(int)
-				*_m.PinnedMessageID = int(value.Int64)
-			}
 		default:
 			_m.selectValues.Set(columns[i], values[i])
 		}
@@ -164,11 +141,6 @@ func (_m *Chat) Value(name string) (ent.Value, error) {
 // QueryMessages queries the "messages" edge of the Chat entity.
 func (_m *Chat) QueryMessages() *MessageQuery {
 	return NewChatClient(_m.config).QueryMessages(_m)
-}
-
-// QueryPinnedMessage queries the "pinned_message" edge of the Chat entity.
-func (_m *Chat) QueryPinnedMessage() *MessageQuery {
-	return NewChatClient(_m.config).QueryPinnedMessage(_m)
 }
 
 // QueryPrivateChat queries the "private_chat" edge of the Chat entity.
@@ -212,11 +184,6 @@ func (_m *Chat) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("type=")
 	builder.WriteString(fmt.Sprintf("%v", _m.Type))
-	builder.WriteString(", ")
-	if v := _m.PinnedMessageID; v != nil {
-		builder.WriteString("pinned_message_id=")
-		builder.WriteString(fmt.Sprintf("%v", *v))
-	}
 	builder.WriteByte(')')
 	return builder.String()
 }

@@ -11,6 +11,7 @@ import (
 	"AtoiTalkAPI/ent/otp"
 	"AtoiTalkAPI/ent/privatechat"
 	"AtoiTalkAPI/ent/user"
+	"AtoiTalkAPI/ent/userblock"
 	"AtoiTalkAPI/ent/useridentity"
 	"context"
 	"errors"
@@ -89,6 +90,7 @@ func checkColumn(t, c string) error {
 			otp.Table:          otp.ValidColumn,
 			privatechat.Table:  privatechat.ValidColumn,
 			user.Table:         user.ValidColumn,
+			userblock.Table:    userblock.ValidColumn,
 			useridentity.Table: useridentity.ValidColumn,
 		})
 	})

@@ -24,5 +24,4 @@ type ChatListResponse struct {
 	LastMessage *MessageResponse `json:"last_message,omitempty"`
 	UnreadCount int              `json:"unread_count"`
 	LastReadAt  *string          `json:"last_read_at,omitempty"`
-	IsPinned    bool             `json:"is_pinned"`
 }
