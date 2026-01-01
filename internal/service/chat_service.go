@@ -11,6 +11,7 @@ import (
 	"AtoiTalkAPI/internal/config"
 	"AtoiTalkAPI/internal/helper"
 	"AtoiTalkAPI/internal/model"
+	"AtoiTalkAPI/internal/websocket"
 	"context"
 	"encoding/base64"
 	"fmt"
@@ -27,13 +28,15 @@ type ChatService struct {
 	client    *ent.Client
 	cfg       *config.AppConfig
 	validator *validator.Validate
+	wsHub     *websocket.Hub
 }
 
-func NewChatService(client *ent.Client, cfg *config.AppConfig, validator *validator.Validate) *ChatService {
+func NewChatService(client *ent.Client, cfg *config.AppConfig, validator *validator.Validate, wsHub *websocket.Hub) *ChatService {
 	return &ChatService{
 		client:    client,
 		cfg:       cfg,
 		validator: validator,
+		wsHub:     wsHub,
 	}
 }
 
@@ -144,11 +147,25 @@ func (s *ChatService) CreatePrivateChat(ctx context.Context, userID int, req mod
 		return nil, helper.NewInternalServerError("")
 	}
 
-	return &model.ChatResponse{
+	resp := &model.ChatResponse{
 		ID:        newChat.ID,
 		Type:      string(newChat.Type),
 		CreatedAt: newChat.CreatedAt.Format(time.RFC3339),
-	}, nil
+	}
+
+	if s.wsHub != nil {
+		go s.wsHub.BroadcastToUser(req.TargetUserID, websocket.Event{
+			Type:    websocket.EventChatNew,
+			Payload: resp,
+			Meta: &websocket.EventMeta{
+				Timestamp: time.Now().UnixMilli(),
+				ChatID:    newChat.ID,
+				SenderID:  userID,
+			},
+		})
+	}
+
+	return resp, nil
 }
 
 func (s *ChatService) GetChats(ctx context.Context, userID int, req model.GetChatsRequest) ([]model.ChatListResponse, string, bool, error) {
@@ -388,7 +405,27 @@ func (s *ChatService) MarkAsRead(ctx context.Context, userID int, chatID int) er
 		}
 	}
 
-	return tx.Commit()
+	if err := tx.Commit(); err != nil {
+		slog.Error("Failed to commit transaction", "error", err)
+		return helper.NewInternalServerError("")
+	}
+
+	if s.wsHub != nil {
+		go s.wsHub.BroadcastToChat(chatID, websocket.Event{
+			Type: websocket.EventChatRead,
+			Payload: map[string]interface{}{
+				"chat_id": chatID,
+				"user_id": userID,
+			},
+			Meta: &websocket.EventMeta{
+				Timestamp: time.Now().UnixMilli(),
+				ChatID:    chatID,
+				SenderID:  userID,
+			},
+		})
+	}
+
+	return nil
 }
 
 func (s *ChatService) HideChat(ctx context.Context, userID int, chatID int) error {

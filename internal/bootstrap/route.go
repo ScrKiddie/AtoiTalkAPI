@@ -22,10 +22,11 @@ type Route struct {
 	chatController    *controller.ChatController
 	messageController *controller.MessageController
 	mediaController   *controller.MediaController
+	wsController      *controller.WebSocketController
 	authMiddleware    *middleware.AuthMiddleware
 }
 
-func NewRoute(cfg *config.AppConfig, chi *chi.Mux, authController *controller.AuthController, otpController *controller.OTPController, userController *controller.UserController, accountController *controller.AccountController, chatController *controller.ChatController, messageController *controller.MessageController, mediaController *controller.MediaController, authMiddleware *middleware.AuthMiddleware) *Route {
+func NewRoute(cfg *config.AppConfig, chi *chi.Mux, authController *controller.AuthController, otpController *controller.OTPController, userController *controller.UserController, accountController *controller.AccountController, chatController *controller.ChatController, messageController *controller.MessageController, mediaController *controller.MediaController, wsController *controller.WebSocketController, authMiddleware *middleware.AuthMiddleware) *Route {
 	return &Route{
 		cfg:               cfg,
 		chi:               chi,
@@ -36,6 +37,7 @@ func NewRoute(cfg *config.AppConfig, chi *chi.Mux, authController *controller.Au
 		chatController:    chatController,
 		messageController: messageController,
 		mediaController:   mediaController,
+		wsController:      wsController,
 		authMiddleware:    authMiddleware,
 	}
 }
@@ -66,6 +68,8 @@ func (route *Route) Register() {
 		serveStatic(route.cfg.StorageProfile)
 	}
 
+	route.chi.With(route.authMiddleware.VerifyToken).Get("/ws", route.wsController.ServeWS)
+
 	route.chi.Route("/api", func(r chi.Router) {
 		r.Post("/auth/login", route.authController.Login)
 		r.Post("/auth/google", route.authController.GoogleExchange)
@@ -84,7 +88,7 @@ func (route *Route) Register() {
 
 			r.Put("/account/password", route.accountController.ChangePassword)
 			r.Put("/account/email", route.accountController.ChangeEmail)
-			
+
 			r.Get("/chats", route.chatController.GetChats)
 			r.Post("/chats/private", route.chatController.CreatePrivateChat)
 			r.Post("/chats/{id}/read", route.chatController.MarkAsRead)

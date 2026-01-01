@@ -10,6 +10,7 @@ import (
 	"AtoiTalkAPI/internal/helper"
 	"AtoiTalkAPI/internal/middleware"
 	"AtoiTalkAPI/internal/service"
+	"AtoiTalkAPI/internal/websocket"
 	"context"
 	"log"
 	"net/http"
@@ -30,6 +31,7 @@ var (
 	testClient *ent.Client
 	testConfig *config.AppConfig
 	testRouter *chi.Mux
+	testHub    *websocket.Hub
 )
 
 const (
@@ -85,6 +87,9 @@ func TestMain(m *testing.M) {
 		log.Fatalf("failed creating schema resources: %v", err)
 	}
 
+	testHub = websocket.NewHub(testClient)
+	go testHub.Run()
+
 	validator := config.NewValidator()
 	httpClient := config.NewHTTPClient()
 	testRouter = config.NewChi(testConfig)
@@ -102,24 +107,26 @@ func TestMain(m *testing.M) {
 	otpService := service.NewOTPService(testClient, testConfig, validator, emailAdapter, rateLimiter, captchaAdapter)
 	otpController := controller.NewOTPController(otpService)
 
-	userService := service.NewUserService(testClient, testConfig, validator, storageAdapter)
+	userService := service.NewUserService(testClient, testConfig, validator, storageAdapter, testHub)
 	userController := controller.NewUserController(userService)
 
 	accountService := service.NewAccountService(testClient, testConfig, validator)
 	accountController := controller.NewAccountController(accountService)
 
-	chatService := service.NewChatService(testClient, testConfig, validator)
+	chatService := service.NewChatService(testClient, testConfig, validator, testHub)
 	chatController := controller.NewChatController(chatService)
 
-	messageService := service.NewMessageService(testClient, testConfig, validator, storageAdapter)
+	messageService := service.NewMessageService(testClient, testConfig, validator, storageAdapter, testHub)
 	messageController := controller.NewMessageController(messageService)
 
 	mediaService := service.NewMediaService(testClient, testConfig, validator, storageAdapter)
 	mediaController := controller.NewMediaController(mediaService)
 
+	wsController := controller.NewWebSocketController(testHub)
+
 	authMiddleware := middleware.NewAuthMiddleware(authService)
 
-	route := bootstrap.NewRoute(testConfig, testRouter, authController, otpController, userController, accountController, chatController, messageController, mediaController, authMiddleware)
+	route := bootstrap.NewRoute(testConfig, testRouter, authController, otpController, userController, accountController, chatController, messageController, mediaController, wsController, authMiddleware)
 	route.Register()
 
 	code := m.Run()

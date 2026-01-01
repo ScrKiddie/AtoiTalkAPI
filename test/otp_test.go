@@ -15,15 +15,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func createOTPForOTPTest(email, code string, expiresAt time.Time) {
-	hashedCode := helper.HashOTP(code, testConfig.OTPSecret)
-	testClient.OTP.Create().
-		SetEmail(email).
-		SetCode(hashedCode).
-		SetExpiresAt(expiresAt).
-		Exec(context.Background())
-}
-
 func TestSendOTP(t *testing.T) {
 	ctx := context.Background()
 

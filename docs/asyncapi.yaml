@@ -1,0 +1,344 @@
+asyncapi: '3.0.0'
+info:
+  title: AtoiTalkAPI WebSocket
+  version: 1.0.0
+  description: |
+    Real-time event specifications for AtoiTalk application.
+    
+    **Connection:**
+    Connect to `/ws` endpoint. Authentication is required via Bearer Token (Query param `token` or Header).
+    
+    **Message Structure:**
+    All messages inherit from the `BaseEvent` schema, ensuring a consistent envelope structure:
+    ```json
+    {
+      "type": "string",  
+      "payload": { ... },
+      "meta": { ... }
+    }
+    ```
+
+servers:
+  production:
+    host: api.atoitalk.com
+    protocol: wss
+    pathname: /ws
+  local:
+    host: localhost:8080
+    protocol: ws
+    pathname: /ws
+
+channels:
+  chat:
+    address: /ws
+    messages:
+
+      clientTyping:
+        $ref: '#/components/messages/ClientTyping'
+      
+
+      serverMessageNew:
+        $ref: '#/components/messages/ServerMessageNew'
+      serverMessageDelete:
+        $ref: '#/components/messages/ServerMessageDelete'
+      serverChatNew:
+        $ref: '#/components/messages/ServerChatNew'
+      serverChatRead:
+        $ref: '#/components/messages/ServerChatRead'
+      serverUserOnline:
+        $ref: '#/components/messages/ServerUserOnline'
+      serverUserOffline:
+        $ref: '#/components/messages/ServerUserOffline'
+      serverUserUpdate:
+        $ref: '#/components/messages/ServerUserUpdate'
+      serverUserBlock:
+        $ref: '#/components/messages/ServerUserBlock'
+      serverUserUnblock:
+        $ref: '#/components/messages/ServerUserUnblock'
+
+operations:
+
+  receiveClientEvents:
+    action: receive
+    channel:
+      $ref: '#/channels/chat'
+    messages:
+      - $ref: '#/channels/chat/messages/clientTyping'
+
+
+  sendServerEvents:
+    action: send
+    channel:
+      $ref: '#/channels/chat'
+    messages:
+      - $ref: '#/channels/chat/messages/serverMessageNew'
+      - $ref: '#/channels/chat/messages/serverMessageDelete'
+      - $ref: '#/channels/chat/messages/serverChatNew'
+      - $ref: '#/channels/chat/messages/serverChatRead'
+      - $ref: '#/channels/chat/messages/serverUserOnline'
+      - $ref: '#/channels/chat/messages/serverUserOffline'
+      - $ref: '#/channels/chat/messages/serverUserUpdate'
+      - $ref: '#/channels/chat/messages/serverUserBlock'
+      - $ref: '#/channels/chat/messages/serverUserUnblock'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+
+    EventMeta:
+      type: object
+      properties:
+        timestamp:
+          type: integer
+          description: Unix timestamp in milliseconds
+        chat_id:
+          type: integer
+          description: ID of the chat context (optional)
+        sender_id:
+          type: integer
+          description: ID of the user who triggered the event
+        unread_count:
+          type: integer
+          description: Current unread count for the receiving user (specific to message.new)
+    
+
+    BaseEvent:
+      type: object
+      required: [type, meta]
+      properties:
+        type:
+          type: string
+          description: The unique identifier for the event type.
+        meta:
+          $ref: '#/components/schemas/EventMeta'
+    
+    UserDTO:
+      type: object
+      properties:
+        id:
+          type: integer
+        username:
+          type: string
+        full_name:
+          type: string
+        avatar:
+          type: string
+          format: uri
+        bio:
+          type: string
+        is_online:
+          type: boolean
+        last_seen_at:
+          type: string
+          format: date-time
+
+    MessageResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+        chat_id:
+          type: integer
+        sender:
+          $ref: '#/components/schemas/UserDTO'
+        content:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        is_read:
+          type: boolean
+
+    ChatResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+        type:
+          type: string
+          enum: [private, group]
+        created_at:
+          type: string
+          format: date-time
+
+  messages:
+
+    ClientTyping:
+      name: chat.typing
+      title: User Typing
+      summary: Sent by client when user starts typing
+      payload:
+        allOf:
+          - $ref: '#/components/schemas/BaseEvent'
+          - type: object
+            properties:
+              type:
+                const: chat.typing
+              meta:
+                type: object
+                properties:
+                  chat_id:
+                    type: integer
+
+
+    ServerMessageNew:
+      name: message.new
+      title: New Message
+      summary: Broadcasted when a new message is received
+      payload:
+        allOf:
+          - $ref: '#/components/schemas/BaseEvent'
+          - type: object
+            properties:
+              type:
+                const: message.new
+              payload:
+                $ref: '#/components/schemas/MessageResponse'
+
+    ServerMessageDelete:
+      name: message.delete
+      title: Message Deleted
+      summary: Broadcasted when a message is deleted
+      payload:
+        allOf:
+          - $ref: '#/components/schemas/BaseEvent'
+          - type: object
+            properties:
+              type:
+                const: message.delete
+              payload:
+                type: object
+                properties:
+                  message_id:
+                    type: integer
+
+    ServerChatNew:
+      name: chat.new
+      title: New Chat
+      summary: Sent to target user when a new private chat is started
+      payload:
+        allOf:
+          - $ref: '#/components/schemas/BaseEvent'
+          - type: object
+            properties:
+              type:
+                const: chat.new
+              payload:
+                $ref: '#/components/schemas/ChatResponse'
+
+    ServerChatRead:
+      name: chat.read
+      title: Chat Read Status
+      summary: Broadcasted when a user reads a chat
+      payload:
+        allOf:
+          - $ref: '#/components/schemas/BaseEvent'
+          - type: object
+            properties:
+              type:
+                const: chat.read
+              payload:
+                type: object
+                properties:
+                  chat_id:
+                    type: integer
+                  user_id:
+                    type: integer
+                    description: The user who read the chat
+
+    ServerUserOnline:
+      name: user.online
+      title: User Online
+      summary: Broadcasted to contacts when a user comes online
+      payload:
+        allOf:
+          - $ref: '#/components/schemas/BaseEvent'
+          - type: object
+            properties:
+              type:
+                const: user.online
+              payload:
+                type: object
+                properties:
+                  user_id:
+                    type: integer
+                  is_online:
+                    type: boolean
+                    const: true
+                  last_seen_at:
+                    type: integer
+
+    ServerUserOffline:
+      name: user.offline
+      title: User Offline
+      summary: Broadcasted to contacts when a user goes offline
+      payload:
+        allOf:
+          - $ref: '#/components/schemas/BaseEvent'
+          - type: object
+            properties:
+              type:
+                const: user.offline
+              payload:
+                type: object
+                properties:
+                  user_id:
+                    type: integer
+                  is_online:
+                    type: boolean
+                    const: false
+                  last_seen_at:
+                    type: integer
+
+    ServerUserUpdate:
+      name: user.update
+      title: User Profile Update
+      summary: Broadcasted to contacts when a user updates their profile
+      payload:
+        allOf:
+          - $ref: '#/components/schemas/BaseEvent'
+          - type: object
+            properties:
+              type:
+                const: user.update
+              payload:
+                $ref: '#/components/schemas/UserDTO'
+
+    ServerUserBlock:
+      name: user.block
+      title: User Blocked
+      summary: Sent to the blocked user immediately
+      payload:
+        allOf:
+          - $ref: '#/components/schemas/BaseEvent'
+          - type: object
+            properties:
+              type:
+                const: user.block
+              payload:
+                type: object
+                properties:
+                  blocker_id:
+                    type: integer
+
+    ServerUserUnblock:
+      name: user.unblock
+      title: User Unblocked
+      summary: Sent to the unblocked user immediately
+      payload:
+        allOf:
+          - $ref: '#/components/schemas/BaseEvent'
+          - type: object
+            properties:
+              type:
+                const: user.unblock
+              payload:
+                type: object
+                properties:
+                  blocker_id:
+                    type: integer

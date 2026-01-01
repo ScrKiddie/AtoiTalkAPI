@@ -12,6 +12,7 @@ import (
 	"AtoiTalkAPI/internal/config"
 	"AtoiTalkAPI/internal/helper"
 	"AtoiTalkAPI/internal/model"
+	"AtoiTalkAPI/internal/websocket"
 	"context"
 	"encoding/base64"
 	"log/slog"
@@ -26,14 +27,16 @@ type MessageService struct {
 	cfg            *config.AppConfig
 	validator      *validator.Validate
 	storageAdapter *adapter.StorageAdapter
+	wsHub          *websocket.Hub
 }
 
-func NewMessageService(client *ent.Client, cfg *config.AppConfig, validator *validator.Validate, storageAdapter *adapter.StorageAdapter) *MessageService {
+func NewMessageService(client *ent.Client, cfg *config.AppConfig, validator *validator.Validate, storageAdapter *adapter.StorageAdapter, wsHub *websocket.Hub) *MessageService {
 	return &MessageService{
 		client:         client,
 		cfg:            cfg,
 		validator:      validator,
 		storageAdapter: storageAdapter,
+		wsHub:          wsHub,
 	}
 }
 
@@ -257,7 +260,21 @@ func (s *MessageService) SendMessage(ctx context.Context, userID int, req model.
 		return nil, helper.NewInternalServerError("")
 	}
 
-	return helper.ToMessageResponse(fullMsg, s.cfg.StorageMode, s.cfg.AppURL, s.cfg.StorageCDNURL, s.cfg.StorageAttachment), nil
+	resp := helper.ToMessageResponse(fullMsg, s.cfg.StorageMode, s.cfg.AppURL, s.cfg.StorageCDNURL, s.cfg.StorageAttachment)
+
+	if s.wsHub != nil && resp != nil {
+		go s.wsHub.BroadcastToChat(req.ChatID, websocket.Event{
+			Type:    websocket.EventMessageNew,
+			Payload: resp,
+			Meta: &websocket.EventMeta{
+				Timestamp: time.Now().UnixMilli(),
+				ChatID:    req.ChatID,
+				SenderID:  userID,
+			},
+		})
+	}
+
+	return resp, nil
 }
 
 func (s *MessageService) GetMessages(ctx context.Context, userID int, req model.GetMessagesRequest) ([]model.MessageResponse, string, bool, error) {
@@ -391,6 +408,20 @@ func (s *MessageService) DeleteMessage(ctx context.Context, userID int, messageI
 	if err != nil {
 		slog.Error("Failed to delete message", "error", err, "messageID", messageID)
 		return helper.NewInternalServerError("")
+	}
+
+	if s.wsHub != nil {
+		go s.wsHub.BroadcastToChat(msg.ChatID, websocket.Event{
+			Type: websocket.EventMessageDelete,
+			Payload: map[string]int{
+				"message_id": messageID,
+			},
+			Meta: &websocket.EventMeta{
+				Timestamp: time.Now().UnixMilli(),
+				ChatID:    msg.ChatID,
+				SenderID:  userID,
+			},
+		})
 	}
 
 	return nil

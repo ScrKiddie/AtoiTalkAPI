@@ -10,10 +10,12 @@ import (
 	"AtoiTalkAPI/internal/config"
 	"AtoiTalkAPI/internal/helper"
 	"AtoiTalkAPI/internal/model"
+	"AtoiTalkAPI/internal/websocket"
 	"context"
 	"log/slog"
 	"mime/multipart"
 	"path/filepath"
+	"time"
 
 	"entgo.io/ent/dialect/sql"
 	"github.com/go-playground/validator/v10"
@@ -24,14 +26,16 @@ type UserService struct {
 	cfg            *config.AppConfig
 	validator      *validator.Validate
 	storageAdapter *adapter.StorageAdapter
+	wsHub          *websocket.Hub
 }
 
-func NewUserService(client *ent.Client, cfg *config.AppConfig, validator *validator.Validate, storageAdapter *adapter.StorageAdapter) *UserService {
+func NewUserService(client *ent.Client, cfg *config.AppConfig, validator *validator.Validate, storageAdapter *adapter.StorageAdapter, wsHub *websocket.Hub) *UserService {
 	return &UserService{
 		client:         client,
 		cfg:            cfg,
 		validator:      validator,
 		storageAdapter: storageAdapter,
+		wsHub:          wsHub,
 	}
 }
 
@@ -280,7 +284,7 @@ func (s *UserService) UpdateProfile(ctx context.Context, userID int, req model.U
 		bio = *updatedUser.Bio
 	}
 
-	return &model.UserDTO{
+	resp := &model.UserDTO{
 		ID:          updatedUser.ID,
 		Email:       updatedUser.Email,
 		Username:    updatedUser.Username,
@@ -288,7 +292,20 @@ func (s *UserService) UpdateProfile(ctx context.Context, userID int, req model.U
 		Avatar:      avatarURL,
 		Bio:         bio,
 		HasPassword: updatedUser.PasswordHash != nil,
-	}, nil
+	}
+
+	if s.wsHub != nil {
+		go s.wsHub.BroadcastToContacts(userID, websocket.Event{
+			Type:    websocket.EventUserUpdate,
+			Payload: resp,
+			Meta: &websocket.EventMeta{
+				Timestamp: time.Now().UnixMilli(),
+				SenderID:  userID,
+			},
+		})
+	}
+
+	return resp, nil
 }
 
 func (s *UserService) SearchUsers(ctx context.Context, currentUserID int, req model.SearchUserRequest) ([]model.UserDTO, string, bool, error) {
@@ -471,6 +488,19 @@ func (s *UserService) BlockUser(ctx context.Context, blockerID int, blockedID in
 		return helper.NewInternalServerError("")
 	}
 
+	if s.wsHub != nil {
+		go s.wsHub.BroadcastToUser(blockedID, websocket.Event{
+			Type: websocket.EventUserBlock,
+			Payload: map[string]int{
+				"blocker_id": blockerID,
+			},
+			Meta: &websocket.EventMeta{
+				Timestamp: time.Now().UnixMilli(),
+				SenderID:  blockerID,
+			},
+		})
+	}
+
 	return nil
 }
 
@@ -485,6 +515,19 @@ func (s *UserService) UnblockUser(ctx context.Context, blockerID int, blockedID 
 	if err != nil {
 		slog.Error("Failed to unblock user", "error", err)
 		return helper.NewInternalServerError("")
+	}
+
+	if s.wsHub != nil {
+		go s.wsHub.BroadcastToUser(blockedID, websocket.Event{
+			Type: websocket.EventUserUnblock,
+			Payload: map[string]int{
+				"blocker_id": blockerID,
+			},
+			Meta: &websocket.EventMeta{
+				Timestamp: time.Now().UnixMilli(),
+				SenderID:  blockerID,
+			},
+		})
 	}
 
 	return nil
