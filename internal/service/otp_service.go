@@ -52,12 +52,6 @@ func (s *OTPService) SendOTP(ctx context.Context, req model.SendOTPRequest) erro
 
 	req.Email = helper.NormalizeEmail(req.Email)
 
-	allowed, retryAfter := s.rateLimiter.Allow(req.Email)
-	if !allowed {
-		minutes := int(math.Ceil(retryAfter.Minutes()))
-		return helper.NewTooManyRequestsError(fmt.Sprintf("Too many requests. Please try again in %d minutes.", minutes))
-	}
-
 	if err := s.captchaAdapter.Verify(req.CaptchaToken, ""); err != nil {
 		slog.Warn("Captcha verification failed", "error", err)
 		return helper.NewBadRequestError("")
@@ -77,6 +71,12 @@ func (s *OTPService) SendOTP(ctx context.Context, req model.SendOTPRequest) erro
 
 	if req.Mode == constant.OTPModeReset && !userExists {
 		return helper.NewNotFoundError("")
+	}
+
+	allowed, retryAfter := s.rateLimiter.Allow(req.Email)
+	if !allowed {
+		minutes := int(math.Ceil(retryAfter.Minutes()))
+		return helper.NewTooManyRequestsError(fmt.Sprintf("Too many requests. Please try again in %d minutes.", minutes))
 	}
 
 	existing, err := s.client.OTP.Query().
