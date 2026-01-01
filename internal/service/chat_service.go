@@ -278,7 +278,9 @@ func (s *ChatService) GetChats(ctx context.Context, userID int, req model.GetCha
 			})
 		}).
 		WithLastMessage(func(q *ent.MessageQuery) {
-			q.WithAttachments()
+			q.WithAttachments(func(aq *ent.MediaQuery) {
+				aq.Limit(1)
+			})
 		}).
 		All(ctx)
 

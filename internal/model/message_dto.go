@@ -21,6 +21,7 @@ type MessageResponse struct {
 	Attachments []MediaDTO       `json:"attachments,omitempty"`
 	ReplyTo     *ReplyPreviewDTO `json:"reply_to,omitempty"`
 	CreatedAt   string           `json:"created_at"`
+	DeletedAt   *string          `json:"deleted_at,omitempty"`
 }
 
 type ReplyPreviewDTO struct {
