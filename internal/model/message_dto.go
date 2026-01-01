@@ -25,7 +25,8 @@ type MessageResponse struct {
 }
 
 type ReplyPreviewDTO struct {
-	ID         int    `json:"id"`
-	SenderName string `json:"sender_name"`
-	Content    string `json:"content"`
+	ID         int     `json:"id"`
+	SenderName string  `json:"sender_name"`
+	Content    string  `json:"content"`
+	DeletedAt  *string `json:"deleted_at,omitempty"`
 }

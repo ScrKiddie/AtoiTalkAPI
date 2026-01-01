@@ -1571,6 +1571,9 @@ const docTemplate = `{
                 "name": {
                     "type": "string"
                 },
+                "other_last_read_at": {
+                    "type": "string"
+                },
                 "type": {
                     "type": "string"
                 },
@@ -1677,6 +1680,9 @@ const docTemplate = `{
                 "created_at": {
                     "type": "string"
                 },
+                "deleted_at": {
+                    "type": "string"
+                },
                 "id": {
                     "type": "integer"
                 },
@@ -1729,6 +1735,9 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "content": {
+                    "type": "string"
+                },
+                "deleted_at": {
                     "type": "string"
                 },
                 "id": {
