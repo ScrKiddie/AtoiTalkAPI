@@ -41,14 +41,22 @@ func ToMessageResponse(msg *ent.Message, storageMode, appURL, cdnURL, storageAtt
 	var replyPreview *model.ReplyPreviewDTO
 	if reply := msg.Edges.ReplyTo; reply != nil {
 		replyContent := ""
-		if reply.DeletedAt == nil && reply.Content != nil {
-			replyContent = *reply.Content
+		var replyDeletedAt *string
+
+		if reply.DeletedAt != nil {
+			t := reply.DeletedAt.Format(time.RFC3339)
+			replyDeletedAt = &t
+		} else {
+			if reply.Content != nil {
+				replyContent = *reply.Content
+			}
 		}
 
 		replyPreview = &model.ReplyPreviewDTO{
 			ID:         reply.ID,
 			SenderName: reply.Edges.Sender.FullName,
 			Content:    replyContent,
+			DeletedAt:  replyDeletedAt,
 		}
 	}
 

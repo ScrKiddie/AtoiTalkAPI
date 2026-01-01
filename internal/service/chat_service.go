@@ -303,19 +303,24 @@ func (s *ChatService) GetChats(ctx context.Context, userID int, req model.GetCha
 	for _, c := range chats {
 		var name, avatar string
 		var lastReadAt *string
+		var otherLastReadAt *string
 		var unreadCount int
 
 		if c.Type == chat.TypePrivate && c.Edges.PrivateChat != nil {
 			pc := c.Edges.PrivateChat
 			var otherUser *ent.User
 			var myLastRead *time.Time
+			var otherUserLastRead *time.Time
+
 			if pc.User1ID == userID {
 				otherUser = pc.Edges.User2
 				myLastRead = pc.User1LastReadAt
+				otherUserLastRead = pc.User2LastReadAt
 				unreadCount = pc.User1UnreadCount
 			} else {
 				otherUser = pc.Edges.User1
 				myLastRead = pc.User2LastReadAt
+				otherUserLastRead = pc.User1LastReadAt
 				unreadCount = pc.User2UnreadCount
 			}
 			if otherUser != nil {
@@ -327,6 +332,10 @@ func (s *ChatService) GetChats(ctx context.Context, userID int, req model.GetCha
 			if myLastRead != nil {
 				t := myLastRead.Format(time.RFC3339)
 				lastReadAt = &t
+			}
+			if otherUserLastRead != nil {
+				t := otherUserLastRead.Format(time.RFC3339)
+				otherLastReadAt = &t
 			}
 		} else if c.Type == chat.TypeGroup && c.Edges.GroupChat != nil {
 			gc := c.Edges.GroupChat
@@ -348,7 +357,16 @@ func (s *ChatService) GetChats(ctx context.Context, userID int, req model.GetCha
 			lastMsgResp = helper.ToMessageResponse(c.Edges.LastMessage, s.cfg.StorageMode, s.cfg.AppURL, s.cfg.StorageCDNURL, s.cfg.StorageAttachment)
 		}
 
-		response = append(response, model.ChatListResponse{ID: c.ID, Type: string(c.Type), Name: name, Avatar: avatar, LastMessage: lastMsgResp, UnreadCount: unreadCount, LastReadAt: lastReadAt})
+		response = append(response, model.ChatListResponse{
+			ID:              c.ID,
+			Type:            string(c.Type),
+			Name:            name,
+			Avatar:          avatar,
+			LastMessage:     lastMsgResp,
+			UnreadCount:     unreadCount,
+			LastReadAt:      lastReadAt,
+			OtherLastReadAt: otherLastReadAt,
+		})
 	}
 
 	return response, nextCursor, hasNext, nil
