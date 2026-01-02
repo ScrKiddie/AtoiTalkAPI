@@ -60,7 +60,7 @@ func TestSendMessage(t *testing.T) {
 		assert.Equal(t, float64(chatEntity.ID), dataMap["chat_id"])
 		assert.Equal(t, float64(u1.ID), dataMap["sender_id"])
 		assert.Equal(t, "Hello User 2!", dataMap["content"])
-		assert.Empty(t, dataMap["attachments"])
+		assert.Nil(t, dataMap["attachments"])
 
 		pc, _ := testClient.PrivateChat.Query().Where(privatechat.ChatID(chatEntity.ID)).Only(context.Background())
 		assert.Equal(t, 0, pc.User1UnreadCount)
@@ -521,7 +521,8 @@ func TestGetMessages(t *testing.T) {
 		for _, item := range dataList {
 			m := item.(map[string]interface{})
 			if m["id"].(float64) == float64(delMsg.ID) {
-				assert.Equal(t, "Pesan telah dihapus", m["content"])
+				assert.Equal(t, "", m["content"])
+				assert.NotNil(t, m["deleted_at"])
 				found = true
 			}
 		}
@@ -567,7 +568,8 @@ func TestGetMessages(t *testing.T) {
 		assert.NotNil(t, targetReply)
 		replyToMap, ok := targetReply["reply_to"].(map[string]interface{})
 		assert.True(t, ok)
-		assert.Equal(t, "Pesan telah dihapus", replyToMap["content"])
+		assert.Equal(t, "", replyToMap["content"])
+		assert.NotNil(t, replyToMap["deleted_at"])
 		assert.Equal(t, "User 2", replyToMap["sender_name"])
 	})
 
@@ -608,7 +610,9 @@ func TestGetMessages(t *testing.T) {
 		}
 
 		assert.NotNil(t, targetMsg)
-		assert.Equal(t, "📷 Foto", targetMsg["content"])
+		assert.Equal(t, "", targetMsg["content"])
+		assert.NotNil(t, targetMsg["attachments"])
+		assert.Len(t, targetMsg["attachments"], 1)
 	})
 
 	t.Run("Success - GetMessages respects hidden_at", func(t *testing.T) {

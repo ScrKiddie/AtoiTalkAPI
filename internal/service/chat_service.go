@@ -305,6 +305,7 @@ func (s *ChatService) GetChats(ctx context.Context, userID int, req model.GetCha
 		var lastReadAt *string
 		var otherLastReadAt *string
 		var unreadCount int
+		var isOnline bool
 
 		if c.Type == chat.TypePrivate && c.Edges.PrivateChat != nil {
 			pc := c.Edges.PrivateChat
@@ -325,6 +326,7 @@ func (s *ChatService) GetChats(ctx context.Context, userID int, req model.GetCha
 			}
 			if otherUser != nil {
 				name = otherUser.FullName
+				isOnline = otherUser.IsOnline
 				if otherUser.Edges.Avatar != nil {
 					avatar = helper.BuildImageURL(s.cfg.StorageMode, s.cfg.AppURL, s.cfg.StorageCDNURL, s.cfg.StorageProfile, otherUser.Edges.Avatar.FileName)
 				}
@@ -366,6 +368,7 @@ func (s *ChatService) GetChats(ctx context.Context, userID int, req model.GetCha
 			UnreadCount:     unreadCount,
 			LastReadAt:      lastReadAt,
 			OtherLastReadAt: otherLastReadAt,
+			IsOnline:        isOnline,
 		})
 	}
 

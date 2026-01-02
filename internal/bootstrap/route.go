@@ -80,6 +80,7 @@ func (route *Route) Register() {
 		r.Group(func(r chi.Router) {
 			r.Use(route.authMiddleware.VerifyToken)
 			r.Get("/user/current", route.userController.GetCurrentUser)
+			r.Get("/users/blocked", route.userController.GetBlockedUsers)
 			r.Get("/users/{id}", route.userController.GetUserProfile)
 			r.Put("/user/profile", route.userController.UpdateProfile)
 			r.Get("/users", route.userController.SearchUsers)

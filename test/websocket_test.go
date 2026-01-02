@@ -47,7 +47,7 @@ func TestWebSocketBroadcastMessage(t *testing.T) {
 	user2 := createWSUser(t, "user2", "user2@example.com")
 	token2, _ := helper.GenerateJWT(testConfig.JWTSecret, testConfig.JWTExp, user2.ID)
 
-	createWSPrivateChat(t, user2.ID, token1)
+	createWSPrivateChat(t, user1.ID, user2.ID, token1)
 
 	server := httptest.NewServer(testRouter)
 	defer server.Close()
@@ -102,7 +102,7 @@ func TestWebSocketTypingStatus(t *testing.T) {
 	user2 := createWSUser(t, "user2", "user2@example.com")
 	token2, _ := helper.GenerateJWT(testConfig.JWTSecret, testConfig.JWTExp, user2.ID)
 
-	createWSPrivateChat(t, user2.ID, token1)
+	createWSPrivateChat(t, user1.ID, user2.ID, token1)
 
 	chats, _ := testClient.Chat.Query().All(context.Background())
 	chatID := chats[0].ID
@@ -163,7 +163,7 @@ func TestWebSocketUserPresence(t *testing.T) {
 	user2 := createWSUser(t, "user2", "user2@example.com")
 	token2, _ := helper.GenerateJWT(testConfig.JWTSecret, testConfig.JWTExp, user2.ID)
 
-	createWSPrivateChat(t, user2.ID, token1)
+	createWSPrivateChat(t, user1.ID, user2.ID, token1)
 
 	server := httptest.NewServer(testRouter)
 	defer server.Close()
@@ -233,7 +233,7 @@ func TestWebSocketMultiDevice(t *testing.T) {
 	user2 := createWSUser(t, "user2", "user2@example.com")
 	token2, _ := helper.GenerateJWT(testConfig.JWTSecret, testConfig.JWTExp, user2.ID)
 
-	createWSPrivateChat(t, user2.ID, token1)
+	createWSPrivateChat(t, user1.ID, user2.ID, token1)
 	chats, _ := testClient.Chat.Query().All(context.Background())
 	chatID := chats[0].ID
 
@@ -289,7 +289,7 @@ func TestWebSocketReadStatusSync(t *testing.T) {
 	user2 := createWSUser(t, "user2", "user2@example.com")
 	token2, _ := helper.GenerateJWT(testConfig.JWTSecret, testConfig.JWTExp, user2.ID)
 
-	createWSPrivateChat(t, user2.ID, token1)
+	createWSPrivateChat(t, user1.ID, user2.ID, token1)
 	chats, _ := testClient.Chat.Query().All(context.Background())
 	chatID := chats[0].ID
 
@@ -339,7 +339,7 @@ func TestWebSocketSecurityLeak(t *testing.T) {
 	user3 := createWSUser(t, "user3", "user3@example.com")
 	token3, _ := helper.GenerateJWT(testConfig.JWTSecret, testConfig.JWTExp, user3.ID)
 
-	createWSPrivateChat(t, user2.ID, token1)
+	createWSPrivateChat(t, user1.ID, user2.ID, token1)
 	chats, _ := testClient.Chat.Query().All(context.Background())
 	chatID := chats[0].ID
 
@@ -435,7 +435,7 @@ func TestWebSocketProfileUpdate(t *testing.T) {
 	user2 := createWSUser(t, "user2", "user2@example.com")
 	token2, _ := helper.GenerateJWT(testConfig.JWTSecret, testConfig.JWTExp, user2.ID)
 
-	createWSPrivateChat(t, user2.ID, token1)
+	createWSPrivateChat(t, user1.ID, user2.ID, token1)
 
 	server := httptest.NewServer(testRouter)
 	defer server.Close()
@@ -488,7 +488,7 @@ func TestWebSocketMessageDelete(t *testing.T) {
 	user2 := createWSUser(t, "user2", "user2@example.com")
 	token2, _ := helper.GenerateJWT(testConfig.JWTSecret, testConfig.JWTExp, user2.ID)
 
-	createWSPrivateChat(t, user2.ID, token1)
+	createWSPrivateChat(t, user1.ID, user2.ID, token1)
 	chats, _ := testClient.Chat.Query().All(context.Background())
 	chatID := chats[0].ID
 
@@ -600,7 +600,7 @@ func createWSUser(t *testing.T, username, email string) *ent.User {
 	return u
 }
 
-func createWSPrivateChat(t *testing.T, user2ID int, token string) {
+func createWSPrivateChat(t *testing.T, user1ID, user2ID int, token string) {
 	reqBody := model.CreatePrivateChatRequest{
 		TargetUserID: user2ID,
 	}

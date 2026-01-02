@@ -25,4 +25,5 @@ type ChatListResponse struct {
 	UnreadCount     int              `json:"unread_count"`
 	LastReadAt      *string          `json:"last_read_at"`
 	OtherLastReadAt *string          `json:"other_last_read_at"`
+	IsOnline        bool             `json:"is_online"`
 }

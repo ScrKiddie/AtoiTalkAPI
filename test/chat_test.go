@@ -429,7 +429,8 @@ func TestGetChats(t *testing.T) {
 
 		lastMsg, ok := topChat["last_message"].(map[string]interface{})
 		assert.True(t, ok)
-		assert.Equal(t, "Pesan telah dihapus", lastMsg["content"])
+		assert.Equal(t, "", lastMsg["content"])
+		assert.NotNil(t, lastMsg["deleted_at"])
 	})
 
 	t.Run("Success - Exclude Hidden Private Chat", func(t *testing.T) {

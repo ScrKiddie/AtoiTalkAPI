@@ -58,6 +58,8 @@ definitions:
         type: string
       id:
         type: integer
+      is_online:
+        type: boolean
       last_message:
         $ref: '#/definitions/model.MessageResponse'
       last_read_at:
@@ -247,6 +249,14 @@ definitions:
         type: boolean
       id:
         type: integer
+      is_blocked_by_me:
+        type: boolean
+      is_blocked_by_other:
+        type: boolean
+      is_online:
+        type: boolean
+      last_seen_at:
+        type: string
       private_chat_id:
         type: integer
       username:
@@ -1142,6 +1152,55 @@ paths:
       security:
       - BearerAuth: []
       summary: Unblock a User
+      tags:
+      - user
+  /api/users/blocked:
+    get:
+      consumes:
+      - application/json
+      description: Get a list of users blocked by the current user.
+      parameters:
+      - description: Search query (name or username)
+        in: query
+        name: query
+        type: string
+      - description: Pagination cursor
+        in: query
+        name: cursor
+        type: string
+      - description: Number of items per page (default 10, max 50)
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/helper.ResponseWithPagination'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/model.UserDTO'
+                  type: array
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
+      security:
+      - BearerAuth: []
+      summary: Get Blocked Users
       tags:
       - user
   /ws:

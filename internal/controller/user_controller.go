@@ -200,6 +200,54 @@ func (c *UserController) SearchUsers(w http.ResponseWriter, r *http.Request) {
 	helper.WriteSuccessWithPagination(w, users, nextCursor, hasNext)
 }
 
+// GetBlockedUsers godoc
+// @Summary      Get Blocked Users
+// @Description  Get a list of users blocked by the current user.
+// @Tags         user
+// @Accept       json
+// @Produce      json
+// @Param        query query string false "Search query (name or username)"
+// @Param        cursor query string false "Pagination cursor"
+// @Param        limit query int false "Number of items per page (default 10, max 50)"
+// @Success      200  {object}  helper.ResponseWithPagination{data=[]model.UserDTO}
+// @Failure      400  {object}  helper.ResponseError
+// @Failure      401  {object}  helper.ResponseError
+// @Failure      500  {object}  helper.ResponseError
+// @Security     BearerAuth
+// @Router       /api/users/blocked [get]
+func (c *UserController) GetBlockedUsers(w http.ResponseWriter, r *http.Request) {
+	userContext, ok := r.Context().Value(middleware.UserContextKey).(*model.UserDTO)
+	if !ok {
+		helper.WriteError(w, helper.NewUnauthorizedError(""))
+		return
+	}
+
+	query := r.URL.Query().Get("query")
+	cursor := r.URL.Query().Get("cursor")
+	limitStr := r.URL.Query().Get("limit")
+
+	limit := 10
+	if limitStr != "" {
+		if l, err := strconv.Atoi(limitStr); err == nil {
+			limit = l
+		}
+	}
+
+	req := model.GetBlockedUsersRequest{
+		Query:  query,
+		Cursor: cursor,
+		Limit:  limit,
+	}
+
+	users, nextCursor, hasNext, err := c.userService.GetBlockedUsers(r.Context(), userContext.ID, req)
+	if err != nil {
+		helper.WriteError(w, err)
+		return
+	}
+
+	helper.WriteSuccessWithPagination(w, users, nextCursor, hasNext)
+}
+
 // BlockUser godoc
 // @Summary      Block a User
 // @Description  Block a user by their ID.

@@ -12,7 +12,7 @@ info:
     All messages inherit from the `BaseEvent` schema, ensuring a consistent envelope structure:
     ```json
     {
-      "type": "string",  
+      "type": "string",
       "payload": { ... },
       "meta": { ... }
     }
@@ -136,6 +136,41 @@ components:
         last_seen_at:
           type: string
           format: date-time
+        is_blocked_by_me:
+          type: boolean
+        is_blocked_by_other:
+          type: boolean
+
+    MediaDTO:
+      type: object
+      properties:
+        id:
+          type: integer
+        file_name:
+          type: string
+        original_name:
+          type: string
+        file_size:
+          type: integer
+        mime_type:
+          type: string
+        url:
+          type: string
+          format: uri
+
+    ReplyPreviewDTO:
+      type: object
+      properties:
+        id:
+          type: integer
+        sender_name:
+          type: string
+        content:
+          type: string
+        deleted_at:
+          type: string
+          format: date-time
+          description: If present, the reply message has been deleted.
 
     MessageResponse:
       type: object
@@ -144,15 +179,24 @@ components:
           type: integer
         chat_id:
           type: integer
-        sender:
-          $ref: '#/components/schemas/UserDTO'
+        sender_id:
+          type: integer
         content:
           type: string
+        attachments:
+          type: array
+          items:
+            $ref: '#/components/schemas/MediaDTO'
+          description: List of attachments. Omitted if empty.
+        reply_to:
+          $ref: '#/components/schemas/ReplyPreviewDTO'
         created_at:
           type: string
           format: date-time
-        is_read:
-          type: boolean
+        deleted_at:
+          type: string
+          format: date-time
+          description: If present, the message has been deleted.
 
     ChatResponse:
       type: object
