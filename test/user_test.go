@@ -131,9 +131,11 @@ func TestGetUserProfile(t *testing.T) {
 		assert.Equal(t, validUsername, dataMap["username"])
 		assert.Equal(t, validName, dataMap["full_name"])
 		assert.Equal(t, validBio, dataMap["bio"])
+		assert.False(t, dataMap["is_blocked_by_me"].(bool))
+		assert.False(t, dataMap["is_blocked_by_other"].(bool))
 	})
 
-	t.Run("Blocked User (Should Return NotFound)", func(t *testing.T) {
+	t.Run("Blocked By Me (Should Return OK with flags)", func(t *testing.T) {
 		clearDatabase(context.Background())
 
 		targetUser, _ := testClient.User.Create().SetEmail("target@test.com").SetUsername("target").SetFullName("Target").Save(context.Background())
@@ -141,13 +143,46 @@ func TestGetUserProfile(t *testing.T) {
 
 		testClient.UserBlock.Create().SetBlockerID(blockerUser.ID).SetBlockedID(targetUser.ID).Save(context.Background())
 
-		token, _ := helper.GenerateJWT(testConfig.JWTSecret, testConfig.JWTExp, targetUser.ID)
+		token, _ := helper.GenerateJWT(testConfig.JWTSecret, testConfig.JWTExp, blockerUser.ID)
 
-		req, _ := http.NewRequest("GET", fmt.Sprintf("/api/users/%d", blockerUser.ID), nil)
+		req, _ := http.NewRequest("GET", fmt.Sprintf("/api/users/%d", targetUser.ID), nil)
 		req.Header.Set("Authorization", "Bearer "+token)
 
 		rr := executeRequest(req)
-		assert.Equal(t, http.StatusNotFound, rr.Code)
+		assert.Equal(t, http.StatusOK, rr.Code)
+
+		var resp helper.ResponseSuccess
+		json.Unmarshal(rr.Body.Bytes(), &resp)
+		dataMap, ok := resp.Data.(map[string]interface{})
+		assert.True(t, ok)
+		assert.True(t, dataMap["is_blocked_by_me"].(bool))
+		assert.False(t, dataMap["is_blocked_by_other"].(bool))
+	})
+
+	t.Run("Blocked By Other (Should Return OK with flags)", func(t *testing.T) {
+		clearDatabase(context.Background())
+
+		targetUser, _ := testClient.User.Create().SetEmail("target@test.com").SetUsername("target").SetFullName("Target").Save(context.Background())
+		blockerUser, _ := testClient.User.Create().SetEmail("blocker@test.com").SetUsername("blocker").SetFullName("Blocker").Save(context.Background())
+
+		testClient.UserBlock.Create().SetBlockerID(targetUser.ID).SetBlockedID(blockerUser.ID).Save(context.Background())
+
+		token, _ := helper.GenerateJWT(testConfig.JWTSecret, testConfig.JWTExp, blockerUser.ID)
+
+		req, _ := http.NewRequest("GET", fmt.Sprintf("/api/users/%d", targetUser.ID), nil)
+		req.Header.Set("Authorization", "Bearer "+token)
+
+		rr := executeRequest(req)
+		assert.Equal(t, http.StatusOK, rr.Code)
+
+		var resp helper.ResponseSuccess
+		json.Unmarshal(rr.Body.Bytes(), &resp)
+		dataMap, ok := resp.Data.(map[string]interface{})
+		assert.True(t, ok)
+		assert.False(t, dataMap["is_blocked_by_me"].(bool))
+		assert.True(t, dataMap["is_blocked_by_other"].(bool))
+
+		assert.Nil(t, dataMap["last_seen_at"])
 	})
 
 	t.Run("User Not Found", func(t *testing.T) {
@@ -742,6 +777,70 @@ func TestSearchUsers(t *testing.T) {
 		if !assert.Equal(t, http.StatusUnauthorized, rr.Code) {
 			printBody(t, rr)
 		}
+	})
+}
+
+func TestGetBlockedUsers(t *testing.T) {
+	clearDatabase(context.Background())
+
+	blocker, _ := testClient.User.Create().SetEmail("blocker@test.com").SetUsername("blocker").SetFullName("Blocker").Save(context.Background())
+	blocked1, _ := testClient.User.Create().SetEmail("blocked1@test.com").SetUsername("blocked1").SetFullName("Blocked One").Save(context.Background())
+	blocked2, _ := testClient.User.Create().SetEmail("blocked2@test.com").SetUsername("blocked2").SetFullName("Blocked Two").Save(context.Background())
+	testClient.User.Create().SetEmail("unblocked@test.com").SetUsername("unblocked").SetFullName("Unblocked").Save(context.Background())
+
+	testClient.UserBlock.Create().SetBlockerID(blocker.ID).SetBlockedID(blocked1.ID).Save(context.Background())
+	testClient.UserBlock.Create().SetBlockerID(blocker.ID).SetBlockedID(blocked2.ID).Save(context.Background())
+
+	token, _ := helper.GenerateJWT(testConfig.JWTSecret, testConfig.JWTExp, blocker.ID)
+
+	t.Run("Success - List All Blocked Users", func(t *testing.T) {
+		req, _ := http.NewRequest("GET", "/api/users/blocked", nil)
+		req.Header.Set("Authorization", "Bearer "+token)
+		rr := executeRequest(req)
+
+		assert.Equal(t, http.StatusOK, rr.Code)
+		var resp helper.ResponseWithPagination
+		json.Unmarshal(rr.Body.Bytes(), &resp)
+		dataList := resp.Data.([]interface{})
+		assert.Len(t, dataList, 2)
+
+		names := make(map[string]bool)
+		for _, item := range dataList {
+			u := item.(map[string]interface{})
+			names[u["username"].(string)] = true
+			assert.True(t, u["is_blocked_by_me"].(bool))
+		}
+		assert.True(t, names["blocked1"])
+		assert.True(t, names["blocked2"])
+		assert.False(t, names["unblocked"])
+	})
+
+	t.Run("Success - Search Blocked User", func(t *testing.T) {
+		req, _ := http.NewRequest("GET", "/api/users/blocked?query=One", nil)
+		req.Header.Set("Authorization", "Bearer "+token)
+		rr := executeRequest(req)
+
+		assert.Equal(t, http.StatusOK, rr.Code)
+		var resp helper.ResponseWithPagination
+		json.Unmarshal(rr.Body.Bytes(), &resp)
+		dataList := resp.Data.([]interface{})
+		assert.Len(t, dataList, 1)
+		assert.Equal(t, "Blocked One", dataList[0].(map[string]interface{})["full_name"])
+	})
+
+	t.Run("Success - Empty List", func(t *testing.T) {
+
+		cleanUser, _ := testClient.User.Create().SetEmail("clean@test.com").SetUsername("clean").SetFullName("Clean").Save(context.Background())
+		cleanToken, _ := helper.GenerateJWT(testConfig.JWTSecret, testConfig.JWTExp, cleanUser.ID)
+
+		req, _ := http.NewRequest("GET", "/api/users/blocked", nil)
+		req.Header.Set("Authorization", "Bearer "+cleanToken)
+		rr := executeRequest(req)
+
+		assert.Equal(t, http.StatusOK, rr.Code)
+		var resp helper.ResponseWithPagination
+		json.Unmarshal(rr.Body.Bytes(), &resp)
+		assert.Empty(t, resp.Data)
 	})
 }
 

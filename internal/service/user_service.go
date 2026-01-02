@@ -75,8 +75,7 @@ func (s *UserService) GetCurrentUser(ctx context.Context, userID int) (*model.Us
 }
 
 func (s *UserService) GetUserProfile(ctx context.Context, currentUserID int, targetUserID int) (*model.UserDTO, error) {
-
-	isBlocked, err := s.client.UserBlock.Query().
+	blocks, err := s.client.UserBlock.Query().
 		Where(
 			userblock.Or(
 				userblock.And(
@@ -89,19 +88,28 @@ func (s *UserService) GetUserProfile(ctx context.Context, currentUserID int, tar
 				),
 			),
 		).
-		Exist(ctx)
+		All(ctx)
 
 	if err != nil {
 		slog.Error("Failed to check block status", "error", err)
 		return nil, helper.NewInternalServerError("")
 	}
 
-	if isBlocked {
-		return nil, helper.NewNotFoundError("User not found")
+	isBlockedByMe := false
+	isBlockedByOther := false
+
+	for _, b := range blocks {
+		if b.BlockerID == currentUserID {
+			isBlockedByMe = true
+		}
+		if b.BlockerID == targetUserID {
+			isBlockedByOther = true
+		}
 	}
 
 	u, err := s.client.User.Query().
 		Where(user.ID(targetUserID)).
+		Select(user.FieldID, user.FieldUsername, user.FieldFullName, user.FieldBio, user.FieldIsOnline, user.FieldLastSeenAt, user.FieldAvatarID).
 		WithAvatar().
 		Only(ctx)
 
@@ -123,13 +131,30 @@ func (s *UserService) GetUserProfile(ctx context.Context, currentUserID int, tar
 		bio = *u.Bio
 	}
 
+	var lastSeenAt *string
+	isOnline := u.IsOnline
+
+	if isBlockedByMe || isBlockedByOther {
+		isOnline = false
+		lastSeenAt = nil
+	} else {
+		if u.LastSeenAt != nil {
+			t := u.LastSeenAt.Format(time.RFC3339)
+			lastSeenAt = &t
+		}
+	}
+
 	return &model.UserDTO{
-		ID:          u.ID,
-		Username:    u.Username,
-		FullName:    u.FullName,
-		Avatar:      avatarURL,
-		Bio:         bio,
-		HasPassword: u.PasswordHash != nil,
+		ID:               u.ID,
+		Username:         u.Username,
+		FullName:         u.FullName,
+		Avatar:           avatarURL,
+		Bio:              bio,
+		HasPassword:      false,
+		IsBlockedByMe:    isBlockedByMe,
+		IsBlockedByOther: isBlockedByOther,
+		IsOnline:         isOnline,
+		LastSeenAt:       lastSeenAt,
 	}, nil
 }
 
@@ -372,7 +397,8 @@ func (s *UserService) SearchUsers(ctx context.Context, currentUserID int, req mo
 		)
 	}
 
-	query = query.Order(ent.Asc(user.FieldFullName), ent.Asc(user.FieldID)).
+	query = query.Select(user.FieldID, user.FieldUsername, user.FieldFullName, user.FieldBio, user.FieldAvatarID).
+		Order(ent.Asc(user.FieldFullName), ent.Asc(user.FieldID)).
 		Limit(req.Limit + 1).
 		WithAvatar()
 
@@ -448,7 +474,7 @@ func (s *UserService) SearchUsers(ctx context.Context, currentUserID int, req mo
 			FullName:    u.FullName,
 			Avatar:      avatarURL,
 			Bio:         bio,
-			HasPassword: u.PasswordHash != nil,
+			HasPassword: false,
 		}
 
 		if chatID, exists := privateChatMap[u.ID]; exists {
@@ -456,6 +482,93 @@ func (s *UserService) SearchUsers(ctx context.Context, currentUserID int, req mo
 		}
 
 		userDTOs[i] = dto
+	}
+
+	return userDTOs, nextCursor, hasNext, nil
+}
+
+func (s *UserService) GetBlockedUsers(ctx context.Context, currentUserID int, req model.GetBlockedUsersRequest) ([]model.UserDTO, string, bool, error) {
+	if err := s.validator.Struct(req); err != nil {
+		return nil, "", false, helper.NewBadRequestError("")
+	}
+
+	if req.Limit == 0 {
+		req.Limit = 10
+	}
+
+	query := s.client.User.Query().
+		Where(
+			user.HasBlockedByRelWith(userblock.BlockerID(currentUserID)),
+		)
+
+	if req.Query != "" {
+		query = query.Where(
+			user.Or(
+				user.FullNameContainsFold(req.Query),
+				user.UsernameContainsFold(req.Query),
+			),
+		)
+	}
+
+	delimiter := "|||"
+
+	if req.Cursor != "" {
+		cursorName, cursorID, err := helper.DecodeCursor(req.Cursor, delimiter)
+		if err != nil {
+			return nil, "", false, helper.NewBadRequestError("")
+		}
+
+		query = query.Where(
+			user.Or(
+				user.FullNameGT(cursorName),
+				user.And(
+					user.FullNameEQ(cursorName),
+					user.IDGT(cursorID),
+				),
+			),
+		)
+	}
+
+	query = query.Select(user.FieldID, user.FieldUsername, user.FieldFullName, user.FieldBio, user.FieldAvatarID).
+		Order(ent.Asc(user.FieldFullName), ent.Asc(user.FieldID)).
+		Limit(req.Limit + 1).
+		WithAvatar()
+
+	users, err := query.All(ctx)
+	if err != nil {
+		slog.Error("Failed to get blocked users", "error", err)
+		return nil, "", false, helper.NewInternalServerError("")
+	}
+
+	hasNext := false
+	var nextCursor string
+
+	if len(users) > req.Limit {
+		hasNext = true
+		users = users[:req.Limit]
+		lastUser := users[len(users)-1]
+		nextCursor = helper.EncodeCursor(lastUser.FullName, lastUser.ID, delimiter)
+	}
+
+	userDTOs := make([]model.UserDTO, len(users))
+	for i, u := range users {
+		avatarURL := ""
+		if u.Edges.Avatar != nil {
+			avatarURL = helper.BuildImageURL(s.cfg.StorageMode, s.cfg.AppURL, s.cfg.StorageCDNURL, s.cfg.StorageProfile, u.Edges.Avatar.FileName)
+		}
+		bio := ""
+		if u.Bio != nil {
+			bio = *u.Bio
+		}
+
+		userDTOs[i] = model.UserDTO{
+			ID:            u.ID,
+			Username:      u.Username,
+			FullName:      u.FullName,
+			Avatar:        avatarURL,
+			Bio:           bio,
+			IsBlockedByMe: true,
+		}
 	}
 
 	return userDTOs, nextCursor, hasNext, nil

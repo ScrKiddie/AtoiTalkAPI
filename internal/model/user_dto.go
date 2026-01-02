@@ -3,14 +3,18 @@ package model
 import "mime/multipart"
 
 type UserDTO struct {
-	ID            int    `json:"id"`
-	Email         string `json:"email,omitempty"`
-	Username      string `json:"username"`
-	FullName      string `json:"full_name"`
-	Avatar        string `json:"avatar"`
-	Bio           string `json:"bio"`
-	HasPassword   bool   `json:"has_password"`
-	PrivateChatID *int   `json:"private_chat_id,omitempty"`
+	ID               int     `json:"id"`
+	Email            string  `json:"email,omitempty"`
+	Username         string  `json:"username"`
+	FullName         string  `json:"full_name"`
+	Avatar           string  `json:"avatar"`
+	Bio              string  `json:"bio"`
+	HasPassword      bool    `json:"has_password,omitempty"`
+	PrivateChatID    *int    `json:"private_chat_id,omitempty"`
+	IsBlockedByMe    bool    `json:"is_blocked_by_me"`
+	IsBlockedByOther bool    `json:"is_blocked_by_other"`
+	IsOnline         bool    `json:"is_online"`
+	LastSeenAt       *string `json:"last_seen_at,omitempty"`
 }
 
 type CreateUserDTO struct {
@@ -33,4 +37,10 @@ type SearchUserRequest struct {
 	Cursor        string `json:"cursor"`
 	Limit         int    `json:"limit" validate:"min=1,max=50"`
 	IncludeChatID bool   `json:"include_chat_id"`
+}
+
+type GetBlockedUsersRequest struct {
+	Query  string `json:"query" validate:"omitempty,min=1"`
+	Cursor string `json:"cursor"`
+	Limit  int    `json:"limit" validate:"min=1,max=50"`
 }
