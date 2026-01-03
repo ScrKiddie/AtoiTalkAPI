@@ -26,4 +26,6 @@ type ChatListResponse struct {
 	LastReadAt      *string          `json:"last_read_at"`
 	OtherLastReadAt *string          `json:"other_last_read_at"`
 	IsOnline        bool             `json:"is_online"`
+	OtherUserID     *int             `json:"other_user_id,omitempty"`
+	IsBlockedByMe   bool             `json:"is_blocked_by_me,omitempty"`
 }

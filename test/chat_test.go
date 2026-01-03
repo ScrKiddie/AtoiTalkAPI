@@ -4,6 +4,7 @@ import (
 	"AtoiTalkAPI/ent/chat"
 	"AtoiTalkAPI/ent/groupmember"
 	"AtoiTalkAPI/ent/privatechat"
+	"AtoiTalkAPI/ent/userblock"
 	"AtoiTalkAPI/internal/helper"
 	"AtoiTalkAPI/internal/model"
 	"bytes"
@@ -333,14 +334,17 @@ func TestGetChats(t *testing.T) {
 		assert.Equal(t, float64(chat3.ID), c1["id"])
 		assert.Equal(t, "My Group", c1["name"])
 		assert.Equal(t, float64(5), c1["unread_count"])
+		assert.Nil(t, c1["other_user_id"], "Group chat should not have other_user_id")
 
 		assert.Equal(t, float64(chat2.ID), c2["id"])
 		assert.Equal(t, "User 3", c2["name"])
 		assert.Equal(t, float64(0), c2["unread_count"])
+		assert.Equal(t, float64(u3.ID), c2["other_user_id"], "Private chat should have other_user_id")
 
 		assert.Equal(t, float64(chat1.ID), c3["id"])
 		assert.Equal(t, "User 2", c3["name"])
 		assert.Equal(t, float64(3), c3["unread_count"])
+		assert.Equal(t, float64(u2.ID), c3["other_user_id"], "Private chat should have other_user_id")
 	})
 
 	t.Run("Success - Pagination", func(t *testing.T) {
@@ -489,6 +493,37 @@ func TestGetChats(t *testing.T) {
 		assert.True(t, found, "Chat should reappear after new activity")
 	})
 
+	t.Run("Success - List Chat with Blocked User", func(t *testing.T) {
+
+		testClient.UserBlock.Create().SetBlockerID(u1.ID).SetBlockedID(u2.ID).SaveX(context.Background())
+
+		req, _ := http.NewRequest("GET", "/api/chats", nil)
+		req.Header.Set("Authorization", "Bearer "+token1)
+		rr := executeRequest(req)
+		assert.Equal(t, http.StatusOK, rr.Code)
+
+		var resp helper.ResponseWithPagination
+		json.Unmarshal(rr.Body.Bytes(), &resp)
+		dataList := resp.Data.([]interface{})
+
+		var blockedChat map[string]interface{}
+		for _, item := range dataList {
+			c := item.(map[string]interface{})
+			if c["id"].(float64) == float64(chat1.ID) {
+				blockedChat = c
+				break
+			}
+		}
+
+		assert.NotNil(t, blockedChat)
+		assert.True(t, blockedChat["is_blocked_by_me"].(bool))
+		assert.Equal(t, "", blockedChat["avatar"])
+		assert.False(t, blockedChat["is_online"].(bool))
+		assert.Equal(t, float64(u2.ID), blockedChat["other_user_id"])
+
+		testClient.UserBlock.Delete().Where(userblock.BlockerID(u1.ID), userblock.BlockedID(u2.ID)).ExecX(context.Background())
+	})
+
 	t.Run("Unauthorized", func(t *testing.T) {
 		req, _ := http.NewRequest("GET", "/api/chats", nil)
 		rr := executeRequest(req)
@@ -525,6 +560,26 @@ func TestMarkAsRead(t *testing.T) {
 		pc, _ := testClient.PrivateChat.Query().Where(privatechat.ChatID(chat1.ID)).Only(context.Background())
 		assert.Equal(t, 0, pc.User1UnreadCount)
 		assert.NotNil(t, pc.User1LastReadAt)
+	})
+
+	t.Run("Success - Mark Read While Blocked (Ninja Mode)", func(t *testing.T) {
+
+		testClient.UserBlock.Create().SetBlockerID(u2.ID).SetBlockedID(u1.ID).SaveX(context.Background())
+
+		pc, _ := testClient.PrivateChat.Query().Where(privatechat.ChatID(chat1.ID)).Only(context.Background())
+		testClient.PrivateChat.UpdateOne(pc).SetUser1UnreadCount(5).SetUser1LastReadAt(time.Time{}).ExecX(context.Background())
+
+		req, _ := http.NewRequest("POST", fmt.Sprintf("/api/chats/%d/read", chat1.ID), nil)
+		req.Header.Set("Authorization", "Bearer "+token1)
+
+		rr := executeRequest(req)
+		assert.Equal(t, http.StatusOK, rr.Code)
+
+		pcAfter, _ := testClient.PrivateChat.Query().Where(privatechat.ChatID(chat1.ID)).Only(context.Background())
+		assert.Equal(t, 0, pcAfter.User1UnreadCount, "Unread count should be reset")
+		assert.True(t, pcAfter.User1LastReadAt.IsZero(), "LastReadAt should NOT be updated (Ninja Mode)")
+
+		testClient.UserBlock.Delete().Where(userblock.BlockerID(u2.ID), userblock.BlockedID(u1.ID)).ExecX(context.Background())
 	})
 
 	t.Run("Success - Mark Group Chat Read", func(t *testing.T) {

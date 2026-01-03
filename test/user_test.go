@@ -157,6 +157,11 @@ func TestGetUserProfile(t *testing.T) {
 		assert.True(t, ok)
 		assert.True(t, dataMap["is_blocked_by_me"].(bool))
 		assert.False(t, dataMap["is_blocked_by_other"].(bool))
+
+		assert.Equal(t, "", dataMap["username"])
+		assert.Equal(t, "", dataMap["avatar"])
+		assert.Equal(t, "", dataMap["bio"])
+		assert.Nil(t, dataMap["last_seen_at"])
 	})
 
 	t.Run("Blocked By Other (Should Return OK with flags)", func(t *testing.T) {
@@ -182,6 +187,9 @@ func TestGetUserProfile(t *testing.T) {
 		assert.False(t, dataMap["is_blocked_by_me"].(bool))
 		assert.True(t, dataMap["is_blocked_by_other"].(bool))
 
+		assert.Equal(t, "", dataMap["username"])
+		assert.Equal(t, "", dataMap["avatar"])
+		assert.Equal(t, "", dataMap["bio"])
 		assert.Nil(t, dataMap["last_seen_at"])
 	})
 

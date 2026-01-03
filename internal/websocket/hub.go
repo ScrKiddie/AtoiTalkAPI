@@ -4,6 +4,7 @@ import (
 	"AtoiTalkAPI/ent"
 	"AtoiTalkAPI/ent/chat"
 	"AtoiTalkAPI/ent/privatechat"
+	"AtoiTalkAPI/ent/userblock"
 	"context"
 	"encoding/json"
 	"log/slog"
@@ -116,7 +117,37 @@ func (h *Hub) BroadcastToChat(chatID int, event Event) {
 		}
 	}
 
+	blockedUserIDs := make(map[int]bool)
+	if event.Type == EventTyping && event.Meta != nil && event.Meta.SenderID != 0 {
+		senderID := event.Meta.SenderID
+
+		blocks, err := h.db.UserBlock.Query().
+			Where(
+				userblock.Or(
+					userblock.BlockerID(senderID),
+					userblock.BlockedID(senderID),
+				),
+			).
+			All(ctx)
+
+		if err == nil {
+			for _, b := range blocks {
+				if b.BlockerID == senderID {
+					blockedUserIDs[b.BlockedID] = true
+				} else {
+					blockedUserIDs[b.BlockerID] = true
+				}
+			}
+		} else {
+			slog.Error("Failed to fetch block list for typing event", "error", err)
+		}
+	}
+
 	for uid, unreadCount := range memberUnreadMap {
+
+		if event.Type == EventTyping && blockedUserIDs[uid] {
+			continue
+		}
 
 		personalEvent := event
 
@@ -160,7 +191,32 @@ func (h *Hub) BroadcastToContacts(userID int, event Event) {
 		}
 	}
 
+	blockedUserIDs := make(map[int]bool)
+	if event.Type == EventUserOnline || event.Type == EventUserOffline {
+		blocks, err := h.db.UserBlock.Query().
+			Where(
+				userblock.Or(
+					userblock.BlockerID(userID),
+					userblock.BlockedID(userID),
+				),
+			).
+			All(ctx)
+
+		if err == nil {
+			for _, b := range blocks {
+				if b.BlockerID == userID {
+					blockedUserIDs[b.BlockedID] = true
+				} else {
+					blockedUserIDs[b.BlockerID] = true
+				}
+			}
+		}
+	}
+
 	for _, targetID := range targetUserIDs {
+		if (event.Type == EventUserOnline || event.Type == EventUserOffline) && blockedUserIDs[targetID] {
+			continue
+		}
 		h.BroadcastToUser(targetID, event)
 	}
 }
