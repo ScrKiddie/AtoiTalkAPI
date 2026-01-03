@@ -75,6 +75,7 @@ func (s *UserService) GetCurrentUser(ctx context.Context, userID int) (*model.Us
 }
 
 func (s *UserService) GetUserProfile(ctx context.Context, currentUserID int, targetUserID int) (*model.UserDTO, error) {
+
 	blocks, err := s.client.UserBlock.Query().
 		Where(
 			userblock.Or(
@@ -133,10 +134,14 @@ func (s *UserService) GetUserProfile(ctx context.Context, currentUserID int, tar
 
 	var lastSeenAt *string
 	isOnline := u.IsOnline
+	username := u.Username
 
 	if isBlockedByMe || isBlockedByOther {
 		isOnline = false
 		lastSeenAt = nil
+		avatarURL = ""
+		bio = ""
+		username = ""
 	} else {
 		if u.LastSeenAt != nil {
 			t := u.LastSeenAt.Format(time.RFC3339)
@@ -146,7 +151,7 @@ func (s *UserService) GetUserProfile(ctx context.Context, currentUserID int, tar
 
 	return &model.UserDTO{
 		ID:               u.ID,
-		Username:         u.Username,
+		Username:         username,
 		FullName:         u.FullName,
 		Avatar:           avatarURL,
 		Bio:              bio,

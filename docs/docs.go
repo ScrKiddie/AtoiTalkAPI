@@ -1643,6 +1643,9 @@ const docTemplate = `{
                 "id": {
                     "type": "integer"
                 },
+                "is_blocked_by_me": {
+                    "type": "boolean"
+                },
                 "is_online": {
                     "type": "boolean"
                 },
@@ -1657,6 +1660,9 @@ const docTemplate = `{
                 },
                 "other_last_read_at": {
                     "type": "string"
+                },
+                "other_user_id": {
+                    "type": "integer"
                 },
                 "type": {
                     "type": "string"

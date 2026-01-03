@@ -141,6 +141,7 @@ components:
         is_blocked_by_other:
           type: boolean
 
+
     MediaDTO:
       type: object
       properties:

@@ -299,6 +299,48 @@ func (s *ChatService) GetChats(ctx context.Context, userID int, req model.GetCha
 		nextCursor = base64.URLEncoding.EncodeToString([]byte(cursorString))
 	}
 
+	otherUserIDs := make([]int, 0)
+	for _, c := range chats {
+		if c.Type == chat.TypePrivate && c.Edges.PrivateChat != nil {
+			if c.Edges.PrivateChat.User1ID == userID {
+				otherUserIDs = append(otherUserIDs, c.Edges.PrivateChat.User2ID)
+			} else {
+				otherUserIDs = append(otherUserIDs, c.Edges.PrivateChat.User1ID)
+			}
+		}
+	}
+
+	type blockStatus struct {
+		blockedByMe    bool
+		blockedByOther bool
+	}
+	blockedMap := make(map[int]blockStatus)
+
+	if len(otherUserIDs) > 0 {
+		blocks, err := s.client.UserBlock.Query().
+			Where(
+				userblock.Or(
+					userblock.And(userblock.BlockerID(userID), userblock.BlockedIDIn(otherUserIDs...)),
+					userblock.And(userblock.BlockerIDIn(otherUserIDs...), userblock.BlockedID(userID)),
+				),
+			).
+			All(ctx)
+		if err == nil {
+			for _, b := range blocks {
+				status := blockedMap[0]
+				if b.BlockerID == userID {
+					status = blockedMap[b.BlockedID]
+					status.blockedByMe = true
+					blockedMap[b.BlockedID] = status
+				} else {
+					status = blockedMap[b.BlockerID]
+					status.blockedByOther = true
+					blockedMap[b.BlockerID] = status
+				}
+			}
+		}
+	}
+
 	response := make([]model.ChatListResponse, 0)
 	for _, c := range chats {
 		var name, avatar string
@@ -306,6 +348,8 @@ func (s *ChatService) GetChats(ctx context.Context, userID int, req model.GetCha
 		var otherLastReadAt *string
 		var unreadCount int
 		var isOnline bool
+		var otherUserID *int
+		var isBlockedByMe bool
 
 		if c.Type == chat.TypePrivate && c.Edges.PrivateChat != nil {
 			pc := c.Edges.PrivateChat
@@ -324,11 +368,22 @@ func (s *ChatService) GetChats(ctx context.Context, userID int, req model.GetCha
 				otherUserLastRead = pc.User1LastReadAt
 				unreadCount = pc.User2UnreadCount
 			}
+
 			if otherUser != nil {
+				otherUserID = &otherUser.ID
 				name = otherUser.FullName
-				isOnline = otherUser.IsOnline
-				if otherUser.Edges.Avatar != nil {
-					avatar = helper.BuildImageURL(s.cfg.StorageMode, s.cfg.AppURL, s.cfg.StorageCDNURL, s.cfg.StorageProfile, otherUser.Edges.Avatar.FileName)
+
+				status := blockedMap[otherUser.ID]
+				isBlockedByMe = status.blockedByMe
+
+				if status.blockedByMe || status.blockedByOther {
+					avatar = ""
+					isOnline = false
+				} else {
+					isOnline = otherUser.IsOnline
+					if otherUser.Edges.Avatar != nil {
+						avatar = helper.BuildImageURL(s.cfg.StorageMode, s.cfg.AppURL, s.cfg.StorageCDNURL, s.cfg.StorageProfile, otherUser.Edges.Avatar.FileName)
+					}
 				}
 			}
 			if myLastRead != nil {
@@ -369,6 +424,8 @@ func (s *ChatService) GetChats(ctx context.Context, userID int, req model.GetCha
 			LastReadAt:      lastReadAt,
 			OtherLastReadAt: otherLastReadAt,
 			IsOnline:        isOnline,
+			OtherUserID:     otherUserID,
+			IsBlockedByMe:   isBlockedByMe,
 		})
 	}
 
@@ -397,23 +454,53 @@ func (s *ChatService) MarkAsRead(ctx context.Context, userID int, chatID int) er
 		return helper.NewInternalServerError("")
 	}
 
+	var isBlocked bool
+	var otherUserID int
+
 	if c.Type == chat.TypePrivate && c.Edges.PrivateChat != nil {
 		pc := c.Edges.PrivateChat
 		update := tx.PrivateChat.UpdateOneID(pc.ID)
 
 		if pc.User1ID == userID {
-			update.SetUser1UnreadCount(0).SetUser1LastReadAt(time.Now())
+			otherUserID = pc.User2ID
+			update.SetUser1UnreadCount(0)
 		} else if pc.User2ID == userID {
-			update.SetUser2UnreadCount(0).SetUser2LastReadAt(time.Now())
+			otherUserID = pc.User1ID
+			update.SetUser2UnreadCount(0)
 		} else {
 			return helper.NewForbiddenError("You are not part of this chat")
 		}
+
+		blockExists, err := tx.UserBlock.Query().
+			Where(
+				userblock.Or(
+					userblock.And(userblock.BlockerID(userID), userblock.BlockedID(otherUserID)),
+					userblock.And(userblock.BlockerID(otherUserID), userblock.BlockedID(userID)),
+				),
+			).
+			Exist(ctx)
+
+		if err != nil {
+			slog.Error("Failed to check block status in MarkAsRead", "error", err)
+
+		}
+		isBlocked = blockExists
+
+		if !isBlocked {
+			if pc.User1ID == userID {
+				update.SetUser1LastReadAt(time.Now())
+			} else {
+				update.SetUser2LastReadAt(time.Now())
+			}
+		}
+
 		if err := update.Exec(ctx); err != nil {
 			slog.Error("Failed to mark private chat as read", "error", err)
 			return helper.NewInternalServerError("")
 		}
 
 	} else if c.Type == chat.TypeGroup && c.Edges.GroupChat != nil {
+
 		err := tx.GroupMember.Update().
 			Where(
 				groupmember.GroupChatID(c.Edges.GroupChat.ID),
@@ -433,7 +520,7 @@ func (s *ChatService) MarkAsRead(ctx context.Context, userID int, chatID int) er
 		return helper.NewInternalServerError("")
 	}
 
-	if s.wsHub != nil {
+	if s.wsHub != nil && !isBlocked {
 		go s.wsHub.BroadcastToChat(chatID, websocket.Event{
 			Type: websocket.EventChatRead,
 			Payload: map[string]interface{}{
