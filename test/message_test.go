@@ -226,9 +226,6 @@ func TestSendMessage(t *testing.T) {
 		if !assert.Equal(t, http.StatusBadRequest, rr.Code) {
 			printBody(t, rr)
 		}
-		var resp helper.ResponseError
-		json.Unmarshal(rr.Body.Bytes(), &resp)
-		assert.Contains(t, resp.Error, "do not belong to you")
 	})
 
 	t.Run("Fail - Attachment Already Used", func(t *testing.T) {

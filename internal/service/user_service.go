@@ -10,28 +10,31 @@ import (
 	"AtoiTalkAPI/internal/config"
 	"AtoiTalkAPI/internal/helper"
 	"AtoiTalkAPI/internal/model"
+	"AtoiTalkAPI/internal/repository"
 	"AtoiTalkAPI/internal/websocket"
 	"context"
 	"log/slog"
 	"mime/multipart"
 	"path/filepath"
+	"strings"
 	"time"
 
-	"entgo.io/ent/dialect/sql"
 	"github.com/go-playground/validator/v10"
 )
 
 type UserService struct {
 	client         *ent.Client
+	repo           *repository.Repository
 	cfg            *config.AppConfig
 	validator      *validator.Validate
 	storageAdapter *adapter.StorageAdapter
 	wsHub          *websocket.Hub
 }
 
-func NewUserService(client *ent.Client, cfg *config.AppConfig, validator *validator.Validate, storageAdapter *adapter.StorageAdapter, wsHub *websocket.Hub) *UserService {
+func NewUserService(client *ent.Client, repo *repository.Repository, cfg *config.AppConfig, validator *validator.Validate, storageAdapter *adapter.StorageAdapter, wsHub *websocket.Hub) *UserService {
 	return &UserService{
 		client:         client,
+		repo:           repo,
 		cfg:            cfg,
 		validator:      validator,
 		storageAdapter: storageAdapter,
@@ -362,81 +365,14 @@ func (s *UserService) SearchUsers(ctx context.Context, currentUserID int, req mo
 		req.Limit = 10
 	}
 
-	query := s.client.User.Query().
-		Where(
-			user.IDNEQ(currentUserID),
-			func(s *sql.Selector) {
-				t := sql.Table(userblock.Table)
-				s.Where(
-					sql.Not(
-						sql.Exists(
-							sql.Select(userblock.FieldID).From(t).Where(
-								sql.Or(
-									sql.And(
-										sql.EQ(t.C(userblock.FieldBlockerID), currentUserID),
-										sql.ColumnsEQ(t.C(userblock.FieldBlockedID), s.C(user.FieldID)),
-									),
-									sql.And(
-										sql.ColumnsEQ(t.C(userblock.FieldBlockerID), s.C(user.FieldID)),
-										sql.EQ(t.C(userblock.FieldBlockedID), currentUserID),
-									),
-								),
-							),
-						),
-					),
-				)
-			},
-		)
-
-	if req.Query != "" {
-		query = query.Where(
-			user.Or(
-				user.FullNameContainsFold(req.Query),
-				user.EmailEQ(req.Query),
-				user.UsernameContainsFold(req.Query),
-			),
-		)
-	}
-
-	delimiter := "|||"
-
-	if req.Cursor != "" {
-		cursorName, cursorID, err := helper.DecodeCursor(req.Cursor, delimiter)
-		if err != nil {
+	users, nextCursor, hasNext, err := s.repo.User.SearchUsers(ctx, currentUserID, req.Query, req.Cursor, req.Limit)
+	if err != nil {
+		if strings.Contains(err.Error(), "invalid cursor format") {
+			slog.Warn("Invalid cursor format in SearchUsers", "error", err)
 			return nil, "", false, helper.NewBadRequestError("")
 		}
-
-		query = query.Where(
-			user.Or(
-				user.FullNameGT(cursorName),
-				user.And(
-					user.FullNameEQ(cursorName),
-					user.IDGT(cursorID),
-				),
-			),
-		)
-	}
-
-	query = query.Select(user.FieldID, user.FieldUsername, user.FieldFullName, user.FieldBio, user.FieldAvatarID).
-		Order(ent.Asc(user.FieldFullName), ent.Asc(user.FieldID)).
-		Limit(req.Limit + 1).
-		WithAvatar()
-
-	users, err := query.All(ctx)
-	if err != nil {
 		slog.Error("Failed to search users", "error", err)
 		return nil, "", false, helper.NewInternalServerError("")
-	}
-
-	hasNext := false
-	var nextCursor string
-
-	if len(users) > req.Limit {
-		hasNext = true
-		users = users[:req.Limit]
-		lastUser := users[len(users)-1]
-
-		nextCursor = helper.EncodeCursor(lastUser.FullName, lastUser.ID, delimiter)
 	}
 
 	privateChatMap := make(map[int]int)
@@ -516,58 +452,14 @@ func (s *UserService) GetBlockedUsers(ctx context.Context, currentUserID int, re
 		req.Limit = 10
 	}
 
-	query := s.client.User.Query().
-		Where(
-			user.HasBlockedByRelWith(userblock.BlockerID(currentUserID)),
-		)
-
-	if req.Query != "" {
-		query = query.Where(
-			user.Or(
-				user.FullNameContainsFold(req.Query),
-				user.UsernameContainsFold(req.Query),
-			),
-		)
-	}
-
-	delimiter := "|||"
-
-	if req.Cursor != "" {
-		cursorName, cursorID, err := helper.DecodeCursor(req.Cursor, delimiter)
-		if err != nil {
+	users, nextCursor, hasNext, err := s.repo.User.GetBlockedUsers(ctx, currentUserID, req.Query, req.Cursor, req.Limit)
+	if err != nil {
+		if strings.Contains(err.Error(), "invalid cursor format") {
+			slog.Warn("Invalid cursor format in GetBlockedUsers", "error", err)
 			return nil, "", false, helper.NewBadRequestError("")
 		}
-
-		query = query.Where(
-			user.Or(
-				user.FullNameGT(cursorName),
-				user.And(
-					user.FullNameEQ(cursorName),
-					user.IDGT(cursorID),
-				),
-			),
-		)
-	}
-
-	query = query.Select(user.FieldID, user.FieldUsername, user.FieldFullName, user.FieldBio, user.FieldAvatarID).
-		Order(ent.Asc(user.FieldFullName), ent.Asc(user.FieldID)).
-		Limit(req.Limit + 1).
-		WithAvatar()
-
-	users, err := query.All(ctx)
-	if err != nil {
 		slog.Error("Failed to get blocked users", "error", err)
 		return nil, "", false, helper.NewInternalServerError("")
-	}
-
-	hasNext := false
-	var nextCursor string
-
-	if len(users) > req.Limit {
-		hasNext = true
-		users = users[:req.Limit]
-		lastUser := users[len(users)-1]
-		nextCursor = helper.EncodeCursor(lastUser.FullName, lastUser.ID, delimiter)
 	}
 
 	userDTOs := make([]model.UserDTO, len(users))

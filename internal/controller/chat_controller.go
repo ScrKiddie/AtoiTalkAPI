@@ -45,7 +45,7 @@ func (c *ChatController) CreatePrivateChat(w http.ResponseWriter, r *http.Reques
 
 	var req model.CreatePrivateChatRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		helper.WriteError(w, helper.NewBadRequestError("Invalid request body"))
+		helper.WriteError(w, helper.NewBadRequestError(""))
 		return
 	}
 
@@ -167,7 +167,7 @@ func (c *ChatController) MarkAsRead(w http.ResponseWriter, r *http.Request) {
 	chatIDStr := chi.URLParam(r, "id")
 	chatID, err := strconv.Atoi(chatIDStr)
 	if err != nil {
-		helper.WriteError(w, helper.NewBadRequestError("Invalid chat ID"))
+		helper.WriteError(w, helper.NewBadRequestError(""))
 		return
 	}
 
@@ -204,7 +204,7 @@ func (c *ChatController) HideChat(w http.ResponseWriter, r *http.Request) {
 	chatIDStr := chi.URLParam(r, "id")
 	chatID, err := strconv.Atoi(chatIDStr)
 	if err != nil {
-		helper.WriteError(w, helper.NewBadRequestError("Invalid chat ID"))
+		helper.WriteError(w, helper.NewBadRequestError(""))
 		return
 	}
 

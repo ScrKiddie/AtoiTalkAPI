@@ -76,7 +76,7 @@ func (s *OTPService) SendOTP(ctx context.Context, req model.SendOTPRequest) erro
 	allowed, retryAfter := s.rateLimiter.Allow(req.Email)
 	if !allowed {
 		minutes := int(math.Ceil(retryAfter.Minutes()))
-		return helper.NewTooManyRequestsError(fmt.Sprintf("Too many requests. Please try again in %d minutes.", minutes))
+		return helper.NewTooManyRequestsError(fmt.Sprintf("Please try again in %d minutes", minutes))
 	}
 
 	existing, err := s.client.OTP.Query().

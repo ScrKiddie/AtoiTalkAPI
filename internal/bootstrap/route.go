@@ -71,6 +71,9 @@ func (route *Route) Register() {
 	route.chi.With(route.authMiddleware.VerifyWSToken).Get("/ws", route.wsController.ServeWS)
 
 	route.chi.Route("/api", func(r chi.Router) {
+
+		r.Use(middleware.MaxBodySize(100 * 1024))
+
 		r.Post("/auth/login", route.authController.Login)
 		r.Post("/auth/google", route.authController.GoogleExchange)
 		r.Post("/auth/register", route.authController.Register)
@@ -82,10 +85,11 @@ func (route *Route) Register() {
 			r.Get("/user/current", route.userController.GetCurrentUser)
 			r.Get("/users/blocked", route.userController.GetBlockedUsers)
 			r.Get("/users/{id}", route.userController.GetUserProfile)
-			r.Put("/user/profile", route.userController.UpdateProfile)
 			r.Get("/users", route.userController.SearchUsers)
 			r.Post("/users/{id}/block", route.userController.BlockUser)
 			r.Post("/users/{id}/unblock", route.userController.UnblockUser)
+
+			r.With(middleware.MaxBodySize(3*1024*1024)).Put("/user/profile", route.userController.UpdateProfile)
 
 			r.Put("/account/password", route.accountController.ChangePassword)
 			r.Put("/account/email", route.accountController.ChangeEmail)
@@ -99,7 +103,8 @@ func (route *Route) Register() {
 
 			r.Post("/messages", route.messageController.SendMessage)
 			r.Delete("/messages/{messageID}", route.messageController.DeleteMessage)
-			r.Post("/media/upload", route.mediaController.UploadMedia)
+
+			r.With(middleware.MaxBodySize(3*1024*1024)).Post("/media/upload", route.mediaController.UploadMedia)
 		})
 	})
 }

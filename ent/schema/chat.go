@@ -5,6 +5,7 @@ import (
 	"entgo.io/ent/dialect/entsql"
 	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
+	"entgo.io/ent/schema/index"
 )
 
 type Chat struct {
@@ -27,5 +28,11 @@ func (Chat) Edges() []ent.Edge {
 		edge.To("private_chat", PrivateChat.Type).Unique().Annotations(entsql.OnDelete(entsql.Cascade)),
 		edge.To("group_chat", GroupChat.Type).Unique().Annotations(entsql.OnDelete(entsql.Cascade)),
 		edge.To("last_message", Message.Type).Unique().Field("last_message_id"),
+	}
+}
+
+func (Chat) Indexes() []ent.Index {
+	return []ent.Index{
+		index.Fields("updated_at"),
 	}
 }

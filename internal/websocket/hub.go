@@ -82,8 +82,10 @@ func (h *Hub) BroadcastToUser(userID int, event Event) {
 			select {
 			case client.Send <- data:
 			default:
-				close(client.Send)
-				delete(h.clients, client)
+
+				go func(c *Client) {
+					h.Unregister <- c
+				}(client)
 			}
 		}
 	}

@@ -48,7 +48,7 @@ func (c *MessageController) SendMessage(w http.ResponseWriter, r *http.Request) 
 	var req model.SendMessageRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		slog.Warn("Invalid request body", "error", err)
-		helper.WriteError(w, helper.NewBadRequestError("Invalid request body"))
+		helper.WriteError(w, helper.NewBadRequestError(""))
 		return
 	}
 
@@ -86,7 +86,7 @@ func (c *MessageController) GetMessages(w http.ResponseWriter, r *http.Request) 
 
 	chatID, err := strconv.Atoi(chi.URLParam(r, "chatID"))
 	if err != nil {
-		helper.WriteError(w, helper.NewBadRequestError("Invalid chat ID"))
+		helper.WriteError(w, helper.NewBadRequestError(""))
 		return
 	}
 
@@ -140,7 +140,7 @@ func (c *MessageController) DeleteMessage(w http.ResponseWriter, r *http.Request
 
 	messageID, err := strconv.Atoi(chi.URLParam(r, "messageID"))
 	if err != nil {
-		helper.WriteError(w, helper.NewBadRequestError("Invalid message ID"))
+		helper.WriteError(w, helper.NewBadRequestError(""))
 		return
 	}
 

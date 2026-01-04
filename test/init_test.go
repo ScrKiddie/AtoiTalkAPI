@@ -9,6 +9,7 @@ import (
 	"AtoiTalkAPI/internal/controller"
 	"AtoiTalkAPI/internal/helper"
 	"AtoiTalkAPI/internal/middleware"
+	"AtoiTalkAPI/internal/repository"
 	"AtoiTalkAPI/internal/service"
 	"AtoiTalkAPI/internal/websocket"
 	"context"
@@ -90,6 +91,8 @@ func TestMain(m *testing.M) {
 	testHub = websocket.NewHub(testClient)
 	go testHub.Run()
 
+	repo := repository.NewRepository(testClient)
+
 	validator := config.NewValidator()
 	httpClient := config.NewHTTPClient()
 	testRouter = config.NewChi(testConfig)
@@ -107,16 +110,16 @@ func TestMain(m *testing.M) {
 	otpService := service.NewOTPService(testClient, testConfig, validator, emailAdapter, rateLimiter, captchaAdapter)
 	otpController := controller.NewOTPController(otpService)
 
-	userService := service.NewUserService(testClient, testConfig, validator, storageAdapter, testHub)
+	userService := service.NewUserService(testClient, repo, testConfig, validator, storageAdapter, testHub)
 	userController := controller.NewUserController(userService)
 
 	accountService := service.NewAccountService(testClient, testConfig, validator)
 	accountController := controller.NewAccountController(accountService)
 
-	chatService := service.NewChatService(testClient, testConfig, validator, testHub)
+	chatService := service.NewChatService(testClient, repo, testConfig, validator, testHub)
 	chatController := controller.NewChatController(chatService)
 
-	messageService := service.NewMessageService(testClient, testConfig, validator, storageAdapter, testHub)
+	messageService := service.NewMessageService(testClient, repo, testConfig, validator, storageAdapter, testHub)
 	messageController := controller.NewMessageController(messageService)
 
 	mediaService := service.NewMediaService(testClient, testConfig, validator, storageAdapter)
