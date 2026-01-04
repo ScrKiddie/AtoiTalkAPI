@@ -138,7 +138,7 @@ func TestGetUserProfile(t *testing.T) {
 	t.Run("Blocked By Me (Should Return OK with flags)", func(t *testing.T) {
 		clearDatabase(context.Background())
 
-		targetUser, _ := testClient.User.Create().SetEmail("target@test.com").SetUsername("target").SetFullName("Target").Save(context.Background())
+		targetUser, _ := testClient.User.Create().SetEmail("target@test.com").SetUsername("target").SetFullName("Target").SetBio("Target Bio").Save(context.Background())
 		blockerUser, _ := testClient.User.Create().SetEmail("blocker@test.com").SetUsername("blocker").SetFullName("Blocker").Save(context.Background())
 
 		testClient.UserBlock.Create().SetBlockerID(blockerUser.ID).SetBlockedID(targetUser.ID).Save(context.Background())
@@ -158,16 +158,17 @@ func TestGetUserProfile(t *testing.T) {
 		assert.True(t, dataMap["is_blocked_by_me"].(bool))
 		assert.False(t, dataMap["is_blocked_by_other"].(bool))
 
-		assert.Equal(t, "", dataMap["username"])
-		assert.Equal(t, "", dataMap["avatar"])
-		assert.Equal(t, "", dataMap["bio"])
+		assert.Equal(t, "target", dataMap["username"])
+		assert.Equal(t, "Target Bio", dataMap["bio"])
+
 		assert.Nil(t, dataMap["last_seen_at"])
+		assert.False(t, dataMap["is_online"].(bool))
 	})
 
 	t.Run("Blocked By Other (Should Return OK with flags)", func(t *testing.T) {
 		clearDatabase(context.Background())
 
-		targetUser, _ := testClient.User.Create().SetEmail("target@test.com").SetUsername("target").SetFullName("Target").Save(context.Background())
+		targetUser, _ := testClient.User.Create().SetEmail("target@test.com").SetUsername("target").SetFullName("Target").SetBio("Target Bio").Save(context.Background())
 		blockerUser, _ := testClient.User.Create().SetEmail("blocker@test.com").SetUsername("blocker").SetFullName("Blocker").Save(context.Background())
 
 		testClient.UserBlock.Create().SetBlockerID(targetUser.ID).SetBlockedID(blockerUser.ID).Save(context.Background())
@@ -187,10 +188,11 @@ func TestGetUserProfile(t *testing.T) {
 		assert.False(t, dataMap["is_blocked_by_me"].(bool))
 		assert.True(t, dataMap["is_blocked_by_other"].(bool))
 
-		assert.Equal(t, "", dataMap["username"])
-		assert.Equal(t, "", dataMap["avatar"])
-		assert.Equal(t, "", dataMap["bio"])
+		assert.Equal(t, "target", dataMap["username"])
+		assert.Equal(t, "Target Bio", dataMap["bio"])
+
 		assert.Nil(t, dataMap["last_seen_at"])
+		assert.False(t, dataMap["is_online"].(bool))
 	})
 
 	t.Run("User Not Found", func(t *testing.T) {

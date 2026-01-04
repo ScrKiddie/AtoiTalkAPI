@@ -48,3 +48,22 @@ func (m *AuthMiddleware) VerifyToken(next http.Handler) http.Handler {
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }
+
+func (m *AuthMiddleware) VerifyWSToken(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		tokenString := r.URL.Query().Get("token")
+		if tokenString == "" {
+			helper.WriteError(w, helper.NewUnauthorizedError(""))
+			return
+		}
+
+		userContext, err := m.authService.VerifyUser(r.Context(), tokenString)
+		if err != nil {
+			helper.WriteError(w, err)
+			return
+		}
+
+		ctx := context.WithValue(r.Context(), UserContextKey, userContext)
+		next.ServeHTTP(w, r.WithContext(ctx))
+	})
+}

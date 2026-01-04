@@ -139,9 +139,7 @@ func (s *UserService) GetUserProfile(ctx context.Context, currentUserID int, tar
 	if isBlockedByMe || isBlockedByOther {
 		isOnline = false
 		lastSeenAt = nil
-		avatarURL = ""
-		bio = ""
-		username = ""
+
 	} else {
 		if u.LastSeenAt != nil {
 			t := u.LastSeenAt.Format(time.RFC3339)
@@ -314,7 +312,7 @@ func (s *UserService) UpdateProfile(ctx context.Context, userID int, req model.U
 		bio = *updatedUser.Bio
 	}
 
-	resp := &model.UserDTO{
+	httpResp := &model.UserDTO{
 		ID:          updatedUser.ID,
 		Email:       updatedUser.Email,
 		Username:    updatedUser.Username,
@@ -322,12 +320,29 @@ func (s *UserService) UpdateProfile(ctx context.Context, userID int, req model.U
 		Avatar:      avatarURL,
 		Bio:         bio,
 		HasPassword: updatedUser.PasswordHash != nil,
+		IsOnline:    updatedUser.IsOnline,
+	}
+	if updatedUser.LastSeenAt != nil {
+		t := updatedUser.LastSeenAt.Format(time.RFC3339)
+		httpResp.LastSeenAt = &t
 	}
 
 	if s.wsHub != nil {
+		wsPayload := &model.UserUpdateEventPayload{
+			ID:       updatedUser.ID,
+			Username: updatedUser.Username,
+			FullName: updatedUser.FullName,
+			Avatar:   avatarURL,
+			Bio:      bio,
+		}
+		if updatedUser.LastSeenAt != nil {
+			t := updatedUser.LastSeenAt.Format(time.RFC3339)
+			wsPayload.LastSeenAt = &t
+		}
+
 		go s.wsHub.BroadcastToContacts(userID, websocket.Event{
 			Type:    websocket.EventUserUpdate,
-			Payload: resp,
+			Payload: wsPayload,
 			Meta: &websocket.EventMeta{
 				Timestamp: time.Now().UnixMilli(),
 				SenderID:  userID,
@@ -335,7 +350,7 @@ func (s *UserService) UpdateProfile(ctx context.Context, userID int, req model.U
 		})
 	}
 
-	return resp, nil
+	return httpResp, nil
 }
 
 func (s *UserService) SearchUsers(ctx context.Context, currentUserID int, req model.SearchUserRequest) ([]model.UserDTO, string, bool, error) {
@@ -581,7 +596,7 @@ func (s *UserService) GetBlockedUsers(ctx context.Context, currentUserID int, re
 
 func (s *UserService) BlockUser(ctx context.Context, blockerID int, blockedID int) error {
 	if blockerID == blockedID {
-		return helper.NewBadRequestError("Cannot block yourself")
+		return helper.NewBadRequestError("")
 	}
 
 	exists, err := s.client.User.Query().Where(user.ID(blockedID)).Exist(ctx)
@@ -590,7 +605,7 @@ func (s *UserService) BlockUser(ctx context.Context, blockerID int, blockedID in
 		return helper.NewInternalServerError("")
 	}
 	if !exists {
-		return helper.NewNotFoundError("User not found")
+		return helper.NewNotFoundError("")
 	}
 
 	_, err = s.client.UserBlock.Create().

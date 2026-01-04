@@ -192,6 +192,7 @@ func (h *Hub) BroadcastToContacts(userID int, event Event) {
 	}
 
 	blockedUserIDs := make(map[int]bool)
+
 	if event.Type == EventUserOnline || event.Type == EventUserOffline {
 		blocks, err := h.db.UserBlock.Query().
 			Where(
@@ -214,6 +215,7 @@ func (h *Hub) BroadcastToContacts(userID int, event Event) {
 	}
 
 	for _, targetID := range targetUserIDs {
+
 		if (event.Type == EventUserOnline || event.Type == EventUserOffline) && blockedUserIDs[targetID] {
 			continue
 		}

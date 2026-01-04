@@ -338,7 +338,7 @@ func TestGetChats(t *testing.T) {
 
 		assert.Equal(t, float64(chat2.ID), c2["id"])
 		assert.Equal(t, "User 3", c2["name"])
-		assert.Equal(t, float64(0), c2["unread_count"])
+		assert.NotContains(t, c2, "unread_count", "unread_count should be omitted when it is 0")
 		assert.Equal(t, float64(u3.ID), c2["other_user_id"], "Private chat should have other_user_id")
 
 		assert.Equal(t, float64(chat1.ID), c3["id"])
@@ -495,6 +495,13 @@ func TestGetChats(t *testing.T) {
 
 	t.Run("Success - List Chat with Blocked User", func(t *testing.T) {
 
+		media, _ := testClient.Media.Create().
+			SetFileName("u2_avatar.jpg").SetOriginalName("u2.jpg").
+			SetFileSize(1024).SetMimeType("image/jpeg").
+			SetUploader(u2).
+			Save(context.Background())
+		testClient.User.UpdateOne(u2).SetAvatar(media).ExecX(context.Background())
+
 		testClient.UserBlock.Create().SetBlockerID(u1.ID).SetBlockedID(u2.ID).SaveX(context.Background())
 
 		req, _ := http.NewRequest("GET", "/api/chats", nil)
@@ -517,7 +524,10 @@ func TestGetChats(t *testing.T) {
 
 		assert.NotNil(t, blockedChat)
 		assert.True(t, blockedChat["is_blocked_by_me"].(bool))
-		assert.Equal(t, "", blockedChat["avatar"])
+
+		assert.NotEqual(t, "", blockedChat["avatar"])
+		assert.NotEqual(t, "", blockedChat["name"])
+
 		assert.False(t, blockedChat["is_online"].(bool))
 		assert.Equal(t, float64(u2.ID), blockedChat["other_user_id"])
 
@@ -528,6 +538,75 @@ func TestGetChats(t *testing.T) {
 		req, _ := http.NewRequest("GET", "/api/chats", nil)
 		rr := executeRequest(req)
 		assert.Equal(t, http.StatusUnauthorized, rr.Code)
+	})
+}
+
+func TestGetChatByID(t *testing.T) {
+	clearDatabase(context.Background())
+
+	password := "Password123!"
+	hashedPassword, _ := helper.HashPassword(password)
+	u1 := testClient.User.Create().SetEmail("u1@test.com").SetUsername("user1").SetFullName("User 1").SetPasswordHash(hashedPassword).SaveX(context.Background())
+	u2 := testClient.User.Create().SetEmail("u2@test.com").SetUsername("user2").SetFullName("User 2").SetPasswordHash(hashedPassword).SaveX(context.Background())
+	u3 := testClient.User.Create().SetEmail("u3@test.com").SetUsername("user3").SetFullName("User 3").SetPasswordHash(hashedPassword).SaveX(context.Background())
+
+	token1, _ := helper.GenerateJWT(testConfig.JWTSecret, testConfig.JWTExp, u1.ID)
+
+	chat1 := testClient.Chat.Create().SetType(chat.TypePrivate).SaveX(context.Background())
+	testClient.PrivateChat.Create().SetChat(chat1).SetUser1(u1).SetUser2(u2).SetUser1UnreadCount(3).SaveX(context.Background())
+
+	t.Run("Success - Get Private Chat", func(t *testing.T) {
+		req, _ := http.NewRequest("GET", fmt.Sprintf("/api/chats/%d", chat1.ID), nil)
+		req.Header.Set("Authorization", "Bearer "+token1)
+
+		rr := executeRequest(req)
+		assert.Equal(t, http.StatusOK, rr.Code)
+
+		var resp helper.ResponseSuccess
+		json.Unmarshal(rr.Body.Bytes(), &resp)
+		data := resp.Data.(map[string]interface{})
+
+		assert.Equal(t, float64(chat1.ID), data["id"])
+		assert.Equal(t, "User 2", data["name"])
+		assert.Equal(t, float64(3), data["unread_count"])
+	})
+
+	t.Run("Success - Get Chat with Blocked User", func(t *testing.T) {
+		testClient.UserBlock.Create().SetBlockerID(u1.ID).SetBlockedID(u2.ID).SaveX(context.Background())
+
+		req, _ := http.NewRequest("GET", fmt.Sprintf("/api/chats/%d", chat1.ID), nil)
+		req.Header.Set("Authorization", "Bearer "+token1)
+
+		rr := executeRequest(req)
+		assert.Equal(t, http.StatusOK, rr.Code)
+
+		var resp helper.ResponseSuccess
+		json.Unmarshal(rr.Body.Bytes(), &resp)
+		data := resp.Data.(map[string]interface{})
+
+		assert.True(t, data["is_blocked_by_me"].(bool))
+		assert.NotEqual(t, "", data["name"])
+		assert.False(t, data["is_online"].(bool))
+
+		testClient.UserBlock.Delete().Where(userblock.BlockerID(u1.ID), userblock.BlockedID(u2.ID)).ExecX(context.Background())
+	})
+
+	t.Run("Fail - Invalid ID", func(t *testing.T) {
+		req, _ := http.NewRequest("GET", "/api/chats/abc", nil)
+		req.Header.Set("Authorization", "Bearer "+token1)
+		rr := executeRequest(req)
+		assert.Equal(t, http.StatusBadRequest, rr.Code)
+	})
+
+	t.Run("Fail - Not Found or Forbidden", func(t *testing.T) {
+
+		chat2 := testClient.Chat.Create().SetType(chat.TypePrivate).SaveX(context.Background())
+		testClient.PrivateChat.Create().SetChat(chat2).SetUser1(u2).SetUser2(u3).SaveX(context.Background())
+
+		req, _ := http.NewRequest("GET", fmt.Sprintf("/api/chats/%d", chat2.ID), nil)
+		req.Header.Set("Authorization", "Bearer "+token1)
+		rr := executeRequest(req)
+		assert.Equal(t, http.StatusNotFound, rr.Code)
 	})
 }
 

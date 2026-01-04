@@ -106,6 +106,43 @@ func (c *ChatController) GetChats(w http.ResponseWriter, r *http.Request) {
 	helper.WriteSuccessWithPagination(w, chats, nextCursor, hasNext)
 }
 
+// GetChat godoc
+// @Summary      Get Chat by ID
+// @Description  Get detailed information about a single chat.
+// @Tags         chat
+// @Accept       json
+// @Produce      json
+// @Param        id path int true "Chat ID"
+// @Success      200  {object}  helper.ResponseSuccess{data=model.ChatListResponse}
+// @Failure      400  {object}  helper.ResponseError
+// @Failure      401  {object}  helper.ResponseError
+// @Failure      404  {object}  helper.ResponseError
+// @Failure      500  {object}  helper.ResponseError
+// @Security     BearerAuth
+// @Router       /api/chats/{id} [get]
+func (c *ChatController) GetChat(w http.ResponseWriter, r *http.Request) {
+	userContext, ok := r.Context().Value(middleware.UserContextKey).(*model.UserDTO)
+	if !ok {
+		helper.WriteError(w, helper.NewUnauthorizedError(""))
+		return
+	}
+
+	chatIDStr := chi.URLParam(r, "id")
+	chatID, err := strconv.Atoi(chatIDStr)
+	if err != nil {
+		helper.WriteError(w, helper.NewBadRequestError(""))
+		return
+	}
+
+	chat, err := c.chatService.GetChatByID(r.Context(), userContext.ID, chatID)
+	if err != nil {
+		helper.WriteError(w, err)
+		return
+	}
+
+	helper.WriteSuccess(w, chat)
+}
+
 // MarkAsRead godoc
 // @Summary      Mark Chat as Read
 // @Description  Mark all messages in a chat as read for the current user.
