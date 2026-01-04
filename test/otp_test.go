@@ -166,7 +166,7 @@ func TestSendOTP(t *testing.T) {
 		}
 		var resp helper.ResponseError
 		json.Unmarshal(rr.Body.Bytes(), &resp)
-		assert.Contains(t, resp.Error, "Too many requests. Please try again in")
+		assert.Contains(t, resp.Error, "Please try again")
 	})
 
 	t.Run("Invalid Captcha Token", func(t *testing.T) {

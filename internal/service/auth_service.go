@@ -221,7 +221,7 @@ func (s *AuthService) GoogleExchange(ctx context.Context, req model.GoogleLoginR
 		}
 
 		if finalUsername == "" {
-			return nil, helper.NewConflictError("Failed to generate a unique username. Please try again.")
+			return nil, helper.NewConflictError("Failed to generate unique username")
 		}
 
 		u, err = tx.User.Create().

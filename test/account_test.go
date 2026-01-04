@@ -301,10 +301,6 @@ func TestChangeEmail(t *testing.T) {
 		if !assert.Equal(t, http.StatusBadRequest, rr.Code) {
 			printBody(t, rr)
 		}
-
-		var resp map[string]interface{}
-		json.Unmarshal(rr.Body.Bytes(), &resp)
-		assert.Contains(t, resp["error"], "same as the current email")
 	})
 
 	t.Run("Fail: Invalid OTP", func(t *testing.T) {

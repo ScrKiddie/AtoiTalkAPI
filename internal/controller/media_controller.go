@@ -39,19 +39,10 @@ func (c *MediaController) UploadMedia(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	const maxUploadSize = 50 << 20
-	r.Body = http.MaxBytesReader(w, r.Body, maxUploadSize)
-
-	if err := r.ParseMultipartForm(maxUploadSize); err != nil {
-		slog.Warn("Failed to parse multipart form or file too large", "error", err)
-		helper.WriteError(w, helper.NewBadRequestError("File too large or invalid form data"))
-		return
-	}
-
 	file, header, err := r.FormFile("file")
 	if err != nil {
 		slog.Warn("Error retrieving file", "error", err)
-		helper.WriteError(w, helper.NewBadRequestError("File is required"))
+		helper.WriteError(w, helper.NewBadRequestError(""))
 		return
 	}
 	defer file.Close()

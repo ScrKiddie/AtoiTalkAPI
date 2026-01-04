@@ -3,7 +3,6 @@ package service
 import (
 	"AtoiTalkAPI/ent"
 	"AtoiTalkAPI/ent/chat"
-	"AtoiTalkAPI/ent/groupchat"
 	"AtoiTalkAPI/ent/groupmember"
 	"AtoiTalkAPI/ent/privatechat"
 	"AtoiTalkAPI/ent/user"
@@ -11,29 +10,27 @@ import (
 	"AtoiTalkAPI/internal/config"
 	"AtoiTalkAPI/internal/helper"
 	"AtoiTalkAPI/internal/model"
+	"AtoiTalkAPI/internal/repository"
 	"AtoiTalkAPI/internal/websocket"
 	"context"
-	"encoding/base64"
-	"fmt"
 	"log/slog"
-	"strconv"
-	"strings"
 	"time"
 
-	"entgo.io/ent/dialect/sql"
 	"github.com/go-playground/validator/v10"
 )
 
 type ChatService struct {
 	client    *ent.Client
+	repo      *repository.Repository
 	cfg       *config.AppConfig
 	validator *validator.Validate
 	wsHub     *websocket.Hub
 }
 
-func NewChatService(client *ent.Client, cfg *config.AppConfig, validator *validator.Validate, wsHub *websocket.Hub) *ChatService {
+func NewChatService(client *ent.Client, repo *repository.Repository, cfg *config.AppConfig, validator *validator.Validate, wsHub *websocket.Hub) *ChatService {
 	return &ChatService{
 		client:    client,
+		repo:      repo,
 		cfg:       cfg,
 		validator: validator,
 		wsHub:     wsHub,
@@ -193,32 +190,13 @@ func (s *ChatService) CreatePrivateChat(ctx context.Context, userID int, req mod
 	}, nil
 }
 
-func (s *ChatService) GetChatByID(ctx context.Context, userID, chatID int) (*model.ChatListResponse, error) {
-	c, err := s.client.Chat.Query().
-		Where(
-			chat.ID(chatID),
-			chat.Or(
-				chat.HasPrivateChatWith(privatechat.Or(privatechat.User1ID(userID), privatechat.User2ID(userID))),
-				chat.HasGroupChatWith(groupchat.HasMembersWith(groupmember.UserID(userID))),
-			),
-		).
-		WithPrivateChat(func(q *ent.PrivateChatQuery) {
-			q.WithUser1(func(uq *ent.UserQuery) { uq.WithAvatar() })
-			q.WithUser2(func(uq *ent.UserQuery) { uq.WithAvatar() })
-		}).
-		WithGroupChat(func(q *ent.GroupChatQuery) {
-			q.WithAvatar()
-			q.WithMembers(func(mq *ent.GroupMemberQuery) {
-				mq.Where(groupmember.UserID(userID))
-			})
-		}).
-		WithLastMessage(func(q *ent.MessageQuery) {
-			q.WithAttachments(func(aq *ent.MediaQuery) {
-				aq.Limit(1)
-			})
-		}).
-		Only(ctx)
+type blockStatus struct {
+	blockedByMe    bool
+	blockedByOther bool
+}
 
+func (s *ChatService) GetChatByID(ctx context.Context, userID, chatID int) (*model.ChatListResponse, error) {
+	c, err := s.repo.Chat.GetChatByID(ctx, userID, chatID)
 	if err != nil {
 		if ent.IsNotFound(err) {
 			return nil, helper.NewNotFoundError("")
@@ -227,6 +205,105 @@ func (s *ChatService) GetChatByID(ctx context.Context, userID, chatID int) (*mod
 		return nil, helper.NewInternalServerError("")
 	}
 
+	blockedMap := make(map[int]blockStatus)
+	var otherUserID int
+
+	if c.Type == chat.TypePrivate && c.Edges.PrivateChat != nil {
+		if c.Edges.PrivateChat.User1ID == userID {
+			otherUserID = c.Edges.PrivateChat.User2ID
+		} else {
+			otherUserID = c.Edges.PrivateChat.User1ID
+		}
+
+		blocks, err := s.client.UserBlock.Query().
+			Where(
+				userblock.Or(
+					userblock.And(userblock.BlockerID(userID), userblock.BlockedID(otherUserID)),
+					userblock.And(userblock.BlockerID(otherUserID), userblock.BlockedID(userID)),
+				),
+			).
+			All(ctx)
+
+		if err == nil {
+			for _, b := range blocks {
+				status := blockedMap[otherUserID]
+				if b.BlockerID == userID {
+					status.blockedByMe = true
+				} else {
+					status.blockedByOther = true
+				}
+				blockedMap[otherUserID] = status
+			}
+		}
+	}
+
+	return s.mapChatToResponse(ctx, userID, c, blockedMap)
+}
+
+func (s *ChatService) GetChats(ctx context.Context, userID int, req model.GetChatsRequest) ([]model.ChatListResponse, string, bool, error) {
+	if err := s.validator.Struct(req); err != nil {
+		return nil, "", false, helper.NewBadRequestError("")
+	}
+
+	if req.Limit == 0 {
+		req.Limit = 20
+	}
+
+	chats, nextCursor, hasNext, err := s.repo.Chat.GetChats(ctx, userID, req.Query, req.Cursor, req.Limit)
+	if err != nil {
+		slog.Error("Failed to get chats", "error", err)
+		return nil, "", false, helper.NewInternalServerError("")
+	}
+
+	otherUserIDs := make([]int, 0)
+	for _, c := range chats {
+		if c.Type == chat.TypePrivate && c.Edges.PrivateChat != nil {
+			if c.Edges.PrivateChat.User1ID == userID {
+				otherUserIDs = append(otherUserIDs, c.Edges.PrivateChat.User2ID)
+			} else {
+				otherUserIDs = append(otherUserIDs, c.Edges.PrivateChat.User1ID)
+			}
+		}
+	}
+
+	blockedMap := make(map[int]blockStatus)
+	if len(otherUserIDs) > 0 {
+		blocks, err := s.client.UserBlock.Query().
+			Where(
+				userblock.Or(
+					userblock.And(userblock.BlockerID(userID), userblock.BlockedIDIn(otherUserIDs...)),
+					userblock.And(userblock.BlockerIDIn(otherUserIDs...), userblock.BlockedID(userID)),
+				),
+			).
+			All(ctx)
+		if err == nil {
+			for _, b := range blocks {
+				status := blockedMap[0]
+				if b.BlockerID == userID {
+					status = blockedMap[b.BlockedID]
+					status.blockedByMe = true
+					blockedMap[b.BlockedID] = status
+				} else {
+					status = blockedMap[b.BlockerID]
+					status.blockedByOther = true
+					blockedMap[b.BlockerID] = status
+				}
+			}
+		}
+	}
+
+	response := make([]model.ChatListResponse, 0)
+	for _, c := range chats {
+		resp, err := s.mapChatToResponse(ctx, userID, c, blockedMap)
+		if err == nil {
+			response = append(response, *resp)
+		}
+	}
+
+	return response, nextCursor, hasNext, nil
+}
+
+func (s *ChatService) mapChatToResponse(ctx context.Context, userID int, c *ent.Chat, blockedMap map[int]blockStatus) (*model.ChatListResponse, error) {
 	var name, avatar string
 	var lastReadAt *string
 	var otherLastReadAt *string
@@ -257,30 +334,20 @@ func (s *ChatService) GetChatByID(ctx context.Context, userID, chatID int) (*mod
 			otherUserID = &otherUser.ID
 			name = otherUser.FullName
 
-			blockStatus, err := s.client.UserBlock.Query().
-				Where(
-					userblock.Or(
-						userblock.And(userblock.BlockerID(userID), userblock.BlockedID(*otherUserID)),
-						userblock.And(userblock.BlockerID(*otherUserID), userblock.BlockedID(userID)),
-					),
-				).
-				Exist(ctx)
-			if err != nil {
-				slog.Error("Failed to check block status for GetChatByID", "error", err)
-			}
+			status := blockedMap[otherUser.ID]
+			isBlockedByMe = status.blockedByMe
 
-			isBlockedByMe, _ = s.client.UserBlock.Query().
-				Where(userblock.BlockerID(userID), userblock.BlockedID(*otherUserID)).
-				Exist(ctx)
-
-			if blockStatus {
+			if status.blockedByMe || status.blockedByOther {
 				isOnline = false
+
+				if otherUser.Edges.Avatar != nil {
+					avatar = helper.BuildImageURL(s.cfg.StorageMode, s.cfg.AppURL, s.cfg.StorageCDNURL, s.cfg.StorageProfile, otherUser.Edges.Avatar.FileName)
+				}
 			} else {
 				isOnline = otherUser.IsOnline
-			}
-
-			if otherUser.Edges.Avatar != nil {
-				avatar = helper.BuildImageURL(s.cfg.StorageMode, s.cfg.AppURL, s.cfg.StorageCDNURL, s.cfg.StorageProfile, otherUser.Edges.Avatar.FileName)
+				if otherUser.Edges.Avatar != nil {
+					avatar = helper.BuildImageURL(s.cfg.StorageMode, s.cfg.AppURL, s.cfg.StorageCDNURL, s.cfg.StorageProfile, otherUser.Edges.Avatar.FileName)
+				}
 			}
 		}
 		if myLastRead != nil {
@@ -311,7 +378,7 @@ func (s *ChatService) GetChatByID(ctx context.Context, userID, chatID int) (*mod
 		lastMsgResp = helper.ToMessageResponse(c.Edges.LastMessage, s.cfg.StorageMode, s.cfg.AppURL, s.cfg.StorageCDNURL, s.cfg.StorageAttachment)
 	}
 
-	response := &model.ChatListResponse{
+	return &model.ChatListResponse{
 		ID:              c.ID,
 		Type:            string(c.Type),
 		Name:            name,
@@ -323,276 +390,7 @@ func (s *ChatService) GetChatByID(ctx context.Context, userID, chatID int) (*mod
 		IsOnline:        isOnline,
 		OtherUserID:     otherUserID,
 		IsBlockedByMe:   isBlockedByMe,
-	}
-
-	return response, nil
-}
-
-func (s *ChatService) GetChats(ctx context.Context, userID int, req model.GetChatsRequest) ([]model.ChatListResponse, string, bool, error) {
-	if err := s.validator.Struct(req); err != nil {
-		return nil, "", false, helper.NewBadRequestError("")
-	}
-
-	if req.Limit == 0 {
-		req.Limit = 20
-	}
-
-	query := s.client.Chat.Query().
-		Where(
-			chat.Or(
-				chat.HasPrivateChatWith(privatechat.Or(privatechat.User1ID(userID), privatechat.User2ID(userID))),
-				chat.HasGroupChatWith(groupchat.HasMembersWith(groupmember.UserID(userID))),
-			),
-			func(s *sql.Selector) {
-				t := sql.Table(privatechat.Table)
-				s.Where(
-					sql.Not(
-						sql.Exists(
-							sql.Select(privatechat.FieldID).From(t).Where(
-								sql.And(
-									sql.ColumnsEQ(t.C(privatechat.FieldChatID), s.C(chat.FieldID)),
-									sql.Or(
-										sql.And(
-											sql.EQ(t.C(privatechat.FieldUser1ID), userID),
-											sql.NotNull(t.C(privatechat.FieldUser1HiddenAt)),
-											sql.Or(
-												sql.ColumnsGTE(t.C(privatechat.FieldUser1HiddenAt), s.C(chat.FieldLastMessageAt)),
-												sql.IsNull(s.C(chat.FieldLastMessageAt)),
-											),
-										),
-										sql.And(
-											sql.EQ(t.C(privatechat.FieldUser2ID), userID),
-											sql.NotNull(t.C(privatechat.FieldUser2HiddenAt)),
-											sql.Or(
-												sql.ColumnsGTE(t.C(privatechat.FieldUser2HiddenAt), s.C(chat.FieldLastMessageAt)),
-												sql.IsNull(s.C(chat.FieldLastMessageAt)),
-											),
-										),
-									),
-								),
-							),
-						),
-					),
-				)
-			},
-		)
-
-	if req.Query != "" {
-		otherUserPredicate := user.Or(
-			user.FullNameContainsFold(req.Query),
-			user.UsernameContainsFold(req.Query),
-		)
-		query = query.Where(
-			chat.Or(
-				chat.HasPrivateChatWith(privatechat.Or(
-					privatechat.And(
-						privatechat.User1ID(userID),
-						privatechat.HasUser2With(otherUserPredicate),
-					),
-					privatechat.And(
-						privatechat.User2ID(userID),
-						privatechat.HasUser1With(otherUserPredicate),
-					),
-				)),
-				chat.HasGroupChatWith(groupchat.NameContainsFold(req.Query)),
-			),
-		)
-	}
-
-	if req.Cursor != "" {
-		decodedBytes, err := base64.URLEncoding.DecodeString(req.Cursor)
-		if err == nil {
-			parts := strings.Split(string(decodedBytes), ",")
-			if len(parts) == 2 {
-				cursorTimeMicro, err1 := strconv.ParseInt(parts[0], 10, 64)
-				cursorID, err2 := strconv.Atoi(parts[1])
-				if err1 == nil && err2 == nil {
-					cursorTime := time.UnixMicro(cursorTimeMicro)
-					query = query.Where(
-						chat.Or(
-							chat.UpdatedAtLT(cursorTime),
-							chat.And(
-								chat.UpdatedAtEQ(cursorTime),
-								chat.IDLT(cursorID),
-							),
-						),
-					)
-				}
-			}
-		}
-	}
-
-	fetchLimit := req.Limit
-
-	chats, err := query.
-		Order(ent.Desc(chat.FieldUpdatedAt), ent.Desc(chat.FieldID)).
-		Limit(fetchLimit + 1).
-		WithPrivateChat(func(q *ent.PrivateChatQuery) {
-			q.WithUser1(func(uq *ent.UserQuery) { uq.WithAvatar() })
-			q.WithUser2(func(uq *ent.UserQuery) { uq.WithAvatar() })
-		}).
-		WithGroupChat(func(q *ent.GroupChatQuery) {
-			q.WithAvatar()
-			q.WithMembers(func(mq *ent.GroupMemberQuery) {
-				mq.Where(groupmember.UserID(userID))
-			})
-		}).
-		WithLastMessage(func(q *ent.MessageQuery) {
-			q.WithAttachments(func(aq *ent.MediaQuery) {
-				aq.Limit(1)
-			})
-		}).
-		All(ctx)
-
-	if err != nil {
-		slog.Error("Failed to get chats", "error", err)
-		return nil, "", false, helper.NewInternalServerError("")
-	}
-
-	hasNext := false
-	var nextCursor string
-	if len(chats) > req.Limit {
-		hasNext = true
-		chats = chats[:req.Limit]
-		lastChat := chats[len(chats)-1]
-		cursorString := fmt.Sprintf("%d,%d", lastChat.UpdatedAt.UnixMicro(), lastChat.ID)
-		nextCursor = base64.URLEncoding.EncodeToString([]byte(cursorString))
-	}
-
-	otherUserIDs := make([]int, 0)
-	for _, c := range chats {
-		if c.Type == chat.TypePrivate && c.Edges.PrivateChat != nil {
-			if c.Edges.PrivateChat.User1ID == userID {
-				otherUserIDs = append(otherUserIDs, c.Edges.PrivateChat.User2ID)
-			} else {
-				otherUserIDs = append(otherUserIDs, c.Edges.PrivateChat.User1ID)
-			}
-		}
-	}
-
-	type blockStatus struct {
-		blockedByMe    bool
-		blockedByOther bool
-	}
-	blockedMap := make(map[int]blockStatus)
-
-	if len(otherUserIDs) > 0 {
-		blocks, err := s.client.UserBlock.Query().
-			Where(
-				userblock.Or(
-					userblock.And(userblock.BlockerID(userID), userblock.BlockedIDIn(otherUserIDs...)),
-					userblock.And(userblock.BlockerIDIn(otherUserIDs...), userblock.BlockedID(userID)),
-				),
-			).
-			All(ctx)
-		if err == nil {
-			for _, b := range blocks {
-				status := blockedMap[0]
-				if b.BlockerID == userID {
-					status = blockedMap[b.BlockedID]
-					status.blockedByMe = true
-					blockedMap[b.BlockedID] = status
-				} else {
-					status = blockedMap[b.BlockerID]
-					status.blockedByOther = true
-					blockedMap[b.BlockerID] = status
-				}
-			}
-		}
-	}
-
-	response := make([]model.ChatListResponse, 0)
-	for _, c := range chats {
-		var name, avatar string
-		var lastReadAt *string
-		var otherLastReadAt *string
-		var unreadCount int
-		var isOnline bool
-		var otherUserID *int
-		var isBlockedByMe bool
-
-		if c.Type == chat.TypePrivate && c.Edges.PrivateChat != nil {
-			pc := c.Edges.PrivateChat
-			var otherUser *ent.User
-			var myLastRead *time.Time
-			var otherUserLastRead *time.Time
-
-			if pc.User1ID == userID {
-				otherUser = pc.Edges.User2
-				myLastRead = pc.User1LastReadAt
-				otherUserLastRead = pc.User2LastReadAt
-				unreadCount = pc.User1UnreadCount
-			} else {
-				otherUser = pc.Edges.User1
-				myLastRead = pc.User2LastReadAt
-				otherUserLastRead = pc.User1LastReadAt
-				unreadCount = pc.User2UnreadCount
-			}
-
-			if otherUser != nil {
-				otherUserID = &otherUser.ID
-				name = otherUser.FullName
-
-				status := blockedMap[otherUser.ID]
-				isBlockedByMe = status.blockedByMe
-
-				if status.blockedByMe || status.blockedByOther {
-					isOnline = false
-
-					if otherUser.Edges.Avatar != nil {
-						avatar = helper.BuildImageURL(s.cfg.StorageMode, s.cfg.AppURL, s.cfg.StorageCDNURL, s.cfg.StorageProfile, otherUser.Edges.Avatar.FileName)
-					}
-				} else {
-					isOnline = otherUser.IsOnline
-					if otherUser.Edges.Avatar != nil {
-						avatar = helper.BuildImageURL(s.cfg.StorageMode, s.cfg.AppURL, s.cfg.StorageCDNURL, s.cfg.StorageProfile, otherUser.Edges.Avatar.FileName)
-					}
-				}
-			}
-			if myLastRead != nil {
-				t := myLastRead.Format(time.RFC3339)
-				lastReadAt = &t
-			}
-			if otherUserLastRead != nil {
-				t := otherUserLastRead.Format(time.RFC3339)
-				otherLastReadAt = &t
-			}
-		} else if c.Type == chat.TypeGroup && c.Edges.GroupChat != nil {
-			gc := c.Edges.GroupChat
-			name = gc.Name
-			if gc.Edges.Avatar != nil {
-				avatar = helper.BuildImageURL(s.cfg.StorageMode, s.cfg.AppURL, s.cfg.StorageCDNURL, s.cfg.StorageProfile, gc.Edges.Avatar.FileName)
-			}
-			if len(gc.Edges.Members) > 0 {
-				unreadCount = gc.Edges.Members[0].UnreadCount
-				if gc.Edges.Members[0].LastReadAt != nil {
-					t := gc.Edges.Members[0].LastReadAt.Format(time.RFC3339)
-					lastReadAt = &t
-				}
-			}
-		}
-
-		var lastMsgResp *model.MessageResponse
-		if c.Edges.LastMessage != nil {
-			lastMsgResp = helper.ToMessageResponse(c.Edges.LastMessage, s.cfg.StorageMode, s.cfg.AppURL, s.cfg.StorageCDNURL, s.cfg.StorageAttachment)
-		}
-
-		response = append(response, model.ChatListResponse{
-			ID:              c.ID,
-			Type:            string(c.Type),
-			Name:            name,
-			Avatar:          avatar,
-			LastMessage:     lastMsgResp,
-			UnreadCount:     unreadCount,
-			LastReadAt:      lastReadAt,
-			OtherLastReadAt: otherLastReadAt,
-			IsOnline:        isOnline,
-			OtherUserID:     otherUserID,
-			IsBlockedByMe:   isBlockedByMe,
-		})
-	}
-
-	return response, nextCursor, hasNext, nil
+	}, nil
 }
 
 func (s *ChatService) MarkAsRead(ctx context.Context, userID int, chatID int) error {

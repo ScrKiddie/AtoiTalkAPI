@@ -12,6 +12,7 @@ import (
 	"AtoiTalkAPI/internal/config"
 	"AtoiTalkAPI/internal/helper"
 	"AtoiTalkAPI/internal/model"
+	"AtoiTalkAPI/internal/repository"
 	"AtoiTalkAPI/internal/websocket"
 	"context"
 	"encoding/base64"
@@ -24,15 +25,17 @@ import (
 
 type MessageService struct {
 	client         *ent.Client
+	repo           *repository.Repository
 	cfg            *config.AppConfig
 	validator      *validator.Validate
 	storageAdapter *adapter.StorageAdapter
 	wsHub          *websocket.Hub
 }
 
-func NewMessageService(client *ent.Client, cfg *config.AppConfig, validator *validator.Validate, storageAdapter *adapter.StorageAdapter, wsHub *websocket.Hub) *MessageService {
+func NewMessageService(client *ent.Client, repo *repository.Repository, cfg *config.AppConfig, validator *validator.Validate, storageAdapter *adapter.StorageAdapter, wsHub *websocket.Hub) *MessageService {
 	return &MessageService{
 		client:         client,
+		repo:           repo,
 		cfg:            cfg,
 		validator:      validator,
 		storageAdapter: storageAdapter,
@@ -74,7 +77,7 @@ func (s *MessageService) SendMessage(ctx context.Context, userID int, req model.
 
 	if err != nil {
 		if ent.IsNotFound(err) {
-			return nil, helper.NewNotFoundError("Chat not found")
+			return nil, helper.NewNotFoundError("")
 		}
 		slog.Error("Failed to query chat info with lock", "error", err, "chatID", req.ChatID)
 		return nil, helper.NewInternalServerError("")
@@ -88,7 +91,7 @@ func (s *MessageService) SendMessage(ctx context.Context, userID int, req model.
 		} else if pc.User2ID == userID {
 			otherUserID = pc.User1ID
 		} else {
-			return nil, helper.NewForbiddenError("You are not part of this chat")
+			return nil, helper.NewForbiddenError("")
 		}
 
 		isBlocked, err := tx.UserBlock.Query().
@@ -110,15 +113,15 @@ func (s *MessageService) SendMessage(ctx context.Context, userID int, req model.
 			return nil, helper.NewInternalServerError("")
 		}
 		if isBlocked {
-			return nil, helper.NewForbiddenError("Cannot send message to a blocked user")
+			return nil, helper.NewForbiddenError("")
 		}
 
 	} else if chatInfo.Type == chat.TypeGroup && chatInfo.Edges.GroupChat != nil {
 		if len(chatInfo.Edges.GroupChat.Edges.Members) == 0 {
-			return nil, helper.NewForbiddenError("You are not a member of this group")
+			return nil, helper.NewForbiddenError("")
 		}
 	} else {
-		return nil, helper.NewInternalServerError("Invalid chat state")
+		return nil, helper.NewInternalServerError("")
 	}
 
 	if req.ReplyToID != nil {
@@ -135,7 +138,7 @@ func (s *MessageService) SendMessage(ctx context.Context, userID int, req model.
 			return nil, helper.NewInternalServerError("")
 		}
 		if !replyMsgExists {
-			return nil, helper.NewBadRequestError("Reply message not found")
+			return nil, helper.NewBadRequestError("")
 		}
 	}
 
@@ -157,7 +160,7 @@ func (s *MessageService) SendMessage(ctx context.Context, userID int, req model.
 		}
 
 		if count != len(req.AttachmentIDs) {
-			return nil, helper.NewBadRequestError("One or more attachments are invalid or do not belong to you.")
+			return nil, helper.NewBadRequestError("")
 		}
 	}
 
@@ -326,31 +329,7 @@ func (s *MessageService) GetMessages(ctx context.Context, userID int, req model.
 		return nil, "", false, helper.NewForbiddenError("")
 	}
 
-	query := s.client.Message.Query().
-		Where(
-			message.ChatID(req.ChatID),
-		)
-
-	if hiddenAt != nil {
-		query = query.Where(message.CreatedAtGT(*hiddenAt))
-	}
-
-	query = query.Order(ent.Desc(message.FieldID)).
-		Limit(req.Limit + 1).
-		WithSender().
-		WithAttachments().
-		WithReplyTo(func(q *ent.MessageQuery) {
-			q.WithSender()
-			q.WithAttachments(func(aq *ent.MediaQuery) {
-				aq.Limit(1)
-			})
-		})
-
-	if req.Cursor > 0 {
-		query = query.Where(message.IDLT(req.Cursor))
-	}
-
-	messages, err := query.All(ctx)
+	messages, err := s.repo.Message.GetMessages(ctx, req.ChatID, hiddenAt, req.Cursor, req.Limit)
 	if err != nil {
 		slog.Error("Failed to get messages", "error", err)
 		return nil, "", false, helper.NewInternalServerError("")

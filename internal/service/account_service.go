@@ -88,11 +88,11 @@ func (s *AccountService) ChangeEmail(ctx context.Context, userID int, req model.
 	}
 
 	if u.PasswordHash == nil {
-		return helper.NewBadRequestError("You must set a password before changing your email address.")
+		return helper.NewBadRequestError("You must set a password before changing your email address")
 	}
 
 	if u.Email == req.Email {
-		return helper.NewBadRequestError("New email cannot be the same as the current email")
+		return helper.NewBadRequestError("")
 	}
 
 	tx, err := s.client.Tx(ctx)
@@ -132,7 +132,7 @@ func (s *AccountService) ChangeEmail(ctx context.Context, userID int, req model.
 
 	if err != nil {
 		if ent.IsNotFound(err) {
-			return helper.NewBadRequestError("Invalid or expired OTP")
+			return helper.NewBadRequestError("")
 		}
 		slog.Error("Failed to query OTP", "error", err)
 		return helper.NewInternalServerError("")

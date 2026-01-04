@@ -6,6 +6,7 @@ import (
 	"AtoiTalkAPI/internal/config"
 	"AtoiTalkAPI/internal/controller"
 	"AtoiTalkAPI/internal/middleware"
+	"AtoiTalkAPI/internal/repository"
 	"AtoiTalkAPI/internal/service"
 	"AtoiTalkAPI/internal/websocket"
 	"net/http"
@@ -19,6 +20,8 @@ func Init(appConfig *config.AppConfig, client *ent.Client, validator *validator.
 	wsHub := websocket.NewHub(client)
 	go wsHub.Run()
 
+	repo := repository.NewRepository(client)
+
 	storageAdapter := adapter.NewStorageAdapter(appConfig, s3Client, httpClient)
 	emailAdapter := adapter.NewEmailAdapter(appConfig)
 	captchaAdapter := adapter.NewCaptchaAdapter(appConfig, httpClient)
@@ -29,16 +32,16 @@ func Init(appConfig *config.AppConfig, client *ent.Client, validator *validator.
 	otpService := service.NewOTPService(client, appConfig, validator, emailAdapter, rateLimiter, captchaAdapter)
 	otpController := controller.NewOTPController(otpService)
 
-	userService := service.NewUserService(client, appConfig, validator, storageAdapter, wsHub)
+	userService := service.NewUserService(client, repo, appConfig, validator, storageAdapter, wsHub)
 	userController := controller.NewUserController(userService)
 
 	accountService := service.NewAccountService(client, appConfig, validator)
 	accountController := controller.NewAccountController(accountService)
 
-	chatService := service.NewChatService(client, appConfig, validator, wsHub)
+	chatService := service.NewChatService(client, repo, appConfig, validator, wsHub)
 	chatController := controller.NewChatController(chatService)
 
-	messageService := service.NewMessageService(client, appConfig, validator, storageAdapter, wsHub)
+	messageService := service.NewMessageService(client, repo, appConfig, validator, storageAdapter, wsHub)
 	messageController := controller.NewMessageController(messageService)
 
 	mediaService := service.NewMediaService(client, appConfig, validator, storageAdapter)

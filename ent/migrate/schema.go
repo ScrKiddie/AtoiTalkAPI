@@ -31,6 +31,13 @@ var (
 				OnDelete:   schema.SetNull,
 			},
 		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "chat_updated_at",
+				Unique:  false,
+				Columns: []*schema.Column{ChatsColumns[2]},
+			},
+		},
 	}
 	// GroupChatsColumns holds the columns for the "group_chats" table.
 	GroupChatsColumns = []*schema.Column{
@@ -303,6 +310,18 @@ var (
 				Columns:    []*schema.Column{UsersColumns[10]},
 				RefColumns: []*schema.Column{MediaColumns[0]},
 				OnDelete:   schema.SetNull,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "user_full_name",
+				Unique:  false,
+				Columns: []*schema.Column{UsersColumns[6]},
+			},
+			{
+				Name:    "user_username",
+				Unique:  false,
+				Columns: []*schema.Column{UsersColumns[4]},
 			},
 		},
 	}

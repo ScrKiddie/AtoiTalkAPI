@@ -73,7 +73,7 @@ func (c *UserController) GetUserProfile(w http.ResponseWriter, r *http.Request) 
 	idStr := chi.URLParam(r, "id")
 	targetUserID, err := strconv.Atoi(idStr)
 	if err != nil {
-		helper.WriteError(w, helper.NewBadRequestError("Invalid user ID"))
+		helper.WriteError(w, helper.NewBadRequestError(""))
 		return
 	}
 
@@ -111,12 +111,6 @@ func (c *UserController) UpdateProfile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := r.ParseMultipartForm(10 << 20); err != nil {
-		slog.Warn("Failed to parse multipart form", "error", err)
-		helper.WriteError(w, helper.NewBadRequestError("Invalid form data"))
-		return
-	}
-
 	var req model.UpdateProfileRequest
 	req.Username = r.FormValue("username")
 	req.FullName = r.FormValue("full_name")
@@ -129,7 +123,7 @@ func (c *UserController) UpdateProfile(w http.ResponseWriter, r *http.Request) {
 		req.Avatar = header
 	} else if err != http.ErrMissingFile {
 		slog.Warn("Error retrieving avatar file", "error", err)
-		helper.WriteError(w, helper.NewBadRequestError("Invalid avatar file"))
+		helper.WriteError(w, helper.NewBadRequestError(""))
 		return
 	}
 
@@ -272,7 +266,7 @@ func (c *UserController) BlockUser(w http.ResponseWriter, r *http.Request) {
 	idStr := chi.URLParam(r, "id")
 	blockedID, err := strconv.Atoi(idStr)
 	if err != nil {
-		helper.WriteError(w, helper.NewBadRequestError("Invalid user ID"))
+		helper.WriteError(w, helper.NewBadRequestError(""))
 		return
 	}
 
@@ -307,7 +301,7 @@ func (c *UserController) UnblockUser(w http.ResponseWriter, r *http.Request) {
 	idStr := chi.URLParam(r, "id")
 	blockedID, err := strconv.Atoi(idStr)
 	if err != nil {
-		helper.WriteError(w, helper.NewBadRequestError("Invalid user ID"))
+		helper.WriteError(w, helper.NewBadRequestError(""))
 		return
 	}
 

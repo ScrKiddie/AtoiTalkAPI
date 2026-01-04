@@ -42,7 +42,7 @@ func (c *AccountController) ChangePassword(w http.ResponseWriter, r *http.Reques
 
 	var req model.ChangePasswordRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		helper.WriteError(w, helper.NewBadRequestError("Invalid request body"))
+		helper.WriteError(w, helper.NewBadRequestError(""))
 		return
 	}
 
@@ -77,7 +77,7 @@ func (c *AccountController) ChangeEmail(w http.ResponseWriter, r *http.Request) 
 
 	var req model.ChangeEmailRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		helper.WriteError(w, helper.NewBadRequestError("Invalid request body"))
+		helper.WriteError(w, helper.NewBadRequestError(""))
 		return
 	}
 

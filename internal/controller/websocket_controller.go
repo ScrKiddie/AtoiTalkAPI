@@ -40,7 +40,7 @@ var upgrader = ws.Upgrader{
 func (c *WebSocketController) ServeWS(w http.ResponseWriter, r *http.Request) {
 	userContext, ok := r.Context().Value(middleware.UserContextKey).(*model.UserDTO)
 	if !ok {
-		helper.WriteError(w, helper.NewUnauthorizedError("Unauthorized"))
+		helper.WriteError(w, helper.NewUnauthorizedError(""))
 		return
 	}
 

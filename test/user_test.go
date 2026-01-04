@@ -477,7 +477,7 @@ func TestUpdateProfile(t *testing.T) {
 		writer := multipart.NewWriter(body)
 		_ = writer.WriteField("full_name", "User")
 
-		largeData := make([]byte, 3*1024*1024)
+		largeData := make([]byte, 4*1024*1024)
 		part, _ := writer.CreateFormFile("avatar", "large.jpg")
 		_, _ = part.Write(largeData)
 		_ = writer.Close()
