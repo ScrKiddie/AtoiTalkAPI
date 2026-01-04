@@ -68,7 +68,7 @@ func (route *Route) Register() {
 		serveStatic(route.cfg.StorageProfile)
 	}
 
-	route.chi.With(route.authMiddleware.VerifyToken).Get("/ws", route.wsController.ServeWS)
+	route.chi.With(route.authMiddleware.VerifyWSToken).Get("/ws", route.wsController.ServeWS)
 
 	route.chi.Route("/api", func(r chi.Router) {
 		r.Post("/auth/login", route.authController.Login)
@@ -91,6 +91,7 @@ func (route *Route) Register() {
 			r.Put("/account/email", route.accountController.ChangeEmail)
 
 			r.Get("/chats", route.chatController.GetChats)
+			r.Get("/chats/{id}", route.chatController.GetChat)
 			r.Post("/chats/private", route.chatController.CreatePrivateChat)
 			r.Post("/chats/{id}/read", route.chatController.MarkAsRead)
 			r.Post("/chats/{id}/hide", route.chatController.HideChat)

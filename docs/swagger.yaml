@@ -600,6 +600,50 @@ paths:
       summary: Get Messages
       tags:
       - message
+  /api/chats/{id}:
+    get:
+      consumes:
+      - application/json
+      description: Get detailed information about a single chat.
+      parameters:
+      - description: Chat ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/helper.ResponseSuccess'
+            - properties:
+                data:
+                  $ref: '#/definitions/model.ChatListResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
+      security:
+      - BearerAuth: []
+      summary: Get Chat by ID
+      tags:
+      - chat
   /api/chats/{id}/hide:
     post:
       consumes:

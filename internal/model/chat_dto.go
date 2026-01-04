@@ -21,10 +21,10 @@ type ChatListResponse struct {
 	Type            string           `json:"type"`
 	Name            string           `json:"name"`
 	Avatar          string           `json:"avatar"`
-	LastMessage     *MessageResponse `json:"last_message"`
-	UnreadCount     int              `json:"unread_count"`
-	LastReadAt      *string          `json:"last_read_at"`
-	OtherLastReadAt *string          `json:"other_last_read_at"`
+	LastMessage     *MessageResponse `json:"last_message,omitempty"`
+	UnreadCount     int              `json:"unread_count,omitempty"`
+	LastReadAt      *string          `json:"last_read_at,omitempty"`
+	OtherLastReadAt *string          `json:"other_last_read_at,omitempty"`
 	IsOnline        bool             `json:"is_online"`
 	OtherUserID     *int             `json:"other_user_id,omitempty"`
 	IsBlockedByMe   bool             `json:"is_blocked_by_me,omitempty"`

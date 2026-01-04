@@ -2,6 +2,7 @@ package config
 
 import (
 	"AtoiTalkAPI/ent"
+	"AtoiTalkAPI/ent/user"
 	"context"
 	"fmt"
 	"log/slog"
@@ -28,6 +29,17 @@ func InitEnt(cfg *AppConfig) *ent.Client {
 		slog.Info("Database schema migrated successfully (Ent)")
 	} else {
 		slog.Info("Database migration skipped (DB_MIGRATE=false)")
+	}
+
+	ctx := context.Background()
+	count, err := client.User.Update().
+		Where(user.IsOnline(true)).
+		SetIsOnline(false).
+		Save(ctx)
+	if err != nil {
+		slog.Error("Failed to reset user online status on startup", "error", err)
+	} else {
+		slog.Info("Successfully reset user online status on startup", "count", count)
 	}
 
 	slog.Info("Database connected successfully")

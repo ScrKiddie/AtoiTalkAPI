@@ -47,7 +47,7 @@ func (s *ChatService) CreatePrivateChat(ctx context.Context, userID int, req mod
 	}
 
 	if userID == req.TargetUserID {
-		return nil, helper.NewBadRequestError("Cannot create chat with yourself")
+		return nil, helper.NewBadRequestError("")
 	}
 
 	targetUserExists, err := s.client.User.Query().
@@ -58,7 +58,7 @@ func (s *ChatService) CreatePrivateChat(ctx context.Context, userID int, req mod
 		return nil, helper.NewInternalServerError("")
 	}
 	if !targetUserExists {
-		return nil, helper.NewNotFoundError("Target user not found")
+		return nil, helper.NewNotFoundError("")
 	}
 
 	isBlocked, err := s.client.UserBlock.Query().
@@ -80,7 +80,7 @@ func (s *ChatService) CreatePrivateChat(ctx context.Context, userID int, req mod
 		return nil, helper.NewInternalServerError("")
 	}
 	if isBlocked {
-		return nil, helper.NewForbiddenError("Cannot create chat with a blocked user")
+		return nil, helper.NewForbiddenError("")
 	}
 
 	existingChat, err := s.client.PrivateChat.Query().
@@ -147,25 +147,185 @@ func (s *ChatService) CreatePrivateChat(ctx context.Context, userID int, req mod
 		return nil, helper.NewInternalServerError("")
 	}
 
-	resp := &model.ChatResponse{
+	if s.wsHub != nil {
+		go func() {
+			creator, err := s.client.User.Query().
+				Where(user.ID(userID)).
+				WithAvatar().
+				Only(context.Background())
+			if err != nil {
+				slog.Error("Failed to fetch creator info for chat.new broadcast", "error", err)
+				return
+			}
+
+			avatarURL := ""
+			if creator.Edges.Avatar != nil {
+				avatarURL = helper.BuildImageURL(s.cfg.StorageMode, s.cfg.AppURL, s.cfg.StorageCDNURL, s.cfg.StorageProfile, creator.Edges.Avatar.FileName)
+			}
+
+			payload := model.ChatListResponse{
+				ID:          newChat.ID,
+				Type:        string(newChat.Type),
+				Name:        creator.FullName,
+				Avatar:      avatarURL,
+				LastMessage: nil,
+				UnreadCount: 0,
+				IsOnline:    creator.IsOnline,
+				OtherUserID: &creator.ID,
+			}
+
+			s.wsHub.BroadcastToUser(req.TargetUserID, websocket.Event{
+				Type:    websocket.EventChatNew,
+				Payload: payload,
+				Meta: &websocket.EventMeta{
+					Timestamp: time.Now().UnixMilli(),
+					ChatID:    newChat.ID,
+					SenderID:  userID,
+				},
+			})
+		}()
+	}
+
+	return &model.ChatResponse{
 		ID:        newChat.ID,
 		Type:      string(newChat.Type),
 		CreatedAt: newChat.CreatedAt.Format(time.RFC3339),
+	}, nil
+}
+
+func (s *ChatService) GetChatByID(ctx context.Context, userID, chatID int) (*model.ChatListResponse, error) {
+	c, err := s.client.Chat.Query().
+		Where(
+			chat.ID(chatID),
+			chat.Or(
+				chat.HasPrivateChatWith(privatechat.Or(privatechat.User1ID(userID), privatechat.User2ID(userID))),
+				chat.HasGroupChatWith(groupchat.HasMembersWith(groupmember.UserID(userID))),
+			),
+		).
+		WithPrivateChat(func(q *ent.PrivateChatQuery) {
+			q.WithUser1(func(uq *ent.UserQuery) { uq.WithAvatar() })
+			q.WithUser2(func(uq *ent.UserQuery) { uq.WithAvatar() })
+		}).
+		WithGroupChat(func(q *ent.GroupChatQuery) {
+			q.WithAvatar()
+			q.WithMembers(func(mq *ent.GroupMemberQuery) {
+				mq.Where(groupmember.UserID(userID))
+			})
+		}).
+		WithLastMessage(func(q *ent.MessageQuery) {
+			q.WithAttachments(func(aq *ent.MediaQuery) {
+				aq.Limit(1)
+			})
+		}).
+		Only(ctx)
+
+	if err != nil {
+		if ent.IsNotFound(err) {
+			return nil, helper.NewNotFoundError("")
+		}
+		slog.Error("Failed to get chat by ID", "error", err, "chatID", chatID)
+		return nil, helper.NewInternalServerError("")
 	}
 
-	if s.wsHub != nil {
-		go s.wsHub.BroadcastToUser(req.TargetUserID, websocket.Event{
-			Type:    websocket.EventChatNew,
-			Payload: resp,
-			Meta: &websocket.EventMeta{
-				Timestamp: time.Now().UnixMilli(),
-				ChatID:    newChat.ID,
-				SenderID:  userID,
-			},
-		})
+	var name, avatar string
+	var lastReadAt *string
+	var otherLastReadAt *string
+	var unreadCount int
+	var isOnline bool
+	var otherUserID *int
+	var isBlockedByMe bool
+
+	if c.Type == chat.TypePrivate && c.Edges.PrivateChat != nil {
+		pc := c.Edges.PrivateChat
+		var otherUser *ent.User
+		var myLastRead *time.Time
+		var otherUserLastRead *time.Time
+
+		if pc.User1ID == userID {
+			otherUser = pc.Edges.User2
+			myLastRead = pc.User1LastReadAt
+			otherUserLastRead = pc.User2LastReadAt
+			unreadCount = pc.User1UnreadCount
+		} else {
+			otherUser = pc.Edges.User1
+			myLastRead = pc.User2LastReadAt
+			otherUserLastRead = pc.User1LastReadAt
+			unreadCount = pc.User2UnreadCount
+		}
+
+		if otherUser != nil {
+			otherUserID = &otherUser.ID
+			name = otherUser.FullName
+
+			blockStatus, err := s.client.UserBlock.Query().
+				Where(
+					userblock.Or(
+						userblock.And(userblock.BlockerID(userID), userblock.BlockedID(*otherUserID)),
+						userblock.And(userblock.BlockerID(*otherUserID), userblock.BlockedID(userID)),
+					),
+				).
+				Exist(ctx)
+			if err != nil {
+				slog.Error("Failed to check block status for GetChatByID", "error", err)
+			}
+
+			isBlockedByMe, _ = s.client.UserBlock.Query().
+				Where(userblock.BlockerID(userID), userblock.BlockedID(*otherUserID)).
+				Exist(ctx)
+
+			if blockStatus {
+				isOnline = false
+			} else {
+				isOnline = otherUser.IsOnline
+			}
+
+			if otherUser.Edges.Avatar != nil {
+				avatar = helper.BuildImageURL(s.cfg.StorageMode, s.cfg.AppURL, s.cfg.StorageCDNURL, s.cfg.StorageProfile, otherUser.Edges.Avatar.FileName)
+			}
+		}
+		if myLastRead != nil {
+			t := myLastRead.Format(time.RFC3339)
+			lastReadAt = &t
+		}
+		if otherUserLastRead != nil {
+			t := otherUserLastRead.Format(time.RFC3339)
+			otherLastReadAt = &t
+		}
+	} else if c.Type == chat.TypeGroup && c.Edges.GroupChat != nil {
+		gc := c.Edges.GroupChat
+		name = gc.Name
+		if gc.Edges.Avatar != nil {
+			avatar = helper.BuildImageURL(s.cfg.StorageMode, s.cfg.AppURL, s.cfg.StorageCDNURL, s.cfg.StorageProfile, gc.Edges.Avatar.FileName)
+		}
+		if len(gc.Edges.Members) > 0 {
+			unreadCount = gc.Edges.Members[0].UnreadCount
+			if gc.Edges.Members[0].LastReadAt != nil {
+				t := gc.Edges.Members[0].LastReadAt.Format(time.RFC3339)
+				lastReadAt = &t
+			}
+		}
 	}
 
-	return resp, nil
+	var lastMsgResp *model.MessageResponse
+	if c.Edges.LastMessage != nil {
+		lastMsgResp = helper.ToMessageResponse(c.Edges.LastMessage, s.cfg.StorageMode, s.cfg.AppURL, s.cfg.StorageCDNURL, s.cfg.StorageAttachment)
+	}
+
+	response := &model.ChatListResponse{
+		ID:              c.ID,
+		Type:            string(c.Type),
+		Name:            name,
+		Avatar:          avatar,
+		LastMessage:     lastMsgResp,
+		UnreadCount:     unreadCount,
+		LastReadAt:      lastReadAt,
+		OtherLastReadAt: otherLastReadAt,
+		IsOnline:        isOnline,
+		OtherUserID:     otherUserID,
+		IsBlockedByMe:   isBlockedByMe,
+	}
+
+	return response, nil
 }
 
 func (s *ChatService) GetChats(ctx context.Context, userID int, req model.GetChatsRequest) ([]model.ChatListResponse, string, bool, error) {
@@ -377,8 +537,11 @@ func (s *ChatService) GetChats(ctx context.Context, userID int, req model.GetCha
 				isBlockedByMe = status.blockedByMe
 
 				if status.blockedByMe || status.blockedByOther {
-					avatar = ""
 					isOnline = false
+
+					if otherUser.Edges.Avatar != nil {
+						avatar = helper.BuildImageURL(s.cfg.StorageMode, s.cfg.AppURL, s.cfg.StorageCDNURL, s.cfg.StorageProfile, otherUser.Edges.Avatar.FileName)
+					}
 				} else {
 					isOnline = otherUser.IsOnline
 					if otherUser.Edges.Avatar != nil {
@@ -448,7 +611,7 @@ func (s *ChatService) MarkAsRead(ctx context.Context, userID int, chatID int) er
 		Only(ctx)
 	if err != nil {
 		if ent.IsNotFound(err) {
-			return helper.NewNotFoundError("Chat not found")
+			return helper.NewNotFoundError("")
 		}
 		slog.Error("Failed to query chat for update", "error", err)
 		return helper.NewInternalServerError("")
@@ -468,7 +631,7 @@ func (s *ChatService) MarkAsRead(ctx context.Context, userID int, chatID int) er
 			otherUserID = pc.User1ID
 			update.SetUser2UnreadCount(0)
 		} else {
-			return helper.NewForbiddenError("You are not part of this chat")
+			return helper.NewForbiddenError("")
 		}
 
 		blockExists, err := tx.UserBlock.Query().
@@ -546,18 +709,18 @@ func (s *ChatService) HideChat(ctx context.Context, userID int, chatID int) erro
 
 	if err != nil {
 		if ent.IsNotFound(err) {
-			return helper.NewNotFoundError("Chat not found")
+			return helper.NewNotFoundError("")
 		}
 		slog.Error("Failed to query chat", "error", err, "chatID", chatID)
 		return helper.NewInternalServerError("")
 	}
 
 	if c.Type != chat.TypePrivate {
-		return helper.NewBadRequestError("Only private chats can be hidden")
+		return helper.NewBadRequestError("")
 	}
 
 	if c.Edges.PrivateChat == nil {
-		return helper.NewInternalServerError("Private chat data missing")
+		return helper.NewInternalServerError("")
 	}
 
 	pc := c.Edges.PrivateChat
@@ -568,7 +731,7 @@ func (s *ChatService) HideChat(ctx context.Context, userID int, chatID int) erro
 	} else if pc.User2ID == userID {
 		update.SetUser2HiddenAt(time.Now()).SetUser2UnreadCount(0)
 	} else {
-		return helper.NewForbiddenError("You are not part of this chat")
+		return helper.NewForbiddenError("")
 	}
 
 	if err := update.Exec(ctx); err != nil {

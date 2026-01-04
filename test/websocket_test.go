@@ -29,9 +29,8 @@ func TestWebSocketConnection(t *testing.T) {
 	server := httptest.NewServer(testRouter)
 	defer server.Close()
 
-	wsURL := "ws" + strings.TrimPrefix(server.URL, "http") + "/ws"
+	wsURL := "ws" + strings.TrimPrefix(server.URL, "http") + "/ws?token=" + token1
 	header := http.Header{}
-	header.Add("Authorization", "Bearer "+token1)
 
 	conn, _, err := ws.DefaultDialer.Dial(wsURL, header)
 	assert.NoError(t, err)
@@ -52,10 +51,9 @@ func TestWebSocketBroadcastMessage(t *testing.T) {
 	server := httptest.NewServer(testRouter)
 	defer server.Close()
 
-	wsURL := "ws" + strings.TrimPrefix(server.URL, "http") + "/ws"
+	wsURL := "ws" + strings.TrimPrefix(server.URL, "http") + "/ws?token=" + token2
 
 	header2 := http.Header{}
-	header2.Add("Authorization", "Bearer "+token2)
 	conn2, _, err := ws.DefaultDialer.Dial(wsURL, header2)
 	assert.NoError(t, err)
 	defer conn2.Close()
@@ -109,17 +107,16 @@ func TestWebSocketTypingStatus(t *testing.T) {
 
 	server := httptest.NewServer(testRouter)
 	defer server.Close()
-	wsURL := "ws" + strings.TrimPrefix(server.URL, "http") + "/ws"
+	wsURL1 := "ws" + strings.TrimPrefix(server.URL, "http") + "/ws?token=" + token1
+	wsURL2 := "ws" + strings.TrimPrefix(server.URL, "http") + "/ws?token=" + token2
 
 	header1 := http.Header{}
-	header1.Add("Authorization", "Bearer "+token1)
-	conn1, _, err := ws.DefaultDialer.Dial(wsURL, header1)
+	conn1, _, err := ws.DefaultDialer.Dial(wsURL1, header1)
 	assert.NoError(t, err)
 	defer conn1.Close()
 
 	header2 := http.Header{}
-	header2.Add("Authorization", "Bearer "+token2)
-	conn2, _, err := ws.DefaultDialer.Dial(wsURL, header2)
+	conn2, _, err := ws.DefaultDialer.Dial(wsURL2, header2)
 	assert.NoError(t, err)
 	defer conn2.Close()
 
@@ -167,19 +164,18 @@ func TestWebSocketUserPresence(t *testing.T) {
 
 	server := httptest.NewServer(testRouter)
 	defer server.Close()
-	wsURL := "ws" + strings.TrimPrefix(server.URL, "http") + "/ws"
+	wsURL1 := "ws" + strings.TrimPrefix(server.URL, "http") + "/ws?token=" + token1
+	wsURL2 := "ws" + strings.TrimPrefix(server.URL, "http") + "/ws?token=" + token2
 
 	header1 := http.Header{}
-	header1.Add("Authorization", "Bearer "+token1)
-	conn1, _, err := ws.DefaultDialer.Dial(wsURL, header1)
+	conn1, _, err := ws.DefaultDialer.Dial(wsURL1, header1)
 	assert.NoError(t, err)
 	defer conn1.Close()
 
 	time.Sleep(100 * time.Millisecond)
 
 	header2 := http.Header{}
-	header2.Add("Authorization", "Bearer "+token2)
-	conn2, _, err := ws.DefaultDialer.Dial(wsURL, header2)
+	conn2, _, err := ws.DefaultDialer.Dial(wsURL2, header2)
 	assert.NoError(t, err)
 
 	conn1.SetReadDeadline(time.Now().Add(2 * time.Second))
@@ -239,10 +235,9 @@ func TestWebSocketMultiDevice(t *testing.T) {
 
 	server := httptest.NewServer(testRouter)
 	defer server.Close()
-	wsURL := "ws" + strings.TrimPrefix(server.URL, "http") + "/ws"
+	wsURL := "ws" + strings.TrimPrefix(server.URL, "http") + "/ws?token=" + token2
 
 	header2 := http.Header{}
-	header2.Add("Authorization", "Bearer "+token2)
 	conn2A, _, err := ws.DefaultDialer.Dial(wsURL, header2)
 	assert.NoError(t, err)
 	defer conn2A.Close()
@@ -295,10 +290,9 @@ func TestWebSocketReadStatusSync(t *testing.T) {
 
 	server := httptest.NewServer(testRouter)
 	defer server.Close()
-	wsURL := "ws" + strings.TrimPrefix(server.URL, "http") + "/ws"
+	wsURL := "ws" + strings.TrimPrefix(server.URL, "http") + "/ws?token=" + token2
 
 	header2 := http.Header{}
-	header2.Add("Authorization", "Bearer "+token2)
 	conn2A, _, _ := ws.DefaultDialer.Dial(wsURL, header2)
 	defer conn2A.Close()
 	conn2B, _, _ := ws.DefaultDialer.Dial(wsURL, header2)
@@ -345,10 +339,9 @@ func TestWebSocketSecurityLeak(t *testing.T) {
 
 	server := httptest.NewServer(testRouter)
 	defer server.Close()
-	wsURL := "ws" + strings.TrimPrefix(server.URL, "http") + "/ws"
+	wsURL := "ws" + strings.TrimPrefix(server.URL, "http") + "/ws?token=" + token3
 
 	header3 := http.Header{}
-	header3.Add("Authorization", "Bearer "+token3)
 	conn3, _, err := ws.DefaultDialer.Dial(wsURL, header3)
 	assert.NoError(t, err)
 	defer conn3.Close()
@@ -394,10 +387,9 @@ func TestWebSocketRealtimeBlock(t *testing.T) {
 
 	server := httptest.NewServer(testRouter)
 	defer server.Close()
-	wsURL := "ws" + strings.TrimPrefix(server.URL, "http") + "/ws"
+	wsURL := "ws" + strings.TrimPrefix(server.URL, "http") + "/ws?token=" + token2
 
 	header2 := http.Header{}
-	header2.Add("Authorization", "Bearer "+token2)
 	conn2, _, err := ws.DefaultDialer.Dial(wsURL, header2)
 	assert.NoError(t, err)
 	defer conn2.Close()
@@ -437,12 +429,13 @@ func TestWebSocketProfileUpdate(t *testing.T) {
 
 	createWSPrivateChat(t, user1.ID, user2.ID, token1)
 
+	testClient.UserBlock.Create().SetBlockerID(user1.ID).SetBlockedID(user2.ID).Save(context.Background())
+
 	server := httptest.NewServer(testRouter)
 	defer server.Close()
-	wsURL := "ws" + strings.TrimPrefix(server.URL, "http") + "/ws"
+	wsURL := "ws" + strings.TrimPrefix(server.URL, "http") + "/ws?token=" + token2
 
 	header2 := http.Header{}
-	header2.Add("Authorization", "Bearer "+token2)
 	conn2, _, err := ws.DefaultDialer.Dial(wsURL, header2)
 	assert.NoError(t, err)
 	defer conn2.Close()
@@ -472,11 +465,14 @@ func TestWebSocketProfileUpdate(t *testing.T) {
 			payload, _ := event.Payload.(map[string]interface{})
 			if payload["full_name"] == "Updated Name" {
 				foundUpdate = true
+
+				_, hasIsOnline := payload["is_online"]
+				assert.False(t, hasIsOnline, "is_online should NOT be present in user.update payload")
 				break
 			}
 		}
 	}
-	assert.True(t, foundUpdate, "User 2 should receive user.update event")
+	assert.True(t, foundUpdate, "User 2 should receive user.update event even if blocked")
 }
 
 func TestWebSocketMessageDelete(t *testing.T) {
@@ -494,10 +490,9 @@ func TestWebSocketMessageDelete(t *testing.T) {
 
 	server := httptest.NewServer(testRouter)
 	defer server.Close()
-	wsURL := "ws" + strings.TrimPrefix(server.URL, "http") + "/ws"
+	wsURL := "ws" + strings.TrimPrefix(server.URL, "http") + "/ws?token=" + token2
 
 	header2 := http.Header{}
-	header2.Add("Authorization", "Bearer "+token2)
 	conn2, _, err := ws.DefaultDialer.Dial(wsURL, header2)
 	assert.NoError(t, err)
 	defer conn2.Close()
@@ -556,10 +551,9 @@ func TestWebSocketRealtimeUnblock(t *testing.T) {
 
 	server := httptest.NewServer(testRouter)
 	defer server.Close()
-	wsURL := "ws" + strings.TrimPrefix(server.URL, "http") + "/ws"
+	wsURL := "ws" + strings.TrimPrefix(server.URL, "http") + "/ws?token=" + token2
 
 	header2 := http.Header{}
-	header2.Add("Authorization", "Bearer "+token2)
 	conn2, _, err := ws.DefaultDialer.Dial(wsURL, header2)
 	assert.NoError(t, err)
 	defer conn2.Close()
@@ -605,17 +599,16 @@ func TestWebSocketTypingPrivacy(t *testing.T) {
 
 	server := httptest.NewServer(testRouter)
 	defer server.Close()
-	wsURL := "ws" + strings.TrimPrefix(server.URL, "http") + "/ws"
+	wsURL1 := "ws" + strings.TrimPrefix(server.URL, "http") + "/ws?token=" + token1
+	wsURL2 := "ws" + strings.TrimPrefix(server.URL, "http") + "/ws?token=" + token2
 
 	header1 := http.Header{}
-	header1.Add("Authorization", "Bearer "+token1)
-	conn1, _, err := ws.DefaultDialer.Dial(wsURL, header1)
+	conn1, _, err := ws.DefaultDialer.Dial(wsURL1, header1)
 	assert.NoError(t, err)
 	defer conn1.Close()
 
 	header2 := http.Header{}
-	header2.Add("Authorization", "Bearer "+token2)
-	conn2, _, err := ws.DefaultDialer.Dial(wsURL, header2)
+	conn2, _, err := ws.DefaultDialer.Dial(wsURL2, header2)
 	assert.NoError(t, err)
 	defer conn2.Close()
 
@@ -663,19 +656,18 @@ func TestWebSocketOnlinePrivacy(t *testing.T) {
 
 	server := httptest.NewServer(testRouter)
 	defer server.Close()
-	wsURL := "ws" + strings.TrimPrefix(server.URL, "http") + "/ws"
+	wsURL1 := "ws" + strings.TrimPrefix(server.URL, "http") + "/ws?token=" + token1
+	wsURL2 := "ws" + strings.TrimPrefix(server.URL, "http") + "/ws?token=" + token2
 
 	header2 := http.Header{}
-	header2.Add("Authorization", "Bearer "+token2)
-	conn2, _, err := ws.DefaultDialer.Dial(wsURL, header2)
+	conn2, _, err := ws.DefaultDialer.Dial(wsURL2, header2)
 	assert.NoError(t, err)
 	defer conn2.Close()
 
 	time.Sleep(100 * time.Millisecond)
 
 	header1 := http.Header{}
-	header1.Add("Authorization", "Bearer "+token1)
-	conn1, _, err := ws.DefaultDialer.Dial(wsURL, header1)
+	conn1, _, err := ws.DefaultDialer.Dial(wsURL1, header1)
 	assert.NoError(t, err)
 	defer conn1.Close()
 

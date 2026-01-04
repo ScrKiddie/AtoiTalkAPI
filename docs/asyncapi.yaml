@@ -6,7 +6,8 @@ info:
     Real-time event specifications for AtoiTalk application.
     
     **Connection:**
-    Connect to `/ws` endpoint. Authentication is required via Bearer Token (Query param `token` or Header).
+    Connect to `/ws` endpoint. Authentication is required via Query Parameter `token`.
+    Example: `ws://api.atoitalk.com/ws?token=YOUR_JWT_TOKEN`
     
     **Message Structure:**
     All messages inherit from the `BaseEvent` schema, ensuring a consistent envelope structure:
@@ -23,10 +24,14 @@ servers:
     host: api.atoitalk.com
     protocol: wss
     pathname: /ws
+    security:
+      - queryToken: []
   local:
     host: localhost:8080
     protocol: ws
     pathname: /ws
+    security:
+      - queryToken: []
 
 channels:
   chat:
@@ -83,10 +88,11 @@ operations:
 
 components:
   securitySchemes:
-    bearerAuth:
-      type: http
-      scheme: bearer
-      bearerFormat: JWT
+    queryToken:
+      type: httpApiKey
+      name: token
+      in: query
+      description: JWT Token passed as a query parameter
 
   schemas:
 
@@ -141,6 +147,24 @@ components:
         is_blocked_by_other:
           type: boolean
 
+    UserUpdateEventPayload:
+      type: object
+      description: Payload for user.update event containing only public info
+      properties:
+        id:
+          type: integer
+        username:
+          type: string
+        full_name:
+          type: string
+        avatar:
+          type: string
+          format: uri
+        bio:
+          type: string
+        last_seen_at:
+          type: string
+          format: date-time
 
     MediaDTO:
       type: object
@@ -199,7 +223,7 @@ components:
           format: date-time
           description: If present, the message has been deleted.
 
-    ChatResponse:
+    ChatListResponse:
       type: object
       properties:
         id:
@@ -207,9 +231,33 @@ components:
         type:
           type: string
           enum: [private, group]
-        created_at:
+        name:
+          type: string
+        avatar:
+          type: string
+          format: uri
+        last_message:
+          $ref: '#/components/schemas/MessageResponse'
+          description: Omitted if null (e.g. new chat)
+        unread_count:
+          type: integer
+          description: Omitted if 0
+        last_read_at:
           type: string
           format: date-time
+          description: Omitted if null
+        other_last_read_at:
+          type: string
+          format: date-time
+          description: Omitted if null
+        is_online:
+          type: boolean
+        other_user_id:
+          type: integer
+          description: Omitted if not applicable (e.g. group chat)
+        is_blocked_by_me:
+          type: boolean
+          description: Omitted if false
 
   messages:
 
@@ -274,7 +322,7 @@ components:
               type:
                 const: chat.new
               payload:
-                $ref: '#/components/schemas/ChatResponse'
+                $ref: '#/components/schemas/ChatListResponse'
 
     ServerChatRead:
       name: chat.read
@@ -352,7 +400,7 @@ components:
               type:
                 const: user.update
               payload:
-                $ref: '#/components/schemas/UserDTO'
+                $ref: '#/components/schemas/UserUpdateEventPayload'
 
     ServerUserBlock:
       name: user.block
