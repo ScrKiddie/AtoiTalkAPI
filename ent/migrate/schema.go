@@ -151,7 +151,7 @@ var (
 		{Name: "updated_at", Type: field.TypeTime, Default: "CURRENT_TIMESTAMP"},
 		{Name: "content", Type: field.TypeString, Nullable: true, Size: 2147483647},
 		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
-		{Name: "is_edited", Type: field.TypeBool, Default: false},
+		{Name: "edited_at", Type: field.TypeTime, Nullable: true},
 		{Name: "chat_id", Type: field.TypeInt},
 		{Name: "reply_to_id", Type: field.TypeInt, Nullable: true},
 		{Name: "sender_id", Type: field.TypeInt},

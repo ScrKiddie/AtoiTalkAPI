@@ -280,6 +280,148 @@ func (s *MessageService) SendMessage(ctx context.Context, userID int, req model.
 	return resp, nil
 }
 
+func (s *MessageService) EditMessage(ctx context.Context, userID int, messageID int, req model.EditMessageRequest) (*model.MessageResponse, error) {
+	if err := s.validator.Struct(req); err != nil {
+		slog.Warn("Validation failed", "error", err, "userID", userID)
+		return nil, helper.NewBadRequestError("")
+	}
+
+	tx, err := s.client.Tx(ctx)
+	if err != nil {
+		slog.Error("Failed to start transaction", "error", err)
+		return nil, helper.NewInternalServerError("")
+	}
+
+	defer func() {
+		_ = tx.Rollback()
+		if v := recover(); v != nil {
+			panic(v)
+		}
+	}()
+
+	msg, err := tx.Message.Query().
+		Where(message.ID(messageID)).
+		WithAttachments().
+		Only(ctx)
+
+	if err != nil {
+		if ent.IsNotFound(err) {
+			return nil, helper.NewNotFoundError("")
+		}
+		slog.Error("Failed to query message", "error", err, "messageID", messageID)
+		return nil, helper.NewInternalServerError("")
+	}
+
+	if msg.SenderID != userID {
+		return nil, helper.NewForbiddenError("")
+	}
+
+	if msg.DeletedAt != nil {
+		return nil, helper.NewBadRequestError("")
+	}
+
+	currentAttachmentIDs := make(map[int]bool)
+	for _, att := range msg.Edges.Attachments {
+		currentAttachmentIDs[att.ID] = true
+	}
+
+	newAttachmentIDs := make(map[int]bool)
+	for _, id := range req.AttachmentIDs {
+		newAttachmentIDs[id] = true
+	}
+
+	var toUnlink []int
+	for id := range currentAttachmentIDs {
+		if !newAttachmentIDs[id] {
+			toUnlink = append(toUnlink, id)
+		}
+	}
+
+	var toLink []int
+	for id := range newAttachmentIDs {
+		if !currentAttachmentIDs[id] {
+			toLink = append(toLink, id)
+		}
+	}
+
+	if len(toLink) > 0 {
+		count, err := tx.Media.Query().
+			Where(
+				media.IDIn(toLink...),
+				media.MessageIDIsNil(),
+				media.Not(media.HasUserAvatar()),
+				media.Not(media.HasGroupAvatar()),
+				media.StatusEQ(media.StatusActive),
+				media.HasUploaderWith(user.ID(userID)),
+			).
+			Count(ctx)
+
+		if err != nil {
+			slog.Error("Failed to validate new attachments", "error", err)
+			return nil, helper.NewInternalServerError("")
+		}
+
+		if count != len(toLink) {
+			return nil, helper.NewBadRequestError("")
+		}
+	}
+
+	update := tx.Message.UpdateOne(msg).
+		SetContent(req.Content).
+		SetEditedAt(time.Now())
+
+	if len(toUnlink) > 0 {
+		update.RemoveAttachmentIDs(toUnlink...)
+	}
+	if len(toLink) > 0 {
+		update.AddAttachmentIDs(toLink...)
+	}
+
+	msg, err = update.Save(ctx)
+	if err != nil {
+		slog.Error("Failed to update message", "error", err)
+		return nil, helper.NewInternalServerError("")
+	}
+
+	if err := tx.Commit(); err != nil {
+		slog.Error("Failed to commit transaction", "error", err)
+		return nil, helper.NewInternalServerError("")
+	}
+
+	fullMsg, err := s.client.Message.Query().
+		Where(message.ID(msg.ID)).
+		WithSender().
+		WithAttachments().
+		WithReplyTo(func(q *ent.MessageQuery) {
+			q.WithSender()
+			q.WithAttachments(func(aq *ent.MediaQuery) {
+				aq.Limit(1)
+			})
+		}).
+		Only(ctx)
+
+	if err != nil {
+		slog.Error("Failed to fetch full message for response", "error", err)
+		return nil, helper.NewInternalServerError("")
+	}
+
+	resp := helper.ToMessageResponse(fullMsg, s.cfg.StorageMode, s.cfg.AppURL, s.cfg.StorageCDNURL, s.cfg.StorageAttachment)
+
+	if s.wsHub != nil && resp != nil {
+		go s.wsHub.BroadcastToChat(msg.ChatID, websocket.Event{
+			Type:    websocket.EventMessageUpdate,
+			Payload: resp,
+			Meta: &websocket.EventMeta{
+				Timestamp: time.Now().UnixMilli(),
+				ChatID:    msg.ChatID,
+				SenderID:  userID,
+			},
+		})
+	}
+
+	return resp, nil
+}
+
 func (s *MessageService) GetMessages(ctx context.Context, userID int, req model.GetMessagesRequest) ([]model.MessageResponse, string, bool, error) {
 	if err := s.validator.Struct(req); err != nil {
 		return nil, "", false, helper.NewBadRequestError("")

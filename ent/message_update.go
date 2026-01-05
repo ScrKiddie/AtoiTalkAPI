@@ -126,17 +126,23 @@ func (_u *MessageUpdate) ClearDeletedAt() *MessageUpdate {
 	return _u
 }
 
-// SetIsEdited sets the "is_edited" field.
-func (_u *MessageUpdate) SetIsEdited(v bool) *MessageUpdate {
-	_u.mutation.SetIsEdited(v)
+// SetEditedAt sets the "edited_at" field.
+func (_u *MessageUpdate) SetEditedAt(v time.Time) *MessageUpdate {
+	_u.mutation.SetEditedAt(v)
 	return _u
 }
 
-// SetNillableIsEdited sets the "is_edited" field if the given value is not nil.
-func (_u *MessageUpdate) SetNillableIsEdited(v *bool) *MessageUpdate {
+// SetNillableEditedAt sets the "edited_at" field if the given value is not nil.
+func (_u *MessageUpdate) SetNillableEditedAt(v *time.Time) *MessageUpdate {
 	if v != nil {
-		_u.SetIsEdited(*v)
+		_u.SetEditedAt(*v)
 	}
+	return _u
+}
+
+// ClearEditedAt clears the value of the "edited_at" field.
+func (_u *MessageUpdate) ClearEditedAt() *MessageUpdate {
+	_u.mutation.ClearEditedAt()
 	return _u
 }
 
@@ -330,8 +336,11 @@ func (_u *MessageUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	if _u.mutation.DeletedAtCleared() {
 		_spec.ClearField(message.FieldDeletedAt, field.TypeTime)
 	}
-	if value, ok := _u.mutation.IsEdited(); ok {
-		_spec.SetField(message.FieldIsEdited, field.TypeBool, value)
+	if value, ok := _u.mutation.EditedAt(); ok {
+		_spec.SetField(message.FieldEditedAt, field.TypeTime, value)
+	}
+	if _u.mutation.EditedAtCleared() {
+		_spec.ClearField(message.FieldEditedAt, field.TypeTime)
 	}
 	if _u.mutation.ChatCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -626,17 +635,23 @@ func (_u *MessageUpdateOne) ClearDeletedAt() *MessageUpdateOne {
 	return _u
 }
 
-// SetIsEdited sets the "is_edited" field.
-func (_u *MessageUpdateOne) SetIsEdited(v bool) *MessageUpdateOne {
-	_u.mutation.SetIsEdited(v)
+// SetEditedAt sets the "edited_at" field.
+func (_u *MessageUpdateOne) SetEditedAt(v time.Time) *MessageUpdateOne {
+	_u.mutation.SetEditedAt(v)
 	return _u
 }
 
-// SetNillableIsEdited sets the "is_edited" field if the given value is not nil.
-func (_u *MessageUpdateOne) SetNillableIsEdited(v *bool) *MessageUpdateOne {
+// SetNillableEditedAt sets the "edited_at" field if the given value is not nil.
+func (_u *MessageUpdateOne) SetNillableEditedAt(v *time.Time) *MessageUpdateOne {
 	if v != nil {
-		_u.SetIsEdited(*v)
+		_u.SetEditedAt(*v)
 	}
+	return _u
+}
+
+// ClearEditedAt clears the value of the "edited_at" field.
+func (_u *MessageUpdateOne) ClearEditedAt() *MessageUpdateOne {
+	_u.mutation.ClearEditedAt()
 	return _u
 }
 
@@ -860,8 +875,11 @@ func (_u *MessageUpdateOne) sqlSave(ctx context.Context) (_node *Message, err er
 	if _u.mutation.DeletedAtCleared() {
 		_spec.ClearField(message.FieldDeletedAt, field.TypeTime)
 	}
-	if value, ok := _u.mutation.IsEdited(); ok {
-		_spec.SetField(message.FieldIsEdited, field.TypeBool, value)
+	if value, ok := _u.mutation.EditedAt(); ok {
+		_spec.SetField(message.FieldEditedAt, field.TypeTime, value)
+	}
+	if _u.mutation.EditedAtCleared() {
+		_spec.ClearField(message.FieldEditedAt, field.TypeTime)
 	}
 	if _u.mutation.ChatCleared() {
 		edge := &sqlgraph.EdgeSpec{

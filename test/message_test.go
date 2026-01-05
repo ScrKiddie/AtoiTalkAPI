@@ -4,6 +4,7 @@ import (
 	"AtoiTalkAPI/ent/chat"
 	"AtoiTalkAPI/ent/groupmember"
 	"AtoiTalkAPI/ent/media"
+	"AtoiTalkAPI/ent/message"
 	"AtoiTalkAPI/ent/privatechat"
 	"AtoiTalkAPI/internal/helper"
 	"AtoiTalkAPI/internal/model"
@@ -711,6 +712,157 @@ func TestDeleteMessage(t *testing.T) {
 			Save(context.Background())
 
 		req, _ := http.NewRequest("DELETE", fmt.Sprintf("/api/messages/%d", msg.ID), nil)
+		req.Header.Set("Authorization", "Bearer "+token1)
+
+		rr := executeRequest(req)
+		assert.Equal(t, http.StatusBadRequest, rr.Code)
+	})
+}
+
+func TestEditMessage(t *testing.T) {
+	clearDatabase(context.Background())
+
+	password := "Password123!"
+	hashedPassword, _ := helper.HashPassword(password)
+	u1, _ := testClient.User.Create().SetEmail("u1@test.com").SetUsername("u1").SetFullName("User 1").SetPasswordHash(hashedPassword).Save(context.Background())
+	u2, _ := testClient.User.Create().SetEmail("u2@test.com").SetUsername("u2").SetFullName("User 2").SetPasswordHash(hashedPassword).Save(context.Background())
+
+	token1, _ := helper.GenerateJWT(testConfig.JWTSecret, testConfig.JWTExp, u1.ID)
+	token2, _ := helper.GenerateJWT(testConfig.JWTSecret, testConfig.JWTExp, u2.ID)
+
+	chatEntity, _ := testClient.Chat.Create().SetType(chat.TypePrivate).Save(context.Background())
+	testClient.PrivateChat.Create().SetChat(chatEntity).SetUser1(u1).SetUser2(u2).Save(context.Background())
+
+	t.Run("Success - Edit Text Message", func(t *testing.T) {
+		msg, _ := testClient.Message.Create().
+			SetChatID(chatEntity.ID).
+			SetSenderID(u1.ID).
+			SetContent("Original Content").
+			Save(context.Background())
+
+		reqBody := model.EditMessageRequest{
+			Content: "Edited Content",
+		}
+		body, _ := json.Marshal(reqBody)
+		req, _ := http.NewRequest("PUT", fmt.Sprintf("/api/messages/%d", msg.ID), bytes.NewBuffer(body))
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Authorization", "Bearer "+token1)
+
+		rr := executeRequest(req)
+		assert.Equal(t, http.StatusOK, rr.Code)
+
+		var resp helper.ResponseSuccess
+		json.Unmarshal(rr.Body.Bytes(), &resp)
+		dataMap := resp.Data.(map[string]interface{})
+
+		assert.Equal(t, "Edited Content", dataMap["content"])
+		assert.NotNil(t, dataMap["edited_at"])
+
+		updatedMsg, _ := testClient.Message.Get(context.Background(), msg.ID)
+		assert.Equal(t, "Edited Content", *updatedMsg.Content)
+		assert.NotNil(t, updatedMsg.EditedAt)
+	})
+
+	t.Run("Success - Edit Message with Attachments", func(t *testing.T) {
+
+		att1, _ := testClient.Media.Create().
+			SetFileName("att1.jpg").SetOriginalName("att1.jpg").SetFileSize(100).SetMimeType("image/jpeg").
+			SetStatus(media.StatusActive).SetUploaderID(u1.ID).Save(context.Background())
+
+		msg, _ := testClient.Message.Create().
+			SetChatID(chatEntity.ID).
+			SetSenderID(u1.ID).
+			SetContent("With Attachment").
+			AddAttachmentIDs(att1.ID).
+			Save(context.Background())
+
+		att2, _ := testClient.Media.Create().
+			SetFileName("att2.jpg").SetOriginalName("att2.jpg").SetFileSize(100).SetMimeType("image/jpeg").
+			SetStatus(media.StatusActive).SetUploaderID(u1.ID).Save(context.Background())
+
+		reqBody := model.EditMessageRequest{
+			Content:       "Updated Attachments",
+			AttachmentIDs: []int{att2.ID},
+		}
+		body, _ := json.Marshal(reqBody)
+		req, _ := http.NewRequest("PUT", fmt.Sprintf("/api/messages/%d", msg.ID), bytes.NewBuffer(body))
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Authorization", "Bearer "+token1)
+
+		rr := executeRequest(req)
+		assert.Equal(t, http.StatusOK, rr.Code)
+
+		var resp helper.ResponseSuccess
+		json.Unmarshal(rr.Body.Bytes(), &resp)
+		dataMap := resp.Data.(map[string]interface{})
+		attachments := dataMap["attachments"].([]interface{})
+
+		assert.Len(t, attachments, 1)
+		assert.Equal(t, float64(att2.ID), attachments[0].(map[string]interface{})["id"])
+
+		updatedMsg, _ := testClient.Message.Query().Where(message.ID(msg.ID)).WithAttachments().Only(context.Background())
+
+		atts, _ := updatedMsg.QueryAttachments().All(context.Background())
+		assert.Len(t, atts, 1)
+		assert.Equal(t, att2.ID, atts[0].ID)
+
+		att1Reload, _ := testClient.Media.Get(context.Background(), att1.ID)
+		assert.Nil(t, att1Reload.MessageID)
+	})
+
+	t.Run("Fail - Edit Other User's Message", func(t *testing.T) {
+		msg, _ := testClient.Message.Create().
+			SetChatID(chatEntity.ID).
+			SetSenderID(u1.ID).
+			SetContent("User 1 Msg").
+			Save(context.Background())
+
+		reqBody := model.EditMessageRequest{Content: "Hacked"}
+		body, _ := json.Marshal(reqBody)
+		req, _ := http.NewRequest("PUT", fmt.Sprintf("/api/messages/%d", msg.ID), bytes.NewBuffer(body))
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Authorization", "Bearer "+token2)
+
+		rr := executeRequest(req)
+		assert.Equal(t, http.StatusForbidden, rr.Code)
+	})
+
+	t.Run("Fail - Edit Deleted Message", func(t *testing.T) {
+		msg, _ := testClient.Message.Create().
+			SetChatID(chatEntity.ID).
+			SetSenderID(u1.ID).
+			SetContent("Deleted Msg").
+			SetDeletedAt(time.Now()).
+			Save(context.Background())
+
+		reqBody := model.EditMessageRequest{Content: "Resurrect"}
+		body, _ := json.Marshal(reqBody)
+		req, _ := http.NewRequest("PUT", fmt.Sprintf("/api/messages/%d", msg.ID), bytes.NewBuffer(body))
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Authorization", "Bearer "+token1)
+
+		rr := executeRequest(req)
+		assert.Equal(t, http.StatusBadRequest, rr.Code)
+	})
+
+	t.Run("Fail - Invalid Attachments", func(t *testing.T) {
+		msg, _ := testClient.Message.Create().
+			SetChatID(chatEntity.ID).
+			SetSenderID(u1.ID).
+			SetContent("Msg").
+			Save(context.Background())
+
+		attOther, _ := testClient.Media.Create().
+			SetFileName("other.jpg").SetOriginalName("other.jpg").SetFileSize(100).SetMimeType("image/jpeg").
+			SetStatus(media.StatusActive).SetUploaderID(u2.ID).Save(context.Background())
+
+		reqBody := model.EditMessageRequest{
+			Content:       "Steal Attachment",
+			AttachmentIDs: []int{attOther.ID},
+		}
+		body, _ := json.Marshal(reqBody)
+		req, _ := http.NewRequest("PUT", fmt.Sprintf("/api/messages/%d", msg.ID), bytes.NewBuffer(body))
+		req.Header.Set("Content-Type", "application/json")
 		req.Header.Set("Authorization", "Bearer "+token1)
 
 		rr := executeRequest(req)

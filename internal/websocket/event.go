@@ -4,6 +4,7 @@ type EventType string
 
 const (
 	EventMessageNew    EventType = "message.new"
+	EventMessageUpdate EventType = "message.update"
 	EventMessageDelete EventType = "message.delete"
 
 	EventChatNew  EventType = "chat.new"

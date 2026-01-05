@@ -28,8 +28,8 @@ const (
 	FieldContent = "content"
 	// FieldDeletedAt holds the string denoting the deleted_at field in the database.
 	FieldDeletedAt = "deleted_at"
-	// FieldIsEdited holds the string denoting the is_edited field in the database.
-	FieldIsEdited = "is_edited"
+	// FieldEditedAt holds the string denoting the edited_at field in the database.
+	FieldEditedAt = "edited_at"
 	// EdgeChat holds the string denoting the chat edge name in mutations.
 	EdgeChat = "chat"
 	// EdgeSender holds the string denoting the sender edge name in mutations.
@@ -83,7 +83,7 @@ var Columns = []string{
 	FieldReplyToID,
 	FieldContent,
 	FieldDeletedAt,
-	FieldIsEdited,
+	FieldEditedAt,
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
@@ -103,8 +103,6 @@ var (
 	DefaultUpdatedAt func() time.Time
 	// UpdateDefaultUpdatedAt holds the default value on update for the "updated_at" field.
 	UpdateDefaultUpdatedAt func() time.Time
-	// DefaultIsEdited holds the default value on creation for the "is_edited" field.
-	DefaultIsEdited bool
 )
 
 // OrderOption defines the ordering options for the Message queries.
@@ -150,9 +148,9 @@ func ByDeletedAt(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldDeletedAt, opts...).ToFunc()
 }
 
-// ByIsEdited orders the results by the is_edited field.
-func ByIsEdited(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldIsEdited, opts...).ToFunc()
+// ByEditedAt orders the results by the edited_at field.
+func ByEditedAt(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldEditedAt, opts...).ToFunc()
 }
 
 // ByChatField orders the results by chat field.

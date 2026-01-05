@@ -7,6 +7,11 @@ type SendMessageRequest struct {
 	ReplyToID     *int   `json:"reply_to_id" validate:"omitempty,gt=0"`
 }
 
+type EditMessageRequest struct {
+	Content       string `json:"content" validate:"required_without=AttachmentIDs"`
+	AttachmentIDs []int  `json:"attachment_ids" validate:"omitempty,dive,gt=0"`
+}
+
 type GetMessagesRequest struct {
 	ChatID int `json:"chat_id" validate:"required"`
 	Cursor int `json:"cursor" validate:"omitempty,gt=0"`
@@ -22,6 +27,7 @@ type MessageResponse struct {
 	ReplyTo     *ReplyPreviewDTO `json:"reply_to,omitempty"`
 	CreatedAt   string           `json:"created_at"`
 	DeletedAt   *string          `json:"deleted_at,omitempty"`
+	EditedAt    *string          `json:"edited_at,omitempty"`
 }
 
 type ReplyPreviewDTO struct {

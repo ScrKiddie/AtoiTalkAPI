@@ -13,6 +13,7 @@ func ToMessageResponse(msg *ent.Message, storageMode, appURL, cdnURL, storageAtt
 
 	isDeleted := msg.DeletedAt != nil
 	var deletedAtStr *string
+	var editedAtStr *string
 
 	content := ""
 
@@ -24,6 +25,11 @@ func ToMessageResponse(msg *ent.Message, storageMode, appURL, cdnURL, storageAtt
 	} else {
 		if msg.Content != nil {
 			content = *msg.Content
+		}
+
+		if msg.EditedAt != nil {
+			t := msg.EditedAt.Format(time.RFC3339)
+			editedAtStr = &t
 		}
 
 		for _, att := range msg.Edges.Attachments {
@@ -69,5 +75,6 @@ func ToMessageResponse(msg *ent.Message, storageMode, appURL, cdnURL, storageAtt
 		ReplyTo:     replyPreview,
 		CreatedAt:   msg.CreatedAt.Format(time.RFC3339),
 		DeletedAt:   deletedAtStr,
+		EditedAt:    editedAtStr,
 	}
 }

@@ -33,8 +33,8 @@ type Message struct {
 	Content *string `json:"content,omitempty"`
 	// DeletedAt holds the value of the "deleted_at" field.
 	DeletedAt *time.Time `json:"deleted_at,omitempty"`
-	// IsEdited holds the value of the "is_edited" field.
-	IsEdited bool `json:"is_edited,omitempty"`
+	// EditedAt holds the value of the "edited_at" field.
+	EditedAt *time.Time `json:"edited_at,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the MessageQuery when eager-loading is set.
 	Edges        MessageEdges `json:"edges"`
@@ -114,13 +114,11 @@ func (*Message) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case message.FieldIsEdited:
-			values[i] = new(sql.NullBool)
 		case message.FieldID, message.FieldChatID, message.FieldSenderID, message.FieldReplyToID:
 			values[i] = new(sql.NullInt64)
 		case message.FieldContent:
 			values[i] = new(sql.NullString)
-		case message.FieldCreatedAt, message.FieldUpdatedAt, message.FieldDeletedAt:
+		case message.FieldCreatedAt, message.FieldUpdatedAt, message.FieldDeletedAt, message.FieldEditedAt:
 			values[i] = new(sql.NullTime)
 		default:
 			values[i] = new(sql.UnknownType)
@@ -188,11 +186,12 @@ func (_m *Message) assignValues(columns []string, values []any) error {
 				_m.DeletedAt = new(time.Time)
 				*_m.DeletedAt = value.Time
 			}
-		case message.FieldIsEdited:
-			if value, ok := values[i].(*sql.NullBool); !ok {
-				return fmt.Errorf("unexpected type %T for field is_edited", values[i])
+		case message.FieldEditedAt:
+			if value, ok := values[i].(*sql.NullTime); !ok {
+				return fmt.Errorf("unexpected type %T for field edited_at", values[i])
 			} else if value.Valid {
-				_m.IsEdited = value.Bool
+				_m.EditedAt = new(time.Time)
+				*_m.EditedAt = value.Time
 			}
 		default:
 			_m.selectValues.Set(columns[i], values[i])
@@ -282,8 +281,10 @@ func (_m *Message) String() string {
 		builder.WriteString(v.Format(time.ANSIC))
 	}
 	builder.WriteString(", ")
-	builder.WriteString("is_edited=")
-	builder.WriteString(fmt.Sprintf("%v", _m.IsEdited))
+	if v := _m.EditedAt; v != nil {
+		builder.WriteString("edited_at=")
+		builder.WriteString(v.Format(time.ANSIC))
+	}
 	builder.WriteByte(')')
 	return builder.String()
 }
