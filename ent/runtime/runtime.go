@@ -154,10 +154,6 @@ func init() {
 	message.DefaultUpdatedAt = messageDescUpdatedAt.Default.(func() time.Time)
 	// message.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
 	message.UpdateDefaultUpdatedAt = messageDescUpdatedAt.UpdateDefault.(func() time.Time)
-	// messageDescIsEdited is the schema descriptor for is_edited field.
-	messageDescIsEdited := messageFields[5].Descriptor()
-	// message.DefaultIsEdited holds the default value on creation for the is_edited field.
-	message.DefaultIsEdited = messageDescIsEdited.Default.(bool)
 	otpMixin := schema.OTP{}.Mixin()
 	otpMixinFields0 := otpMixin[0].Fields()
 	_ = otpMixinFields0

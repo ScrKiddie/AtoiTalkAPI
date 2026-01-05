@@ -3529,7 +3529,7 @@ type MessageMutation struct {
 	updated_at         *time.Time
 	content            *string
 	deleted_at         *time.Time
-	is_edited          *bool
+	edited_at          *time.Time
 	clearedFields      map[string]struct{}
 	chat               *int
 	clearedchat        bool
@@ -3937,40 +3937,53 @@ func (m *MessageMutation) ResetDeletedAt() {
 	delete(m.clearedFields, message.FieldDeletedAt)
 }
 
-// SetIsEdited sets the "is_edited" field.
-func (m *MessageMutation) SetIsEdited(b bool) {
-	m.is_edited = &b
+// SetEditedAt sets the "edited_at" field.
+func (m *MessageMutation) SetEditedAt(t time.Time) {
+	m.edited_at = &t
 }
 
-// IsEdited returns the value of the "is_edited" field in the mutation.
-func (m *MessageMutation) IsEdited() (r bool, exists bool) {
-	v := m.is_edited
+// EditedAt returns the value of the "edited_at" field in the mutation.
+func (m *MessageMutation) EditedAt() (r time.Time, exists bool) {
+	v := m.edited_at
 	if v == nil {
 		return
 	}
 	return *v, true
 }
 
-// OldIsEdited returns the old "is_edited" field's value of the Message entity.
+// OldEditedAt returns the old "edited_at" field's value of the Message entity.
 // If the Message object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *MessageMutation) OldIsEdited(ctx context.Context) (v bool, err error) {
+func (m *MessageMutation) OldEditedAt(ctx context.Context) (v *time.Time, err error) {
 	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldIsEdited is only allowed on UpdateOne operations")
+		return v, errors.New("OldEditedAt is only allowed on UpdateOne operations")
 	}
 	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldIsEdited requires an ID field in the mutation")
+		return v, errors.New("OldEditedAt requires an ID field in the mutation")
 	}
 	oldValue, err := m.oldValue(ctx)
 	if err != nil {
-		return v, fmt.Errorf("querying old value for OldIsEdited: %w", err)
+		return v, fmt.Errorf("querying old value for OldEditedAt: %w", err)
 	}
-	return oldValue.IsEdited, nil
+	return oldValue.EditedAt, nil
 }
 
-// ResetIsEdited resets all changes to the "is_edited" field.
-func (m *MessageMutation) ResetIsEdited() {
-	m.is_edited = nil
+// ClearEditedAt clears the value of the "edited_at" field.
+func (m *MessageMutation) ClearEditedAt() {
+	m.edited_at = nil
+	m.clearedFields[message.FieldEditedAt] = struct{}{}
+}
+
+// EditedAtCleared returns if the "edited_at" field was cleared in this mutation.
+func (m *MessageMutation) EditedAtCleared() bool {
+	_, ok := m.clearedFields[message.FieldEditedAt]
+	return ok
+}
+
+// ResetEditedAt resets all changes to the "edited_at" field.
+func (m *MessageMutation) ResetEditedAt() {
+	m.edited_at = nil
+	delete(m.clearedFields, message.FieldEditedAt)
 }
 
 // ClearChat clears the "chat" edge to the Chat entity.
@@ -4218,8 +4231,8 @@ func (m *MessageMutation) Fields() []string {
 	if m.deleted_at != nil {
 		fields = append(fields, message.FieldDeletedAt)
 	}
-	if m.is_edited != nil {
-		fields = append(fields, message.FieldIsEdited)
+	if m.edited_at != nil {
+		fields = append(fields, message.FieldEditedAt)
 	}
 	return fields
 }
@@ -4243,8 +4256,8 @@ func (m *MessageMutation) Field(name string) (ent.Value, bool) {
 		return m.Content()
 	case message.FieldDeletedAt:
 		return m.DeletedAt()
-	case message.FieldIsEdited:
-		return m.IsEdited()
+	case message.FieldEditedAt:
+		return m.EditedAt()
 	}
 	return nil, false
 }
@@ -4268,8 +4281,8 @@ func (m *MessageMutation) OldField(ctx context.Context, name string) (ent.Value,
 		return m.OldContent(ctx)
 	case message.FieldDeletedAt:
 		return m.OldDeletedAt(ctx)
-	case message.FieldIsEdited:
-		return m.OldIsEdited(ctx)
+	case message.FieldEditedAt:
+		return m.OldEditedAt(ctx)
 	}
 	return nil, fmt.Errorf("unknown Message field %s", name)
 }
@@ -4328,12 +4341,12 @@ func (m *MessageMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetDeletedAt(v)
 		return nil
-	case message.FieldIsEdited:
-		v, ok := value.(bool)
+	case message.FieldEditedAt:
+		v, ok := value.(time.Time)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
-		m.SetIsEdited(v)
+		m.SetEditedAt(v)
 		return nil
 	}
 	return fmt.Errorf("unknown Message field %s", name)
@@ -4377,6 +4390,9 @@ func (m *MessageMutation) ClearedFields() []string {
 	if m.FieldCleared(message.FieldDeletedAt) {
 		fields = append(fields, message.FieldDeletedAt)
 	}
+	if m.FieldCleared(message.FieldEditedAt) {
+		fields = append(fields, message.FieldEditedAt)
+	}
 	return fields
 }
 
@@ -4399,6 +4415,9 @@ func (m *MessageMutation) ClearField(name string) error {
 		return nil
 	case message.FieldDeletedAt:
 		m.ClearDeletedAt()
+		return nil
+	case message.FieldEditedAt:
+		m.ClearEditedAt()
 		return nil
 	}
 	return fmt.Errorf("unknown Message nullable field %s", name)
@@ -4429,8 +4448,8 @@ func (m *MessageMutation) ResetField(name string) error {
 	case message.FieldDeletedAt:
 		m.ResetDeletedAt()
 		return nil
-	case message.FieldIsEdited:
-		m.ResetIsEdited()
+	case message.FieldEditedAt:
+		m.ResetEditedAt()
 		return nil
 	}
 	return fmt.Errorf("unknown Message field %s", name)

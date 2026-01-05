@@ -93,6 +93,15 @@ definitions:
     required:
     - target_user_id
     type: object
+  model.EditMessageRequest:
+    properties:
+      attachment_ids:
+        items:
+          type: integer
+        type: array
+      content:
+        type: string
+    type: object
   model.GoogleLoginRequest:
     properties:
       code:
@@ -143,6 +152,8 @@ definitions:
       created_at:
         type: string
       deleted_at:
+        type: string
+      edited_at:
         type: string
       id:
         type: integer
@@ -896,6 +907,59 @@ paths:
       security:
       - BearerAuth: []
       summary: Delete Message
+      tags:
+      - message
+    put:
+      consumes:
+      - application/json
+      description: Edit a message's content and/or attachments.
+      parameters:
+      - description: Message ID
+        in: path
+        name: messageID
+        required: true
+        type: integer
+      - description: Edit Message Request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.EditMessageRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/helper.ResponseSuccess'
+            - properties:
+                data:
+                  $ref: '#/definitions/model.MessageResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
+      security:
+      - BearerAuth: []
+      summary: Edit Message
       tags:
       - message
   /api/otp/send:

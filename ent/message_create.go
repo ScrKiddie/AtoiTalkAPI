@@ -107,16 +107,16 @@ func (_c *MessageCreate) SetNillableDeletedAt(v *time.Time) *MessageCreate {
 	return _c
 }
 
-// SetIsEdited sets the "is_edited" field.
-func (_c *MessageCreate) SetIsEdited(v bool) *MessageCreate {
-	_c.mutation.SetIsEdited(v)
+// SetEditedAt sets the "edited_at" field.
+func (_c *MessageCreate) SetEditedAt(v time.Time) *MessageCreate {
+	_c.mutation.SetEditedAt(v)
 	return _c
 }
 
-// SetNillableIsEdited sets the "is_edited" field if the given value is not nil.
-func (_c *MessageCreate) SetNillableIsEdited(v *bool) *MessageCreate {
+// SetNillableEditedAt sets the "edited_at" field if the given value is not nil.
+func (_c *MessageCreate) SetNillableEditedAt(v *time.Time) *MessageCreate {
 	if v != nil {
-		_c.SetIsEdited(*v)
+		_c.SetEditedAt(*v)
 	}
 	return _c
 }
@@ -209,10 +209,6 @@ func (_c *MessageCreate) defaults() {
 		v := message.DefaultUpdatedAt()
 		_c.mutation.SetUpdatedAt(v)
 	}
-	if _, ok := _c.mutation.IsEdited(); !ok {
-		v := message.DefaultIsEdited
-		_c.mutation.SetIsEdited(v)
-	}
 }
 
 // check runs all checks and user-defined validators on the builder.
@@ -228,9 +224,6 @@ func (_c *MessageCreate) check() error {
 	}
 	if _, ok := _c.mutation.SenderID(); !ok {
 		return &ValidationError{Name: "sender_id", err: errors.New(`ent: missing required field "Message.sender_id"`)}
-	}
-	if _, ok := _c.mutation.IsEdited(); !ok {
-		return &ValidationError{Name: "is_edited", err: errors.New(`ent: missing required field "Message.is_edited"`)}
 	}
 	if len(_c.mutation.ChatIDs()) == 0 {
 		return &ValidationError{Name: "chat", err: errors.New(`ent: missing required edge "Message.chat"`)}
@@ -281,9 +274,9 @@ func (_c *MessageCreate) createSpec() (*Message, *sqlgraph.CreateSpec) {
 		_spec.SetField(message.FieldDeletedAt, field.TypeTime, value)
 		_node.DeletedAt = &value
 	}
-	if value, ok := _c.mutation.IsEdited(); ok {
-		_spec.SetField(message.FieldIsEdited, field.TypeBool, value)
-		_node.IsEdited = value
+	if value, ok := _c.mutation.EditedAt(); ok {
+		_spec.SetField(message.FieldEditedAt, field.TypeTime, value)
+		_node.EditedAt = &value
 	}
 	if nodes := _c.mutation.ChatIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
@@ -510,15 +503,21 @@ func (u *MessageUpsert) ClearDeletedAt() *MessageUpsert {
 	return u
 }
 
-// SetIsEdited sets the "is_edited" field.
-func (u *MessageUpsert) SetIsEdited(v bool) *MessageUpsert {
-	u.Set(message.FieldIsEdited, v)
+// SetEditedAt sets the "edited_at" field.
+func (u *MessageUpsert) SetEditedAt(v time.Time) *MessageUpsert {
+	u.Set(message.FieldEditedAt, v)
 	return u
 }
 
-// UpdateIsEdited sets the "is_edited" field to the value that was provided on create.
-func (u *MessageUpsert) UpdateIsEdited() *MessageUpsert {
-	u.SetExcluded(message.FieldIsEdited)
+// UpdateEditedAt sets the "edited_at" field to the value that was provided on create.
+func (u *MessageUpsert) UpdateEditedAt() *MessageUpsert {
+	u.SetExcluded(message.FieldEditedAt)
+	return u
+}
+
+// ClearEditedAt clears the value of the "edited_at" field.
+func (u *MessageUpsert) ClearEditedAt() *MessageUpsert {
+	u.SetNull(message.FieldEditedAt)
 	return u
 }
 
@@ -672,17 +671,24 @@ func (u *MessageUpsertOne) ClearDeletedAt() *MessageUpsertOne {
 	})
 }
 
-// SetIsEdited sets the "is_edited" field.
-func (u *MessageUpsertOne) SetIsEdited(v bool) *MessageUpsertOne {
+// SetEditedAt sets the "edited_at" field.
+func (u *MessageUpsertOne) SetEditedAt(v time.Time) *MessageUpsertOne {
 	return u.Update(func(s *MessageUpsert) {
-		s.SetIsEdited(v)
+		s.SetEditedAt(v)
 	})
 }
 
-// UpdateIsEdited sets the "is_edited" field to the value that was provided on create.
-func (u *MessageUpsertOne) UpdateIsEdited() *MessageUpsertOne {
+// UpdateEditedAt sets the "edited_at" field to the value that was provided on create.
+func (u *MessageUpsertOne) UpdateEditedAt() *MessageUpsertOne {
 	return u.Update(func(s *MessageUpsert) {
-		s.UpdateIsEdited()
+		s.UpdateEditedAt()
+	})
+}
+
+// ClearEditedAt clears the value of the "edited_at" field.
+func (u *MessageUpsertOne) ClearEditedAt() *MessageUpsertOne {
+	return u.Update(func(s *MessageUpsert) {
+		s.ClearEditedAt()
 	})
 }
 
@@ -1002,17 +1008,24 @@ func (u *MessageUpsertBulk) ClearDeletedAt() *MessageUpsertBulk {
 	})
 }
 
-// SetIsEdited sets the "is_edited" field.
-func (u *MessageUpsertBulk) SetIsEdited(v bool) *MessageUpsertBulk {
+// SetEditedAt sets the "edited_at" field.
+func (u *MessageUpsertBulk) SetEditedAt(v time.Time) *MessageUpsertBulk {
 	return u.Update(func(s *MessageUpsert) {
-		s.SetIsEdited(v)
+		s.SetEditedAt(v)
 	})
 }
 
-// UpdateIsEdited sets the "is_edited" field to the value that was provided on create.
-func (u *MessageUpsertBulk) UpdateIsEdited() *MessageUpsertBulk {
+// UpdateEditedAt sets the "edited_at" field to the value that was provided on create.
+func (u *MessageUpsertBulk) UpdateEditedAt() *MessageUpsertBulk {
 	return u.Update(func(s *MessageUpsert) {
-		s.UpdateIsEdited()
+		s.UpdateEditedAt()
+	})
+}
+
+// ClearEditedAt clears the value of the "edited_at" field.
+func (u *MessageUpsertBulk) ClearEditedAt() *MessageUpsertBulk {
+	return u.Update(func(s *MessageUpsert) {
+		s.ClearEditedAt()
 	})
 }
 

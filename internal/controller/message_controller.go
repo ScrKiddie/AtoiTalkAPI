@@ -61,6 +61,51 @@ func (c *MessageController) SendMessage(w http.ResponseWriter, r *http.Request) 
 	helper.WriteSuccess(w, resp)
 }
 
+// EditMessage godoc
+// @Summary      Edit Message
+// @Description  Edit a message's content and/or attachments.
+// @Tags         message
+// @Accept       json
+// @Produce      json
+// @Param        messageID path int true "Message ID"
+// @Param        request body model.EditMessageRequest true "Edit Message Request"
+// @Success      200  {object}  helper.ResponseSuccess{data=model.MessageResponse}
+// @Failure      400  {object}  helper.ResponseError
+// @Failure      401  {object}  helper.ResponseError
+// @Failure      403  {object}  helper.ResponseError
+// @Failure      404  {object}  helper.ResponseError
+// @Failure      500  {object}  helper.ResponseError
+// @Security     BearerAuth
+// @Router       /api/messages/{messageID} [put]
+func (c *MessageController) EditMessage(w http.ResponseWriter, r *http.Request) {
+	userContext, ok := r.Context().Value(middleware.UserContextKey).(*model.UserDTO)
+	if !ok {
+		helper.WriteError(w, helper.NewUnauthorizedError(""))
+		return
+	}
+
+	messageID, err := strconv.Atoi(chi.URLParam(r, "messageID"))
+	if err != nil {
+		helper.WriteError(w, helper.NewBadRequestError(""))
+		return
+	}
+
+	var req model.EditMessageRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		slog.Warn("Invalid request body", "error", err)
+		helper.WriteError(w, helper.NewBadRequestError(""))
+		return
+	}
+
+	resp, err := c.messageService.EditMessage(r.Context(), userContext.ID, messageID, req)
+	if err != nil {
+		helper.WriteError(w, err)
+		return
+	}
+
+	helper.WriteSuccess(w, resp)
+}
+
 // GetMessages godoc
 // @Summary      Get Messages
 // @Description  Get a paginated list of messages from a chat.

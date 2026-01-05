@@ -21,7 +21,7 @@ func (Message) Fields() []ent.Field {
 		field.Int("reply_to_id").Optional().Nillable(),
 		field.Text("content").Optional().Nillable(),
 		field.Time("deleted_at").Optional().Nillable(),
-		field.Bool("is_edited").Default(false),
+		field.Time("edited_at").Optional().Nillable(),
 	}
 }
 

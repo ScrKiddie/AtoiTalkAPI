@@ -102,6 +102,7 @@ func (route *Route) Register() {
 			r.Get("/chats/{chatID}/messages", route.messageController.GetMessages)
 
 			r.Post("/messages", route.messageController.SendMessage)
+			r.Put("/messages/{messageID}", route.messageController.EditMessage)
 			r.Delete("/messages/{messageID}", route.messageController.DeleteMessage)
 
 			r.With(middleware.MaxBodySize(3*1024*1024)).Post("/media/upload", route.mediaController.UploadMedia)

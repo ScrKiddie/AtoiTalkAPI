@@ -44,6 +44,8 @@ channels:
 
       serverMessageNew:
         $ref: '#/components/messages/ServerMessageNew'
+      serverMessageUpdate:
+        $ref: '#/components/messages/ServerMessageUpdate'
       serverMessageDelete:
         $ref: '#/components/messages/ServerMessageDelete'
       serverChatNew:
@@ -77,6 +79,7 @@ operations:
       $ref: '#/channels/chat'
     messages:
       - $ref: '#/channels/chat/messages/serverMessageNew'
+      - $ref: '#/channels/chat/messages/serverMessageUpdate'
       - $ref: '#/channels/chat/messages/serverMessageDelete'
       - $ref: '#/channels/chat/messages/serverChatNew'
       - $ref: '#/channels/chat/messages/serverChatRead'
@@ -222,6 +225,10 @@ components:
           type: string
           format: date-time
           description: If present, the message has been deleted.
+        edited_at:
+          type: string
+          format: date-time
+          description: If present, the message has been edited.
 
     ChatListResponse:
       type: object
@@ -290,6 +297,20 @@ components:
             properties:
               type:
                 const: message.new
+              payload:
+                $ref: '#/components/schemas/MessageResponse'
+
+    ServerMessageUpdate:
+      name: message.update
+      title: Message Updated
+      summary: Broadcasted when a message is edited
+      payload:
+        allOf:
+          - $ref: '#/components/schemas/BaseEvent'
+          - type: object
+            properties:
+              type:
+                const: message.update
               payload:
                 $ref: '#/components/schemas/MessageResponse'
 
