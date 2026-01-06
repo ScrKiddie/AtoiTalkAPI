@@ -116,7 +116,7 @@ func TestMain(m *testing.M) {
 	accountService := service.NewAccountService(testClient, testConfig, validator)
 	accountController := controller.NewAccountController(accountService)
 
-	chatService := service.NewChatService(testClient, repo, testConfig, validator, testHub)
+	chatService := service.NewChatService(testClient, repo, testConfig, validator, testHub, storageAdapter)
 	chatController := controller.NewChatController(chatService)
 
 	messageService := service.NewMessageService(testClient, repo, testConfig, validator, storageAdapter, testHub)

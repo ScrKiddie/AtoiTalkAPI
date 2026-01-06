@@ -97,6 +97,7 @@ func (route *Route) Register() {
 			r.Get("/chats", route.chatController.GetChats)
 			r.Get("/chats/{id}", route.chatController.GetChat)
 			r.Post("/chats/private", route.chatController.CreatePrivateChat)
+			r.With(middleware.MaxBodySize(3*1024*1024)).Post("/chats/group", route.chatController.CreateGroupChat)
 			r.Post("/chats/{id}/read", route.chatController.MarkAsRead)
 			r.Post("/chats/{id}/hide", route.chatController.HideChat)
 			r.Get("/chats/{chatID}/messages", route.messageController.GetMessages)

@@ -38,7 +38,7 @@ func Init(appConfig *config.AppConfig, client *ent.Client, validator *validator.
 	accountService := service.NewAccountService(client, appConfig, validator)
 	accountController := controller.NewAccountController(accountService)
 
-	chatService := service.NewChatService(client, repo, appConfig, validator, wsHub)
+	chatService := service.NewChatService(client, repo, appConfig, validator, wsHub, storageAdapter)
 	chatController := controller.NewChatController(chatService)
 
 	messageService := service.NewMessageService(client, repo, appConfig, validator, storageAdapter, wsHub)
