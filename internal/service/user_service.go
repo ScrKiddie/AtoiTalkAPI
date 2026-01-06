@@ -331,26 +331,32 @@ func (s *UserService) UpdateProfile(ctx context.Context, userID int, req model.U
 	}
 
 	if s.wsHub != nil {
-		wsPayload := &model.UserUpdateEventPayload{
-			ID:       updatedUser.ID,
-			Username: updatedUser.Username,
-			FullName: updatedUser.FullName,
-			Avatar:   avatarURL,
-			Bio:      bio,
-		}
-		if updatedUser.LastSeenAt != nil {
-			t := updatedUser.LastSeenAt.Format(time.RFC3339)
-			wsPayload.LastSeenAt = &t
-		}
+		go func() {
+			wsPayload := &model.UserUpdateEventPayload{
+				ID:       updatedUser.ID,
+				Username: updatedUser.Username,
+				FullName: updatedUser.FullName,
+				Avatar:   avatarURL,
+				Bio:      bio,
+			}
+			if updatedUser.LastSeenAt != nil {
+				t := updatedUser.LastSeenAt.Format(time.RFC3339)
+				wsPayload.LastSeenAt = &t
+			}
 
-		go s.wsHub.BroadcastToContacts(userID, websocket.Event{
-			Type:    websocket.EventUserUpdate,
-			Payload: wsPayload,
-			Meta: &websocket.EventMeta{
-				Timestamp: time.Now().UnixMilli(),
-				SenderID:  userID,
-			},
-		})
+			event := websocket.Event{
+				Type:    websocket.EventUserUpdate,
+				Payload: wsPayload,
+				Meta: &websocket.EventMeta{
+					Timestamp: time.Now().UnixMilli(),
+					SenderID:  userID,
+				},
+			}
+
+			s.wsHub.BroadcastToUser(userID, event)
+
+			s.wsHub.BroadcastToContacts(userID, event)
+		}()
 	}
 
 	return httpResp, nil
@@ -514,16 +520,23 @@ func (s *UserService) BlockUser(ctx context.Context, blockerID int, blockedID in
 	}
 
 	if s.wsHub != nil {
-		go s.wsHub.BroadcastToUser(blockedID, websocket.Event{
-			Type: websocket.EventUserBlock,
-			Payload: map[string]int{
-				"blocker_id": blockerID,
-			},
-			Meta: &websocket.EventMeta{
-				Timestamp: time.Now().UnixMilli(),
-				SenderID:  blockerID,
-			},
-		})
+		go func() {
+			event := websocket.Event{
+				Type: websocket.EventUserBlock,
+				Payload: map[string]int{
+					"blocker_id": blockerID,
+					"blocked_id": blockedID,
+				},
+				Meta: &websocket.EventMeta{
+					Timestamp: time.Now().UnixMilli(),
+					SenderID:  blockerID,
+				},
+			}
+
+			s.wsHub.BroadcastToUser(blockedID, event)
+
+			s.wsHub.BroadcastToUser(blockerID, event)
+		}()
 	}
 
 	return nil
@@ -543,16 +556,23 @@ func (s *UserService) UnblockUser(ctx context.Context, blockerID int, blockedID 
 	}
 
 	if s.wsHub != nil {
-		go s.wsHub.BroadcastToUser(blockedID, websocket.Event{
-			Type: websocket.EventUserUnblock,
-			Payload: map[string]int{
-				"blocker_id": blockerID,
-			},
-			Meta: &websocket.EventMeta{
-				Timestamp: time.Now().UnixMilli(),
-				SenderID:  blockerID,
-			},
-		})
+		go func() {
+			event := websocket.Event{
+				Type: websocket.EventUserUnblock,
+				Payload: map[string]int{
+					"blocker_id": blockerID,
+					"blocked_id": blockedID,
+				},
+				Meta: &websocket.EventMeta{
+					Timestamp: time.Now().UnixMilli(),
+					SenderID:  blockerID,
+				},
+			}
+
+			s.wsHub.BroadcastToUser(blockedID, event)
+
+			s.wsHub.BroadcastToUser(blockerID, event)
+		}()
 	}
 
 	return nil

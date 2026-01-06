@@ -9,6 +9,7 @@ const (
 
 	EventChatNew  EventType = "chat.new"
 	EventChatRead EventType = "chat.read"
+	EventChatHide EventType = "chat.hide"
 	EventTyping   EventType = "chat.typing"
 
 	EventUserOnline  EventType = "user.online"

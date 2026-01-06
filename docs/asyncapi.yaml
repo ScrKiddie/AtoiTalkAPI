@@ -52,6 +52,8 @@ channels:
         $ref: '#/components/messages/ServerChatNew'
       serverChatRead:
         $ref: '#/components/messages/ServerChatRead'
+      serverChatHide:
+        $ref: '#/components/messages/ServerChatHide'
       serverUserOnline:
         $ref: '#/components/messages/ServerUserOnline'
       serverUserOffline:
@@ -83,6 +85,7 @@ operations:
       - $ref: '#/channels/chat/messages/serverMessageDelete'
       - $ref: '#/channels/chat/messages/serverChatNew'
       - $ref: '#/channels/chat/messages/serverChatRead'
+      - $ref: '#/channels/chat/messages/serverChatHide'
       - $ref: '#/channels/chat/messages/serverUserOnline'
       - $ref: '#/channels/chat/messages/serverUserOffline'
       - $ref: '#/channels/chat/messages/serverUserUpdate'
@@ -365,6 +368,23 @@ components:
                     type: integer
                     description: The user who read the chat
 
+    ServerChatHide:
+      name: chat.hide
+      title: Chat Hidden
+      summary: Sent to the user who hid the chat (for multi-device sync)
+      payload:
+        allOf:
+          - $ref: '#/components/schemas/BaseEvent'
+          - type: object
+            properties:
+              type:
+                const: chat.hide
+              payload:
+                type: object
+                properties:
+                  chat_id:
+                    type: integer
+
     ServerUserOnline:
       name: user.online
       title: User Online
@@ -439,6 +459,8 @@ components:
                 properties:
                   blocker_id:
                     type: integer
+                  blocked_id:
+                    type: integer
 
     ServerUserUnblock:
       name: user.unblock
@@ -455,4 +477,6 @@ components:
                 type: object
                 properties:
                   blocker_id:
+                    type: integer
+                  blocked_id:
                     type: integer

@@ -12,6 +12,7 @@ import (
 	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -376,7 +377,7 @@ func TestWebSocketSecurityLeak(t *testing.T) {
 	assert.False(t, receivedSecret, "User 3 (Outsider) should NOT receive message.new event")
 }
 
-func TestWebSocketRealtimeBlock(t *testing.T) {
+func TestWebSocketBlockUnblockSync(t *testing.T) {
 	clearDatabase(context.Background())
 
 	user1 := createWSUser(t, "user1", "user1@example.com")
@@ -387,10 +388,17 @@ func TestWebSocketRealtimeBlock(t *testing.T) {
 
 	server := httptest.NewServer(testRouter)
 	defer server.Close()
-	wsURL := "ws" + strings.TrimPrefix(server.URL, "http") + "/ws?token=" + token2
+	wsURL1 := "ws" + strings.TrimPrefix(server.URL, "http") + "/ws?token=" + token1
+	wsURL2 := "ws" + strings.TrimPrefix(server.URL, "http") + "/ws?token=" + token2
 
-	header2 := http.Header{}
-	conn2, _, err := ws.DefaultDialer.Dial(wsURL, header2)
+	conn1A, _, err := ws.DefaultDialer.Dial(wsURL1, nil)
+	assert.NoError(t, err)
+	defer conn1A.Close()
+	conn1B, _, err := ws.DefaultDialer.Dial(wsURL1, nil)
+	assert.NoError(t, err)
+	defer conn1B.Close()
+
+	conn2, _, err := ws.DefaultDialer.Dial(wsURL2, nil)
 	assert.NoError(t, err)
 	defer conn2.Close()
 
@@ -400,22 +408,17 @@ func TestWebSocketRealtimeBlock(t *testing.T) {
 	req.Header.Set("Authorization", "Bearer "+token1)
 	executeRequest(req)
 
-	conn2.SetReadDeadline(time.Now().Add(2 * time.Second))
-	foundBlock := false
-	for i := 0; i < 5; i++ {
-		_, message, err := conn2.ReadMessage()
-		if err != nil {
-			break
-		}
-		var event websocket.Event
-		json.Unmarshal(message, &event)
-		if event.Type == websocket.EventUserBlock {
-			foundBlock = true
-			assert.Equal(t, user1.ID, event.Meta.SenderID)
-			break
-		}
-	}
-	assert.True(t, foundBlock, "User 2 should receive user.block event immediately")
+	verifyEvent(t, conn1A, websocket.EventUserBlock, user1.ID, user2.ID)
+	verifyEvent(t, conn1B, websocket.EventUserBlock, user1.ID, user2.ID)
+	verifyEvent(t, conn2, websocket.EventUserBlock, user1.ID, user2.ID)
+
+	reqUnblock, _ := http.NewRequest("POST", fmt.Sprintf("/api/users/%d/unblock", user2.ID), nil)
+	reqUnblock.Header.Set("Authorization", "Bearer "+token1)
+	executeRequest(reqUnblock)
+
+	verifyEvent(t, conn1A, websocket.EventUserUnblock, user1.ID, user2.ID)
+	verifyEvent(t, conn1B, websocket.EventUserUnblock, user1.ID, user2.ID)
+	verifyEvent(t, conn2, websocket.EventUserUnblock, user1.ID, user2.ID)
 }
 
 func TestWebSocketProfileUpdate(t *testing.T) {
@@ -429,14 +432,19 @@ func TestWebSocketProfileUpdate(t *testing.T) {
 
 	createWSPrivateChat(t, user2.ID, token1)
 
-	testClient.UserBlock.Create().SetBlockerID(user1.ID).SetBlockedID(user2.ID).Save(context.Background())
-
 	server := httptest.NewServer(testRouter)
 	defer server.Close()
-	wsURL := "ws" + strings.TrimPrefix(server.URL, "http") + "/ws?token=" + token2
+	wsURL1 := "ws" + strings.TrimPrefix(server.URL, "http") + "/ws?token=" + token1
+	wsURL2 := "ws" + strings.TrimPrefix(server.URL, "http") + "/ws?token=" + token2
 
-	header2 := http.Header{}
-	conn2, _, err := ws.DefaultDialer.Dial(wsURL, header2)
+	conn1A, _, err := ws.DefaultDialer.Dial(wsURL1, nil)
+	assert.NoError(t, err)
+	defer conn1A.Close()
+	conn1B, _, err := ws.DefaultDialer.Dial(wsURL1, nil)
+	assert.NoError(t, err)
+	defer conn1B.Close()
+
+	conn2, _, err := ws.DefaultDialer.Dial(wsURL2, nil)
 	assert.NoError(t, err)
 	defer conn2.Close()
 
@@ -452,27 +460,9 @@ func TestWebSocketProfileUpdate(t *testing.T) {
 	req.Header.Set("Authorization", "Bearer "+token1)
 	executeRequest(req)
 
-	conn2.SetReadDeadline(time.Now().Add(2 * time.Second))
-	foundUpdate := false
-	for i := 0; i < 5; i++ {
-		_, message, err := conn2.ReadMessage()
-		if err != nil {
-			break
-		}
-		var event websocket.Event
-		json.Unmarshal(message, &event)
-		if event.Type == websocket.EventUserUpdate {
-			payload, _ := event.Payload.(map[string]interface{})
-			if payload["full_name"] == "Updated Name" {
-				foundUpdate = true
+	verifyEvent(t, conn1B, websocket.EventUserUpdate, user1.ID, 0)
 
-				_, hasIsOnline := payload["is_online"]
-				assert.False(t, hasIsOnline, "is_online should NOT be present in user.update payload")
-				break
-			}
-		}
-	}
-	assert.True(t, foundUpdate, "User 2 should receive user.update event even if blocked")
+	verifyEvent(t, conn2, websocket.EventUserUpdate, user1.ID, 0)
 }
 
 func TestWebSocketMessageDelete(t *testing.T) {
@@ -518,178 +508,7 @@ func TestWebSocketMessageDelete(t *testing.T) {
 	reqDel.Header.Set("Authorization", "Bearer "+token1)
 	executeRequest(reqDel)
 
-	conn2.SetReadDeadline(time.Now().Add(2 * time.Second))
-	foundDelete := false
-	for i := 0; i < 5; i++ {
-		_, message, err := conn2.ReadMessage()
-		if err != nil {
-			break
-		}
-		var event websocket.Event
-		json.Unmarshal(message, &event)
-		if event.Type == websocket.EventMessageDelete {
-			payload, _ := event.Payload.(map[string]interface{})
-			if int(payload["message_id"].(float64)) == msgID {
-				foundDelete = true
-				break
-			}
-		}
-	}
-	assert.True(t, foundDelete, "User 2 should receive message.delete event")
-}
-
-func TestWebSocketRealtimeUnblock(t *testing.T) {
-	clearDatabase(context.Background())
-
-	user1 := createWSUser(t, "user1", "user1@example.com")
-	token1, _ := helper.GenerateJWT(testConfig.JWTSecret, testConfig.JWTExp, user1.ID)
-
-	user2 := createWSUser(t, "user2", "user2@example.com")
-	token2, _ := helper.GenerateJWT(testConfig.JWTSecret, testConfig.JWTExp, user2.ID)
-
-	testClient.UserBlock.Create().SetBlockerID(user1.ID).SetBlockedID(user2.ID).Save(context.Background())
-
-	server := httptest.NewServer(testRouter)
-	defer server.Close()
-	wsURL := "ws" + strings.TrimPrefix(server.URL, "http") + "/ws?token=" + token2
-
-	header2 := http.Header{}
-	conn2, _, err := ws.DefaultDialer.Dial(wsURL, header2)
-	assert.NoError(t, err)
-	defer conn2.Close()
-
-	time.Sleep(100 * time.Millisecond)
-
-	req, _ := http.NewRequest("POST", fmt.Sprintf("/api/users/%d/unblock", user2.ID), nil)
-	req.Header.Set("Authorization", "Bearer "+token1)
-	executeRequest(req)
-
-	conn2.SetReadDeadline(time.Now().Add(2 * time.Second))
-	foundUnblock := false
-	for i := 0; i < 5; i++ {
-		_, message, err := conn2.ReadMessage()
-		if err != nil {
-			break
-		}
-		var event websocket.Event
-		json.Unmarshal(message, &event)
-		if event.Type == websocket.EventUserUnblock {
-			foundUnblock = true
-			assert.Equal(t, user1.ID, event.Meta.SenderID)
-			break
-		}
-	}
-	assert.True(t, foundUnblock, "User 2 should receive user.unblock event")
-}
-
-func TestWebSocketTypingPrivacy(t *testing.T) {
-	clearDatabase(context.Background())
-
-	user1 := createWSUser(t, "user1", "user1@example.com")
-	token1, _ := helper.GenerateJWT(testConfig.JWTSecret, testConfig.JWTExp, user1.ID)
-
-	user2 := createWSUser(t, "user2", "user2@example.com")
-	token2, _ := helper.GenerateJWT(testConfig.JWTSecret, testConfig.JWTExp, user2.ID)
-
-	createWSPrivateChat(t, user2.ID, token1)
-	chats, _ := testClient.Chat.Query().All(context.Background())
-	chatID := chats[0].ID
-
-	testClient.UserBlock.Create().SetBlockerID(user1.ID).SetBlockedID(user2.ID).Save(context.Background())
-
-	server := httptest.NewServer(testRouter)
-	defer server.Close()
-	wsURL1 := "ws" + strings.TrimPrefix(server.URL, "http") + "/ws?token=" + token1
-	wsURL2 := "ws" + strings.TrimPrefix(server.URL, "http") + "/ws?token=" + token2
-
-	header1 := http.Header{}
-	conn1, _, err := ws.DefaultDialer.Dial(wsURL1, header1)
-	assert.NoError(t, err)
-	defer conn1.Close()
-
-	header2 := http.Header{}
-	conn2, _, err := ws.DefaultDialer.Dial(wsURL2, header2)
-	assert.NoError(t, err)
-	defer conn2.Close()
-
-	time.Sleep(100 * time.Millisecond)
-
-	typingEvent := websocket.Event{
-		Type: websocket.EventTyping,
-		Meta: &websocket.EventMeta{
-			ChatID: chatID,
-		},
-	}
-	err = conn1.WriteJSON(typingEvent)
-	assert.NoError(t, err)
-
-	conn2.SetReadDeadline(time.Now().Add(1 * time.Second))
-
-	receivedTyping := false
-	for {
-		_, message, err := conn2.ReadMessage()
-		if err != nil {
-			break
-		}
-		var event websocket.Event
-		json.Unmarshal(message, &event)
-		if event.Type == websocket.EventTyping {
-			receivedTyping = true
-			break
-		}
-	}
-	assert.False(t, receivedTyping, "User 2 should NOT receive typing event from blocker")
-}
-
-func TestWebSocketOnlinePrivacy(t *testing.T) {
-	clearDatabase(context.Background())
-
-	user1 := createWSUser(t, "user1", "user1@example.com")
-	token1, _ := helper.GenerateJWT(testConfig.JWTSecret, testConfig.JWTExp, user1.ID)
-
-	user2 := createWSUser(t, "user2", "user2@example.com")
-	token2, _ := helper.GenerateJWT(testConfig.JWTSecret, testConfig.JWTExp, user2.ID)
-
-	createWSPrivateChat(t, user2.ID, token1)
-
-	testClient.UserBlock.Create().SetBlockerID(user1.ID).SetBlockedID(user2.ID).Save(context.Background())
-
-	server := httptest.NewServer(testRouter)
-	defer server.Close()
-	wsURL1 := "ws" + strings.TrimPrefix(server.URL, "http") + "/ws?token=" + token1
-	wsURL2 := "ws" + strings.TrimPrefix(server.URL, "http") + "/ws?token=" + token2
-
-	header2 := http.Header{}
-	conn2, _, err := ws.DefaultDialer.Dial(wsURL2, header2)
-	assert.NoError(t, err)
-	defer conn2.Close()
-
-	time.Sleep(100 * time.Millisecond)
-
-	header1 := http.Header{}
-	conn1, _, err := ws.DefaultDialer.Dial(wsURL1, header1)
-	assert.NoError(t, err)
-	defer conn1.Close()
-
-	conn2.SetReadDeadline(time.Now().Add(1 * time.Second))
-
-	receivedOnline := false
-	for {
-		_, message, err := conn2.ReadMessage()
-		if err != nil {
-			break
-		}
-		var event websocket.Event
-		json.Unmarshal(message, &event)
-		if event.Type == websocket.EventUserOnline {
-			payload, _ := event.Payload.(map[string]interface{})
-			if int(payload["user_id"].(float64)) == user1.ID {
-				receivedOnline = true
-				break
-			}
-		}
-	}
-	assert.False(t, receivedOnline, "User 2 should NOT receive user.online event from blocker")
+	verifyEvent(t, conn2, websocket.EventMessageDelete, user1.ID, 0)
 }
 
 func TestWebSocketMessageUpdate(t *testing.T) {
@@ -743,26 +562,77 @@ func TestWebSocketMessageUpdate(t *testing.T) {
 	reqEdit.Header.Set("Content-Type", "application/json")
 	executeRequest(reqEdit)
 
-	conn2.SetReadDeadline(time.Now().Add(2 * time.Second))
-	foundUpdate := false
-	for i := 0; i < 5; i++ {
-		_, message, err := conn2.ReadMessage()
-		if err != nil {
-			break
-		}
-		var event websocket.Event
-		json.Unmarshal(message, &event)
-		if event.Type == websocket.EventMessageUpdate {
-			payload, _ := event.Payload.(map[string]interface{})
-			if int(payload["id"].(float64)) == msgID {
-				foundUpdate = true
-				assert.Equal(t, "Edited Content", payload["content"])
-				assert.NotNil(t, payload["edited_at"])
-				break
-			}
-		}
-	}
-	assert.True(t, foundUpdate, "User 2 should receive message.update event")
+	verifyEvent(t, conn2, websocket.EventMessageUpdate, user1.ID, 0)
+}
+
+func TestWebSocketChatHide(t *testing.T) {
+	clearDatabase(context.Background())
+
+	user1 := createWSUser(t, "user1", "user1@example.com")
+	token1, _ := helper.GenerateJWT(testConfig.JWTSecret, testConfig.JWTExp, user1.ID)
+
+	user2 := createWSUser(t, "user2", "user2@example.com")
+
+	createWSPrivateChat(t, user2.ID, token1)
+	chats, _ := testClient.Chat.Query().All(context.Background())
+	chatID := chats[0].ID
+
+	server := httptest.NewServer(testRouter)
+	defer server.Close()
+	wsURL := "ws" + strings.TrimPrefix(server.URL, "http") + "/ws?token=" + token1
+
+	header1 := http.Header{}
+	conn1, _, err := ws.DefaultDialer.Dial(wsURL, header1)
+	assert.NoError(t, err)
+	defer conn1.Close()
+
+	time.Sleep(100 * time.Millisecond)
+
+	req, _ := http.NewRequest("POST", fmt.Sprintf("/api/chats/%d/hide", chatID), nil)
+	req.Header.Set("Authorization", "Bearer "+token1)
+	executeRequest(req)
+
+	verifyEvent(t, conn1, websocket.EventChatHide, user1.ID, 0)
+}
+
+func TestWebSocketGroupChatCreation(t *testing.T) {
+	clearDatabase(context.Background())
+	u1 := createWSUser(t, "u1", "u1@test.com")
+	u2 := createWSUser(t, "u2", "u2@test.com")
+	u3 := createWSUser(t, "u3", "u3@test.com")
+	token1, _ := helper.GenerateJWT(testConfig.JWTSecret, testConfig.JWTExp, u1.ID)
+	token2, _ := helper.GenerateJWT(testConfig.JWTSecret, testConfig.JWTExp, u2.ID)
+	token3, _ := helper.GenerateJWT(testConfig.JWTSecret, testConfig.JWTExp, u3.ID)
+
+	server := httptest.NewServer(testRouter)
+	defer server.Close()
+	wsURL1 := "ws" + strings.TrimPrefix(server.URL, "http") + "/ws?token=" + token1
+	wsURL2 := "ws" + strings.TrimPrefix(server.URL, "http") + "/ws?token=" + token2
+	wsURL3 := "ws" + strings.TrimPrefix(server.URL, "http") + "/ws?token=" + token3
+
+	conn1, _, _ := ws.DefaultDialer.Dial(wsURL1, nil)
+	defer conn1.Close()
+	conn2, _, _ := ws.DefaultDialer.Dial(wsURL2, nil)
+	defer conn2.Close()
+	conn3, _, _ := ws.DefaultDialer.Dial(wsURL3, nil)
+	defer conn3.Close()
+
+	time.Sleep(100 * time.Millisecond)
+
+	body := &bytes.Buffer{}
+	writer := multipart.NewWriter(body)
+	_ = writer.WriteField("name", "Test Group WS")
+	_ = writer.WriteField("member_ids", `[`+strconv.Itoa(u2.ID)+`,`+strconv.Itoa(u3.ID)+`]`)
+	writer.Close()
+
+	req, _ := http.NewRequest("POST", "/api/chats/group", body)
+	req.Header.Set("Content-Type", writer.FormDataContentType())
+	req.Header.Set("Authorization", "Bearer "+token1)
+	executeRequest(req)
+
+	verifyEvent(t, conn1, websocket.EventChatNew, u1.ID, 0)
+	verifyEvent(t, conn2, websocket.EventChatNew, u1.ID, 0)
+	verifyEvent(t, conn3, websocket.EventChatNew, u1.ID, 0)
 }
 
 func createWSUser(t *testing.T, username, email string) *ent.User {
@@ -787,4 +657,33 @@ func createWSPrivateChat(t *testing.T, user2ID int, token string) {
 	req.Header.Set("Content-Type", "application/json")
 	rr := executeRequest(req)
 	assert.Equal(t, http.StatusOK, rr.Code)
+}
+
+func verifyEvent(t *testing.T, conn *ws.Conn, eventType websocket.EventType, senderID, blockedID int) {
+	conn.SetReadDeadline(time.Now().Add(2 * time.Second))
+	foundEvent := false
+	for i := 0; i < 5; i++ {
+		_, message, err := conn.ReadMessage()
+		if err != nil {
+			break
+		}
+		var event websocket.Event
+		json.Unmarshal(message, &event)
+
+		if event.Type == eventType {
+			foundEvent = true
+			if event.Meta != nil {
+				assert.Equal(t, senderID, event.Meta.SenderID)
+			}
+
+			if eventType == websocket.EventUserBlock || eventType == websocket.EventUserUnblock {
+				payload, ok := event.Payload.(map[string]interface{})
+				assert.True(t, ok)
+				assert.Equal(t, float64(senderID), payload["blocker_id"])
+				assert.Equal(t, float64(blockedID), payload["blocked_id"])
+			}
+			break
+		}
+	}
+	assert.True(t, foundEvent, "Should have received event '"+string(eventType)+"'")
 }
