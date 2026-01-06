@@ -117,7 +117,12 @@ func TestMain(m *testing.M) {
 	accountController := controller.NewAccountController(accountService)
 
 	chatService := service.NewChatService(testClient, repo, testConfig, validator, testHub, storageAdapter)
+	privateChatService := service.NewPrivateChatService(testClient, testConfig, validator, testHub)
+	groupChatService := service.NewGroupChatService(testClient, testConfig, validator, testHub, storageAdapter)
+
 	chatController := controller.NewChatController(chatService)
+	privateChatController := controller.NewPrivateChatController(privateChatService)
+	groupChatController := controller.NewGroupChatController(groupChatService)
 
 	messageService := service.NewMessageService(testClient, repo, testConfig, validator, storageAdapter, testHub)
 	messageController := controller.NewMessageController(messageService)
@@ -129,7 +134,7 @@ func TestMain(m *testing.M) {
 
 	authMiddleware := middleware.NewAuthMiddleware(authService)
 
-	route := bootstrap.NewRoute(testConfig, testRouter, authController, otpController, userController, accountController, chatController, messageController, mediaController, wsController, authMiddleware)
+	route := bootstrap.NewRoute(testConfig, testRouter, authController, otpController, userController, accountController, chatController, privateChatController, groupChatController, messageController, mediaController, wsController, authMiddleware)
 	route.Register()
 
 	code := m.Run()

@@ -39,7 +39,12 @@ func Init(appConfig *config.AppConfig, client *ent.Client, validator *validator.
 	accountController := controller.NewAccountController(accountService)
 
 	chatService := service.NewChatService(client, repo, appConfig, validator, wsHub, storageAdapter)
+	privateChatService := service.NewPrivateChatService(client, appConfig, validator, wsHub)
+	groupChatService := service.NewGroupChatService(client, appConfig, validator, wsHub, storageAdapter)
+
 	chatController := controller.NewChatController(chatService)
+	privateChatController := controller.NewPrivateChatController(privateChatService)
+	groupChatController := controller.NewGroupChatController(groupChatService)
 
 	messageService := service.NewMessageService(client, repo, appConfig, validator, storageAdapter, wsHub)
 	messageController := controller.NewMessageController(messageService)
@@ -51,6 +56,6 @@ func Init(appConfig *config.AppConfig, client *ent.Client, validator *validator.
 
 	authMiddleware := middleware.NewAuthMiddleware(authService)
 
-	route := NewRoute(appConfig, chiMux, authController, otpController, userController, accountController, chatController, messageController, mediaController, wsController, authMiddleware)
+	route := NewRoute(appConfig, chiMux, authController, otpController, userController, accountController, chatController, privateChatController, groupChatController, messageController, mediaController, wsController, authMiddleware)
 	route.Register()
 }
