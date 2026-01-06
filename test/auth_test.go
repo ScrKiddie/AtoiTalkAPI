@@ -5,7 +5,6 @@ import (
 	"AtoiTalkAPI/ent/otp"
 	"AtoiTalkAPI/ent/user"
 	"AtoiTalkAPI/ent/useridentity"
-	"AtoiTalkAPI/internal/constant"
 	"AtoiTalkAPI/internal/helper"
 	"AtoiTalkAPI/internal/model"
 	"bytes"
@@ -547,7 +546,7 @@ func TestResetPassword(t *testing.T) {
 		hashedCode := helper.HashOTP(validCode, testConfig.OTPSecret)
 		testClient.OTP.Update().
 			Where(otp.Email(validEmail)).
-			SetMode(otp.Mode(constant.OTPModeReset)).
+			SetMode(otp.Mode(otp.ModeReset)).
 			SetCode(hashedCode).
 			Exec(context.Background())
 
@@ -584,7 +583,7 @@ func TestResetPassword(t *testing.T) {
 		hashedCode := helper.HashOTP(validCode, testConfig.OTPSecret)
 		testClient.OTP.Update().
 			Where(otp.Email("nonexistent@example.com")).
-			SetMode(otp.Mode(constant.OTPModeReset)).
+			SetMode(otp.Mode(otp.ModeReset)).
 			SetCode(hashedCode).
 			Exec(context.Background())
 
@@ -625,7 +624,7 @@ func TestResetPassword(t *testing.T) {
 		hashedCode := helper.HashOTP(validCode, testConfig.OTPSecret)
 		testClient.OTP.Update().
 			Where(otp.Email(validEmail)).
-			SetMode(otp.Mode(constant.OTPModeReset)).
+			SetMode(otp.Mode(otp.ModeReset)).
 			SetCode(hashedCode).
 			Exec(context.Background())
 

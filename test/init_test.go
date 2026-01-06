@@ -2,10 +2,10 @@ package test
 
 import (
 	"AtoiTalkAPI/ent"
+	"AtoiTalkAPI/ent/otp"
 	"AtoiTalkAPI/internal/adapter"
 	"AtoiTalkAPI/internal/bootstrap"
 	"AtoiTalkAPI/internal/config"
-	"AtoiTalkAPI/internal/constant"
 	"AtoiTalkAPI/internal/controller"
 	"AtoiTalkAPI/internal/helper"
 	"AtoiTalkAPI/internal/middleware"
@@ -118,7 +118,7 @@ func TestMain(m *testing.M) {
 
 	chatService := service.NewChatService(testClient, repo, testConfig, validator, testHub, storageAdapter)
 	privateChatService := service.NewPrivateChatService(testClient, testConfig, validator, testHub)
-	groupChatService := service.NewGroupChatService(testClient, testConfig, validator, testHub, storageAdapter)
+	groupChatService := service.NewGroupChatService(testClient, repo, testConfig, validator, testHub, storageAdapter)
 
 	chatController := controller.NewChatController(chatService)
 	privateChatController := controller.NewPrivateChatController(privateChatService)
@@ -185,7 +185,7 @@ func createOTP(email, code string, expiresAt time.Time) {
 	testClient.OTP.Create().
 		SetEmail(email).
 		SetCode(hashedCode).
-		SetMode(constant.OTPModeRegister).
+		SetMode(otp.ModeRegister).
 		SetExpiresAt(expiresAt).
 		Exec(context.Background())
 }

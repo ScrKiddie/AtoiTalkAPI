@@ -3,6 +3,7 @@ package service
 import (
 	"AtoiTalkAPI/ent"
 	"AtoiTalkAPI/ent/chat"
+	"AtoiTalkAPI/ent/groupchat"
 	"AtoiTalkAPI/ent/groupmember"
 	"AtoiTalkAPI/ent/media"
 	"AtoiTalkAPI/ent/user"
@@ -11,6 +12,7 @@ import (
 	"AtoiTalkAPI/internal/config"
 	"AtoiTalkAPI/internal/helper"
 	"AtoiTalkAPI/internal/model"
+	"AtoiTalkAPI/internal/repository"
 	"AtoiTalkAPI/internal/websocket"
 	"context"
 	"log/slog"
@@ -23,15 +25,17 @@ import (
 
 type GroupChatService struct {
 	client         *ent.Client
+	repo           *repository.Repository
 	cfg            *config.AppConfig
 	validator      *validator.Validate
 	wsHub          *websocket.Hub
 	storageAdapter *adapter.StorageAdapter
 }
 
-func NewGroupChatService(client *ent.Client, cfg *config.AppConfig, validator *validator.Validate, wsHub *websocket.Hub, storageAdapter *adapter.StorageAdapter) *GroupChatService {
+func NewGroupChatService(client *ent.Client, repo *repository.Repository, cfg *config.AppConfig, validator *validator.Validate, wsHub *websocket.Hub, storageAdapter *adapter.StorageAdapter) *GroupChatService {
 	return &GroupChatService{
 		client:         client,
+		repo:           repo,
 		cfg:            cfg,
 		validator:      validator,
 		wsHub:          wsHub,
@@ -147,7 +151,7 @@ func (s *GroupChatService) CreateGroupChat(ctx context.Context, creatorID int, r
 	memberCreates = append(memberCreates, tx.GroupMember.Create().
 		SetGroupChat(newGroupChat).
 		SetUserID(creatorID).
-		SetRole(groupmember.RoleAdmin))
+		SetRole(groupmember.RoleOwner))
 
 	for _, memberID := range req.MemberIDs {
 		memberCreates = append(memberCreates, tx.GroupMember.Create().
@@ -209,4 +213,52 @@ func (s *GroupChatService) CreateGroupChat(ctx context.Context, creatorID int, r
 		Type:      string(newChat.Type),
 		CreatedAt: newChat.CreatedAt.Format(time.RFC3339),
 	}, nil
+}
+
+func (s *GroupChatService) SearchGroupMembers(ctx context.Context, userID int, req model.SearchGroupMembersRequest) ([]model.GroupMemberDTO, string, bool, error) {
+	if err := s.validator.Struct(req); err != nil {
+		return nil, "", false, helper.NewBadRequestError("")
+	}
+
+	if req.Limit == 0 {
+		req.Limit = 20
+	}
+
+	gc, err := s.client.GroupChat.Query().
+		Where(groupchat.ChatID(req.GroupID)).
+		Only(ctx)
+	if err != nil {
+		if ent.IsNotFound(err) {
+			return nil, "", false, helper.NewNotFoundError("Group chat not found")
+		}
+		slog.Error("Failed to query group chat", "error", err)
+		return nil, "", false, helper.NewInternalServerError("")
+	}
+
+	isMember, err := s.client.GroupMember.Query().
+		Where(
+			groupmember.GroupChatID(gc.ID),
+			groupmember.UserID(userID),
+		).
+		Exist(ctx)
+	if err != nil {
+		slog.Error("Failed to check group membership", "error", err)
+		return nil, "", false, helper.NewInternalServerError("")
+	}
+	if !isMember {
+		return nil, "", false, helper.NewForbiddenError("You are not a member of this group")
+	}
+
+	members, nextCursor, hasNext, err := s.repo.GroupMember.SearchGroupMembers(ctx, gc.ID, req.Query, req.Cursor, req.Limit)
+	if err != nil {
+		slog.Error("Failed to search group members", "error", err)
+		return nil, "", false, helper.NewInternalServerError("")
+	}
+
+	var memberDTOs []model.GroupMemberDTO
+	for _, m := range members {
+		memberDTOs = append(memberDTOs, helper.ToGroupMemberDTO(m, s.cfg.StorageMode, s.cfg.AppURL, s.cfg.StorageCDNURL, s.cfg.StorageProfile))
+	}
+
+	return memberDTOs, nextCursor, hasNext, nil
 }

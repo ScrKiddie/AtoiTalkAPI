@@ -18,7 +18,7 @@ func (GroupMember) Fields() []ent.Field {
 	return []ent.Field{
 		field.Int("group_chat_id"),
 		field.Int("user_id"),
-		field.Enum("role").Values("admin", "member").Default("member"),
+		field.Enum("role").Values("owner", "admin", "member").Default("member"),
 		field.Time("last_read_at").Optional().Nillable(),
 		field.Time("joined_at").Default(time.Now).Immutable(),
 		field.Int("unread_count").Default(0),

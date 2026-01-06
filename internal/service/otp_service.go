@@ -6,7 +6,6 @@ import (
 	"AtoiTalkAPI/ent/user"
 	"AtoiTalkAPI/internal/adapter"
 	"AtoiTalkAPI/internal/config"
-	"AtoiTalkAPI/internal/constant"
 	"AtoiTalkAPI/internal/helper"
 	"AtoiTalkAPI/internal/model"
 	"context"
@@ -65,11 +64,13 @@ func (s *OTPService) SendOTP(ctx context.Context, req model.SendOTPRequest) erro
 		return helper.NewInternalServerError("")
 	}
 
-	if (req.Mode == constant.OTPModeRegister || req.Mode == constant.OTPModeChangeEmail) && userExists {
+	mode := otp.Mode(req.Mode)
+
+	if (mode == otp.ModeRegister || mode == otp.ModeChangeEmail) && userExists {
 		return helper.NewConflictError("Email already registered")
 	}
 
-	if req.Mode == constant.OTPModeReset && !userExists {
+	if mode == otp.ModeReset && !userExists {
 		return helper.NewNotFoundError("")
 	}
 
@@ -102,14 +103,14 @@ func (s *OTPService) SendOTP(ctx context.Context, req model.SendOTPRequest) erro
 	if existing != nil {
 		err = s.client.OTP.UpdateOne(existing).
 			SetCode(hashedCode).
-			SetMode(otp.Mode(req.Mode)).
+			SetMode(mode).
 			SetExpiresAt(expiresAt).
 			Exec(ctx)
 	} else {
 		err = s.client.OTP.Create().
 			SetEmail(req.Email).
 			SetCode(hashedCode).
-			SetMode(otp.Mode(req.Mode)).
+			SetMode(mode).
 			SetExpiresAt(expiresAt).
 			Exec(ctx)
 	}

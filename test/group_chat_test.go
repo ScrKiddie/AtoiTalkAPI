@@ -6,6 +6,8 @@ import (
 	"AtoiTalkAPI/internal/helper"
 	"bytes"
 	"context"
+	"encoding/json"
+	"fmt"
 	"io"
 	"mime/multipart"
 	"net/http"
@@ -53,17 +55,17 @@ func TestCreateGroupChat(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Len(t, members, 3)
 
-		adminCount := 0
+		ownerCount := 0
 		memberCount := 0
 		for _, m := range members {
-			if m.UserID == u1.ID && m.Role == groupmember.RoleAdmin {
-				adminCount++
+			if m.UserID == u1.ID && m.Role == groupmember.RoleOwner {
+				ownerCount++
 			}
 			if (m.UserID == u2.ID || m.UserID == u3.ID) && m.Role == groupmember.RoleMember {
 				memberCount++
 			}
 		}
-		assert.Equal(t, 1, adminCount, "Creator should be admin")
+		assert.Equal(t, 1, ownerCount, "Creator should be owner")
 		assert.Equal(t, 2, memberCount, "Other users should be members")
 	})
 
@@ -188,5 +190,111 @@ func TestCreateGroupChat(t *testing.T) {
 
 		rr := executeRequest(req)
 		assert.Equal(t, http.StatusBadRequest, rr.Code)
+	})
+}
+
+func TestSearchGroupMembers(t *testing.T) {
+	clearDatabase(context.Background())
+	u1 := testClient.User.Create().SetEmail("u1@test.com").SetUsername("alpha").SetFullName("Alpha User").SaveX(context.Background())
+	u2 := testClient.User.Create().SetEmail("u2@test.com").SetUsername("beta").SetFullName("Beta User").SaveX(context.Background())
+	u3 := testClient.User.Create().SetEmail("u3@test.com").SetUsername("gamma").SetFullName("Gamma User").SaveX(context.Background())
+	u4 := testClient.User.Create().SetEmail("u4@test.com").SetUsername("delta").SetFullName("Delta User").SaveX(context.Background())
+
+	token1, _ := helper.GenerateJWT(testConfig.JWTSecret, testConfig.JWTExp, u1.ID)
+	token4, _ := helper.GenerateJWT(testConfig.JWTSecret, testConfig.JWTExp, u4.ID)
+
+	chatEntity := testClient.Chat.Create().SetType("group").SaveX(context.Background())
+	gc := testClient.GroupChat.Create().SetChat(chatEntity).SetCreator(u1).SetName("Search Test Group").SaveX(context.Background())
+	testClient.GroupMember.Create().SetGroupChat(gc).SetUser(u1).SetRole(groupmember.RoleOwner).SaveX(context.Background())
+	testClient.GroupMember.Create().SetGroupChat(gc).SetUser(u2).SetRole(groupmember.RoleMember).SaveX(context.Background())
+	testClient.GroupMember.Create().SetGroupChat(gc).SetUser(u3).SetRole(groupmember.RoleMember).SaveX(context.Background())
+
+	t.Run("Success - Get All Members", func(t *testing.T) {
+		req, _ := http.NewRequest("GET", fmt.Sprintf("/api/chats/group/%d/members", chatEntity.ID), nil)
+		req.Header.Set("Authorization", "Bearer "+token1)
+
+		rr := executeRequest(req)
+		assert.Equal(t, http.StatusOK, rr.Code)
+
+		var resp helper.ResponseWithPagination
+		json.Unmarshal(rr.Body.Bytes(), &resp)
+		dataList := resp.Data.([]interface{})
+
+		assert.Len(t, dataList, 3)
+		assert.False(t, resp.Meta.HasNext)
+	})
+
+	t.Run("Success - Search by Username", func(t *testing.T) {
+		req, _ := http.NewRequest("GET", fmt.Sprintf("/api/chats/group/%d/members?query=beta", chatEntity.ID), nil)
+		req.Header.Set("Authorization", "Bearer "+token1)
+
+		rr := executeRequest(req)
+		assert.Equal(t, http.StatusOK, rr.Code)
+
+		var resp helper.ResponseWithPagination
+		json.Unmarshal(rr.Body.Bytes(), &resp)
+		dataList := resp.Data.([]interface{})
+
+		assert.Len(t, dataList, 1)
+		member := dataList[0].(map[string]interface{})
+		assert.Equal(t, "beta", member["username"])
+	})
+
+	t.Run("Success - Search by Full Name", func(t *testing.T) {
+		req, _ := http.NewRequest("GET", fmt.Sprintf("/api/chats/group/%d/members?query=Gamma", chatEntity.ID), nil)
+		req.Header.Set("Authorization", "Bearer "+token1)
+
+		rr := executeRequest(req)
+		assert.Equal(t, http.StatusOK, rr.Code)
+
+		var resp helper.ResponseWithPagination
+		json.Unmarshal(rr.Body.Bytes(), &resp)
+		dataList := resp.Data.([]interface{})
+
+		assert.Len(t, dataList, 1)
+		member := dataList[0].(map[string]interface{})
+		assert.Equal(t, "Gamma User", member["full_name"])
+	})
+
+	t.Run("Success - Pagination", func(t *testing.T) {
+
+		req1, _ := http.NewRequest("GET", fmt.Sprintf("/api/chats/group/%d/members?limit=2", chatEntity.ID), nil)
+		req1.Header.Set("Authorization", "Bearer "+token1)
+		rr1 := executeRequest(req1)
+		assert.Equal(t, http.StatusOK, rr1.Code)
+
+		var resp1 helper.ResponseWithPagination
+		json.Unmarshal(rr1.Body.Bytes(), &resp1)
+		dataList1 := resp1.Data.([]interface{})
+		assert.Len(t, dataList1, 2)
+		assert.True(t, resp1.Meta.HasNext)
+		assert.NotEmpty(t, resp1.Meta.NextCursor)
+
+		req2, _ := http.NewRequest("GET", fmt.Sprintf("/api/chats/group/%d/members?limit=2&cursor=%s", chatEntity.ID, resp1.Meta.NextCursor), nil)
+		req2.Header.Set("Authorization", "Bearer "+token1)
+		rr2 := executeRequest(req2)
+		assert.Equal(t, http.StatusOK, rr2.Code)
+
+		var resp2 helper.ResponseWithPagination
+		json.Unmarshal(rr2.Body.Bytes(), &resp2)
+		dataList2 := resp2.Data.([]interface{})
+		assert.Len(t, dataList2, 1)
+		assert.False(t, resp2.Meta.HasNext)
+	})
+
+	t.Run("Fail - Not a Member", func(t *testing.T) {
+		req, _ := http.NewRequest("GET", fmt.Sprintf("/api/chats/group/%d/members", chatEntity.ID), nil)
+		req.Header.Set("Authorization", "Bearer "+token4)
+
+		rr := executeRequest(req)
+		assert.Equal(t, http.StatusForbidden, rr.Code)
+	})
+
+	t.Run("Fail - Group Not Found", func(t *testing.T) {
+		req, _ := http.NewRequest("GET", "/api/chats/group/99999/members", nil)
+		req.Header.Set("Authorization", "Bearer "+token1)
+
+		rr := executeRequest(req)
+		assert.Equal(t, http.StatusNotFound, rr.Code)
 	})
 }

@@ -1,7 +1,7 @@
 package config
 
 import (
-	"AtoiTalkAPI/internal/constant"
+	"AtoiTalkAPI/ent/otp"
 	"image"
 	_ "image/jpeg"
 	_ "image/png"
@@ -26,8 +26,8 @@ func NewValidator() *validator.Validate {
 }
 
 func validateOTPMode(fl validator.FieldLevel) bool {
-	mode := fl.Field().String()
-	return mode == constant.OTPModeRegister || mode == constant.OTPModeReset || mode == constant.OTPModeChangeEmail
+	mode := otp.Mode(fl.Field().String())
+	return mode == otp.ModeRegister || mode == otp.ModeReset || mode == otp.ModeChangeEmail
 }
 
 func validatePasswordComplexity(fl validator.FieldLevel) bool {
