@@ -143,3 +143,48 @@ func (c *GroupChatController) SearchGroupMembers(w http.ResponseWriter, r *http.
 
 	helper.WriteSuccessWithPagination(w, members, nextCursor, hasNext)
 }
+
+// AddMember godoc
+// @Summary      Add Member to Group
+// @Description  Add a new member to a group chat. Only owners or admins can perform this action.
+// @Tags         chat
+// @Accept       json
+// @Produce      json
+// @Param        groupID path int true "Group Chat ID"
+// @Param        request body model.AddGroupMemberRequest true "Add Member Request"
+// @Success      200  {object}  helper.ResponseSuccess
+// @Failure      400  {object}  helper.ResponseError
+// @Failure      401  {object}  helper.ResponseError
+// @Failure      403  {object}  helper.ResponseError
+// @Failure      404  {object}  helper.ResponseError
+// @Failure      409  {object}  helper.ResponseError
+// @Failure      500  {object}  helper.ResponseError
+// @Security     BearerAuth
+// @Router       /api/chats/group/{groupID}/members [post]
+func (c *GroupChatController) AddMember(w http.ResponseWriter, r *http.Request) {
+	userContext, ok := r.Context().Value(middleware.UserContextKey).(*model.UserDTO)
+	if !ok {
+		helper.WriteError(w, helper.NewUnauthorizedError(""))
+		return
+	}
+
+	groupID, err := strconv.Atoi(chi.URLParam(r, "groupID"))
+	if err != nil {
+		helper.WriteError(w, helper.NewBadRequestError(""))
+		return
+	}
+
+	var req model.AddGroupMemberRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		helper.WriteError(w, helper.NewBadRequestError(""))
+		return
+	}
+
+	err = c.groupChatService.AddMember(r.Context(), userContext.ID, groupID, req)
+	if err != nil {
+		helper.WriteError(w, err)
+		return
+	}
+
+	helper.WriteSuccess(w, nil)
+}

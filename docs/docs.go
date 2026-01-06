@@ -650,6 +650,86 @@ const docTemplate = `{
                         }
                     }
                 }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Add a new member to a group chat. Only owners or admins can perform this action.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "chat"
+                ],
+                "summary": "Add Member to Group",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Group Chat ID",
+                        "name": "groupID",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Add Member Request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.AddGroupMemberRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseSuccess"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    }
+                }
             }
         },
         "/api/chats/private": {
@@ -1939,6 +2019,17 @@ const docTemplate = `{
                 }
             }
         },
+        "model.AddGroupMemberRequest": {
+            "type": "object",
+            "required": [
+                "user_id"
+            ],
+            "properties": {
+                "user_id": {
+                    "type": "integer"
+                }
+            }
+        },
         "model.AuthResponse": {
             "type": "object",
             "properties": {
@@ -2149,6 +2240,10 @@ const docTemplate = `{
         "model.MessageResponse": {
             "type": "object",
             "properties": {
+                "action_data": {
+                    "type": "object",
+                    "additionalProperties": true
+                },
                 "attachments": {
                     "type": "array",
                     "items": {
@@ -2178,6 +2273,12 @@ const docTemplate = `{
                 },
                 "sender_id": {
                     "type": "integer"
+                },
+                "sender_name": {
+                    "type": "string"
+                },
+                "type": {
+                    "type": "string"
                 }
             }
         },
@@ -2221,6 +2322,10 @@ const docTemplate = `{
         "model.ReplyPreviewDTO": {
             "type": "object",
             "properties": {
+                "action_data": {
+                    "type": "object",
+                    "additionalProperties": true
+                },
                 "content": {
                     "type": "string"
                 },
@@ -2231,6 +2336,9 @@ const docTemplate = `{
                     "type": "integer"
                 },
                 "sender_name": {
+                    "type": "string"
+                },
+                "type": {
                     "type": "string"
                 }
             }

@@ -6,6 +6,7 @@ import (
 	"AtoiTalkAPI/ent/groupchat"
 	"AtoiTalkAPI/ent/groupmember"
 	"AtoiTalkAPI/ent/media"
+	"AtoiTalkAPI/ent/message"
 	"AtoiTalkAPI/ent/user"
 	"AtoiTalkAPI/ent/userblock"
 	"AtoiTalkAPI/internal/adapter"
@@ -103,9 +104,14 @@ func (s *GroupChatService) CreateGroupChat(ctx context.Context, creatorID int, r
 		defer file.Close()
 		fileToUpload = file
 
+		contentType, err := helper.DetectFileContentType(file)
+		if err != nil {
+			slog.Error("Failed to detect file content type", "error", err)
+			return nil, helper.NewInternalServerError("")
+		}
+
 		fileName := helper.GenerateUniqueFileName(req.Avatar.Filename)
 		filePath := filepath.Join(s.cfg.StorageProfile, fileName)
-		contentType := req.Avatar.Header.Get("Content-Type")
 
 		fileUploadPath = filePath
 		fileContentType = contentType
@@ -164,6 +170,28 @@ func (s *GroupChatService) CreateGroupChat(ctx context.Context, creatorID int, r
 		return nil, helper.NewInternalServerError("")
 	}
 
+	systemMsg, err := tx.Message.Create().
+		SetChatID(newChat.ID).
+		SetSenderID(creatorID).
+		SetType(message.TypeSystemCreate).
+		SetActionData(map[string]interface{}{
+			"initial_name": req.Name,
+		}).
+		Save(ctx)
+	if err != nil {
+		slog.Error("Failed to create system message for group creation", "error", err)
+		return nil, helper.NewInternalServerError("")
+	}
+
+	err = tx.Chat.UpdateOne(newChat).
+		SetLastMessage(systemMsg).
+		SetLastMessageAt(systemMsg.CreatedAt).
+		Exec(ctx)
+	if err != nil {
+		slog.Error("Failed to update chat with last message", "error", err)
+		return nil, helper.NewInternalServerError("")
+	}
+
 	if err := tx.Commit(); err != nil {
 		slog.Error("Failed to commit transaction for group creation", "error", err)
 		return nil, helper.NewInternalServerError("")
@@ -183,12 +211,22 @@ func (s *GroupChatService) CreateGroupChat(ctx context.Context, creatorID int, r
 				avatarURL = helper.BuildImageURL(s.cfg.StorageMode, s.cfg.AppURL, s.cfg.StorageCDNURL, s.cfg.StorageProfile, avatarMedia.FileName)
 			}
 
+			fullMsg, err := s.client.Message.Query().
+				Where(message.ID(systemMsg.ID)).
+				WithSender().
+				Only(context.Background())
+
+			var lastMsgResp *model.MessageResponse
+			if err == nil {
+				lastMsgResp = helper.ToMessageResponse(fullMsg, s.cfg.StorageMode, s.cfg.AppURL, s.cfg.StorageCDNURL, s.cfg.StorageAttachment)
+			}
+
 			payload := model.ChatListResponse{
 				ID:          newChat.ID,
 				Type:        string(newChat.Type),
 				Name:        newGroupChat.Name,
 				Avatar:      avatarURL,
-				LastMessage: nil,
+				LastMessage: lastMsgResp,
 				UnreadCount: 0,
 			}
 
@@ -196,7 +234,7 @@ func (s *GroupChatService) CreateGroupChat(ctx context.Context, creatorID int, r
 				Type:    websocket.EventChatNew,
 				Payload: payload,
 				Meta: &websocket.EventMeta{
-					Timestamp: time.Now().UnixMilli(),
+					Timestamp: time.Now().UTC().UnixMilli(),
 					ChatID:    newChat.ID,
 					SenderID:  creatorID,
 				},
@@ -261,4 +299,180 @@ func (s *GroupChatService) SearchGroupMembers(ctx context.Context, userID int, r
 	}
 
 	return memberDTOs, nextCursor, hasNext, nil
+}
+
+func (s *GroupChatService) AddMember(ctx context.Context, requestorID int, groupID int, req model.AddGroupMemberRequest) error {
+	if err := s.validator.Struct(req); err != nil {
+		return helper.NewBadRequestError("")
+	}
+
+	tx, err := s.client.Tx(ctx)
+	if err != nil {
+		slog.Error("Failed to start transaction", "error", err)
+		return helper.NewInternalServerError("")
+	}
+	defer tx.Rollback()
+
+	gc, err := tx.GroupChat.Query().
+		Where(groupchat.ChatID(groupID)).
+		WithAvatar().
+		WithChat().
+		Only(ctx)
+	if err != nil {
+		if ent.IsNotFound(err) {
+			return helper.NewNotFoundError("Group chat not found")
+		}
+		slog.Error("Failed to query group chat", "error", err)
+		return helper.NewInternalServerError("")
+	}
+
+	requestorMember, err := tx.GroupMember.Query().
+		Where(
+			groupmember.GroupChatID(gc.ID),
+			groupmember.UserID(requestorID),
+		).
+		Only(ctx)
+	if err != nil {
+		if ent.IsNotFound(err) {
+			return helper.NewForbiddenError("You are not a member of this group")
+		}
+		slog.Error("Failed to query requestor membership", "error", err)
+		return helper.NewInternalServerError("")
+	}
+
+	if requestorMember.Role != groupmember.RoleOwner && requestorMember.Role != groupmember.RoleAdmin {
+		return helper.NewForbiddenError("Only admins or owners can add members")
+	}
+
+	targetUser, err := tx.User.Query().
+		Where(user.ID(req.UserID)).
+		Only(ctx)
+	if err != nil {
+		if ent.IsNotFound(err) {
+			return helper.NewNotFoundError("User not found")
+		}
+		slog.Error("Failed to query target user", "error", err)
+		return helper.NewInternalServerError("")
+	}
+
+	exists, err := tx.GroupMember.Query().
+		Where(
+			groupmember.GroupChatID(gc.ID),
+			groupmember.UserID(req.UserID),
+		).
+		Exist(ctx)
+	if err != nil {
+		slog.Error("Failed to check existing membership", "error", err)
+		return helper.NewInternalServerError("")
+	}
+	if exists {
+		return helper.NewConflictError("User is already a member of this group")
+	}
+
+	blocked, err := tx.UserBlock.Query().
+		Where(
+			userblock.Or(
+				userblock.And(userblock.BlockerID(requestorID), userblock.BlockedID(req.UserID)),
+				userblock.And(userblock.BlockerID(req.UserID), userblock.BlockedID(requestorID)),
+			),
+		).
+		Exist(ctx)
+	if err != nil {
+		slog.Error("Failed to check block status", "error", err)
+		return helper.NewInternalServerError("")
+	}
+	if blocked {
+		return helper.NewForbiddenError("Cannot add a blocked user")
+	}
+
+	_, err = tx.GroupMember.Create().
+		SetGroupChat(gc).
+		SetUser(targetUser).
+		SetRole(groupmember.RoleMember).
+		Save(ctx)
+	if err != nil {
+		slog.Error("Failed to add group member", "error", err)
+		return helper.NewInternalServerError("")
+	}
+
+	systemMsg, err := tx.Message.Create().
+		SetChatID(gc.ChatID).
+		SetSenderID(requestorID).
+		SetType(message.TypeSystemAdd).
+		SetActionData(map[string]interface{}{
+			"target_id":   targetUser.ID,
+			"target_name": targetUser.FullName,
+		}).
+		Save(ctx)
+	if err != nil {
+		slog.Error("Failed to create system message for adding member", "error", err)
+		return helper.NewInternalServerError("")
+	}
+
+	err = tx.Chat.UpdateOne(gc.Edges.Chat).
+		SetLastMessage(systemMsg).
+		SetLastMessageAt(systemMsg.CreatedAt).
+		Exec(ctx)
+	if err != nil {
+		slog.Error("Failed to update chat with last message", "error", err)
+		return helper.NewInternalServerError("")
+	}
+
+	if err := tx.Commit(); err != nil {
+		slog.Error("Failed to commit transaction", "error", err)
+		return helper.NewInternalServerError("")
+	}
+
+	if s.wsHub != nil {
+		go func() {
+
+			fullMsg, err := s.client.Message.Query().
+				Where(message.ID(systemMsg.ID)).
+				WithSender().
+				Only(context.Background())
+
+			if err != nil {
+				slog.Error("Failed to fetch full system message for broadcast", "error", err)
+				return
+			}
+
+			msgResponse := helper.ToMessageResponse(fullMsg, s.cfg.StorageMode, s.cfg.AppURL, s.cfg.StorageCDNURL, s.cfg.StorageAttachment)
+
+			avatarURL := ""
+			if gc.Edges.Avatar != nil {
+				avatarURL = helper.BuildImageURL(s.cfg.StorageMode, s.cfg.AppURL, s.cfg.StorageCDNURL, s.cfg.StorageProfile, gc.Edges.Avatar.FileName)
+			}
+
+			chatPayload := model.ChatListResponse{
+				ID:          gc.Edges.Chat.ID,
+				Type:        string(chat.TypeGroup),
+				Name:        gc.Name,
+				Avatar:      avatarURL,
+				LastMessage: msgResponse,
+				UnreadCount: 1,
+			}
+
+			s.wsHub.BroadcastToUser(req.UserID, websocket.Event{
+				Type:    websocket.EventChatNew,
+				Payload: chatPayload,
+				Meta: &websocket.EventMeta{
+					Timestamp: time.Now().UTC().UnixMilli(),
+					ChatID:    groupID,
+					SenderID:  requestorID,
+				},
+			})
+
+			s.wsHub.BroadcastToChat(gc.ChatID, websocket.Event{
+				Type:    websocket.EventMessageNew,
+				Payload: msgResponse,
+				Meta: &websocket.EventMeta{
+					Timestamp: time.Now().UTC().UnixMilli(),
+					ChatID:    gc.ChatID,
+					SenderID:  requestorID,
+				},
+			})
+		}()
+	}
+
+	return nil
 }

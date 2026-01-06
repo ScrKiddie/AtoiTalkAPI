@@ -331,7 +331,7 @@ func TestRegister(t *testing.T) {
 		testConfig.TurnstileSecretKey = cfTurnstileAlwaysPasses
 		defer func() { testConfig.TurnstileSecretKey = originalSecret }()
 
-		createOTP(validEmail, validCode, time.Now().Add(5*time.Minute))
+		createOTP(validEmail, validCode, time.Now().UTC().Add(5*time.Minute))
 
 		reqBody := model.RegisterUserRequest{
 			Email:        validEmail,
@@ -376,7 +376,7 @@ func TestRegister(t *testing.T) {
 			SetFullName("Other User").
 			Save(context.Background())
 
-		createOTP(validEmail, validCode, time.Now().Add(5*time.Minute))
+		createOTP(validEmail, validCode, time.Now().UTC().Add(5*time.Minute))
 
 		reqBody := model.RegisterUserRequest{
 			Email:        validEmail,
@@ -404,7 +404,7 @@ func TestRegister(t *testing.T) {
 		testConfig.TurnstileSecretKey = cfTurnstileAlwaysFails
 		defer func() { testConfig.TurnstileSecretKey = originalSecret }()
 
-		createOTP(validEmail, validCode, time.Now().Add(5*time.Minute))
+		createOTP(validEmail, validCode, time.Now().UTC().Add(5*time.Minute))
 
 		reqBody := model.RegisterUserRequest{
 			Email:        validEmail,
@@ -435,7 +435,7 @@ func TestRegister(t *testing.T) {
 		testConfig.TurnstileSecretKey = cfTurnstileAlwaysPasses
 		defer func() { testConfig.TurnstileSecretKey = originalSecret }()
 
-		createOTP(validEmail, validCode, time.Now().Add(5*time.Minute))
+		createOTP(validEmail, validCode, time.Now().UTC().Add(5*time.Minute))
 
 		reqBody := model.RegisterUserRequest{
 			Email:        validEmail,
@@ -463,7 +463,7 @@ func TestRegister(t *testing.T) {
 		testConfig.TurnstileSecretKey = cfTurnstileAlwaysPasses
 		defer func() { testConfig.TurnstileSecretKey = originalSecret }()
 
-		createOTP("expired@example.com", validCode, time.Now().Add(-5*time.Minute))
+		createOTP("expired@example.com", validCode, time.Now().UTC().Add(-5*time.Minute))
 
 		reqBody := model.RegisterUserRequest{
 			Email:        "expired@example.com",
@@ -499,7 +499,7 @@ func TestRegister(t *testing.T) {
 			SetPasswordHash(hashedPassword).
 			Save(context.Background())
 
-		createOTP("existing@example.com", validCode, time.Now().Add(5*time.Minute))
+		createOTP("existing@example.com", validCode, time.Now().UTC().Add(5*time.Minute))
 
 		reqBody := model.RegisterUserRequest{
 			Email:        "existing@example.com",
@@ -541,7 +541,7 @@ func TestResetPassword(t *testing.T) {
 			SetPasswordHash(hashedPassword).
 			Save(context.Background())
 
-		createOTP(validEmail, validCode, time.Now().Add(5*time.Minute))
+		createOTP(validEmail, validCode, time.Now().UTC().Add(5*time.Minute))
 
 		hashedCode := helper.HashOTP(validCode, testConfig.OTPSecret)
 		testClient.OTP.Update().
@@ -579,7 +579,7 @@ func TestResetPassword(t *testing.T) {
 		testConfig.TurnstileSecretKey = cfTurnstileAlwaysPasses
 		defer func() { testConfig.TurnstileSecretKey = originalSecret }()
 
-		createOTP("nonexistent@example.com", validCode, time.Now().Add(5*time.Minute))
+		createOTP("nonexistent@example.com", validCode, time.Now().UTC().Add(5*time.Minute))
 		hashedCode := helper.HashOTP(validCode, testConfig.OTPSecret)
 		testClient.OTP.Update().
 			Where(otp.Email("nonexistent@example.com")).
@@ -620,7 +620,7 @@ func TestResetPassword(t *testing.T) {
 			SetPasswordHash(hashedPassword).
 			Save(context.Background())
 
-		createOTP(validEmail, validCode, time.Now().Add(5*time.Minute))
+		createOTP(validEmail, validCode, time.Now().UTC().Add(5*time.Minute))
 		hashedCode := helper.HashOTP(validCode, testConfig.OTPSecret)
 		testClient.OTP.Update().
 			Where(otp.Email(validEmail)).

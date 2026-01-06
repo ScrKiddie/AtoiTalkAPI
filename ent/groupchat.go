@@ -22,7 +22,7 @@ type GroupChat struct {
 	// ChatID holds the value of the "chat_id" field.
 	ChatID int `json:"chat_id,omitempty"`
 	// CreatedBy holds the value of the "created_by" field.
-	CreatedBy int `json:"created_by,omitempty"`
+	CreatedBy *int `json:"created_by,omitempty"`
 	// Name holds the value of the "name" field.
 	Name string `json:"name,omitempty"`
 	// Description holds the value of the "description" field.
@@ -132,7 +132,8 @@ func (_m *GroupChat) assignValues(columns []string, values []any) error {
 			if value, ok := values[i].(*sql.NullInt64); !ok {
 				return fmt.Errorf("unexpected type %T for field created_by", values[i])
 			} else if value.Valid {
-				_m.CreatedBy = int(value.Int64)
+				_m.CreatedBy = new(int)
+				*_m.CreatedBy = int(value.Int64)
 			}
 		case groupchat.FieldName:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -213,8 +214,10 @@ func (_m *GroupChat) String() string {
 	builder.WriteString("chat_id=")
 	builder.WriteString(fmt.Sprintf("%v", _m.ChatID))
 	builder.WriteString(", ")
-	builder.WriteString("created_by=")
-	builder.WriteString(fmt.Sprintf("%v", _m.CreatedBy))
+	if v := _m.CreatedBy; v != nil {
+		builder.WriteString("created_by=")
+		builder.WriteString(fmt.Sprintf("%v", *v))
+	}
 	builder.WriteString(", ")
 	builder.WriteString("name=")
 	builder.WriteString(_m.Name)

@@ -65,6 +65,14 @@ func (_c *MessageCreate) SetSenderID(v int) *MessageCreate {
 	return _c
 }
 
+// SetNillableSenderID sets the "sender_id" field if the given value is not nil.
+func (_c *MessageCreate) SetNillableSenderID(v *int) *MessageCreate {
+	if v != nil {
+		_c.SetSenderID(*v)
+	}
+	return _c
+}
+
 // SetReplyToID sets the "reply_to_id" field.
 func (_c *MessageCreate) SetReplyToID(v int) *MessageCreate {
 	_c.mutation.SetReplyToID(v)
@@ -75,6 +83,20 @@ func (_c *MessageCreate) SetReplyToID(v int) *MessageCreate {
 func (_c *MessageCreate) SetNillableReplyToID(v *int) *MessageCreate {
 	if v != nil {
 		_c.SetReplyToID(*v)
+	}
+	return _c
+}
+
+// SetType sets the "type" field.
+func (_c *MessageCreate) SetType(v message.Type) *MessageCreate {
+	_c.mutation.SetType(v)
+	return _c
+}
+
+// SetNillableType sets the "type" field if the given value is not nil.
+func (_c *MessageCreate) SetNillableType(v *message.Type) *MessageCreate {
+	if v != nil {
+		_c.SetType(*v)
 	}
 	return _c
 }
@@ -90,6 +112,12 @@ func (_c *MessageCreate) SetNillableContent(v *string) *MessageCreate {
 	if v != nil {
 		_c.SetContent(*v)
 	}
+	return _c
+}
+
+// SetActionData sets the "action_data" field.
+func (_c *MessageCreate) SetActionData(v map[string]interface{}) *MessageCreate {
+	_c.mutation.SetActionData(v)
 	return _c
 }
 
@@ -209,6 +237,10 @@ func (_c *MessageCreate) defaults() {
 		v := message.DefaultUpdatedAt()
 		_c.mutation.SetUpdatedAt(v)
 	}
+	if _, ok := _c.mutation.GetType(); !ok {
+		v := message.DefaultType
+		_c.mutation.SetType(v)
+	}
 }
 
 // check runs all checks and user-defined validators on the builder.
@@ -222,14 +254,16 @@ func (_c *MessageCreate) check() error {
 	if _, ok := _c.mutation.ChatID(); !ok {
 		return &ValidationError{Name: "chat_id", err: errors.New(`ent: missing required field "Message.chat_id"`)}
 	}
-	if _, ok := _c.mutation.SenderID(); !ok {
-		return &ValidationError{Name: "sender_id", err: errors.New(`ent: missing required field "Message.sender_id"`)}
+	if _, ok := _c.mutation.GetType(); !ok {
+		return &ValidationError{Name: "type", err: errors.New(`ent: missing required field "Message.type"`)}
+	}
+	if v, ok := _c.mutation.GetType(); ok {
+		if err := message.TypeValidator(v); err != nil {
+			return &ValidationError{Name: "type", err: fmt.Errorf(`ent: validator failed for field "Message.type": %w`, err)}
+		}
 	}
 	if len(_c.mutation.ChatIDs()) == 0 {
 		return &ValidationError{Name: "chat", err: errors.New(`ent: missing required edge "Message.chat"`)}
-	}
-	if len(_c.mutation.SenderIDs()) == 0 {
-		return &ValidationError{Name: "sender", err: errors.New(`ent: missing required edge "Message.sender"`)}
 	}
 	return nil
 }
@@ -266,9 +300,17 @@ func (_c *MessageCreate) createSpec() (*Message, *sqlgraph.CreateSpec) {
 		_spec.SetField(message.FieldUpdatedAt, field.TypeTime, value)
 		_node.UpdatedAt = value
 	}
+	if value, ok := _c.mutation.GetType(); ok {
+		_spec.SetField(message.FieldType, field.TypeEnum, value)
+		_node.Type = value
+	}
 	if value, ok := _c.mutation.Content(); ok {
 		_spec.SetField(message.FieldContent, field.TypeString, value)
 		_node.Content = &value
+	}
+	if value, ok := _c.mutation.ActionData(); ok {
+		_spec.SetField(message.FieldActionData, field.TypeJSON, value)
+		_node.ActionData = value
 	}
 	if value, ok := _c.mutation.DeletedAt(); ok {
 		_spec.SetField(message.FieldDeletedAt, field.TypeTime, value)
@@ -309,7 +351,7 @@ func (_c *MessageCreate) createSpec() (*Message, *sqlgraph.CreateSpec) {
 		for _, k := range nodes {
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
-		_node.SenderID = nodes[0]
+		_node.SenderID = &nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
 	if nodes := _c.mutation.RepliesIDs(); len(nodes) > 0 {
@@ -449,6 +491,12 @@ func (u *MessageUpsert) UpdateSenderID() *MessageUpsert {
 	return u
 }
 
+// ClearSenderID clears the value of the "sender_id" field.
+func (u *MessageUpsert) ClearSenderID() *MessageUpsert {
+	u.SetNull(message.FieldSenderID)
+	return u
+}
+
 // SetReplyToID sets the "reply_to_id" field.
 func (u *MessageUpsert) SetReplyToID(v int) *MessageUpsert {
 	u.Set(message.FieldReplyToID, v)
@@ -467,6 +515,18 @@ func (u *MessageUpsert) ClearReplyToID() *MessageUpsert {
 	return u
 }
 
+// SetType sets the "type" field.
+func (u *MessageUpsert) SetType(v message.Type) *MessageUpsert {
+	u.Set(message.FieldType, v)
+	return u
+}
+
+// UpdateType sets the "type" field to the value that was provided on create.
+func (u *MessageUpsert) UpdateType() *MessageUpsert {
+	u.SetExcluded(message.FieldType)
+	return u
+}
+
 // SetContent sets the "content" field.
 func (u *MessageUpsert) SetContent(v string) *MessageUpsert {
 	u.Set(message.FieldContent, v)
@@ -482,6 +542,24 @@ func (u *MessageUpsert) UpdateContent() *MessageUpsert {
 // ClearContent clears the value of the "content" field.
 func (u *MessageUpsert) ClearContent() *MessageUpsert {
 	u.SetNull(message.FieldContent)
+	return u
+}
+
+// SetActionData sets the "action_data" field.
+func (u *MessageUpsert) SetActionData(v map[string]interface{}) *MessageUpsert {
+	u.Set(message.FieldActionData, v)
+	return u
+}
+
+// UpdateActionData sets the "action_data" field to the value that was provided on create.
+func (u *MessageUpsert) UpdateActionData() *MessageUpsert {
+	u.SetExcluded(message.FieldActionData)
+	return u
+}
+
+// ClearActionData clears the value of the "action_data" field.
+func (u *MessageUpsert) ClearActionData() *MessageUpsert {
+	u.SetNull(message.FieldActionData)
 	return u
 }
 
@@ -608,6 +686,13 @@ func (u *MessageUpsertOne) UpdateSenderID() *MessageUpsertOne {
 	})
 }
 
+// ClearSenderID clears the value of the "sender_id" field.
+func (u *MessageUpsertOne) ClearSenderID() *MessageUpsertOne {
+	return u.Update(func(s *MessageUpsert) {
+		s.ClearSenderID()
+	})
+}
+
 // SetReplyToID sets the "reply_to_id" field.
 func (u *MessageUpsertOne) SetReplyToID(v int) *MessageUpsertOne {
 	return u.Update(func(s *MessageUpsert) {
@@ -629,6 +714,20 @@ func (u *MessageUpsertOne) ClearReplyToID() *MessageUpsertOne {
 	})
 }
 
+// SetType sets the "type" field.
+func (u *MessageUpsertOne) SetType(v message.Type) *MessageUpsertOne {
+	return u.Update(func(s *MessageUpsert) {
+		s.SetType(v)
+	})
+}
+
+// UpdateType sets the "type" field to the value that was provided on create.
+func (u *MessageUpsertOne) UpdateType() *MessageUpsertOne {
+	return u.Update(func(s *MessageUpsert) {
+		s.UpdateType()
+	})
+}
+
 // SetContent sets the "content" field.
 func (u *MessageUpsertOne) SetContent(v string) *MessageUpsertOne {
 	return u.Update(func(s *MessageUpsert) {
@@ -647,6 +746,27 @@ func (u *MessageUpsertOne) UpdateContent() *MessageUpsertOne {
 func (u *MessageUpsertOne) ClearContent() *MessageUpsertOne {
 	return u.Update(func(s *MessageUpsert) {
 		s.ClearContent()
+	})
+}
+
+// SetActionData sets the "action_data" field.
+func (u *MessageUpsertOne) SetActionData(v map[string]interface{}) *MessageUpsertOne {
+	return u.Update(func(s *MessageUpsert) {
+		s.SetActionData(v)
+	})
+}
+
+// UpdateActionData sets the "action_data" field to the value that was provided on create.
+func (u *MessageUpsertOne) UpdateActionData() *MessageUpsertOne {
+	return u.Update(func(s *MessageUpsert) {
+		s.UpdateActionData()
+	})
+}
+
+// ClearActionData clears the value of the "action_data" field.
+func (u *MessageUpsertOne) ClearActionData() *MessageUpsertOne {
+	return u.Update(func(s *MessageUpsert) {
+		s.ClearActionData()
 	})
 }
 
@@ -945,6 +1065,13 @@ func (u *MessageUpsertBulk) UpdateSenderID() *MessageUpsertBulk {
 	})
 }
 
+// ClearSenderID clears the value of the "sender_id" field.
+func (u *MessageUpsertBulk) ClearSenderID() *MessageUpsertBulk {
+	return u.Update(func(s *MessageUpsert) {
+		s.ClearSenderID()
+	})
+}
+
 // SetReplyToID sets the "reply_to_id" field.
 func (u *MessageUpsertBulk) SetReplyToID(v int) *MessageUpsertBulk {
 	return u.Update(func(s *MessageUpsert) {
@@ -966,6 +1093,20 @@ func (u *MessageUpsertBulk) ClearReplyToID() *MessageUpsertBulk {
 	})
 }
 
+// SetType sets the "type" field.
+func (u *MessageUpsertBulk) SetType(v message.Type) *MessageUpsertBulk {
+	return u.Update(func(s *MessageUpsert) {
+		s.SetType(v)
+	})
+}
+
+// UpdateType sets the "type" field to the value that was provided on create.
+func (u *MessageUpsertBulk) UpdateType() *MessageUpsertBulk {
+	return u.Update(func(s *MessageUpsert) {
+		s.UpdateType()
+	})
+}
+
 // SetContent sets the "content" field.
 func (u *MessageUpsertBulk) SetContent(v string) *MessageUpsertBulk {
 	return u.Update(func(s *MessageUpsert) {
@@ -984,6 +1125,27 @@ func (u *MessageUpsertBulk) UpdateContent() *MessageUpsertBulk {
 func (u *MessageUpsertBulk) ClearContent() *MessageUpsertBulk {
 	return u.Update(func(s *MessageUpsert) {
 		s.ClearContent()
+	})
+}
+
+// SetActionData sets the "action_data" field.
+func (u *MessageUpsertBulk) SetActionData(v map[string]interface{}) *MessageUpsertBulk {
+	return u.Update(func(s *MessageUpsert) {
+		s.SetActionData(v)
+	})
+}
+
+// UpdateActionData sets the "action_data" field to the value that was provided on create.
+func (u *MessageUpsertBulk) UpdateActionData() *MessageUpsertBulk {
+	return u.Update(func(s *MessageUpsert) {
+		s.UpdateActionData()
+	})
+}
+
+// ClearActionData clears the value of the "action_data" field.
+func (u *MessageUpsertBulk) ClearActionData() *MessageUpsertBulk {
+	return u.Update(func(s *MessageUpsert) {
+		s.ClearActionData()
 	})
 }
 

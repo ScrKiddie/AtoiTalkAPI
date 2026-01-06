@@ -61,6 +61,7 @@ func TestSendMessage(t *testing.T) {
 		assert.Equal(t, float64(chatEntity.ID), dataMap["chat_id"])
 		assert.Equal(t, float64(u1.ID), dataMap["sender_id"])
 		assert.Equal(t, "Hello User 2!", dataMap["content"])
+		assert.Equal(t, "regular", dataMap["type"])
 		assert.Nil(t, dataMap["attachments"])
 
 		pc, _ := testClient.PrivateChat.Query().Where(privatechat.ChatID(chatEntity.ID)).Only(context.Background())
@@ -89,7 +90,12 @@ func TestSendMessage(t *testing.T) {
 
 	t.Run("Success - Send Message with Reply", func(t *testing.T) {
 
-		msg1, _ := testClient.Message.Create().SetChatID(chatEntity.ID).SetSenderID(u2.ID).SetContent("Original Message").Save(context.Background())
+		msg1, _ := testClient.Message.Create().
+			SetChatID(chatEntity.ID).
+			SetSenderID(u2.ID).
+			SetType(message.TypeRegular).
+			SetContent("Original Message").
+			Save(context.Background())
 
 		replyToID := msg1.ID
 		reqBody := model.SendMessageRequest{
@@ -114,10 +120,34 @@ func TestSendMessage(t *testing.T) {
 		assert.Equal(t, float64(msg1.ID), replyToMap["id"])
 		assert.Equal(t, "User 2", replyToMap["sender_name"])
 		assert.Equal(t, "Original Message", replyToMap["content"])
+		assert.Equal(t, "regular", replyToMap["type"])
 
 		msg2ID := int(dataMap["id"].(float64))
 		msg2, _ := testClient.Message.Get(context.Background(), msg2ID)
 		assert.Equal(t, msg1.ID, *msg2.ReplyToID)
+	})
+
+	t.Run("Fail - Reply to System Message", func(t *testing.T) {
+		sysMsg, _ := testClient.Message.Create().
+			SetChatID(chatEntity.ID).
+			SetSenderID(u2.ID).
+			SetType(message.TypeSystemCreate).
+			SetActionData(map[string]interface{}{"foo": "bar"}).
+			Save(context.Background())
+
+		replyToID := sysMsg.ID
+		reqBody := model.SendMessageRequest{
+			ChatID:    chatEntity.ID,
+			Content:   "Replying to system",
+			ReplyToID: &replyToID,
+		}
+		body, _ := json.Marshal(reqBody)
+		req, _ := http.NewRequest("POST", "/api/messages", bytes.NewBuffer(body))
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Authorization", "Bearer "+token1)
+
+		rr := executeRequest(req)
+		assert.Equal(t, http.StatusBadRequest, rr.Code)
 	})
 
 	t.Run("Fail - Reply to Non-Existent Message", func(t *testing.T) {
@@ -140,7 +170,7 @@ func TestSendMessage(t *testing.T) {
 
 		chat2, _ := testClient.Chat.Create().SetType(chat.TypePrivate).Save(context.Background())
 		testClient.PrivateChat.Create().SetChat(chat2).SetUser1(u1).SetUser2(u3).Save(context.Background())
-		msgOther, _ := testClient.Message.Create().SetChatID(chat2.ID).SetSenderID(u3.ID).SetContent("Other Chat Msg").Save(context.Background())
+		msgOther, _ := testClient.Message.Create().SetChatID(chat2.ID).SetSenderID(u3.ID).SetType(message.TypeRegular).SetContent("Other Chat Msg").Save(context.Background())
 
 		replyToID := msgOther.ID
 		reqBody := model.SendMessageRequest{
@@ -231,7 +261,7 @@ func TestSendMessage(t *testing.T) {
 
 	t.Run("Fail - Attachment Already Used", func(t *testing.T) {
 
-		otherMsg, _ := testClient.Message.Create().SetChatID(chatEntity.ID).SetSenderID(u1.ID).Save(context.Background())
+		otherMsg, _ := testClient.Message.Create().SetChatID(chatEntity.ID).SetSenderID(u1.ID).SetType(message.TypeRegular).Save(context.Background())
 		m, _ := testClient.Media.Create().
 			SetFileName("used.jpg").
 			SetOriginalName("used.jpg").
@@ -280,7 +310,7 @@ func TestSendMessage(t *testing.T) {
 
 	t.Run("Success - SendMessage does not unhide", func(t *testing.T) {
 		pc, _ := testClient.PrivateChat.Query().Where(privatechat.ChatID(chatEntity.ID)).Only(context.Background())
-		hiddenTime := time.Now().Add(-time.Hour)
+		hiddenTime := time.Now().UTC().Add(-time.Hour)
 		testClient.PrivateChat.UpdateOne(pc).SetUser1HiddenAt(hiddenTime).Exec(context.Background())
 
 		reqBody := model.SendMessageRequest{
@@ -391,6 +421,30 @@ func TestSendMessage(t *testing.T) {
 		rr := executeRequest(req)
 		assert.Equal(t, http.StatusBadRequest, rr.Code)
 	})
+
+	t.Run("Fail - Reply to Deleted Message", func(t *testing.T) {
+		deletedMsg, _ := testClient.Message.Create().
+			SetChatID(chatEntity.ID).
+			SetSenderID(u2.ID).
+			SetType(message.TypeRegular).
+			SetContent("I am deleted").
+			SetDeletedAt(time.Now().UTC()).
+			Save(context.Background())
+
+		replyToID := deletedMsg.ID
+		reqBody := model.SendMessageRequest{
+			ChatID:    chatEntity.ID,
+			Content:   "Reply to void",
+			ReplyToID: &replyToID,
+		}
+		body, _ := json.Marshal(reqBody)
+		req, _ := http.NewRequest("POST", "/api/messages", bytes.NewBuffer(body))
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Authorization", "Bearer "+token1)
+
+		rr := executeRequest(req)
+		assert.Equal(t, http.StatusBadRequest, rr.Code)
+	})
 }
 
 func TestGetMessages(t *testing.T) {
@@ -413,6 +467,7 @@ func TestGetMessages(t *testing.T) {
 		msg, _ := testClient.Message.Create().
 			SetChatID(chatEntity.ID).
 			SetSenderID(u1.ID).
+			SetType(message.TypeRegular).
 			SetContent(fmt.Sprintf("Message %d", i)).
 			Save(context.Background())
 		msgIDs = append(msgIDs, msg.ID)
@@ -501,8 +556,9 @@ func TestGetMessages(t *testing.T) {
 		delMsg, _ := testClient.Message.Create().
 			SetChatID(chatEntity.ID).
 			SetSenderID(u1.ID).
+			SetType(message.TypeRegular).
 			SetContent("Sensitive Info").
-			SetDeletedAt(time.Now()).
+			SetDeletedAt(time.Now().UTC()).
 			Save(context.Background())
 
 		req, _ := http.NewRequest("GET", fmt.Sprintf("/api/chats/%d/messages", chatEntity.ID), nil)
@@ -519,7 +575,7 @@ func TestGetMessages(t *testing.T) {
 		for _, item := range dataList {
 			m := item.(map[string]interface{})
 			if m["id"].(float64) == float64(delMsg.ID) {
-				assert.Equal(t, "", m["content"])
+				assert.Nil(t, m["content"])
 				assert.NotNil(t, m["deleted_at"])
 				found = true
 			}
@@ -532,17 +588,19 @@ func TestGetMessages(t *testing.T) {
 		originalMsg, _ := testClient.Message.Create().
 			SetChatID(chatEntity.ID).
 			SetSenderID(u2.ID).
+			SetType(message.TypeRegular).
 			SetContent("I will be deleted").
 			Save(context.Background())
 
 		replyMsg, _ := testClient.Message.Create().
 			SetChatID(chatEntity.ID).
 			SetSenderID(u1.ID).
+			SetType(message.TypeRegular).
 			SetContent("Replying to a soon-to-be-deleted message").
 			SetReplyToID(originalMsg.ID).
 			Save(context.Background())
 
-		testClient.Message.UpdateOne(originalMsg).SetDeletedAt(time.Now()).Exec(context.Background())
+		testClient.Message.UpdateOne(originalMsg).SetDeletedAt(time.Now().UTC()).Exec(context.Background())
 
 		req, _ := http.NewRequest("GET", fmt.Sprintf("/api/chats/%d/messages", chatEntity.ID), nil)
 		req.Header.Set("Authorization", "Bearer "+token1)
@@ -566,7 +624,7 @@ func TestGetMessages(t *testing.T) {
 		assert.NotNil(t, targetReply)
 		replyToMap, ok := targetReply["reply_to"].(map[string]interface{})
 		assert.True(t, ok)
-		assert.Equal(t, "", replyToMap["content"])
+		assert.Nil(t, replyToMap["content"])
 		assert.NotNil(t, replyToMap["deleted_at"])
 		assert.Equal(t, "User 2", replyToMap["sender_name"])
 	})
@@ -585,6 +643,7 @@ func TestGetMessages(t *testing.T) {
 		msgWithMedia, _ := testClient.Message.Create().
 			SetChatID(chatEntity.ID).
 			SetSenderID(u1.ID).
+			SetType(message.TypeRegular).
 			AddAttachmentIDs(media.ID).
 			Save(context.Background())
 
@@ -608,7 +667,7 @@ func TestGetMessages(t *testing.T) {
 		}
 
 		assert.NotNil(t, targetMsg)
-		assert.Equal(t, "", targetMsg["content"])
+		assert.Nil(t, targetMsg["content"])
 		assert.NotNil(t, targetMsg["attachments"])
 		assert.Len(t, targetMsg["attachments"], 1)
 	})
@@ -622,14 +681,14 @@ func TestGetMessages(t *testing.T) {
 		chatEntity, _ := testClient.Chat.Create().SetType(chat.TypePrivate).Save(context.Background())
 		pc, _ := testClient.PrivateChat.Create().SetChat(chatEntity).SetUser1(u1).SetUser2(u2).Save(context.Background())
 
-		testClient.Message.Create().SetChatID(chatEntity.ID).SetSenderID(u2.ID).SetContent("Old Message 1").SetCreatedAt(time.Now().Add(-2 * time.Hour)).SaveX(context.Background())
-		testClient.Message.Create().SetChatID(chatEntity.ID).SetSenderID(u1.ID).SetContent("Old Message 2").SetCreatedAt(time.Now().Add(-1 * time.Hour)).SaveX(context.Background())
+		testClient.Message.Create().SetChatID(chatEntity.ID).SetSenderID(u2.ID).SetType(message.TypeRegular).SetContent("Old Message 1").SetCreatedAt(time.Now().UTC().Add(-2 * time.Hour)).SaveX(context.Background())
+		testClient.Message.Create().SetChatID(chatEntity.ID).SetSenderID(u1.ID).SetType(message.TypeRegular).SetContent("Old Message 2").SetCreatedAt(time.Now().UTC().Add(-1 * time.Hour)).SaveX(context.Background())
 
-		hideTime := time.Now()
+		hideTime := time.Now().UTC()
 		testClient.PrivateChat.UpdateOne(pc).SetUser1HiddenAt(hideTime).ExecX(context.Background())
 		time.Sleep(10 * time.Millisecond)
 
-		msg3, _ := testClient.Message.Create().SetChatID(chatEntity.ID).SetSenderID(u2.ID).SetContent("New Message 3").Save(context.Background())
+		msg3, _ := testClient.Message.Create().SetChatID(chatEntity.ID).SetSenderID(u2.ID).SetType(message.TypeRegular).SetContent("New Message 3").Save(context.Background())
 
 		req, _ := http.NewRequest("GET", fmt.Sprintf("/api/chats/%d/messages", chatEntity.ID), nil)
 		req.Header.Set("Authorization", "Bearer "+token1)
@@ -665,6 +724,7 @@ func TestDeleteMessage(t *testing.T) {
 		msg, _ := testClient.Message.Create().
 			SetChatID(chatEntity.ID).
 			SetSenderID(u1.ID).
+			SetType(message.TypeRegular).
 			SetContent("To be deleted").
 			Save(context.Background())
 
@@ -682,6 +742,7 @@ func TestDeleteMessage(t *testing.T) {
 		msg, _ := testClient.Message.Create().
 			SetChatID(chatEntity.ID).
 			SetSenderID(u1.ID).
+			SetType(message.TypeRegular).
 			SetContent("User 1 Message").
 			Save(context.Background())
 
@@ -707,11 +768,27 @@ func TestDeleteMessage(t *testing.T) {
 		msg, _ := testClient.Message.Create().
 			SetChatID(chatEntity.ID).
 			SetSenderID(u1.ID).
+			SetType(message.TypeRegular).
 			SetContent("Already deleted").
-			SetDeletedAt(time.Now()).
+			SetDeletedAt(time.Now().UTC()).
 			Save(context.Background())
 
 		req, _ := http.NewRequest("DELETE", fmt.Sprintf("/api/messages/%d", msg.ID), nil)
+		req.Header.Set("Authorization", "Bearer "+token1)
+
+		rr := executeRequest(req)
+		assert.Equal(t, http.StatusBadRequest, rr.Code)
+	})
+
+	t.Run("Fail - Delete System Message", func(t *testing.T) {
+		sysMsg, _ := testClient.Message.Create().
+			SetChatID(chatEntity.ID).
+			SetSenderID(u1.ID).
+			SetType(message.TypeSystemCreate).
+			SetActionData(map[string]interface{}{"foo": "bar"}).
+			Save(context.Background())
+
+		req, _ := http.NewRequest("DELETE", fmt.Sprintf("/api/messages/%d", sysMsg.ID), nil)
 		req.Header.Set("Authorization", "Bearer "+token1)
 
 		rr := executeRequest(req)
@@ -737,6 +814,7 @@ func TestEditMessage(t *testing.T) {
 		msg, _ := testClient.Message.Create().
 			SetChatID(chatEntity.ID).
 			SetSenderID(u1.ID).
+			SetType(message.TypeRegular).
 			SetContent("Original Content").
 			Save(context.Background())
 
@@ -772,6 +850,7 @@ func TestEditMessage(t *testing.T) {
 		msg, _ := testClient.Message.Create().
 			SetChatID(chatEntity.ID).
 			SetSenderID(u1.ID).
+			SetType(message.TypeRegular).
 			SetContent("With Attachment").
 			AddAttachmentIDs(att1.ID).
 			Save(context.Background())
@@ -814,6 +893,7 @@ func TestEditMessage(t *testing.T) {
 		msg, _ := testClient.Message.Create().
 			SetChatID(chatEntity.ID).
 			SetSenderID(u1.ID).
+			SetType(message.TypeRegular).
 			SetContent("User 1 Msg").
 			Save(context.Background())
 
@@ -831,8 +911,9 @@ func TestEditMessage(t *testing.T) {
 		msg, _ := testClient.Message.Create().
 			SetChatID(chatEntity.ID).
 			SetSenderID(u1.ID).
+			SetType(message.TypeRegular).
 			SetContent("Deleted Msg").
-			SetDeletedAt(time.Now()).
+			SetDeletedAt(time.Now().UTC()).
 			Save(context.Background())
 
 		reqBody := model.EditMessageRequest{Content: "Resurrect"}
@@ -845,10 +926,29 @@ func TestEditMessage(t *testing.T) {
 		assert.Equal(t, http.StatusBadRequest, rr.Code)
 	})
 
+	t.Run("Fail - Edit System Message", func(t *testing.T) {
+		sysMsg, _ := testClient.Message.Create().
+			SetChatID(chatEntity.ID).
+			SetSenderID(u1.ID).
+			SetType(message.TypeSystemCreate).
+			SetActionData(map[string]interface{}{"foo": "bar"}).
+			Save(context.Background())
+
+		reqBody := model.EditMessageRequest{Content: "Hacked System"}
+		body, _ := json.Marshal(reqBody)
+		req, _ := http.NewRequest("PUT", fmt.Sprintf("/api/messages/%d", sysMsg.ID), bytes.NewBuffer(body))
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Authorization", "Bearer "+token1)
+
+		rr := executeRequest(req)
+		assert.Equal(t, http.StatusBadRequest, rr.Code)
+	})
+
 	t.Run("Fail - Invalid Attachments", func(t *testing.T) {
 		msg, _ := testClient.Message.Create().
 			SetChatID(chatEntity.ID).
 			SetSenderID(u1.ID).
+			SetType(message.TypeRegular).
 			SetContent("Msg").
 			Save(context.Background())
 
@@ -860,6 +960,25 @@ func TestEditMessage(t *testing.T) {
 			Content:       "Steal Attachment",
 			AttachmentIDs: []int{attOther.ID},
 		}
+		body, _ := json.Marshal(reqBody)
+		req, _ := http.NewRequest("PUT", fmt.Sprintf("/api/messages/%d", msg.ID), bytes.NewBuffer(body))
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Authorization", "Bearer "+token1)
+
+		rr := executeRequest(req)
+		assert.Equal(t, http.StatusBadRequest, rr.Code)
+	})
+
+	t.Run("Fail - Edit Message Too Old", func(t *testing.T) {
+		msg, _ := testClient.Message.Create().
+			SetChatID(chatEntity.ID).
+			SetSenderID(u1.ID).
+			SetType(message.TypeRegular).
+			SetContent("Old Msg").
+			SetCreatedAt(time.Now().UTC().Add(-20 * time.Minute)).
+			Save(context.Background())
+
+		reqBody := model.EditMessageRequest{Content: "Too Late"}
 		body, _ := json.Marshal(reqBody)
 		req, _ := http.NewRequest("PUT", fmt.Sprintf("/api/messages/%d", msg.ID), bytes.NewBuffer(body))
 		req.Header.Set("Content-Type", "application/json")

@@ -13,26 +13,31 @@ type EditMessageRequest struct {
 }
 
 type GetMessagesRequest struct {
-	ChatID int `json:"chat_id" validate:"required"`
-	Cursor int `json:"cursor" validate:"omitempty,gt=0"`
-	Limit  int `json:"limit" validate:"omitempty,gt=0,max=50"`
+	ChatID int    `json:"chat_id" validate:"required"`
+	Cursor string `json:"cursor" validate:"omitempty"`
+	Limit  int    `json:"limit" validate:"omitempty,gt=0,max=50"`
 }
 
 type MessageResponse struct {
-	ID          int              `json:"id"`
-	ChatID      int              `json:"chat_id"`
-	SenderID    int              `json:"sender_id"`
-	Content     string           `json:"content"`
-	Attachments []MediaDTO       `json:"attachments,omitempty"`
-	ReplyTo     *ReplyPreviewDTO `json:"reply_to,omitempty"`
-	CreatedAt   string           `json:"created_at"`
-	DeletedAt   *string          `json:"deleted_at,omitempty"`
-	EditedAt    *string          `json:"edited_at,omitempty"`
+	ID          int                    `json:"id"`
+	ChatID      int                    `json:"chat_id"`
+	SenderID    *int                   `json:"sender_id,omitempty"`
+	SenderName  string                 `json:"sender_name,omitempty"`
+	Type        string                 `json:"type"`
+	Content     string                 `json:"content,omitempty"`
+	ActionData  map[string]interface{} `json:"action_data,omitempty"`
+	Attachments []MediaDTO             `json:"attachments,omitempty"`
+	ReplyTo     *ReplyPreviewDTO       `json:"reply_to,omitempty"`
+	CreatedAt   string                 `json:"created_at"`
+	DeletedAt   *string                `json:"deleted_at,omitempty"`
+	EditedAt    *string                `json:"edited_at,omitempty"`
 }
 
 type ReplyPreviewDTO struct {
-	ID         int     `json:"id"`
-	SenderName string  `json:"sender_name"`
-	Content    string  `json:"content"`
-	DeletedAt  *string `json:"deleted_at,omitempty"`
+	ID         int                    `json:"id"`
+	SenderName string                 `json:"sender_name"`
+	Type       string                 `json:"type"`
+	Content    string                 `json:"content,omitempty"`
+	ActionData map[string]interface{} `json:"action_data,omitempty"`
+	DeletedAt  *string                `json:"deleted_at,omitempty"`
 }

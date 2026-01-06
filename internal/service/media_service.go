@@ -43,7 +43,12 @@ func (s *MediaService) UploadMedia(ctx context.Context, userID int, req model.Up
 	}
 	defer file.Close()
 
-	contentType := req.File.Header.Get("Content-Type")
+	contentType, err := helper.DetectFileContentType(file)
+	if err != nil {
+		slog.Error("Failed to detect file content type", "error", err)
+		return nil, helper.NewInternalServerError("")
+	}
+
 	finalFileName := helper.GenerateUniqueFileName(req.File.Filename)
 
 	mediaRecord, err := s.client.Media.Create().

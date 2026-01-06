@@ -6,6 +6,7 @@ import (
 	"AtoiTalkAPI/ent/chat"
 	"AtoiTalkAPI/ent/message"
 	"AtoiTalkAPI/ent/user"
+	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
@@ -26,11 +27,15 @@ type Message struct {
 	// ChatID holds the value of the "chat_id" field.
 	ChatID int `json:"chat_id,omitempty"`
 	// SenderID holds the value of the "sender_id" field.
-	SenderID int `json:"sender_id,omitempty"`
+	SenderID *int `json:"sender_id,omitempty"`
 	// ReplyToID holds the value of the "reply_to_id" field.
 	ReplyToID *int `json:"reply_to_id,omitempty"`
+	// Type holds the value of the "type" field.
+	Type message.Type `json:"type,omitempty"`
 	// Content holds the value of the "content" field.
 	Content *string `json:"content,omitempty"`
+	// ActionData holds the value of the "action_data" field.
+	ActionData map[string]interface{} `json:"action_data,omitempty"`
 	// DeletedAt holds the value of the "deleted_at" field.
 	DeletedAt *time.Time `json:"deleted_at,omitempty"`
 	// EditedAt holds the value of the "edited_at" field.
@@ -114,9 +119,11 @@ func (*Message) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
+		case message.FieldActionData:
+			values[i] = new([]byte)
 		case message.FieldID, message.FieldChatID, message.FieldSenderID, message.FieldReplyToID:
 			values[i] = new(sql.NullInt64)
-		case message.FieldContent:
+		case message.FieldType, message.FieldContent:
 			values[i] = new(sql.NullString)
 		case message.FieldCreatedAt, message.FieldUpdatedAt, message.FieldDeletedAt, message.FieldEditedAt:
 			values[i] = new(sql.NullTime)
@@ -163,7 +170,8 @@ func (_m *Message) assignValues(columns []string, values []any) error {
 			if value, ok := values[i].(*sql.NullInt64); !ok {
 				return fmt.Errorf("unexpected type %T for field sender_id", values[i])
 			} else if value.Valid {
-				_m.SenderID = int(value.Int64)
+				_m.SenderID = new(int)
+				*_m.SenderID = int(value.Int64)
 			}
 		case message.FieldReplyToID:
 			if value, ok := values[i].(*sql.NullInt64); !ok {
@@ -172,12 +180,26 @@ func (_m *Message) assignValues(columns []string, values []any) error {
 				_m.ReplyToID = new(int)
 				*_m.ReplyToID = int(value.Int64)
 			}
+		case message.FieldType:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field type", values[i])
+			} else if value.Valid {
+				_m.Type = message.Type(value.String)
+			}
 		case message.FieldContent:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field content", values[i])
 			} else if value.Valid {
 				_m.Content = new(string)
 				*_m.Content = value.String
+			}
+		case message.FieldActionData:
+			if value, ok := values[i].(*[]byte); !ok {
+				return fmt.Errorf("unexpected type %T for field action_data", values[i])
+			} else if value != nil && len(*value) > 0 {
+				if err := json.Unmarshal(*value, &_m.ActionData); err != nil {
+					return fmt.Errorf("unmarshal field action_data: %w", err)
+				}
 			}
 		case message.FieldDeletedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
@@ -263,18 +285,26 @@ func (_m *Message) String() string {
 	builder.WriteString("chat_id=")
 	builder.WriteString(fmt.Sprintf("%v", _m.ChatID))
 	builder.WriteString(", ")
-	builder.WriteString("sender_id=")
-	builder.WriteString(fmt.Sprintf("%v", _m.SenderID))
+	if v := _m.SenderID; v != nil {
+		builder.WriteString("sender_id=")
+		builder.WriteString(fmt.Sprintf("%v", *v))
+	}
 	builder.WriteString(", ")
 	if v := _m.ReplyToID; v != nil {
 		builder.WriteString("reply_to_id=")
 		builder.WriteString(fmt.Sprintf("%v", *v))
 	}
 	builder.WriteString(", ")
+	builder.WriteString("type=")
+	builder.WriteString(fmt.Sprintf("%v", _m.Type))
+	builder.WriteString(", ")
 	if v := _m.Content; v != nil {
 		builder.WriteString("content=")
 		builder.WriteString(*v)
 	}
+	builder.WriteString(", ")
+	builder.WriteString("action_data=")
+	builder.WriteString(fmt.Sprintf("%v", _m.ActionData))
 	builder.WriteString(", ")
 	if v := _m.DeletedAt; v != nil {
 		builder.WriteString("deleted_at=")

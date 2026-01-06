@@ -167,7 +167,7 @@ func (s *PrivateChatService) CreatePrivateChat(ctx context.Context, userID int, 
 			s.wsHub.BroadcastToUser(targetUser.ID, websocket.Event{
 				Type:    websocket.EventChatNew,
 				Payload: payloadForTarget,
-				Meta:    &websocket.EventMeta{Timestamp: time.Now().UnixMilli(), ChatID: newChat.ID, SenderID: userID},
+				Meta:    &websocket.EventMeta{Timestamp: time.Now().UTC().UnixMilli(), ChatID: newChat.ID, SenderID: userID},
 			})
 
 			targetAvatarURL := ""
@@ -187,7 +187,7 @@ func (s *PrivateChatService) CreatePrivateChat(ctx context.Context, userID int, 
 			s.wsHub.BroadcastToUser(creator.ID, websocket.Event{
 				Type:    websocket.EventChatNew,
 				Payload: payloadForCreator,
-				Meta:    &websocket.EventMeta{Timestamp: time.Now().UnixMilli(), ChatID: newChat.ID, SenderID: userID},
+				Meta:    &websocket.EventMeta{Timestamp: time.Now().UTC().UnixMilli(), ChatID: newChat.ID, SenderID: userID},
 			})
 		}()
 	}

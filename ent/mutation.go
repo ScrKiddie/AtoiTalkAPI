@@ -1062,7 +1062,7 @@ func (m *GroupChatMutation) CreatedBy() (r int, exists bool) {
 // OldCreatedBy returns the old "created_by" field's value of the GroupChat entity.
 // If the GroupChat object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *GroupChatMutation) OldCreatedBy(ctx context.Context) (v int, err error) {
+func (m *GroupChatMutation) OldCreatedBy(ctx context.Context) (v *int, err error) {
 	if !m.op.Is(OpUpdateOne) {
 		return v, errors.New("OldCreatedBy is only allowed on UpdateOne operations")
 	}
@@ -1076,9 +1076,22 @@ func (m *GroupChatMutation) OldCreatedBy(ctx context.Context) (v int, err error)
 	return oldValue.CreatedBy, nil
 }
 
+// ClearCreatedBy clears the value of the "created_by" field.
+func (m *GroupChatMutation) ClearCreatedBy() {
+	m.creator = nil
+	m.clearedFields[groupchat.FieldCreatedBy] = struct{}{}
+}
+
+// CreatedByCleared returns if the "created_by" field was cleared in this mutation.
+func (m *GroupChatMutation) CreatedByCleared() bool {
+	_, ok := m.clearedFields[groupchat.FieldCreatedBy]
+	return ok
+}
+
 // ResetCreatedBy resets all changes to the "created_by" field.
 func (m *GroupChatMutation) ResetCreatedBy() {
 	m.creator = nil
+	delete(m.clearedFields, groupchat.FieldCreatedBy)
 }
 
 // SetName sets the "name" field.
@@ -1282,7 +1295,7 @@ func (m *GroupChatMutation) ClearCreator() {
 
 // CreatorCleared reports if the "creator" edge to the User entity was cleared.
 func (m *GroupChatMutation) CreatorCleared() bool {
-	return m.clearedcreator
+	return m.CreatedByCleared() || m.clearedcreator
 }
 
 // CreatorID returns the "creator" edge ID in the mutation.
@@ -1527,6 +1540,9 @@ func (m *GroupChatMutation) AddField(name string, value ent.Value) error {
 // mutation.
 func (m *GroupChatMutation) ClearedFields() []string {
 	var fields []string
+	if m.FieldCleared(groupchat.FieldCreatedBy) {
+		fields = append(fields, groupchat.FieldCreatedBy)
+	}
 	if m.FieldCleared(groupchat.FieldDescription) {
 		fields = append(fields, groupchat.FieldDescription)
 	}
@@ -1547,6 +1563,9 @@ func (m *GroupChatMutation) FieldCleared(name string) bool {
 // error if the field is not defined in the schema.
 func (m *GroupChatMutation) ClearField(name string) error {
 	switch name {
+	case groupchat.FieldCreatedBy:
+		m.ClearCreatedBy()
+		return nil
 	case groupchat.FieldDescription:
 		m.ClearDescription()
 		return nil
@@ -3527,7 +3546,9 @@ type MessageMutation struct {
 	id                 *int
 	created_at         *time.Time
 	updated_at         *time.Time
+	_type              *message.Type
 	content            *string
+	action_data        *map[string]interface{}
 	deleted_at         *time.Time
 	edited_at          *time.Time
 	clearedFields      map[string]struct{}
@@ -3771,7 +3792,7 @@ func (m *MessageMutation) SenderID() (r int, exists bool) {
 // OldSenderID returns the old "sender_id" field's value of the Message entity.
 // If the Message object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *MessageMutation) OldSenderID(ctx context.Context) (v int, err error) {
+func (m *MessageMutation) OldSenderID(ctx context.Context) (v *int, err error) {
 	if !m.op.Is(OpUpdateOne) {
 		return v, errors.New("OldSenderID is only allowed on UpdateOne operations")
 	}
@@ -3785,9 +3806,22 @@ func (m *MessageMutation) OldSenderID(ctx context.Context) (v int, err error) {
 	return oldValue.SenderID, nil
 }
 
+// ClearSenderID clears the value of the "sender_id" field.
+func (m *MessageMutation) ClearSenderID() {
+	m.sender = nil
+	m.clearedFields[message.FieldSenderID] = struct{}{}
+}
+
+// SenderIDCleared returns if the "sender_id" field was cleared in this mutation.
+func (m *MessageMutation) SenderIDCleared() bool {
+	_, ok := m.clearedFields[message.FieldSenderID]
+	return ok
+}
+
 // ResetSenderID resets all changes to the "sender_id" field.
 func (m *MessageMutation) ResetSenderID() {
 	m.sender = nil
+	delete(m.clearedFields, message.FieldSenderID)
 }
 
 // SetReplyToID sets the "reply_to_id" field.
@@ -3839,6 +3873,42 @@ func (m *MessageMutation) ResetReplyToID() {
 	delete(m.clearedFields, message.FieldReplyToID)
 }
 
+// SetType sets the "type" field.
+func (m *MessageMutation) SetType(value message.Type) {
+	m._type = &value
+}
+
+// GetType returns the value of the "type" field in the mutation.
+func (m *MessageMutation) GetType() (r message.Type, exists bool) {
+	v := m._type
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldType returns the old "type" field's value of the Message entity.
+// If the Message object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *MessageMutation) OldType(ctx context.Context) (v message.Type, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldType is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldType requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldType: %w", err)
+	}
+	return oldValue.Type, nil
+}
+
+// ResetType resets all changes to the "type" field.
+func (m *MessageMutation) ResetType() {
+	m._type = nil
+}
+
 // SetContent sets the "content" field.
 func (m *MessageMutation) SetContent(s string) {
 	m.content = &s
@@ -3886,6 +3956,55 @@ func (m *MessageMutation) ContentCleared() bool {
 func (m *MessageMutation) ResetContent() {
 	m.content = nil
 	delete(m.clearedFields, message.FieldContent)
+}
+
+// SetActionData sets the "action_data" field.
+func (m *MessageMutation) SetActionData(value map[string]interface{}) {
+	m.action_data = &value
+}
+
+// ActionData returns the value of the "action_data" field in the mutation.
+func (m *MessageMutation) ActionData() (r map[string]interface{}, exists bool) {
+	v := m.action_data
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldActionData returns the old "action_data" field's value of the Message entity.
+// If the Message object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *MessageMutation) OldActionData(ctx context.Context) (v map[string]interface{}, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldActionData is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldActionData requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldActionData: %w", err)
+	}
+	return oldValue.ActionData, nil
+}
+
+// ClearActionData clears the value of the "action_data" field.
+func (m *MessageMutation) ClearActionData() {
+	m.action_data = nil
+	m.clearedFields[message.FieldActionData] = struct{}{}
+}
+
+// ActionDataCleared returns if the "action_data" field was cleared in this mutation.
+func (m *MessageMutation) ActionDataCleared() bool {
+	_, ok := m.clearedFields[message.FieldActionData]
+	return ok
+}
+
+// ResetActionData resets all changes to the "action_data" field.
+func (m *MessageMutation) ResetActionData() {
+	m.action_data = nil
+	delete(m.clearedFields, message.FieldActionData)
 }
 
 // SetDeletedAt sets the "deleted_at" field.
@@ -4021,7 +4140,7 @@ func (m *MessageMutation) ClearSender() {
 
 // SenderCleared reports if the "sender" edge to the User entity was cleared.
 func (m *MessageMutation) SenderCleared() bool {
-	return m.clearedsender
+	return m.SenderIDCleared() || m.clearedsender
 }
 
 // SenderIDs returns the "sender" edge IDs in the mutation.
@@ -4209,7 +4328,7 @@ func (m *MessageMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *MessageMutation) Fields() []string {
-	fields := make([]string, 0, 8)
+	fields := make([]string, 0, 10)
 	if m.created_at != nil {
 		fields = append(fields, message.FieldCreatedAt)
 	}
@@ -4225,8 +4344,14 @@ func (m *MessageMutation) Fields() []string {
 	if m.reply_to != nil {
 		fields = append(fields, message.FieldReplyToID)
 	}
+	if m._type != nil {
+		fields = append(fields, message.FieldType)
+	}
 	if m.content != nil {
 		fields = append(fields, message.FieldContent)
+	}
+	if m.action_data != nil {
+		fields = append(fields, message.FieldActionData)
 	}
 	if m.deleted_at != nil {
 		fields = append(fields, message.FieldDeletedAt)
@@ -4252,8 +4377,12 @@ func (m *MessageMutation) Field(name string) (ent.Value, bool) {
 		return m.SenderID()
 	case message.FieldReplyToID:
 		return m.ReplyToID()
+	case message.FieldType:
+		return m.GetType()
 	case message.FieldContent:
 		return m.Content()
+	case message.FieldActionData:
+		return m.ActionData()
 	case message.FieldDeletedAt:
 		return m.DeletedAt()
 	case message.FieldEditedAt:
@@ -4277,8 +4406,12 @@ func (m *MessageMutation) OldField(ctx context.Context, name string) (ent.Value,
 		return m.OldSenderID(ctx)
 	case message.FieldReplyToID:
 		return m.OldReplyToID(ctx)
+	case message.FieldType:
+		return m.OldType(ctx)
 	case message.FieldContent:
 		return m.OldContent(ctx)
+	case message.FieldActionData:
+		return m.OldActionData(ctx)
 	case message.FieldDeletedAt:
 		return m.OldDeletedAt(ctx)
 	case message.FieldEditedAt:
@@ -4327,12 +4460,26 @@ func (m *MessageMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetReplyToID(v)
 		return nil
+	case message.FieldType:
+		v, ok := value.(message.Type)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetType(v)
+		return nil
 	case message.FieldContent:
 		v, ok := value.(string)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetContent(v)
+		return nil
+	case message.FieldActionData:
+		v, ok := value.(map[string]interface{})
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetActionData(v)
 		return nil
 	case message.FieldDeletedAt:
 		v, ok := value.(time.Time)
@@ -4381,11 +4528,17 @@ func (m *MessageMutation) AddField(name string, value ent.Value) error {
 // mutation.
 func (m *MessageMutation) ClearedFields() []string {
 	var fields []string
+	if m.FieldCleared(message.FieldSenderID) {
+		fields = append(fields, message.FieldSenderID)
+	}
 	if m.FieldCleared(message.FieldReplyToID) {
 		fields = append(fields, message.FieldReplyToID)
 	}
 	if m.FieldCleared(message.FieldContent) {
 		fields = append(fields, message.FieldContent)
+	}
+	if m.FieldCleared(message.FieldActionData) {
+		fields = append(fields, message.FieldActionData)
 	}
 	if m.FieldCleared(message.FieldDeletedAt) {
 		fields = append(fields, message.FieldDeletedAt)
@@ -4407,11 +4560,17 @@ func (m *MessageMutation) FieldCleared(name string) bool {
 // error if the field is not defined in the schema.
 func (m *MessageMutation) ClearField(name string) error {
 	switch name {
+	case message.FieldSenderID:
+		m.ClearSenderID()
+		return nil
 	case message.FieldReplyToID:
 		m.ClearReplyToID()
 		return nil
 	case message.FieldContent:
 		m.ClearContent()
+		return nil
+	case message.FieldActionData:
+		m.ClearActionData()
 		return nil
 	case message.FieldDeletedAt:
 		m.ClearDeletedAt()
@@ -4442,8 +4601,14 @@ func (m *MessageMutation) ResetField(name string) error {
 	case message.FieldReplyToID:
 		m.ResetReplyToID()
 		return nil
+	case message.FieldType:
+		m.ResetType()
+		return nil
 	case message.FieldContent:
 		m.ResetContent()
+		return nil
+	case message.FieldActionData:
+		m.ResetActionData()
 		return nil
 	case message.FieldDeletedAt:
 		m.ResetDeletedAt()

@@ -17,11 +17,15 @@ func (TimeMixin) Fields() []ent.Field {
 	return []ent.Field{
 		field.Time("created_at").
 			Immutable().
-			Default(time.Now).
+			Default(nowUTC).
 			Annotations(entsql.Default("CURRENT_TIMESTAMP")),
 		field.Time("updated_at").
-			Default(time.Now).
-			UpdateDefault(time.Now).
+			Default(nowUTC).
+			UpdateDefault(nowUTC).
 			Annotations(entsql.Default("CURRENT_TIMESTAMP")),
 	}
+}
+
+func nowUTC() time.Time {
+	return time.Now().UTC()
 }

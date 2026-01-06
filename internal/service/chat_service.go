@@ -202,9 +202,9 @@ func (s *ChatService) MarkAsRead(ctx context.Context, userID int, chatID int) er
 
 		if !isBlocked {
 			if pc.User1ID == userID {
-				update.SetUser1LastReadAt(time.Now())
+				update.SetUser1LastReadAt(time.Now().UTC())
 			} else {
-				update.SetUser2LastReadAt(time.Now())
+				update.SetUser2LastReadAt(time.Now().UTC())
 			}
 		}
 
@@ -221,7 +221,7 @@ func (s *ChatService) MarkAsRead(ctx context.Context, userID int, chatID int) er
 				groupmember.UserID(userID),
 			).
 			SetUnreadCount(0).
-			SetLastReadAt(time.Now()).
+			SetLastReadAt(time.Now().UTC()).
 			Exec(ctx)
 		if err != nil {
 			slog.Error("Failed to mark group chat as read", "error", err)
@@ -242,7 +242,7 @@ func (s *ChatService) MarkAsRead(ctx context.Context, userID int, chatID int) er
 				"user_id": userID,
 			},
 			Meta: &websocket.EventMeta{
-				Timestamp: time.Now().UnixMilli(),
+				Timestamp: time.Now().UTC().UnixMilli(),
 				ChatID:    chatID,
 				SenderID:  userID,
 			},
@@ -278,9 +278,9 @@ func (s *ChatService) HideChat(ctx context.Context, userID int, chatID int) erro
 	update := s.client.PrivateChat.UpdateOneID(pc.ID)
 
 	if pc.User1ID == userID {
-		update.SetUser1HiddenAt(time.Now()).SetUser1UnreadCount(0)
+		update.SetUser1HiddenAt(time.Now().UTC()).SetUser1UnreadCount(0)
 	} else if pc.User2ID == userID {
-		update.SetUser2HiddenAt(time.Now()).SetUser2UnreadCount(0)
+		update.SetUser2HiddenAt(time.Now().UTC()).SetUser2UnreadCount(0)
 	} else {
 		return helper.NewForbiddenError("")
 	}
@@ -297,7 +297,7 @@ func (s *ChatService) HideChat(ctx context.Context, userID int, chatID int) erro
 				"chat_id": chatID,
 			},
 			Meta: &websocket.EventMeta{
-				Timestamp: time.Now().UnixMilli(),
+				Timestamp: time.Now().UTC().UnixMilli(),
 				ChatID:    chatID,
 				SenderID:  userID,
 			},

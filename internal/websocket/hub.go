@@ -229,7 +229,7 @@ func (h *Hub) broadcastUserStatus(userID int, isOnline bool) {
 	ctx := context.Background()
 	update := h.db.User.UpdateOneID(userID).SetIsOnline(isOnline)
 	if !isOnline {
-		update.SetLastSeenAt(time.Now())
+		update.SetLastSeenAt(time.Now().UTC())
 	}
 	if err := update.Exec(ctx); err != nil {
 		slog.Error("Failed to update user online status in DB", "error", err)
@@ -245,10 +245,10 @@ func (h *Hub) broadcastUserStatus(userID int, isOnline bool) {
 		Payload: map[string]interface{}{
 			"user_id":      userID,
 			"is_online":    isOnline,
-			"last_seen_at": time.Now().UnixMilli(),
+			"last_seen_at": time.Now().UTC().UnixMilli(),
 		},
 		Meta: &EventMeta{
-			Timestamp: time.Now().UnixMilli(),
+			Timestamp: time.Now().UTC().UnixMilli(),
 			SenderID:  userID,
 		},
 	}

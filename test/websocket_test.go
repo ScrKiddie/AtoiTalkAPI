@@ -76,7 +76,7 @@ func TestWebSocketBroadcastMessage(t *testing.T) {
 	rr := executeRequest(req)
 	assert.Equal(t, http.StatusOK, rr.Code)
 
-	conn2.SetReadDeadline(time.Now().Add(2 * time.Second))
+	conn2.SetReadDeadline(time.Now().UTC().Add(2 * time.Second))
 	_, message, err := conn2.ReadMessage()
 	assert.NoError(t, err)
 
@@ -88,6 +88,7 @@ func TestWebSocketBroadcastMessage(t *testing.T) {
 	payloadMap, ok := event.Payload.(map[string]interface{})
 	assert.True(t, ok)
 	assert.Equal(t, "Hello WebSocket", payloadMap["content"])
+	assert.Equal(t, "regular", payloadMap["type"])
 	assert.NotNil(t, event.Meta)
 	assert.Equal(t, 1, int(event.Meta.UnreadCount))
 }
@@ -132,7 +133,7 @@ func TestWebSocketTypingStatus(t *testing.T) {
 	err = conn1.WriteJSON(typingEvent)
 	assert.NoError(t, err)
 
-	conn2.SetReadDeadline(time.Now().Add(2 * time.Second))
+	conn2.SetReadDeadline(time.Now().UTC().Add(2 * time.Second))
 
 	foundTyping := false
 	for i := 0; i < 5; i++ {
@@ -179,7 +180,7 @@ func TestWebSocketUserPresence(t *testing.T) {
 	conn2, _, err := ws.DefaultDialer.Dial(wsURL2, header2)
 	assert.NoError(t, err)
 
-	conn1.SetReadDeadline(time.Now().Add(2 * time.Second))
+	conn1.SetReadDeadline(time.Now().UTC().Add(2 * time.Second))
 	foundOnline := false
 	for i := 0; i < 5; i++ {
 		_, message, err := conn1.ReadMessage()
@@ -201,7 +202,7 @@ func TestWebSocketUserPresence(t *testing.T) {
 	conn2.Close()
 	time.Sleep(100 * time.Millisecond)
 
-	conn1.SetReadDeadline(time.Now().Add(2 * time.Second))
+	conn1.SetReadDeadline(time.Now().UTC().Add(2 * time.Second))
 	foundOffline := false
 	for i := 0; i < 5; i++ {
 		_, message, err := conn1.ReadMessage()
@@ -259,7 +260,7 @@ func TestWebSocketMultiDevice(t *testing.T) {
 	req.Header.Set("Content-Type", "application/json")
 	executeRequest(req)
 
-	conn2A.SetReadDeadline(time.Now().Add(2 * time.Second))
+	conn2A.SetReadDeadline(time.Now().UTC().Add(2 * time.Second))
 	_, msgA, err := conn2A.ReadMessage()
 	assert.NoError(t, err)
 	var eventA websocket.Event
@@ -267,7 +268,7 @@ func TestWebSocketMultiDevice(t *testing.T) {
 	assert.Equal(t, websocket.EventMessageNew, eventA.Type)
 	assert.Equal(t, 1, int(eventA.Meta.UnreadCount))
 
-	conn2B.SetReadDeadline(time.Now().Add(2 * time.Second))
+	conn2B.SetReadDeadline(time.Now().UTC().Add(2 * time.Second))
 	_, msgB, err := conn2B.ReadMessage()
 	assert.NoError(t, err)
 	var eventB websocket.Event
@@ -305,7 +306,7 @@ func TestWebSocketReadStatusSync(t *testing.T) {
 	req.Header.Set("Authorization", "Bearer "+token2)
 	executeRequest(req)
 
-	conn2B.SetReadDeadline(time.Now().Add(2 * time.Second))
+	conn2B.SetReadDeadline(time.Now().UTC().Add(2 * time.Second))
 	foundRead := false
 	for i := 0; i < 5; i++ {
 		_, message, err := conn2B.ReadMessage()
@@ -359,7 +360,7 @@ func TestWebSocketSecurityLeak(t *testing.T) {
 	req.Header.Set("Content-Type", "application/json")
 	executeRequest(req)
 
-	conn3.SetReadDeadline(time.Now().Add(1 * time.Second))
+	conn3.SetReadDeadline(time.Now().UTC().Add(1 * time.Second))
 
 	receivedSecret := false
 	for {
@@ -550,7 +551,7 @@ func TestWebSocketMessageUpdate(t *testing.T) {
 	msgData := msgResp.Data.(map[string]interface{})
 	msgID := int(msgData["id"].(float64))
 
-	conn2.SetReadDeadline(time.Now().Add(2 * time.Second))
+	conn2.SetReadDeadline(time.Now().UTC().Add(2 * time.Second))
 	conn2.ReadMessage()
 
 	editBody := model.EditMessageRequest{
@@ -635,6 +636,57 @@ func TestWebSocketGroupChatCreation(t *testing.T) {
 	verifyEvent(t, conn3, websocket.EventChatNew, u1.ID, 0)
 }
 
+func TestWebSocketAddGroupMember(t *testing.T) {
+	clearDatabase(context.Background())
+	u1 := createWSUser(t, "u1", "u1@test.com")
+	u2 := createWSUser(t, "u2", "u2@test.com")
+	u3 := createWSUser(t, "u3", "u3@test.com")
+	token1, _ := helper.GenerateJWT(testConfig.JWTSecret, testConfig.JWTExp, u1.ID)
+	token2, _ := helper.GenerateJWT(testConfig.JWTSecret, testConfig.JWTExp, u2.ID)
+	token3, _ := helper.GenerateJWT(testConfig.JWTSecret, testConfig.JWTExp, u3.ID)
+
+	body := &bytes.Buffer{}
+	writer := multipart.NewWriter(body)
+	_ = writer.WriteField("name", "Add Member WS Test")
+	_ = writer.WriteField("member_ids", `[`+strconv.Itoa(u2.ID)+`]`)
+	writer.Close()
+	req, _ := http.NewRequest("POST", "/api/chats/group", body)
+	req.Header.Set("Content-Type", writer.FormDataContentType())
+	req.Header.Set("Authorization", "Bearer "+token1)
+	rr := executeRequest(req)
+	var chatResp helper.ResponseSuccess
+	json.Unmarshal(rr.Body.Bytes(), &chatResp)
+	chatID := int(chatResp.Data.(map[string]interface{})["id"].(float64))
+
+	server := httptest.NewServer(testRouter)
+	defer server.Close()
+	wsURL1 := "ws" + strings.TrimPrefix(server.URL, "http") + "/ws?token=" + token1
+	wsURL2 := "ws" + strings.TrimPrefix(server.URL, "http") + "/ws?token=" + token2
+	wsURL3 := "ws" + strings.TrimPrefix(server.URL, "http") + "/ws?token=" + token3
+
+	conn1, _, _ := ws.DefaultDialer.Dial(wsURL1, nil)
+	defer conn1.Close()
+	conn2, _, _ := ws.DefaultDialer.Dial(wsURL2, nil)
+	defer conn2.Close()
+	conn3, _, _ := ws.DefaultDialer.Dial(wsURL3, nil)
+	defer conn3.Close()
+
+	time.Sleep(100 * time.Millisecond)
+
+	addReqBody := model.AddGroupMemberRequest{UserID: u3.ID}
+	addBody, _ := json.Marshal(addReqBody)
+	addReq, _ := http.NewRequest("POST", fmt.Sprintf("/api/chats/group/%d/members", chatID), bytes.NewBuffer(addBody))
+	addReq.Header.Set("Content-Type", "application/json")
+	addReq.Header.Set("Authorization", "Bearer "+token1)
+	executeRequest(addReq)
+
+	verifyEvent(t, conn3, websocket.EventChatNew, u1.ID, 0)
+
+	verifyEvent(t, conn1, websocket.EventMessageNew, u1.ID, 0)
+	verifyEvent(t, conn2, websocket.EventMessageNew, u1.ID, 0)
+	verifyEvent(t, conn3, websocket.EventMessageNew, u1.ID, 0)
+}
+
 func createWSUser(t *testing.T, username, email string) *ent.User {
 	hashedPassword, _ := helper.HashPassword("password123")
 	u, err := testClient.User.Create().
@@ -660,7 +712,7 @@ func createWSPrivateChat(t *testing.T, user2ID int, token string) {
 }
 
 func verifyEvent(t *testing.T, conn *ws.Conn, eventType websocket.EventType, senderID, blockedID int) {
-	conn.SetReadDeadline(time.Now().Add(2 * time.Second))
+	conn.SetReadDeadline(time.Now().UTC().Add(2 * time.Second))
 	foundEvent := false
 	for i := 0; i < 5; i++ {
 		_, message, err := conn.ReadMessage()

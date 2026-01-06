@@ -16,6 +16,10 @@ type SearchGroupMembersRequest struct {
 	Limit   int    `json:"limit" validate:"omitempty,gt=0,max=50"`
 }
 
+type AddGroupMemberRequest struct {
+	UserID int `json:"user_id" validate:"required,gt=0"`
+}
+
 type GroupMemberDTO struct {
 	ID       int     `json:"id"`
 	UserID   int     `json:"user_id"`

@@ -37,11 +37,8 @@ channels:
   chat:
     address: /ws
     messages:
-
       clientTyping:
         $ref: '#/components/messages/ClientTyping'
-      
-
       serverMessageNew:
         $ref: '#/components/messages/ServerMessageNew'
       serverMessageUpdate:
@@ -64,16 +61,16 @@ channels:
         $ref: '#/components/messages/ServerUserBlock'
       serverUserUnblock:
         $ref: '#/components/messages/ServerUserUnblock'
+      serverTyping:
+        $ref: '#/components/messages/ServerTyping'
 
 operations:
-
   receiveClientEvents:
     action: receive
     channel:
       $ref: '#/channels/chat'
     messages:
       - $ref: '#/channels/chat/messages/clientTyping'
-
 
   sendServerEvents:
     action: send
@@ -91,6 +88,7 @@ operations:
       - $ref: '#/channels/chat/messages/serverUserUpdate'
       - $ref: '#/channels/chat/messages/serverUserBlock'
       - $ref: '#/channels/chat/messages/serverUserUnblock'
+      - $ref: '#/channels/chat/messages/serverTyping'
 
 components:
   securitySchemes:
@@ -101,7 +99,6 @@ components:
       description: JWT Token passed as a query parameter
 
   schemas:
-
     EventMeta:
       type: object
       properties:
@@ -118,7 +115,6 @@ components:
           type: integer
           description: Current unread count for the receiving user (specific to message.new)
     
-
     BaseEvent:
       type: object
       required: [type, meta]
@@ -171,6 +167,18 @@ components:
         last_seen_at:
           type: string
           format: date-time
+          
+    UserPresencePayload:
+      type: object
+      description: Payload for user.online and user.offline events
+      properties:
+        user_id:
+          type: integer
+        is_online:
+          type: boolean
+        last_seen_at:
+          type: integer
+          description: Unix timestamp in milliseconds
 
     MediaDTO:
       type: object
@@ -196,8 +204,14 @@ components:
           type: integer
         sender_name:
           type: string
+        type:
+          type: string
+          description: Type of the replied message (regular, system_*, etc.)
         content:
           type: string
+        action_data:
+          type: object
+          description: Metadata for system messages
         deleted_at:
           type: string
           format: date-time
@@ -212,8 +226,16 @@ components:
           type: integer
         sender_id:
           type: integer
+        sender_name:
+          type: string
+        type:
+          type: string
+          description: Type of the message (regular, system_create, system_add, etc.)
         content:
           type: string
+        action_data:
+          type: object
+          description: Metadata for system messages (e.g. target_id, new_name)
         attachments:
           type: array
           items:
@@ -269,12 +291,49 @@ components:
           type: boolean
           description: Omitted if false
 
-  messages:
+    GroupMemberDTO:
+      type: object
+      properties:
+        id:
+          type: integer
+        user_id:
+          type: integer
+        username:
+          type: string
+        full_name:
+          type: string
+        avatar:
+          type: string
+          format: uri
+        role:
+          type: string
+          enum: [owner, admin, member]
+        joined_at:
+          type: string
+          format: date-time
+        is_online:
+          type: boolean
 
+  messages:
     ClientTyping:
       name: chat.typing
-      title: User Typing
-      summary: Sent by client when user starts typing
+      title: User Starts Typing (Client -> Server)
+      summary: Sent by client when user starts typing in a chat.
+      payload:
+        type: object
+        properties:
+          type:
+            const: chat.typing
+          meta:
+            type: object
+            properties:
+              chat_id:
+                type: integer
+                
+    ServerTyping:
+      name: chat.typing
+      title: User is Typing (Server -> Client)
+      summary: Broadcasted to other chat members when a user is typing.
       payload:
         allOf:
           - $ref: '#/components/schemas/BaseEvent'
@@ -282,17 +341,11 @@ components:
             properties:
               type:
                 const: chat.typing
-              meta:
-                type: object
-                properties:
-                  chat_id:
-                    type: integer
-
 
     ServerMessageNew:
       name: message.new
       title: New Message
-      summary: Broadcasted when a new message is received
+      summary: Broadcasted when a new message (regular or system) is received
       payload:
         allOf:
           - $ref: '#/components/schemas/BaseEvent'
@@ -337,7 +390,7 @@ components:
     ServerChatNew:
       name: chat.new
       title: New Chat
-      summary: Sent to target user when a new private chat is started
+      summary: Sent to target user when a new private chat is started OR when added to a group
       payload:
         allOf:
           - $ref: '#/components/schemas/BaseEvent'
@@ -397,15 +450,7 @@ components:
               type:
                 const: user.online
               payload:
-                type: object
-                properties:
-                  user_id:
-                    type: integer
-                  is_online:
-                    type: boolean
-                    const: true
-                  last_seen_at:
-                    type: integer
+                $ref: '#/components/schemas/UserPresencePayload'
 
     ServerUserOffline:
       name: user.offline
@@ -419,15 +464,7 @@ components:
               type:
                 const: user.offline
               payload:
-                type: object
-                properties:
-                  user_id:
-                    type: integer
-                  is_online:
-                    type: boolean
-                    const: false
-                  last_seen_at:
-                    type: integer
+                $ref: '#/components/schemas/UserPresencePayload'
 
     ServerUserUpdate:
       name: user.update

@@ -46,7 +46,7 @@ var (
 		{Name: "description", Type: field.TypeString, Nullable: true, Size: 2147483647},
 		{Name: "chat_id", Type: field.TypeInt, Unique: true},
 		{Name: "avatar_id", Type: field.TypeInt, Unique: true, Nullable: true},
-		{Name: "created_by", Type: field.TypeInt},
+		{Name: "created_by", Type: field.TypeInt, Nullable: true},
 	}
 	// GroupChatsTable holds the schema information for the "group_chats" table.
 	GroupChatsTable = &schema.Table{
@@ -70,7 +70,7 @@ var (
 				Symbol:     "group_chats_users_created_groups",
 				Columns:    []*schema.Column{GroupChatsColumns[5]},
 				RefColumns: []*schema.Column{UsersColumns[0]},
-				OnDelete:   schema.Cascade,
+				OnDelete:   schema.SetNull,
 			},
 		},
 	}
@@ -149,12 +149,14 @@ var (
 		{Name: "id", Type: field.TypeInt, Increment: true},
 		{Name: "created_at", Type: field.TypeTime, Default: "CURRENT_TIMESTAMP"},
 		{Name: "updated_at", Type: field.TypeTime, Default: "CURRENT_TIMESTAMP"},
+		{Name: "type", Type: field.TypeEnum, Enums: []string{"regular", "system_create", "system_rename", "system_description", "system_avatar", "system_join", "system_add", "system_leave", "system_kick", "system_promote", "system_demote"}, Default: "regular"},
 		{Name: "content", Type: field.TypeString, Nullable: true, Size: 2147483647},
+		{Name: "action_data", Type: field.TypeJSON, Nullable: true},
 		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
 		{Name: "edited_at", Type: field.TypeTime, Nullable: true},
 		{Name: "chat_id", Type: field.TypeInt},
 		{Name: "reply_to_id", Type: field.TypeInt, Nullable: true},
-		{Name: "sender_id", Type: field.TypeInt},
+		{Name: "sender_id", Type: field.TypeInt, Nullable: true},
 	}
 	// MessagesTable holds the schema information for the "messages" table.
 	MessagesTable = &schema.Table{
@@ -164,28 +166,28 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "messages_chats_messages",
-				Columns:    []*schema.Column{MessagesColumns[6]},
+				Columns:    []*schema.Column{MessagesColumns[8]},
 				RefColumns: []*schema.Column{ChatsColumns[0]},
 				OnDelete:   schema.Cascade,
 			},
 			{
 				Symbol:     "messages_messages_reply_to",
-				Columns:    []*schema.Column{MessagesColumns[7]},
+				Columns:    []*schema.Column{MessagesColumns[9]},
 				RefColumns: []*schema.Column{MessagesColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
 			{
 				Symbol:     "messages_users_sent_messages",
-				Columns:    []*schema.Column{MessagesColumns[8]},
+				Columns:    []*schema.Column{MessagesColumns[10]},
 				RefColumns: []*schema.Column{UsersColumns[0]},
-				OnDelete:   schema.Cascade,
+				OnDelete:   schema.SetNull,
 			},
 		},
 		Indexes: []*schema.Index{
 			{
 				Name:    "idx_messages_chat_active",
 				Unique:  false,
-				Columns: []*schema.Column{MessagesColumns[6], MessagesColumns[1]},
+				Columns: []*schema.Column{MessagesColumns[8], MessagesColumns[1]},
 				Annotation: &entsql.IndexAnnotation{
 					Desc:  true,
 					Where: "deleted_at IS NULL",
@@ -194,7 +196,7 @@ var (
 			{
 				Name:    "message_reply_to_id",
 				Unique:  false,
-				Columns: []*schema.Column{MessagesColumns[7]},
+				Columns: []*schema.Column{MessagesColumns[9]},
 				Annotation: &entsql.IndexAnnotation{
 					Where: "reply_to_id IS NOT NULL AND deleted_at IS NULL",
 				},

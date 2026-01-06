@@ -125,8 +125,9 @@ func (s *AccountService) ChangeEmail(ctx context.Context, userID int, req model.
 			otp.EmailEQ(req.Email),
 			otp.CodeEQ(hashedCode),
 			otp.ModeEQ(otp.ModeChangeEmail),
-			otp.ExpiresAtGT(time.Now()),
+			otp.ExpiresAtGT(time.Now().UTC()),
 		).
+		ForUpdate().
 		Only(ctx)
 
 	if err != nil {
