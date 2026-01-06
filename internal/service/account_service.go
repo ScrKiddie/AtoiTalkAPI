@@ -6,7 +6,6 @@ import (
 	"AtoiTalkAPI/ent/user"
 	"AtoiTalkAPI/ent/useridentity"
 	"AtoiTalkAPI/internal/config"
-	"AtoiTalkAPI/internal/constant"
 	"AtoiTalkAPI/internal/helper"
 	"AtoiTalkAPI/internal/model"
 	"context"
@@ -125,7 +124,7 @@ func (s *AccountService) ChangeEmail(ctx context.Context, userID int, req model.
 		Where(
 			otp.EmailEQ(req.Email),
 			otp.CodeEQ(hashedCode),
-			otp.ModeEQ(constant.OTPModeChangeEmail),
+			otp.ModeEQ(otp.ModeChangeEmail),
 			otp.ExpiresAtGT(time.Now()),
 		).
 		Only(ctx)

@@ -2,7 +2,6 @@ package test
 
 import (
 	"AtoiTalkAPI/ent/otp"
-	"AtoiTalkAPI/internal/constant"
 	"AtoiTalkAPI/internal/helper"
 	"AtoiTalkAPI/internal/model"
 	"bytes"
@@ -26,7 +25,7 @@ func TestSendOTP(t *testing.T) {
 
 		reqBody := model.SendOTPRequest{
 			Email:        "test-new@example.com",
-			Mode:         constant.OTPModeRegister,
+			Mode:         string(otp.ModeRegister),
 			CaptchaToken: dummyTurnstileToken,
 		}
 		body, _ := json.Marshal(reqBody)
@@ -63,7 +62,7 @@ func TestSendOTP(t *testing.T) {
 
 		reqBody1 := model.SendOTPRequest{
 			Email:        email,
-			Mode:         constant.OTPModeReset,
+			Mode:         string(otp.ModeReset),
 			CaptchaToken: dummyTurnstileToken,
 		}
 		body1, _ := json.Marshal(reqBody1)
@@ -80,7 +79,7 @@ func TestSendOTP(t *testing.T) {
 
 		reqBody2 := model.SendOTPRequest{
 			Email:        email,
-			Mode:         constant.OTPModeReset,
+			Mode:         string(otp.ModeReset),
 			CaptchaToken: dummyTurnstileToken,
 		}
 		body2, _ := json.Marshal(reqBody2)
@@ -102,13 +101,13 @@ func TestSendOTP(t *testing.T) {
 			return
 		}
 		assert.NotEqual(t, firstCode.Code, secondCode.Code)
-		assert.Equal(t, otp.Mode(constant.OTPModeReset), secondCode.Mode)
+		assert.Equal(t, otp.ModeReset, secondCode.Mode)
 	})
 
 	t.Run("Validation Error - Missing Email", func(t *testing.T) {
 		clearDatabase(ctx)
 		reqBody := model.SendOTPRequest{
-			Mode:         constant.OTPModeRegister,
+			Mode:         string(otp.ModeRegister),
 			CaptchaToken: dummyTurnstileToken,
 		}
 		body, _ := json.Marshal(reqBody)
@@ -146,7 +145,7 @@ func TestSendOTP(t *testing.T) {
 
 		reqBody := model.SendOTPRequest{
 			Email:        "ratelimit@example.com",
-			Mode:         constant.OTPModeRegister,
+			Mode:         string(otp.ModeRegister),
 			CaptchaToken: dummyTurnstileToken,
 		}
 		body, _ := json.Marshal(reqBody)
@@ -177,7 +176,7 @@ func TestSendOTP(t *testing.T) {
 
 		reqBody := model.SendOTPRequest{
 			Email:        "test-invalid-captcha@example.com",
-			Mode:         constant.OTPModeRegister,
+			Mode:         string(otp.ModeRegister),
 			CaptchaToken: dummyTurnstileToken,
 		}
 		body, _ := json.Marshal(reqBody)
@@ -202,7 +201,7 @@ func TestSendOTP(t *testing.T) {
 
 		reqBody := model.SendOTPRequest{
 			Email:        "test-already-spent@example.com",
-			Mode:         constant.OTPModeRegister,
+			Mode:         string(otp.ModeRegister),
 			CaptchaToken: dummyTurnstileToken,
 		}
 		body, _ := json.Marshal(reqBody)
@@ -236,7 +235,7 @@ func TestSendOTP(t *testing.T) {
 
 		reqBody := model.SendOTPRequest{
 			Email:        email,
-			Mode:         constant.OTPModeRegister,
+			Mode:         string(otp.ModeRegister),
 			CaptchaToken: dummyTurnstileToken,
 		}
 		body, _ := json.Marshal(reqBody)
@@ -261,7 +260,7 @@ func TestSendOTP(t *testing.T) {
 
 		reqBody := model.SendOTPRequest{
 			Email:        "non-existent@example.com",
-			Mode:         constant.OTPModeReset,
+			Mode:         string(otp.ModeReset),
 			CaptchaToken: dummyTurnstileToken,
 		}
 		body, _ := json.Marshal(reqBody)
@@ -294,7 +293,7 @@ func TestSendOTP(t *testing.T) {
 
 		reqBody := model.SendOTPRequest{
 			Email:        "existing@example.com",
-			Mode:         constant.OTPModeChangeEmail,
+			Mode:         string(otp.ModeChangeEmail),
 			CaptchaToken: dummyTurnstileToken,
 		}
 		body, _ := json.Marshal(reqBody)

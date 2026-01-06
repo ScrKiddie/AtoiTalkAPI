@@ -1,9 +1,9 @@
 package test
 
 import (
+	"AtoiTalkAPI/ent/otp"
 	"AtoiTalkAPI/ent/user"
 	"AtoiTalkAPI/ent/useridentity"
-	"AtoiTalkAPI/internal/constant"
 	"AtoiTalkAPI/internal/helper"
 	"AtoiTalkAPI/internal/model"
 	"bytes"
@@ -223,7 +223,7 @@ func TestChangeEmail(t *testing.T) {
 		testClient.OTP.Create().
 			SetEmail(email).
 			SetCode(hashedCode).
-			SetMode(constant.OTPModeChangeEmail).
+			SetMode(otp.ModeChangeEmail).
 			SetExpiresAt(time.Now().Add(5 * time.Minute)).
 			Exec(context.Background())
 	}

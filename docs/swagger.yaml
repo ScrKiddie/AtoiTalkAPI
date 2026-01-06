@@ -109,6 +109,25 @@ definitions:
     required:
     - code
     type: object
+  model.GroupMemberDTO:
+    properties:
+      avatar:
+        type: string
+      full_name:
+        type: string
+      id:
+        type: integer
+      is_online:
+        type: boolean
+      joined_at:
+        type: string
+      role:
+        type: string
+      user_id:
+        type: integer
+      username:
+        type: string
+    type: object
   model.LoginRequest:
     properties:
       captcha_token:
@@ -789,6 +808,68 @@ paths:
       security:
       - BearerAuth: []
       summary: Create Group Chat
+      tags:
+      - chat
+  /api/chats/group/{groupID}/members:
+    get:
+      consumes:
+      - application/json
+      description: Search for members in a group chat by username or full name.
+      parameters:
+      - description: Group Chat ID
+        in: path
+        name: groupID
+        required: true
+        type: integer
+      - description: Search query
+        in: query
+        name: query
+        type: string
+      - description: Pagination cursor
+        in: query
+        name: cursor
+        type: string
+      - description: Number of items per page (default 20, max 50)
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/helper.ResponseWithPagination'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/model.GroupMemberDTO'
+                  type: array
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
+      security:
+      - BearerAuth: []
+      summary: Search Group Members
       tags:
       - chat
   /api/chats/private:

@@ -9,7 +9,6 @@ import (
 	"AtoiTalkAPI/ent/useridentity"
 	"AtoiTalkAPI/internal/adapter"
 	"AtoiTalkAPI/internal/config"
-	"AtoiTalkAPI/internal/constant"
 	"AtoiTalkAPI/internal/helper"
 	"AtoiTalkAPI/internal/model"
 	"bytes"
@@ -393,7 +392,7 @@ func (s *AuthService) Register(ctx context.Context, req model.RegisterUserReques
 		Where(
 			otp.EmailEQ(req.Email),
 			otp.CodeEQ(hashedCode),
-			otp.ModeEQ(constant.OTPModeRegister),
+			otp.ModeEQ(otp.ModeRegister),
 			otp.ExpiresAtGT(time.Now()),
 		).
 		Only(ctx)
@@ -505,7 +504,7 @@ func (s *AuthService) ResetPassword(ctx context.Context, req model.ResetPassword
 		Where(
 			otp.EmailEQ(req.Email),
 			otp.CodeEQ(hashedCode),
-			otp.ModeEQ(constant.OTPModeReset),
+			otp.ModeEQ(otp.ModeReset),
 			otp.ExpiresAtGT(time.Now()),
 		).
 		Only(ctx)

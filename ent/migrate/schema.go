@@ -77,7 +77,7 @@ var (
 	// GroupMembersColumns holds the columns for the "group_members" table.
 	GroupMembersColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt, Increment: true},
-		{Name: "role", Type: field.TypeEnum, Enums: []string{"admin", "member"}, Default: "member"},
+		{Name: "role", Type: field.TypeEnum, Enums: []string{"owner", "admin", "member"}, Default: "member"},
 		{Name: "last_read_at", Type: field.TypeTime, Nullable: true},
 		{Name: "joined_at", Type: field.TypeTime},
 		{Name: "unread_count", Type: field.TypeInt, Default: 0},

@@ -9,6 +9,8 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+
+	"github.com/go-chi/chi/v5"
 )
 
 type GroupChatController struct {
@@ -82,4 +84,62 @@ func (c *GroupChatController) CreateGroupChat(w http.ResponseWriter, r *http.Req
 	}
 
 	helper.WriteSuccess(w, resp)
+}
+
+// SearchGroupMembers godoc
+// @Summary      Search Group Members
+// @Description  Search for members in a group chat by username or full name.
+// @Tags         chat
+// @Accept       json
+// @Produce      json
+// @Param        groupID path int true "Group Chat ID"
+// @Param        query query string false "Search query"
+// @Param        cursor query string false "Pagination cursor"
+// @Param        limit query int false "Number of items per page (default 20, max 50)"
+// @Success      200  {object}  helper.ResponseWithPagination{data=[]model.GroupMemberDTO}
+// @Failure      400  {object}  helper.ResponseError
+// @Failure      401  {object}  helper.ResponseError
+// @Failure      403  {object}  helper.ResponseError
+// @Failure      404  {object}  helper.ResponseError
+// @Failure      500  {object}  helper.ResponseError
+// @Security     BearerAuth
+// @Router       /api/chats/group/{groupID}/members [get]
+func (c *GroupChatController) SearchGroupMembers(w http.ResponseWriter, r *http.Request) {
+	userContext, ok := r.Context().Value(middleware.UserContextKey).(*model.UserDTO)
+	if !ok {
+		helper.WriteError(w, helper.NewUnauthorizedError(""))
+		return
+	}
+
+	groupID, err := strconv.Atoi(chi.URLParam(r, "groupID"))
+	if err != nil {
+		helper.WriteError(w, helper.NewBadRequestError(""))
+		return
+	}
+
+	query := r.URL.Query().Get("query")
+	cursor := r.URL.Query().Get("cursor")
+	limitStr := r.URL.Query().Get("limit")
+
+	limit := 20
+	if limitStr != "" {
+		if l, err := strconv.Atoi(limitStr); err == nil {
+			limit = l
+		}
+	}
+
+	req := model.SearchGroupMembersRequest{
+		GroupID: groupID,
+		Query:   query,
+		Cursor:  cursor,
+		Limit:   limit,
+	}
+
+	members, nextCursor, hasNext, err := c.groupChatService.SearchGroupMembers(r.Context(), userContext.ID, req)
+	if err != nil {
+		helper.WriteError(w, err)
+		return
+	}
+
+	helper.WriteSuccessWithPagination(w, members, nextCursor, hasNext)
 }

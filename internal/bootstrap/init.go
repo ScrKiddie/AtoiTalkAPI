@@ -40,7 +40,7 @@ func Init(appConfig *config.AppConfig, client *ent.Client, validator *validator.
 
 	chatService := service.NewChatService(client, repo, appConfig, validator, wsHub, storageAdapter)
 	privateChatService := service.NewPrivateChatService(client, appConfig, validator, wsHub)
-	groupChatService := service.NewGroupChatService(client, appConfig, validator, wsHub, storageAdapter)
+	groupChatService := service.NewGroupChatService(client, repo, appConfig, validator, wsHub, storageAdapter)
 
 	chatController := controller.NewChatController(chatService)
 	privateChatController := controller.NewPrivateChatController(privateChatService)
