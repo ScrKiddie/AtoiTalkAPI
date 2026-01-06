@@ -36,9 +36,9 @@ func (User) Edges() []ent.Edge {
 		edge.To("identities", UserIdentity.Type).
 			Annotations(entsql.OnDelete(entsql.Cascade)),
 		edge.To("sent_messages", Message.Type).
-			Annotations(entsql.OnDelete(entsql.Cascade)),
+			Annotations(entsql.OnDelete(entsql.SetNull)),
 		edge.To("created_groups", GroupChat.Type).
-			Annotations(entsql.OnDelete(entsql.Cascade)),
+			Annotations(entsql.OnDelete(entsql.SetNull)),
 		edge.To("group_memberships", GroupMember.Type).
 			Annotations(entsql.OnDelete(entsql.Cascade)),
 		edge.To("private_chats_as_user1", PrivateChat.Type).

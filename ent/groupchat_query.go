@@ -603,7 +603,10 @@ func (_q *GroupChatQuery) loadCreator(ctx context.Context, query *UserQuery, nod
 	ids := make([]int, 0, len(nodes))
 	nodeids := make(map[int][]*GroupChat)
 	for i := range nodes {
-		fk := nodes[i].CreatedBy
+		if nodes[i].CreatedBy == nil {
+			continue
+		}
+		fk := *nodes[i].CreatedBy
 		if _, ok := nodeids[fk]; !ok {
 			ids = append(ids, fk)
 		}

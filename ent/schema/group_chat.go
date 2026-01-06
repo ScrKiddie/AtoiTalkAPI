@@ -14,7 +14,7 @@ type GroupChat struct {
 func (GroupChat) Fields() []ent.Field {
 	return []ent.Field{
 		field.Int("chat_id").Unique(),
-		field.Int("created_by"),
+		field.Int("created_by").Optional().Nillable(),
 		field.String("name").MaxLen(100).NotEmpty(),
 		field.Text("description").Optional().Nillable(),
 		field.Int("avatar_id").Optional().Nillable(),
@@ -30,7 +30,7 @@ func (GroupChat) Edges() []ent.Edge {
 			Field("avatar_id"),
 
 		edge.From("chat", Chat.Type).Ref("group_chat").Field("chat_id").Unique().Required(),
-		edge.From("creator", User.Type).Ref("created_groups").Field("created_by").Unique().Required(),
+		edge.From("creator", User.Type).Ref("created_groups").Field("created_by").Unique(),
 		edge.To("members", GroupMember.Type).Annotations(entsql.OnDelete(entsql.Cascade)),
 	}
 }

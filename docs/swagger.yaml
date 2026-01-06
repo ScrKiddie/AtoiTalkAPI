@@ -21,6 +21,13 @@ definitions:
       meta:
         $ref: '#/definitions/helper.PaginationMeta'
     type: object
+  model.AddGroupMemberRequest:
+    properties:
+      user_id:
+        type: integer
+    required:
+    - user_id
+    type: object
   model.AuthResponse:
     properties:
       token:
@@ -160,6 +167,9 @@ definitions:
     type: object
   model.MessageResponse:
     properties:
+      action_data:
+        additionalProperties: true
+        type: object
       attachments:
         items:
           $ref: '#/definitions/model.MediaDTO'
@@ -180,6 +190,10 @@ definitions:
         $ref: '#/definitions/model.ReplyPreviewDTO'
       sender_id:
         type: integer
+      sender_name:
+        type: string
+      type:
+        type: string
     type: object
   model.RegisterUserRequest:
     properties:
@@ -211,6 +225,9 @@ definitions:
     type: object
   model.ReplyPreviewDTO:
     properties:
+      action_data:
+        additionalProperties: true
+        type: object
       content:
         type: string
       deleted_at:
@@ -218,6 +235,8 @@ definitions:
       id:
         type: integer
       sender_name:
+        type: string
+      type:
         type: string
     type: object
   model.ResetPasswordRequest:
@@ -870,6 +889,59 @@ paths:
       security:
       - BearerAuth: []
       summary: Search Group Members
+      tags:
+      - chat
+    post:
+      consumes:
+      - application/json
+      description: Add a new member to a group chat. Only owners or admins can perform
+        this action.
+      parameters:
+      - description: Group Chat ID
+        in: path
+        name: groupID
+        required: true
+        type: integer
+      - description: Add Member Request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.AddGroupMemberRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/helper.ResponseSuccess'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
+      security:
+      - BearerAuth: []
+      summary: Add Member to Group
       tags:
       - chat
   /api/chats/private:

@@ -119,6 +119,16 @@ func CreatedByNotIn(vs ...int) predicate.GroupChat {
 	return predicate.GroupChat(sql.FieldNotIn(FieldCreatedBy, vs...))
 }
 
+// CreatedByIsNil applies the IsNil predicate on the "created_by" field.
+func CreatedByIsNil() predicate.GroupChat {
+	return predicate.GroupChat(sql.FieldIsNull(FieldCreatedBy))
+}
+
+// CreatedByNotNil applies the NotNil predicate on the "created_by" field.
+func CreatedByNotNil() predicate.GroupChat {
+	return predicate.GroupChat(sql.FieldNotNull(FieldCreatedBy))
+}
+
 // NameEQ applies the EQ predicate on the "name" field.
 func NameEQ(v string) predicate.GroupChat {
 	return predicate.GroupChat(sql.FieldEQ(FieldName, v))

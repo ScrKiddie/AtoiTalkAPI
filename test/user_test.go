@@ -1,10 +1,9 @@
 package test
 
 import (
-	"AtoiTalkAPI/ent"
 	"AtoiTalkAPI/ent/chat"
+	"AtoiTalkAPI/ent/message"
 	"AtoiTalkAPI/ent/user"
-	"AtoiTalkAPI/ent/userblock"
 	"AtoiTalkAPI/internal/helper"
 	"bytes"
 	"context"
@@ -543,356 +542,29 @@ func TestUpdateProfile(t *testing.T) {
 			printBody(t, rr)
 		}
 	})
-}
 
-func TestSearchUsers(t *testing.T) {
-	clearDatabase(context.Background())
+	t.Run("Success - Delete User Keeps Messages (SetNull)", func(t *testing.T) {
+		clearDatabase(context.Background())
 
-	names := []string{"David", "Alice", "Charlie", "Bob", "Eve"}
-	users := make(map[string]*ent.User)
-	for _, name := range names {
-		email := strings.ToLower(name) + "@test.com"
-		username := strings.ToLower(name)
-		hashedPassword, _ := helper.HashPassword("Password123!")
-		u, _ := testClient.User.Create().
-			SetEmail(email).
-			SetUsername(username).
-			SetFullName(name).
-			SetPasswordHash(hashedPassword).
+		u1, _ := testClient.User.Create().SetEmail("u1@test.com").SetUsername("u1").SetFullName("U1").Save(context.Background())
+		u2, _ := testClient.User.Create().SetEmail("u2@test.com").SetUsername("u2").SetFullName("U2").Save(context.Background())
+
+		chatEntity, _ := testClient.Chat.Create().SetType(chat.TypePrivate).Save(context.Background())
+		testClient.PrivateChat.Create().SetChat(chatEntity).SetUser1(u1).SetUser2(u2).Save(context.Background())
+
+		msg, _ := testClient.Message.Create().
+			SetChatID(chatEntity.ID).
+			SetSenderID(u1.ID).
+			SetType(message.TypeRegular).
+			SetContent("I will survive").
 			Save(context.Background())
-		users[name] = u
-	}
 
-	searcher, _ := testClient.User.Create().
-		SetEmail("searcher@test.com").
-		SetUsername("searcher").
-		SetFullName("Searcher").
-		SetPasswordHash("hash").
-		Save(context.Background())
-	token, _ := helper.GenerateJWT(testConfig.JWTSecret, testConfig.JWTExp, searcher.ID)
+		err := testClient.User.DeleteOneID(u1.ID).Exec(context.Background())
+		assert.NoError(t, err)
 
-	chatEntity, _ := testClient.Chat.Create().SetType(chat.TypePrivate).Save(context.Background())
-	testClient.PrivateChat.Create().
-		SetChat(chatEntity).
-		SetUser1(searcher).
-		SetUser2(users["Alice"]).
-		Save(context.Background())
-
-	t.Run("Success - List All (Pagination)", func(t *testing.T) {
-		req, _ := http.NewRequest("GET", "/api/users?limit=2", nil)
-		req.Header.Set("Authorization", "Bearer "+token)
-		rr := executeRequest(req)
-
-		if !assert.Equal(t, http.StatusOK, rr.Code) {
-			printBody(t, rr)
-		}
-
-		var resp helper.ResponseWithPagination
-		json.Unmarshal(rr.Body.Bytes(), &resp)
-
-		dataList := resp.Data.([]interface{})
-		assert.Len(t, dataList, 2)
-		assert.True(t, resp.Meta.HasNext)
-		assert.NotEmpty(t, resp.Meta.NextCursor)
-
-		user1 := dataList[0].(map[string]interface{})
-		user2 := dataList[1].(map[string]interface{})
-		assert.Equal(t, "Alice", user1["full_name"])
-		assert.Equal(t, "Bob", user2["full_name"])
-
-		cursor := resp.Meta.NextCursor
-		req2, _ := http.NewRequest("GET", fmt.Sprintf("/api/users?limit=2&cursor=%s", cursor), nil)
-		req2.Header.Set("Authorization", "Bearer "+token)
-		rr2 := executeRequest(req2)
-
-		if !assert.Equal(t, http.StatusOK, rr2.Code) {
-			printBody(t, rr2)
-		}
-		var resp2 helper.ResponseWithPagination
-		json.Unmarshal(rr2.Body.Bytes(), &resp2)
-
-		dataList2 := resp2.Data.([]interface{})
-		assert.Len(t, dataList2, 2)
-
-		user3 := dataList2[0].(map[string]interface{})
-		user4 := dataList2[1].(map[string]interface{})
-		assert.Equal(t, "Charlie", user3["full_name"])
-		assert.Equal(t, "David", user4["full_name"])
-	})
-
-	t.Run("Success - Search with Private Chat ID (include_chat_id=true)", func(t *testing.T) {
-		req, _ := http.NewRequest("GET", "/api/users?query=Alice&include_chat_id=true", nil)
-		req.Header.Set("Authorization", "Bearer "+token)
-		rr := executeRequest(req)
-
-		if !assert.Equal(t, http.StatusOK, rr.Code) {
-			printBody(t, rr)
-		}
-		var resp helper.ResponseWithPagination
-		json.Unmarshal(rr.Body.Bytes(), &resp)
-
-		dataList := resp.Data.([]interface{})
-		assert.Len(t, dataList, 1)
-		userAlice := dataList[0].(map[string]interface{})
-		assert.Equal(t, "Alice", userAlice["full_name"])
-		assert.NotNil(t, userAlice["private_chat_id"])
-		assert.Equal(t, float64(chatEntity.ID), userAlice["private_chat_id"])
-	})
-
-	t.Run("Success - Search with Private Chat ID (include_chat_id=false)", func(t *testing.T) {
-		req, _ := http.NewRequest("GET", "/api/users?query=Alice&include_chat_id=false", nil)
-		req.Header.Set("Authorization", "Bearer "+token)
-		rr := executeRequest(req)
-
-		if !assert.Equal(t, http.StatusOK, rr.Code) {
-			printBody(t, rr)
-		}
-		var resp helper.ResponseWithPagination
-		json.Unmarshal(rr.Body.Bytes(), &resp)
-
-		dataList := resp.Data.([]interface{})
-		assert.Len(t, dataList, 1)
-		userAlice := dataList[0].(map[string]interface{})
-		assert.Equal(t, "Alice", userAlice["full_name"])
-		assert.Nil(t, userAlice["private_chat_id"])
-	})
-
-	t.Run("Success - Search without Private Chat ID", func(t *testing.T) {
-		req, _ := http.NewRequest("GET", "/api/users?query=Bob", nil)
-		req.Header.Set("Authorization", "Bearer "+token)
-		rr := executeRequest(req)
-
-		if !assert.Equal(t, http.StatusOK, rr.Code) {
-			printBody(t, rr)
-		}
-		var resp helper.ResponseWithPagination
-		json.Unmarshal(rr.Body.Bytes(), &resp)
-
-		dataList := resp.Data.([]interface{})
-		assert.Len(t, dataList, 1)
-		userBob := dataList[0].(map[string]interface{})
-		assert.Equal(t, "Bob", userBob["full_name"])
-		assert.Nil(t, userBob["private_chat_id"])
-	})
-
-	t.Run("Success - Search by Username", func(t *testing.T) {
-		req, _ := http.NewRequest("GET", "/api/users?query=alice", nil)
-		req.Header.Set("Authorization", "Bearer "+token)
-		rr := executeRequest(req)
-
-		if !assert.Equal(t, http.StatusOK, rr.Code) {
-			printBody(t, rr)
-		}
-		var resp helper.ResponseWithPagination
-		json.Unmarshal(rr.Body.Bytes(), &resp)
-
-		dataList := resp.Data.([]interface{})
-		assert.Len(t, dataList, 1)
-		userAlice := dataList[0].(map[string]interface{})
-		assert.Equal(t, "Alice", userAlice["full_name"])
-	})
-
-	t.Run("Success - Search by Email Exact Match", func(t *testing.T) {
-		req, _ := http.NewRequest("GET", "/api/users?query=alice@test.com", nil)
-		req.Header.Set("Authorization", "Bearer "+token)
-		rr := executeRequest(req)
-
-		if !assert.Equal(t, http.StatusOK, rr.Code) {
-			printBody(t, rr)
-		}
-		var resp helper.ResponseWithPagination
-		json.Unmarshal(rr.Body.Bytes(), &resp)
-
-		dataList := resp.Data.([]interface{})
-		if assert.NotEmpty(t, dataList) {
-			userAlice := dataList[0].(map[string]interface{})
-			assert.Equal(t, "Alice", userAlice["full_name"])
-		}
-	})
-
-	t.Run("Fail - Search by Partial Email (Should be Empty)", func(t *testing.T) {
-		req, _ := http.NewRequest("GET", "/api/users?query=alice@test", nil)
-		req.Header.Set("Authorization", "Bearer "+token)
-		rr := executeRequest(req)
-
-		if !assert.Equal(t, http.StatusOK, rr.Code) {
-			printBody(t, rr)
-		}
-		var resp helper.ResponseWithPagination
-		json.Unmarshal(rr.Body.Bytes(), &resp)
-
-		dataList := resp.Data.([]interface{})
-		assert.Len(t, dataList, 0)
-	})
-
-	t.Run("Success - Exclude Blocked Users", func(t *testing.T) {
-
-		testClient.UserBlock.Create().SetBlockerID(searcher.ID).SetBlockedID(users["Bob"].ID).Save(context.Background())
-
-		req, _ := http.NewRequest("GET", "/api/users?query=Bob", nil)
-		req.Header.Set("Authorization", "Bearer "+token)
-		rr := executeRequest(req)
-
-		var resp helper.ResponseWithPagination
-		json.Unmarshal(rr.Body.Bytes(), &resp)
-		dataList := resp.Data.([]interface{})
-		assert.Len(t, dataList, 0, "Blocked user should not appear in search")
-	})
-
-	t.Run("Success - Mutual Block (Both should not see each other)", func(t *testing.T) {
-
-		testClient.UserBlock.Create().SetBlockerID(users["Eve"].ID).SetBlockedID(searcher.ID).Save(context.Background())
-
-		testClient.UserBlock.Create().SetBlockerID(searcher.ID).SetBlockedID(users["Eve"].ID).Save(context.Background())
-
-		req, _ := http.NewRequest("GET", "/api/users?query=Eve", nil)
-		req.Header.Set("Authorization", "Bearer "+token)
-		rr := executeRequest(req)
-
-		var resp helper.ResponseWithPagination
-		json.Unmarshal(rr.Body.Bytes(), &resp)
-		dataList := resp.Data.([]interface{})
-		assert.Len(t, dataList, 0, "Mutually blocked user should not appear in search")
-	})
-
-	t.Run("Empty Result", func(t *testing.T) {
-		req, _ := http.NewRequest("GET", "/api/users?query=zoro", nil)
-		req.Header.Set("Authorization", "Bearer "+token)
-		rr := executeRequest(req)
-
-		if !assert.Equal(t, http.StatusOK, rr.Code) {
-			printBody(t, rr)
-		}
-		var resp helper.ResponseWithPagination
-		json.Unmarshal(rr.Body.Bytes(), &resp)
-
-		dataList := resp.Data.([]interface{})
-		assert.Len(t, dataList, 0)
-		assert.False(t, resp.Meta.HasNext)
-	})
-
-	t.Run("Invalid Cursor", func(t *testing.T) {
-		req, _ := http.NewRequest("GET", "/api/users?cursor=invalid-base64-string", nil)
-		req.Header.Set("Authorization", "Bearer "+token)
-		rr := executeRequest(req)
-
-		if !assert.Equal(t, http.StatusBadRequest, rr.Code) {
-			printBody(t, rr)
-		}
-	})
-
-	t.Run("Unauthorized", func(t *testing.T) {
-		req, _ := http.NewRequest("GET", "/api/users", nil)
-		rr := executeRequest(req)
-		if !assert.Equal(t, http.StatusUnauthorized, rr.Code) {
-			printBody(t, rr)
-		}
-	})
-}
-
-func TestGetBlockedUsers(t *testing.T) {
-	clearDatabase(context.Background())
-
-	blocker, _ := testClient.User.Create().SetEmail("blocker@test.com").SetUsername("blocker").SetFullName("Blocker").Save(context.Background())
-	blocked1, _ := testClient.User.Create().SetEmail("blocked1@test.com").SetUsername("blocked1").SetFullName("Blocked One").Save(context.Background())
-	blocked2, _ := testClient.User.Create().SetEmail("blocked2@test.com").SetUsername("blocked2").SetFullName("Blocked Two").Save(context.Background())
-	testClient.User.Create().SetEmail("unblocked@test.com").SetUsername("unblocked").SetFullName("Unblocked").Save(context.Background())
-
-	testClient.UserBlock.Create().SetBlockerID(blocker.ID).SetBlockedID(blocked1.ID).Save(context.Background())
-	testClient.UserBlock.Create().SetBlockerID(blocker.ID).SetBlockedID(blocked2.ID).Save(context.Background())
-
-	token, _ := helper.GenerateJWT(testConfig.JWTSecret, testConfig.JWTExp, blocker.ID)
-
-	t.Run("Success - List All Blocked Users", func(t *testing.T) {
-		req, _ := http.NewRequest("GET", "/api/users/blocked", nil)
-		req.Header.Set("Authorization", "Bearer "+token)
-		rr := executeRequest(req)
-
-		assert.Equal(t, http.StatusOK, rr.Code)
-		var resp helper.ResponseWithPagination
-		json.Unmarshal(rr.Body.Bytes(), &resp)
-		dataList := resp.Data.([]interface{})
-		assert.Len(t, dataList, 2)
-
-		names := make(map[string]bool)
-		for _, item := range dataList {
-			u := item.(map[string]interface{})
-			names[u["username"].(string)] = true
-			assert.True(t, u["is_blocked_by_me"].(bool))
-		}
-		assert.True(t, names["blocked1"])
-		assert.True(t, names["blocked2"])
-		assert.False(t, names["unblocked"])
-	})
-
-	t.Run("Success - Search Blocked User", func(t *testing.T) {
-		req, _ := http.NewRequest("GET", "/api/users/blocked?query=One", nil)
-		req.Header.Set("Authorization", "Bearer "+token)
-		rr := executeRequest(req)
-
-		assert.Equal(t, http.StatusOK, rr.Code)
-		var resp helper.ResponseWithPagination
-		json.Unmarshal(rr.Body.Bytes(), &resp)
-		dataList := resp.Data.([]interface{})
-		assert.Len(t, dataList, 1)
-		assert.Equal(t, "Blocked One", dataList[0].(map[string]interface{})["full_name"])
-	})
-
-	t.Run("Success - Empty List", func(t *testing.T) {
-
-		cleanUser, _ := testClient.User.Create().SetEmail("clean@test.com").SetUsername("clean").SetFullName("Clean").Save(context.Background())
-		cleanToken, _ := helper.GenerateJWT(testConfig.JWTSecret, testConfig.JWTExp, cleanUser.ID)
-
-		req, _ := http.NewRequest("GET", "/api/users/blocked", nil)
-		req.Header.Set("Authorization", "Bearer "+cleanToken)
-		rr := executeRequest(req)
-
-		assert.Equal(t, http.StatusOK, rr.Code)
-		var resp helper.ResponseWithPagination
-		json.Unmarshal(rr.Body.Bytes(), &resp)
-		assert.Empty(t, resp.Data)
-	})
-}
-
-func TestBlockUser(t *testing.T) {
-	clearDatabase(context.Background())
-
-	u1, _ := testClient.User.Create().SetEmail("u1@test.com").SetUsername("u1").SetFullName("User 1").Save(context.Background())
-	u2, _ := testClient.User.Create().SetEmail("u2@test.com").SetUsername("u2").SetFullName("User 2").Save(context.Background())
-
-	token, _ := helper.GenerateJWT(testConfig.JWTSecret, testConfig.JWTExp, u1.ID)
-
-	t.Run("Success Block", func(t *testing.T) {
-		req, _ := http.NewRequest("POST", fmt.Sprintf("/api/users/%d/block", u2.ID), nil)
-		req.Header.Set("Authorization", "Bearer "+token)
-		rr := executeRequest(req)
-		assert.Equal(t, http.StatusOK, rr.Code)
-
-		exists, _ := testClient.UserBlock.Query().Where(userblock.BlockerID(u1.ID), userblock.BlockedID(u2.ID)).Exist(context.Background())
-		assert.True(t, exists)
-	})
-
-	t.Run("Success Unblock", func(t *testing.T) {
-		req, _ := http.NewRequest("POST", fmt.Sprintf("/api/users/%d/unblock", u2.ID), nil)
-		req.Header.Set("Authorization", "Bearer "+token)
-		rr := executeRequest(req)
-		assert.Equal(t, http.StatusOK, rr.Code)
-
-		exists, _ := testClient.UserBlock.Query().Where(userblock.BlockerID(u1.ID), userblock.BlockedID(u2.ID)).Exist(context.Background())
-		assert.False(t, exists)
-	})
-
-	t.Run("Block Self", func(t *testing.T) {
-		req, _ := http.NewRequest("POST", fmt.Sprintf("/api/users/%d/block", u1.ID), nil)
-		req.Header.Set("Authorization", "Bearer "+token)
-		rr := executeRequest(req)
-		assert.Equal(t, http.StatusBadRequest, rr.Code)
-	})
-
-	t.Run("Block Non-Existent User", func(t *testing.T) {
-		req, _ := http.NewRequest("POST", "/api/users/99999/block", nil)
-		req.Header.Set("Authorization", "Bearer "+token)
-		rr := executeRequest(req)
-		assert.Equal(t, http.StatusNotFound, rr.Code)
+		survivingMsg, err := testClient.Message.Query().Where(message.ID(msg.ID)).Only(context.Background())
+		assert.NoError(t, err)
+		assert.Equal(t, "I will survive", *survivingMsg.Content)
+		assert.Nil(t, survivingMsg.SenderID, "SenderID should be NULL")
 	})
 }

@@ -5,7 +5,6 @@ import (
 	"AtoiTalkAPI/internal/middleware"
 	"AtoiTalkAPI/internal/model"
 	"AtoiTalkAPI/internal/service"
-	"encoding/base64"
 	"encoding/json"
 	"log/slog"
 	"net/http"
@@ -135,15 +134,7 @@ func (c *MessageController) GetMessages(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	cursorStr := r.URL.Query().Get("cursor")
-	var cursor int
-	if cursorStr != "" {
-		decodedBytes, err := base64.URLEncoding.DecodeString(cursorStr)
-		if err == nil {
-			cursor, _ = strconv.Atoi(string(decodedBytes))
-		}
-	}
-
+	cursor := r.URL.Query().Get("cursor")
 	limit, _ := strconv.Atoi(r.URL.Query().Get("limit"))
 
 	req := model.GetMessagesRequest{

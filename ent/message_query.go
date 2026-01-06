@@ -613,7 +613,10 @@ func (_q *MessageQuery) loadSender(ctx context.Context, query *UserQuery, nodes 
 	ids := make([]int, 0, len(nodes))
 	nodeids := make(map[int][]*Message)
 	for i := range nodes {
-		fk := nodes[i].SenderID
+		if nodes[i].SenderID == nil {
+			continue
+		}
+		fk := *nodes[i].SenderID
 		if _, ok := nodeids[fk]; !ok {
 			ids = append(ids, fk)
 		}

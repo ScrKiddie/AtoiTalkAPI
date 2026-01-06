@@ -186,7 +186,7 @@ func createOTP(email, code string, expiresAt time.Time) {
 		SetEmail(email).
 		SetCode(hashedCode).
 		SetMode(otp.ModeRegister).
-		SetExpiresAt(expiresAt).
+		SetExpiresAt(expiresAt.UTC()).
 		Exec(context.Background())
 }
 

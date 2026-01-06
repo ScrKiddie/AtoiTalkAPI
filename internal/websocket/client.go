@@ -46,7 +46,7 @@ func (c *Client) ReadPump() {
 
 				if event.Meta != nil && event.Meta.ChatID != 0 {
 					event.Meta.SenderID = c.UserID
-					event.Meta.Timestamp = time.Now().UnixMilli()
+					event.Meta.Timestamp = time.Now().UTC().UnixMilli()
 					c.Hub.BroadcastToChat(event.Meta.ChatID, event)
 				}
 			}

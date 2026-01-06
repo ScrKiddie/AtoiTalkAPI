@@ -37,6 +37,14 @@ func (_c *GroupChatCreate) SetCreatedBy(v int) *GroupChatCreate {
 	return _c
 }
 
+// SetNillableCreatedBy sets the "created_by" field if the given value is not nil.
+func (_c *GroupChatCreate) SetNillableCreatedBy(v *int) *GroupChatCreate {
+	if v != nil {
+		_c.SetCreatedBy(*v)
+	}
+	return _c
+}
+
 // SetName sets the "name" field.
 func (_c *GroupChatCreate) SetName(v string) *GroupChatCreate {
 	_c.mutation.SetName(v)
@@ -84,6 +92,14 @@ func (_c *GroupChatCreate) SetChat(v *Chat) *GroupChatCreate {
 // SetCreatorID sets the "creator" edge to the User entity by ID.
 func (_c *GroupChatCreate) SetCreatorID(id int) *GroupChatCreate {
 	_c.mutation.SetCreatorID(id)
+	return _c
+}
+
+// SetNillableCreatorID sets the "creator" edge to the User entity by ID if the given value is not nil.
+func (_c *GroupChatCreate) SetNillableCreatorID(id *int) *GroupChatCreate {
+	if id != nil {
+		_c = _c.SetCreatorID(*id)
+	}
 	return _c
 }
 
@@ -144,9 +160,6 @@ func (_c *GroupChatCreate) check() error {
 	if _, ok := _c.mutation.ChatID(); !ok {
 		return &ValidationError{Name: "chat_id", err: errors.New(`ent: missing required field "GroupChat.chat_id"`)}
 	}
-	if _, ok := _c.mutation.CreatedBy(); !ok {
-		return &ValidationError{Name: "created_by", err: errors.New(`ent: missing required field "GroupChat.created_by"`)}
-	}
 	if _, ok := _c.mutation.Name(); !ok {
 		return &ValidationError{Name: "name", err: errors.New(`ent: missing required field "GroupChat.name"`)}
 	}
@@ -157,9 +170,6 @@ func (_c *GroupChatCreate) check() error {
 	}
 	if len(_c.mutation.ChatIDs()) == 0 {
 		return &ValidationError{Name: "chat", err: errors.New(`ent: missing required edge "GroupChat.chat"`)}
-	}
-	if len(_c.mutation.CreatorIDs()) == 0 {
-		return &ValidationError{Name: "creator", err: errors.New(`ent: missing required edge "GroupChat.creator"`)}
 	}
 	return nil
 }
@@ -244,7 +254,7 @@ func (_c *GroupChatCreate) createSpec() (*GroupChat, *sqlgraph.CreateSpec) {
 		for _, k := range nodes {
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
-		_node.CreatedBy = nodes[0]
+		_node.CreatedBy = &nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
 	if nodes := _c.mutation.MembersIDs(); len(nodes) > 0 {
@@ -336,6 +346,12 @@ func (u *GroupChatUpsert) SetCreatedBy(v int) *GroupChatUpsert {
 // UpdateCreatedBy sets the "created_by" field to the value that was provided on create.
 func (u *GroupChatUpsert) UpdateCreatedBy() *GroupChatUpsert {
 	u.SetExcluded(groupchat.FieldCreatedBy)
+	return u
+}
+
+// ClearCreatedBy clears the value of the "created_by" field.
+func (u *GroupChatUpsert) ClearCreatedBy() *GroupChatUpsert {
+	u.SetNull(groupchat.FieldCreatedBy)
 	return u
 }
 
@@ -452,6 +468,13 @@ func (u *GroupChatUpsertOne) SetCreatedBy(v int) *GroupChatUpsertOne {
 func (u *GroupChatUpsertOne) UpdateCreatedBy() *GroupChatUpsertOne {
 	return u.Update(func(s *GroupChatUpsert) {
 		s.UpdateCreatedBy()
+	})
+}
+
+// ClearCreatedBy clears the value of the "created_by" field.
+func (u *GroupChatUpsertOne) ClearCreatedBy() *GroupChatUpsertOne {
+	return u.Update(func(s *GroupChatUpsert) {
+		s.ClearCreatedBy()
 	})
 }
 
@@ -739,6 +762,13 @@ func (u *GroupChatUpsertBulk) SetCreatedBy(v int) *GroupChatUpsertBulk {
 func (u *GroupChatUpsertBulk) UpdateCreatedBy() *GroupChatUpsertBulk {
 	return u.Update(func(s *GroupChatUpsert) {
 		s.UpdateCreatedBy()
+	})
+}
+
+// ClearCreatedBy clears the value of the "created_by" field.
+func (u *GroupChatUpsertBulk) ClearCreatedBy() *GroupChatUpsertBulk {
+	return u.Update(func(s *GroupChatUpsert) {
+		s.ClearCreatedBy()
 	})
 }
 

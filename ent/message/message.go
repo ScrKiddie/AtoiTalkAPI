@@ -3,6 +3,7 @@
 package message
 
 import (
+	"fmt"
 	"time"
 
 	"entgo.io/ent/dialect/sql"
@@ -24,8 +25,12 @@ const (
 	FieldSenderID = "sender_id"
 	// FieldReplyToID holds the string denoting the reply_to_id field in the database.
 	FieldReplyToID = "reply_to_id"
+	// FieldType holds the string denoting the type field in the database.
+	FieldType = "type"
 	// FieldContent holds the string denoting the content field in the database.
 	FieldContent = "content"
+	// FieldActionData holds the string denoting the action_data field in the database.
+	FieldActionData = "action_data"
 	// FieldDeletedAt holds the string denoting the deleted_at field in the database.
 	FieldDeletedAt = "deleted_at"
 	// FieldEditedAt holds the string denoting the edited_at field in the database.
@@ -81,7 +86,9 @@ var Columns = []string{
 	FieldChatID,
 	FieldSenderID,
 	FieldReplyToID,
+	FieldType,
 	FieldContent,
+	FieldActionData,
 	FieldDeletedAt,
 	FieldEditedAt,
 }
@@ -104,6 +111,41 @@ var (
 	// UpdateDefaultUpdatedAt holds the default value on update for the "updated_at" field.
 	UpdateDefaultUpdatedAt func() time.Time
 )
+
+// Type defines the type for the "type" enum field.
+type Type string
+
+// TypeRegular is the default value of the Type enum.
+const DefaultType = TypeRegular
+
+// Type values.
+const (
+	TypeRegular           Type = "regular"
+	TypeSystemCreate      Type = "system_create"
+	TypeSystemRename      Type = "system_rename"
+	TypeSystemDescription Type = "system_description"
+	TypeSystemAvatar      Type = "system_avatar"
+	TypeSystemJoin        Type = "system_join"
+	TypeSystemAdd         Type = "system_add"
+	TypeSystemLeave       Type = "system_leave"
+	TypeSystemKick        Type = "system_kick"
+	TypeSystemPromote     Type = "system_promote"
+	TypeSystemDemote      Type = "system_demote"
+)
+
+func (_type Type) String() string {
+	return string(_type)
+}
+
+// TypeValidator is a validator for the "type" field enum values. It is called by the builders before save.
+func TypeValidator(_type Type) error {
+	switch _type {
+	case TypeRegular, TypeSystemCreate, TypeSystemRename, TypeSystemDescription, TypeSystemAvatar, TypeSystemJoin, TypeSystemAdd, TypeSystemLeave, TypeSystemKick, TypeSystemPromote, TypeSystemDemote:
+		return nil
+	default:
+		return fmt.Errorf("message: invalid enum value for type field: %q", _type)
+	}
+}
 
 // OrderOption defines the ordering options for the Message queries.
 type OrderOption func(*sql.Selector)
@@ -136,6 +178,11 @@ func BySenderID(opts ...sql.OrderTermOption) OrderOption {
 // ByReplyToID orders the results by the reply_to_id field.
 func ByReplyToID(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldReplyToID, opts...).ToFunc()
+}
+
+// ByType orders the results by the type field.
+func ByType(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldType, opts...).ToFunc()
 }
 
 // ByContent orders the results by the content field.

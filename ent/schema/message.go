@@ -17,9 +17,26 @@ func (Message) Mixin() []ent.Mixin { return []ent.Mixin{TimeMixin{}} }
 func (Message) Fields() []ent.Field {
 	return []ent.Field{
 		field.Int("chat_id"),
-		field.Int("sender_id"),
+		field.Int("sender_id").Optional().Nillable(),
 		field.Int("reply_to_id").Optional().Nillable(),
+		field.Enum("type").
+			Values(
+				"regular",
+				"system_create",
+				"system_rename",
+				"system_description",
+				"system_avatar",
+				"system_join",
+				"system_add",
+				"system_leave",
+				"system_kick",
+				"system_promote",
+				"system_demote",
+			).
+			Default("regular"),
 		field.Text("content").Optional().Nillable(),
+		field.JSON("action_data", map[string]interface{}{}).
+			Optional(),
 		field.Time("deleted_at").Optional().Nillable(),
 		field.Time("edited_at").Optional().Nillable(),
 	}
@@ -28,7 +45,7 @@ func (Message) Fields() []ent.Field {
 func (Message) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.From("chat", Chat.Type).Ref("messages").Field("chat_id").Unique().Required(),
-		edge.From("sender", User.Type).Ref("sent_messages").Field("sender_id").Unique().Required(),
+		edge.From("sender", User.Type).Ref("sent_messages").Field("sender_id").Unique(),
 		edge.To("reply_to", Message.Type).Field("reply_to_id").Unique().From("replies").
 			Annotations(entsql.OnDelete(entsql.SetNull)),
 		edge.To("attachments", Media.Type).Annotations(entsql.OnDelete(entsql.Cascade)),

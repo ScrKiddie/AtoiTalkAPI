@@ -104,4 +104,31 @@ func TestUploadMedia(t *testing.T) {
 		rr := executeRequest(req)
 		assert.Equal(t, http.StatusUnauthorized, rr.Code)
 	})
+
+	t.Run("Fail - Upload Fake Image (MIME Spoofing)", func(t *testing.T) {
+		body := &bytes.Buffer{}
+		writer := multipart.NewWriter(body)
+
+		h := make(textproto.MIMEHeader)
+		h.Set("Content-Disposition", `form-data; name="file"; filename="virus.jpg"`)
+		h.Set("Content-Type", "image/jpeg")
+		part, _ := writer.CreatePart(h)
+
+		_, _ = io.WriteString(part, "<?php echo 'hacked'; ?>")
+		_ = writer.Close()
+
+		req, _ := http.NewRequest("POST", "/api/media/upload", body)
+		req.Header.Set("Content-Type", writer.FormDataContentType())
+		req.Header.Set("Authorization", "Bearer "+token)
+
+		rr := executeRequest(req)
+
+		if assert.Equal(t, http.StatusOK, rr.Code) {
+			var resp helper.ResponseSuccess
+			json.Unmarshal(rr.Body.Bytes(), &resp)
+			dataMap := resp.Data.(map[string]interface{})
+
+			assert.Equal(t, "application/octet-stream", dataMap["mime_type"])
+		}
+	})
 }

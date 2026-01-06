@@ -51,11 +51,11 @@ func (rl *RateLimiter) GetLimiter(key string) *rate.Limiter {
 	v, exists := rl.visitors[key]
 	if !exists {
 		limiter := rate.NewLimiter(rl.rate, rl.burst)
-		rl.visitors[key] = &visitor{limiter, time.Now()}
+		rl.visitors[key] = &visitor{limiter, time.Now().UTC()}
 		return limiter
 	}
 
-	v.lastSeen = time.Now()
+	v.lastSeen = time.Now().UTC()
 	return v.limiter
 }
 

@@ -41,7 +41,7 @@ func TestSendOTP(t *testing.T) {
 		otpRecord, err := testClient.OTP.Query().Where(otp.Email(reqBody.Email)).Only(ctx)
 		assert.NoError(t, err)
 		assert.Equal(t, reqBody.Email, otpRecord.Email)
-		assert.True(t, time.Now().Before(otpRecord.ExpiresAt))
+		assert.True(t, time.Now().UTC().Before(otpRecord.ExpiresAt))
 	})
 
 	t.Run("Success - Update Existing OTP", func(t *testing.T) {
@@ -218,7 +218,7 @@ func TestSendOTP(t *testing.T) {
 		assert.Equal(t, helper.MsgBadRequest, resp.Error)
 	})
 
-	t.Run("Fail - Register Existing Email", func(t *testing.T) {
+	t.Run("Silent Fail - Register Existing Email", func(t *testing.T) {
 		clearDatabase(ctx)
 		originalSecret := testConfig.TurnstileSecretKey
 		testConfig.TurnstileSecretKey = cfTurnstileAlwaysPasses
@@ -244,15 +244,15 @@ func TestSendOTP(t *testing.T) {
 
 		rr := executeRequest(req)
 
-		if !assert.Equal(t, http.StatusConflict, rr.Code) {
+		if !assert.Equal(t, http.StatusOK, rr.Code) {
 			printBody(t, rr)
 		}
-		var resp helper.ResponseError
-		json.Unmarshal(rr.Body.Bytes(), &resp)
-		assert.Equal(t, "Email already registered", resp.Error)
+
+		exists, _ := testClient.OTP.Query().Where(otp.Email(email)).Exist(ctx)
+		assert.False(t, exists, "OTP should NOT be created for existing user registration")
 	})
 
-	t.Run("Fail - Reset Non-Existent Email", func(t *testing.T) {
+	t.Run("Silent Fail - Reset Non-Existent Email", func(t *testing.T) {
 		clearDatabase(ctx)
 		originalSecret := testConfig.TurnstileSecretKey
 		testConfig.TurnstileSecretKey = cfTurnstileAlwaysPasses
@@ -269,15 +269,15 @@ func TestSendOTP(t *testing.T) {
 
 		rr := executeRequest(req)
 
-		if !assert.Equal(t, http.StatusNotFound, rr.Code) {
+		if !assert.Equal(t, http.StatusOK, rr.Code) {
 			printBody(t, rr)
 		}
-		var resp helper.ResponseError
-		json.Unmarshal(rr.Body.Bytes(), &resp)
-		assert.Equal(t, helper.MsgNotFound, resp.Error)
+
+		exists, _ := testClient.OTP.Query().Where(otp.Email("non-existent@example.com")).Exist(ctx)
+		assert.False(t, exists, "OTP should NOT be created for non-existent user reset")
 	})
 
-	t.Run("Fail - ChangeEmail to Existing Email", func(t *testing.T) {
+	t.Run("Silent Fail - ChangeEmail to Existing Email", func(t *testing.T) {
 		clearDatabase(ctx)
 		originalSecret := testConfig.TurnstileSecretKey
 		testConfig.TurnstileSecretKey = cfTurnstileAlwaysPasses
@@ -302,8 +302,43 @@ func TestSendOTP(t *testing.T) {
 
 		rr := executeRequest(req)
 
-		if !assert.Equal(t, http.StatusConflict, rr.Code) {
+		if !assert.Equal(t, http.StatusOK, rr.Code) {
 			printBody(t, rr)
 		}
+
+		exists, _ := testClient.OTP.Query().Where(otp.Email("existing@example.com")).Exist(ctx)
+		assert.False(t, exists, "OTP should NOT be created if email already exists")
+	})
+
+	t.Run("Success - Rate Limit Recovery", func(t *testing.T) {
+		clearDatabase(ctx)
+		originalSecret := testConfig.TurnstileSecretKey
+		testConfig.TurnstileSecretKey = cfTurnstileAlwaysPasses
+		defer func() { testConfig.TurnstileSecretKey = originalSecret }()
+
+		reqBody := model.SendOTPRequest{
+			Email:        "recovery@example.com",
+			Mode:         string(otp.ModeRegister),
+			CaptchaToken: dummyTurnstileToken,
+		}
+		body, _ := json.Marshal(reqBody)
+
+		for i := 0; i < 5; i++ {
+			req, _ := http.NewRequest("POST", "/api/otp/send", bytes.NewBuffer(body))
+			req.Header.Set("Content-Type", "application/json")
+			executeRequest(req)
+		}
+
+		reqBlocked, _ := http.NewRequest("POST", "/api/otp/send", bytes.NewBuffer(body))
+		reqBlocked.Header.Set("Content-Type", "application/json")
+		rrBlocked := executeRequest(reqBlocked)
+		assert.Equal(t, http.StatusTooManyRequests, rrBlocked.Code)
+
+		time.Sleep(3 * time.Second)
+
+		reqRecovered, _ := http.NewRequest("POST", "/api/otp/send", bytes.NewBuffer(body))
+		reqRecovered.Header.Set("Content-Type", "application/json")
+		rrRecovered := executeRequest(reqRecovered)
+		assert.Equal(t, http.StatusOK, rrRecovered.Code)
 	})
 }

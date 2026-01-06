@@ -60,6 +60,12 @@ func (_u *GroupChatUpdate) SetNillableCreatedBy(v *int) *GroupChatUpdate {
 	return _u
 }
 
+// ClearCreatedBy clears the value of the "created_by" field.
+func (_u *GroupChatUpdate) ClearCreatedBy() *GroupChatUpdate {
+	_u.mutation.ClearCreatedBy()
+	return _u
+}
+
 // SetName sets the "name" field.
 func (_u *GroupChatUpdate) SetName(v string) *GroupChatUpdate {
 	_u.mutation.SetName(v)
@@ -127,6 +133,14 @@ func (_u *GroupChatUpdate) SetChat(v *Chat) *GroupChatUpdate {
 // SetCreatorID sets the "creator" edge to the User entity by ID.
 func (_u *GroupChatUpdate) SetCreatorID(id int) *GroupChatUpdate {
 	_u.mutation.SetCreatorID(id)
+	return _u
+}
+
+// SetNillableCreatorID sets the "creator" edge to the User entity by ID if the given value is not nil.
+func (_u *GroupChatUpdate) SetNillableCreatorID(id *int) *GroupChatUpdate {
+	if id != nil {
+		_u = _u.SetCreatorID(*id)
+	}
 	return _u
 }
 
@@ -230,9 +244,6 @@ func (_u *GroupChatUpdate) check() error {
 	}
 	if _u.mutation.ChatCleared() && len(_u.mutation.ChatIDs()) > 0 {
 		return errors.New(`ent: clearing a required unique edge "GroupChat.chat"`)
-	}
-	if _u.mutation.CreatorCleared() && len(_u.mutation.CreatorIDs()) > 0 {
-		return errors.New(`ent: clearing a required unique edge "GroupChat.creator"`)
 	}
 	return nil
 }
@@ -446,6 +457,12 @@ func (_u *GroupChatUpdateOne) SetNillableCreatedBy(v *int) *GroupChatUpdateOne {
 	return _u
 }
 
+// ClearCreatedBy clears the value of the "created_by" field.
+func (_u *GroupChatUpdateOne) ClearCreatedBy() *GroupChatUpdateOne {
+	_u.mutation.ClearCreatedBy()
+	return _u
+}
+
 // SetName sets the "name" field.
 func (_u *GroupChatUpdateOne) SetName(v string) *GroupChatUpdateOne {
 	_u.mutation.SetName(v)
@@ -513,6 +530,14 @@ func (_u *GroupChatUpdateOne) SetChat(v *Chat) *GroupChatUpdateOne {
 // SetCreatorID sets the "creator" edge to the User entity by ID.
 func (_u *GroupChatUpdateOne) SetCreatorID(id int) *GroupChatUpdateOne {
 	_u.mutation.SetCreatorID(id)
+	return _u
+}
+
+// SetNillableCreatorID sets the "creator" edge to the User entity by ID if the given value is not nil.
+func (_u *GroupChatUpdateOne) SetNillableCreatorID(id *int) *GroupChatUpdateOne {
+	if id != nil {
+		_u = _u.SetCreatorID(*id)
+	}
 	return _u
 }
 
@@ -629,9 +654,6 @@ func (_u *GroupChatUpdateOne) check() error {
 	}
 	if _u.mutation.ChatCleared() && len(_u.mutation.ChatIDs()) > 0 {
 		return errors.New(`ent: clearing a required unique edge "GroupChat.chat"`)
-	}
-	if _u.mutation.CreatorCleared() && len(_u.mutation.CreatorIDs()) > 0 {
-		return errors.New(`ent: clearing a required unique edge "GroupChat.creator"`)
 	}
 	return nil
 }

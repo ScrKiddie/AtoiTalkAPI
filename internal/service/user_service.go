@@ -239,9 +239,14 @@ func (s *UserService) UpdateProfile(ctx context.Context, userID int, req model.U
 		defer file.Close()
 		fileToUpload = file
 
+		contentType, err := helper.DetectFileContentType(file)
+		if err != nil {
+			slog.Error("Failed to detect file content type", "error", err)
+			return nil, helper.NewInternalServerError("")
+		}
+
 		fileName := helper.GenerateUniqueFileName(req.Avatar.Filename)
 		filePath := filepath.Join(s.cfg.StorageProfile, fileName)
-		contentType := req.Avatar.Header.Get("Content-Type")
 
 		fileUploadPath = filePath
 		fileContentType = contentType
@@ -348,7 +353,7 @@ func (s *UserService) UpdateProfile(ctx context.Context, userID int, req model.U
 				Type:    websocket.EventUserUpdate,
 				Payload: wsPayload,
 				Meta: &websocket.EventMeta{
-					Timestamp: time.Now().UnixMilli(),
+					Timestamp: time.Now().UTC().UnixMilli(),
 					SenderID:  userID,
 				},
 			}
@@ -528,7 +533,7 @@ func (s *UserService) BlockUser(ctx context.Context, blockerID int, blockedID in
 					"blocked_id": blockedID,
 				},
 				Meta: &websocket.EventMeta{
-					Timestamp: time.Now().UnixMilli(),
+					Timestamp: time.Now().UTC().UnixMilli(),
 					SenderID:  blockerID,
 				},
 			}
@@ -564,7 +569,7 @@ func (s *UserService) UnblockUser(ctx context.Context, blockerID int, blockedID 
 					"blocked_id": blockedID,
 				},
 				Meta: &websocket.EventMeta{
-					Timestamp: time.Now().UnixMilli(),
+					Timestamp: time.Now().UTC().UnixMilli(),
 					SenderID:  blockerID,
 				},
 			}

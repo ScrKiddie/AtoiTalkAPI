@@ -224,7 +224,7 @@ func TestChangeEmail(t *testing.T) {
 			SetEmail(email).
 			SetCode(hashedCode).
 			SetMode(otp.ModeChangeEmail).
-			SetExpiresAt(time.Now().Add(5 * time.Minute)).
+			SetExpiresAt(time.Now().UTC().Add(5 * time.Minute)).
 			Exec(context.Background())
 	}
 

@@ -215,6 +215,16 @@ func SenderIDNotIn(vs ...int) predicate.Message {
 	return predicate.Message(sql.FieldNotIn(FieldSenderID, vs...))
 }
 
+// SenderIDIsNil applies the IsNil predicate on the "sender_id" field.
+func SenderIDIsNil() predicate.Message {
+	return predicate.Message(sql.FieldIsNull(FieldSenderID))
+}
+
+// SenderIDNotNil applies the NotNil predicate on the "sender_id" field.
+func SenderIDNotNil() predicate.Message {
+	return predicate.Message(sql.FieldNotNull(FieldSenderID))
+}
+
 // ReplyToIDEQ applies the EQ predicate on the "reply_to_id" field.
 func ReplyToIDEQ(v int) predicate.Message {
 	return predicate.Message(sql.FieldEQ(FieldReplyToID, v))
@@ -243,6 +253,26 @@ func ReplyToIDIsNil() predicate.Message {
 // ReplyToIDNotNil applies the NotNil predicate on the "reply_to_id" field.
 func ReplyToIDNotNil() predicate.Message {
 	return predicate.Message(sql.FieldNotNull(FieldReplyToID))
+}
+
+// TypeEQ applies the EQ predicate on the "type" field.
+func TypeEQ(v Type) predicate.Message {
+	return predicate.Message(sql.FieldEQ(FieldType, v))
+}
+
+// TypeNEQ applies the NEQ predicate on the "type" field.
+func TypeNEQ(v Type) predicate.Message {
+	return predicate.Message(sql.FieldNEQ(FieldType, v))
+}
+
+// TypeIn applies the In predicate on the "type" field.
+func TypeIn(vs ...Type) predicate.Message {
+	return predicate.Message(sql.FieldIn(FieldType, vs...))
+}
+
+// TypeNotIn applies the NotIn predicate on the "type" field.
+func TypeNotIn(vs ...Type) predicate.Message {
+	return predicate.Message(sql.FieldNotIn(FieldType, vs...))
 }
 
 // ContentEQ applies the EQ predicate on the "content" field.
@@ -318,6 +348,16 @@ func ContentEqualFold(v string) predicate.Message {
 // ContentContainsFold applies the ContainsFold predicate on the "content" field.
 func ContentContainsFold(v string) predicate.Message {
 	return predicate.Message(sql.FieldContainsFold(FieldContent, v))
+}
+
+// ActionDataIsNil applies the IsNil predicate on the "action_data" field.
+func ActionDataIsNil() predicate.Message {
+	return predicate.Message(sql.FieldIsNull(FieldActionData))
+}
+
+// ActionDataNotNil applies the NotNil predicate on the "action_data" field.
+func ActionDataNotNil() predicate.Message {
+	return predicate.Message(sql.FieldNotNull(FieldActionData))
 }
 
 // DeletedAtEQ applies the EQ predicate on the "deleted_at" field.

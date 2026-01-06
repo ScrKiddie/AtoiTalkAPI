@@ -130,6 +130,7 @@ func (s *MessageService) SendMessage(ctx context.Context, userID int, req model.
 				message.ID(*req.ReplyToID),
 				message.ChatID(req.ChatID),
 				message.DeletedAtIsNil(),
+				message.TypeEQ(message.TypeRegular),
 			).
 			Exist(ctx)
 
@@ -138,7 +139,7 @@ func (s *MessageService) SendMessage(ctx context.Context, userID int, req model.
 			return nil, helper.NewInternalServerError("")
 		}
 		if !replyMsgExists {
-			return nil, helper.NewBadRequestError("")
+			return nil, helper.NewBadRequestError("Cannot reply to this message")
 		}
 	}
 
@@ -167,6 +168,7 @@ func (s *MessageService) SendMessage(ctx context.Context, userID int, req model.
 	msgCreate := tx.Message.Create().
 		SetChatID(req.ChatID).
 		SetSenderID(userID).
+		SetType(message.TypeRegular).
 		SetContent(req.Content)
 
 	if req.ReplyToID != nil {
@@ -199,11 +201,11 @@ func (s *MessageService) SendMessage(ctx context.Context, userID int, req model.
 		update := tx.PrivateChat.UpdateOneID(pc.ID)
 
 		if pc.User1ID == userID {
-			update.SetUser1LastReadAt(time.Now())
+			update.SetUser1LastReadAt(time.Now().UTC())
 			update.SetUser1UnreadCount(0)
 			update.AddUser2UnreadCount(1)
 		} else {
-			update.SetUser2LastReadAt(time.Now())
+			update.SetUser2LastReadAt(time.Now().UTC())
 			update.SetUser2UnreadCount(0)
 			update.AddUser1UnreadCount(1)
 		}
@@ -233,7 +235,7 @@ func (s *MessageService) SendMessage(ctx context.Context, userID int, req model.
 				groupmember.UserID(userID),
 			).
 			SetUnreadCount(0).
-			SetLastReadAt(time.Now()).
+			SetLastReadAt(time.Now().UTC()).
 			Exec(ctx)
 
 		if err != nil {
@@ -248,10 +250,14 @@ func (s *MessageService) SendMessage(ctx context.Context, userID int, req model.
 
 	fullMsg, err := s.client.Message.Query().
 		Where(message.ID(msg.ID)).
-		WithSender().
+		WithSender(func(uq *ent.UserQuery) {
+			uq.WithAvatar()
+		}).
 		WithAttachments().
 		WithReplyTo(func(q *ent.MessageQuery) {
-			q.WithSender()
+			q.WithSender(func(uq *ent.UserQuery) {
+				uq.WithAvatar()
+			})
 			q.WithAttachments(func(aq *ent.MediaQuery) {
 				aq.Limit(1)
 			})
@@ -270,7 +276,7 @@ func (s *MessageService) SendMessage(ctx context.Context, userID int, req model.
 			Type:    websocket.EventMessageNew,
 			Payload: resp,
 			Meta: &websocket.EventMeta{
-				Timestamp: time.Now().UnixMilli(),
+				Timestamp: time.Now().UTC().UnixMilli(),
 				ChatID:    req.ChatID,
 				SenderID:  userID,
 			},
@@ -312,12 +318,20 @@ func (s *MessageService) EditMessage(ctx context.Context, userID int, messageID 
 		return nil, helper.NewInternalServerError("")
 	}
 
-	if msg.SenderID != userID {
+	if msg.SenderID == nil || *msg.SenderID != userID {
 		return nil, helper.NewForbiddenError("")
 	}
 
+	if msg.Type != message.TypeRegular {
+		return nil, helper.NewBadRequestError("Cannot edit this type of message")
+	}
+
 	if msg.DeletedAt != nil {
-		return nil, helper.NewBadRequestError("")
+		return nil, helper.NewBadRequestError("Cannot edit a deleted message")
+	}
+
+	if time.Since(msg.CreatedAt) > 15*time.Minute {
+		return nil, helper.NewBadRequestError("Message is too old to edit")
 	}
 
 	currentAttachmentIDs := make(map[int]bool)
@@ -362,13 +376,13 @@ func (s *MessageService) EditMessage(ctx context.Context, userID int, messageID 
 		}
 
 		if count != len(toLink) {
-			return nil, helper.NewBadRequestError("")
+			return nil, helper.NewBadRequestError("Invalid attachments")
 		}
 	}
 
 	update := tx.Message.UpdateOne(msg).
 		SetContent(req.Content).
-		SetEditedAt(time.Now())
+		SetEditedAt(time.Now().UTC())
 
 	if len(toUnlink) > 0 {
 		update.RemoveAttachmentIDs(toUnlink...)
@@ -390,10 +404,14 @@ func (s *MessageService) EditMessage(ctx context.Context, userID int, messageID 
 
 	fullMsg, err := s.client.Message.Query().
 		Where(message.ID(msg.ID)).
-		WithSender().
+		WithSender(func(uq *ent.UserQuery) {
+			uq.WithAvatar()
+		}).
 		WithAttachments().
 		WithReplyTo(func(q *ent.MessageQuery) {
-			q.WithSender()
+			q.WithSender(func(uq *ent.UserQuery) {
+				uq.WithAvatar()
+			})
 			q.WithAttachments(func(aq *ent.MediaQuery) {
 				aq.Limit(1)
 			})
@@ -412,7 +430,7 @@ func (s *MessageService) EditMessage(ctx context.Context, userID int, messageID 
 			Type:    websocket.EventMessageUpdate,
 			Payload: resp,
 			Meta: &websocket.EventMeta{
-				Timestamp: time.Now().UnixMilli(),
+				Timestamp: time.Now().UTC().UnixMilli(),
 				ChatID:    msg.ChatID,
 				SenderID:  userID,
 			},
@@ -471,7 +489,19 @@ func (s *MessageService) GetMessages(ctx context.Context, userID int, req model.
 		return nil, "", false, helper.NewForbiddenError("")
 	}
 
-	messages, err := s.repo.Message.GetMessages(ctx, req.ChatID, hiddenAt, req.Cursor, req.Limit)
+	var cursorInt int
+	if req.Cursor != "" {
+		decodedBytes, err := base64.URLEncoding.DecodeString(req.Cursor)
+		if err != nil {
+			return nil, "", false, helper.NewBadRequestError("Invalid cursor format")
+		}
+		cursorInt, err = strconv.Atoi(string(decodedBytes))
+		if err != nil {
+			return nil, "", false, helper.NewBadRequestError("Invalid cursor format")
+		}
+	}
+
+	messages, err := s.repo.Message.GetMessages(ctx, req.ChatID, hiddenAt, cursorInt, req.Limit)
 	if err != nil {
 		slog.Error("Failed to get messages", "error", err)
 		return nil, "", false, helper.NewInternalServerError("")
@@ -514,16 +544,20 @@ func (s *MessageService) DeleteMessage(ctx context.Context, userID int, messageI
 		return helper.NewInternalServerError("")
 	}
 
-	if msg.SenderID != userID {
+	if msg.SenderID == nil || *msg.SenderID != userID {
 		return helper.NewForbiddenError("")
 	}
 
+	if msg.Type != message.TypeRegular {
+		return helper.NewBadRequestError("Cannot delete this type of message")
+	}
+
 	if msg.DeletedAt != nil {
-		return helper.NewBadRequestError("")
+		return helper.NewBadRequestError("Message already deleted")
 	}
 
 	err = s.client.Message.UpdateOne(msg).
-		SetDeletedAt(time.Now()).
+		SetDeletedAt(time.Now().UTC()).
 		Exec(ctx)
 
 	if err != nil {
@@ -538,7 +572,7 @@ func (s *MessageService) DeleteMessage(ctx context.Context, userID int, messageI
 				"message_id": messageID,
 			},
 			Meta: &websocket.EventMeta{
-				Timestamp: time.Now().UnixMilli(),
+				Timestamp: time.Now().UTC().UnixMilli(),
 				ChatID:    msg.ChatID,
 				SenderID:  userID,
 			},

@@ -3,6 +3,7 @@ package test
 import (
 	"AtoiTalkAPI/ent/chat"
 	"AtoiTalkAPI/ent/groupmember"
+	"AtoiTalkAPI/ent/message"
 	"AtoiTalkAPI/ent/privatechat"
 	"AtoiTalkAPI/ent/userblock"
 	"AtoiTalkAPI/internal/helper"
@@ -29,21 +30,21 @@ func TestGetChats(t *testing.T) {
 
 	token1, _ := helper.GenerateJWT(testConfig.JWTSecret, testConfig.JWTExp, u1.ID)
 
-	chat1 := testClient.Chat.Create().SetType(chat.TypePrivate).SetUpdatedAt(time.Now().Add(-2 * time.Hour)).SaveX(context.Background())
+	chat1 := testClient.Chat.Create().SetType(chat.TypePrivate).SetUpdatedAt(time.Now().UTC().Add(-2 * time.Hour)).SaveX(context.Background())
 
 	testClient.PrivateChat.Create().SetChat(chat1).SetUser1(u1).SetUser2(u2).SetUser1UnreadCount(3).SaveX(context.Background())
-	msg1 := testClient.Message.Create().SetChat(chat1).SetSender(u2).SetContent("Old message").SetCreatedAt(time.Now().Add(-2 * time.Hour)).SaveX(context.Background())
+	msg1 := testClient.Message.Create().SetChat(chat1).SetSender(u2).SetType(message.TypeRegular).SetContent("Old message").SetCreatedAt(time.Now().UTC().Add(-2 * time.Hour)).SaveX(context.Background())
 	chat1.Update().SetLastMessage(msg1).SetLastMessageAt(msg1.CreatedAt).ExecX(context.Background())
 
-	chat2 := testClient.Chat.Create().SetType(chat.TypePrivate).SetUpdatedAt(time.Now().Add(-1 * time.Hour)).SaveX(context.Background())
+	chat2 := testClient.Chat.Create().SetType(chat.TypePrivate).SetUpdatedAt(time.Now().UTC().Add(-1 * time.Hour)).SaveX(context.Background())
 	testClient.PrivateChat.Create().SetChat(chat2).SetUser1(u1).SetUser2(u3).SetUser1UnreadCount(0).SaveX(context.Background())
-	msg2 := testClient.Message.Create().SetChat(chat2).SetSender(u3).SetContent("New message").SetCreatedAt(time.Now().Add(-1 * time.Hour)).SaveX(context.Background())
+	msg2 := testClient.Message.Create().SetChat(chat2).SetSender(u3).SetType(message.TypeRegular).SetContent("New message").SetCreatedAt(time.Now().UTC().Add(-1 * time.Hour)).SaveX(context.Background())
 	chat2.Update().SetLastMessage(msg2).SetLastMessageAt(msg2.CreatedAt).ExecX(context.Background())
 
-	chat3 := testClient.Chat.Create().SetType(chat.TypeGroup).SetUpdatedAt(time.Now()).SaveX(context.Background())
+	chat3 := testClient.Chat.Create().SetType(chat.TypeGroup).SetUpdatedAt(time.Now().UTC()).SaveX(context.Background())
 	gc := testClient.GroupChat.Create().SetChat(chat3).SetCreator(u1).SetName("My Group").SaveX(context.Background())
 	testClient.GroupMember.Create().SetGroupChat(gc).SetUser(u1).SetUnreadCount(5).SaveX(context.Background())
-	msg3 := testClient.Message.Create().SetChat(chat3).SetSender(u1).SetContent("Group message").SetCreatedAt(time.Now()).SaveX(context.Background())
+	msg3 := testClient.Message.Create().SetChat(chat3).SetSender(u1).SetType(message.TypeRegular).SetContent("Group message").SetCreatedAt(time.Now().UTC()).SaveX(context.Background())
 	chat3.Update().SetLastMessage(msg3).SetLastMessageAt(msg3.CreatedAt).ExecX(context.Background())
 
 	t.Run("Success - List All Chats", func(t *testing.T) {
@@ -70,6 +71,8 @@ func TestGetChats(t *testing.T) {
 		assert.Equal(t, "My Group", c1["name"])
 		assert.Equal(t, float64(5), c1["unread_count"])
 		assert.Nil(t, c1["other_user_id"], "Group chat should not have other_user_id")
+		lastMsg1, _ := c1["last_message"].(map[string]interface{})
+		assert.Equal(t, "regular", lastMsg1["type"])
 
 		assert.Equal(t, float64(chat2.ID), c2["id"])
 		assert.Equal(t, "User 3", c2["name"])
@@ -149,10 +152,10 @@ func TestGetChats(t *testing.T) {
 		delChat := testClient.Chat.Create().SetType(chat.TypePrivate).SaveX(context.Background())
 		testClient.PrivateChat.Create().SetChat(delChat).SetUser1(u1).SetUser2(u4).SaveX(context.Background())
 
-		msg := testClient.Message.Create().SetChat(delChat).SetSender(u4).SetContent("This will be deleted").SaveX(context.Background())
-		testClient.Message.UpdateOne(msg).SetDeletedAt(time.Now()).ExecX(context.Background())
+		msg := testClient.Message.Create().SetChat(delChat).SetSender(u4).SetType(message.TypeRegular).SetContent("This will be deleted").SaveX(context.Background())
+		testClient.Message.UpdateOne(msg).SetDeletedAt(time.Now().UTC()).ExecX(context.Background())
 
-		delChat.Update().SetUpdatedAt(time.Now()).SetLastMessage(msg).SetLastMessageAt(msg.CreatedAt).ExecX(context.Background())
+		delChat.Update().SetUpdatedAt(time.Now().UTC()).SetLastMessage(msg).SetLastMessageAt(msg.CreatedAt).ExecX(context.Background())
 
 		req, _ := http.NewRequest("GET", "/api/chats", nil)
 		req.Header.Set("Authorization", "Bearer "+token1)
@@ -168,14 +171,14 @@ func TestGetChats(t *testing.T) {
 
 		lastMsg, ok := topChat["last_message"].(map[string]interface{})
 		assert.True(t, ok)
-		assert.Equal(t, "", lastMsg["content"])
+		assert.Nil(t, lastMsg["content"])
 		assert.NotNil(t, lastMsg["deleted_at"])
 	})
 
 	t.Run("Success - Exclude Hidden Private Chat", func(t *testing.T) {
 
 		pc, _ := testClient.PrivateChat.Query().Where(privatechat.ChatID(chat1.ID)).Only(context.Background())
-		testClient.PrivateChat.UpdateOne(pc).SetUser1HiddenAt(time.Now()).ExecX(context.Background())
+		testClient.PrivateChat.UpdateOne(pc).SetUser1HiddenAt(time.Now().UTC()).ExecX(context.Background())
 
 		req, _ := http.NewRequest("GET", "/api/chats", nil)
 		req.Header.Set("Authorization", "Bearer "+token1)
@@ -194,7 +197,7 @@ func TestGetChats(t *testing.T) {
 	t.Run("Success - Reappear Hidden Chat on New Message", func(t *testing.T) {
 
 		pc, _ := testClient.PrivateChat.Query().Where(privatechat.ChatID(chat1.ID)).Only(context.Background())
-		testClient.PrivateChat.UpdateOne(pc).SetUser1HiddenAt(time.Now()).ExecX(context.Background())
+		testClient.PrivateChat.UpdateOne(pc).SetUser1HiddenAt(time.Now().UTC()).ExecX(context.Background())
 
 		req1, _ := http.NewRequest("GET", "/api/chats", nil)
 		req1.Header.Set("Authorization", "Bearer "+token1)
@@ -207,8 +210,8 @@ func TestGetChats(t *testing.T) {
 			assert.NotEqual(t, float64(chat1.ID), c["id"], "Chat should be hidden")
 		}
 
-		newMsg := testClient.Message.Create().SetChat(chat1).SetSender(u2).SetContent("New message").SetCreatedAt(time.Now().Add(time.Second)).SaveX(context.Background())
-		testClient.Chat.UpdateOneID(chat1.ID).SetUpdatedAt(time.Now().Add(time.Second)).SetLastMessage(newMsg).SetLastMessageAt(newMsg.CreatedAt).ExecX(context.Background())
+		newMsg := testClient.Message.Create().SetChat(chat1).SetSender(u2).SetType(message.TypeRegular).SetContent("New message").SetCreatedAt(time.Now().UTC().Add(time.Second)).SaveX(context.Background())
+		testClient.Chat.UpdateOneID(chat1.ID).SetUpdatedAt(time.Now().UTC().Add(time.Second)).SetLastMessage(newMsg).SetLastMessageAt(newMsg.CreatedAt).ExecX(context.Background())
 
 		req2, _ := http.NewRequest("GET", "/api/chats", nil)
 		req2.Header.Set("Authorization", "Bearer "+token1)

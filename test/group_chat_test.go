@@ -1,9 +1,12 @@
 package test
 
 import (
+	"AtoiTalkAPI/ent"
 	"AtoiTalkAPI/ent/groupchat"
 	"AtoiTalkAPI/ent/groupmember"
+	"AtoiTalkAPI/ent/message"
 	"AtoiTalkAPI/internal/helper"
+	"AtoiTalkAPI/internal/model"
 	"bytes"
 	"context"
 	"encoding/json"
@@ -47,9 +50,9 @@ func TestCreateGroupChat(t *testing.T) {
 			printBody(t, rr)
 		}
 
-		gc, err := testClient.GroupChat.Query().Where(groupchat.Name("Test Group 1")).Only(context.Background())
+		gc, err := testClient.GroupChat.Query().Where(groupchat.Name("Test Group 1")).WithChat().Only(context.Background())
 		assert.NoError(t, err)
-		assert.Equal(t, u1.ID, gc.CreatedBy)
+		assert.Equal(t, u1.ID, *gc.CreatedBy)
 
 		members, err := gc.QueryMembers().All(context.Background())
 		assert.NoError(t, err)
@@ -67,6 +70,13 @@ func TestCreateGroupChat(t *testing.T) {
 		}
 		assert.Equal(t, 1, ownerCount, "Creator should be owner")
 		assert.Equal(t, 2, memberCount, "Other users should be members")
+
+		sysMsg, err := gc.Edges.Chat.QueryMessages().Order(ent.Asc(message.FieldID)).First(context.Background())
+		assert.NoError(t, err)
+		assert.Equal(t, message.TypeSystemCreate, sysMsg.Type)
+		assert.Equal(t, u1.ID, *sysMsg.SenderID)
+		assert.Equal(t, "Test Group 1", sysMsg.ActionData["initial_name"])
+		assert.Equal(t, sysMsg.ID, *gc.Edges.Chat.LastMessageID)
 	})
 
 	t.Run("Success - Create Group with Avatar", func(t *testing.T) {
@@ -76,7 +86,7 @@ func TestCreateGroupChat(t *testing.T) {
 		_ = writer.WriteField("member_ids", `[`+strconv.Itoa(u2.ID)+`]`)
 
 		part, _ := writer.CreateFormFile("avatar", "test_avatar.jpg")
-		fileContent := []byte("dummy image data")
+		fileContent := createTestImage(t, 100, 100)
 		_, _ = io.Copy(part, bytes.NewReader(fileContent))
 		writer.Close()
 
@@ -191,6 +201,28 @@ func TestCreateGroupChat(t *testing.T) {
 		rr := executeRequest(req)
 		assert.Equal(t, http.StatusBadRequest, rr.Code)
 	})
+
+	t.Run("Success - Group Survives Creator Deletion (SetNull)", func(t *testing.T) {
+
+		creator, _ := testClient.User.Create().SetEmail("creator@test.com").SetUsername("creator").SetFullName("Creator").Save(context.Background())
+		member, _ := testClient.User.Create().SetEmail("member@test.com").SetUsername("member").SetFullName("Member").Save(context.Background())
+
+		chatEntity := testClient.Chat.Create().SetType("group").SaveX(context.Background())
+		gc := testClient.GroupChat.Create().SetChat(chatEntity).SetCreator(creator).SetName("Survivor Group").SaveX(context.Background())
+		testClient.GroupMember.Create().SetGroupChat(gc).SetUser(creator).SetRole(groupmember.RoleOwner).SaveX(context.Background())
+		testClient.GroupMember.Create().SetGroupChat(gc).SetUser(member).SetRole(groupmember.RoleMember).SaveX(context.Background())
+
+		err := testClient.User.DeleteOneID(creator.ID).Exec(context.Background())
+		assert.NoError(t, err)
+
+		gcReload, err := testClient.GroupChat.Query().Where(groupchat.ID(gc.ID)).Only(context.Background())
+		assert.NoError(t, err)
+		assert.Equal(t, "Survivor Group", gcReload.Name)
+		assert.Nil(t, gcReload.CreatedBy, "CreatedBy should be NULL")
+
+		exists, _ := testClient.GroupMember.Query().Where(groupmember.GroupChatID(gc.ID), groupmember.UserID(member.ID)).Exist(context.Background())
+		assert.True(t, exists, "Other members should remain in the group")
+	})
 }
 
 func TestSearchGroupMembers(t *testing.T) {
@@ -292,6 +324,81 @@ func TestSearchGroupMembers(t *testing.T) {
 
 	t.Run("Fail - Group Not Found", func(t *testing.T) {
 		req, _ := http.NewRequest("GET", "/api/chats/group/99999/members", nil)
+		req.Header.Set("Authorization", "Bearer "+token1)
+
+		rr := executeRequest(req)
+		assert.Equal(t, http.StatusNotFound, rr.Code)
+	})
+}
+
+func TestAddGroupMember(t *testing.T) {
+	clearDatabase(context.Background())
+	u1 := testClient.User.Create().SetEmail("u1@test.com").SetUsername("owner").SetFullName("Owner User").SaveX(context.Background())
+	u2 := testClient.User.Create().SetEmail("u2@test.com").SetUsername("admin").SetFullName("Admin User").SaveX(context.Background())
+	u3 := testClient.User.Create().SetEmail("u3@test.com").SetUsername("member").SetFullName("Member User").SaveX(context.Background())
+	u4 := testClient.User.Create().SetEmail("u4@test.com").SetUsername("newbie").SetFullName("Newbie User").SaveX(context.Background())
+
+	token1, _ := helper.GenerateJWT(testConfig.JWTSecret, testConfig.JWTExp, u1.ID)
+	token3, _ := helper.GenerateJWT(testConfig.JWTSecret, testConfig.JWTExp, u3.ID)
+
+	chatEntity := testClient.Chat.Create().SetType("group").SaveX(context.Background())
+	gc := testClient.GroupChat.Create().SetChat(chatEntity).SetCreator(u1).SetName("Add Member Test").SaveX(context.Background())
+	testClient.GroupMember.Create().SetGroupChat(gc).SetUser(u1).SetRole(groupmember.RoleOwner).SaveX(context.Background())
+	testClient.GroupMember.Create().SetGroupChat(gc).SetUser(u2).SetRole(groupmember.RoleAdmin).SaveX(context.Background())
+	testClient.GroupMember.Create().SetGroupChat(gc).SetUser(u3).SetRole(groupmember.RoleMember).SaveX(context.Background())
+
+	t.Run("Success - Owner Adds Member", func(t *testing.T) {
+		reqBody := model.AddGroupMemberRequest{UserID: u4.ID}
+		body, _ := json.Marshal(reqBody)
+		req, _ := http.NewRequest("POST", fmt.Sprintf("/api/chats/group/%d/members", chatEntity.ID), bytes.NewBuffer(body))
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Authorization", "Bearer "+token1)
+
+		rr := executeRequest(req)
+		assert.Equal(t, http.StatusOK, rr.Code)
+
+		isMember, _ := testClient.GroupMember.Query().Where(groupmember.GroupChatID(gc.ID), groupmember.UserID(u4.ID)).Exist(context.Background())
+		assert.True(t, isMember)
+
+		gc, _ = testClient.GroupChat.Query().Where(groupchat.ID(gc.ID)).WithChat(func(q *ent.ChatQuery) {
+			q.WithLastMessage()
+		}).Only(context.Background())
+		sysMsg := gc.Edges.Chat.Edges.LastMessage
+		assert.NotNil(t, sysMsg)
+		assert.Equal(t, message.TypeSystemAdd, sysMsg.Type)
+		assert.Equal(t, u1.ID, *sysMsg.SenderID)
+		assert.Equal(t, float64(u4.ID), sysMsg.ActionData["target_id"])
+		assert.Equal(t, u4.FullName, sysMsg.ActionData["target_name"])
+	})
+
+	t.Run("Fail - Member Tries to Add Member", func(t *testing.T) {
+		u5 := testClient.User.Create().SetEmail("u5@test.com").SetUsername("another").SetFullName("Another User").SaveX(context.Background())
+		reqBody := model.AddGroupMemberRequest{UserID: u5.ID}
+		body, _ := json.Marshal(reqBody)
+		req, _ := http.NewRequest("POST", fmt.Sprintf("/api/chats/group/%d/members", chatEntity.ID), bytes.NewBuffer(body))
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Authorization", "Bearer "+token3)
+
+		rr := executeRequest(req)
+		assert.Equal(t, http.StatusForbidden, rr.Code)
+	})
+
+	t.Run("Fail - Add Existing Member", func(t *testing.T) {
+		reqBody := model.AddGroupMemberRequest{UserID: u2.ID}
+		body, _ := json.Marshal(reqBody)
+		req, _ := http.NewRequest("POST", fmt.Sprintf("/api/chats/group/%d/members", chatEntity.ID), bytes.NewBuffer(body))
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Authorization", "Bearer "+token1)
+
+		rr := executeRequest(req)
+		assert.Equal(t, http.StatusConflict, rr.Code)
+	})
+
+	t.Run("Fail - Add Non-Existent User", func(t *testing.T) {
+		reqBody := model.AddGroupMemberRequest{UserID: 99999}
+		body, _ := json.Marshal(reqBody)
+		req, _ := http.NewRequest("POST", fmt.Sprintf("/api/chats/group/%d/members", chatEntity.ID), bytes.NewBuffer(body))
+		req.Header.Set("Content-Type", "application/json")
 		req.Header.Set("Authorization", "Bearer "+token1)
 
 		rr := executeRequest(req)

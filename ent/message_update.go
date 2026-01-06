@@ -66,6 +66,12 @@ func (_u *MessageUpdate) SetNillableSenderID(v *int) *MessageUpdate {
 	return _u
 }
 
+// ClearSenderID clears the value of the "sender_id" field.
+func (_u *MessageUpdate) ClearSenderID() *MessageUpdate {
+	_u.mutation.ClearSenderID()
+	return _u
+}
+
 // SetReplyToID sets the "reply_to_id" field.
 func (_u *MessageUpdate) SetReplyToID(v int) *MessageUpdate {
 	_u.mutation.SetReplyToID(v)
@@ -86,6 +92,20 @@ func (_u *MessageUpdate) ClearReplyToID() *MessageUpdate {
 	return _u
 }
 
+// SetType sets the "type" field.
+func (_u *MessageUpdate) SetType(v message.Type) *MessageUpdate {
+	_u.mutation.SetType(v)
+	return _u
+}
+
+// SetNillableType sets the "type" field if the given value is not nil.
+func (_u *MessageUpdate) SetNillableType(v *message.Type) *MessageUpdate {
+	if v != nil {
+		_u.SetType(*v)
+	}
+	return _u
+}
+
 // SetContent sets the "content" field.
 func (_u *MessageUpdate) SetContent(v string) *MessageUpdate {
 	_u.mutation.SetContent(v)
@@ -103,6 +123,18 @@ func (_u *MessageUpdate) SetNillableContent(v *string) *MessageUpdate {
 // ClearContent clears the value of the "content" field.
 func (_u *MessageUpdate) ClearContent() *MessageUpdate {
 	_u.mutation.ClearContent()
+	return _u
+}
+
+// SetActionData sets the "action_data" field.
+func (_u *MessageUpdate) SetActionData(v map[string]interface{}) *MessageUpdate {
+	_u.mutation.SetActionData(v)
+	return _u
+}
+
+// ClearActionData clears the value of the "action_data" field.
+func (_u *MessageUpdate) ClearActionData() *MessageUpdate {
+	_u.mutation.ClearActionData()
 	return _u
 }
 
@@ -294,11 +326,13 @@ func (_u *MessageUpdate) defaults() {
 
 // check runs all checks and user-defined validators on the builder.
 func (_u *MessageUpdate) check() error {
+	if v, ok := _u.mutation.GetType(); ok {
+		if err := message.TypeValidator(v); err != nil {
+			return &ValidationError{Name: "type", err: fmt.Errorf(`ent: validator failed for field "Message.type": %w`, err)}
+		}
+	}
 	if _u.mutation.ChatCleared() && len(_u.mutation.ChatIDs()) > 0 {
 		return errors.New(`ent: clearing a required unique edge "Message.chat"`)
-	}
-	if _u.mutation.SenderCleared() && len(_u.mutation.SenderIDs()) > 0 {
-		return errors.New(`ent: clearing a required unique edge "Message.sender"`)
 	}
 	return nil
 }
@@ -324,11 +358,20 @@ func (_u *MessageUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	if value, ok := _u.mutation.UpdatedAt(); ok {
 		_spec.SetField(message.FieldUpdatedAt, field.TypeTime, value)
 	}
+	if value, ok := _u.mutation.GetType(); ok {
+		_spec.SetField(message.FieldType, field.TypeEnum, value)
+	}
 	if value, ok := _u.mutation.Content(); ok {
 		_spec.SetField(message.FieldContent, field.TypeString, value)
 	}
 	if _u.mutation.ContentCleared() {
 		_spec.ClearField(message.FieldContent, field.TypeString)
+	}
+	if value, ok := _u.mutation.ActionData(); ok {
+		_spec.SetField(message.FieldActionData, field.TypeJSON, value)
+	}
+	if _u.mutation.ActionDataCleared() {
+		_spec.ClearField(message.FieldActionData, field.TypeJSON)
 	}
 	if value, ok := _u.mutation.DeletedAt(); ok {
 		_spec.SetField(message.FieldDeletedAt, field.TypeTime, value)
@@ -575,6 +618,12 @@ func (_u *MessageUpdateOne) SetNillableSenderID(v *int) *MessageUpdateOne {
 	return _u
 }
 
+// ClearSenderID clears the value of the "sender_id" field.
+func (_u *MessageUpdateOne) ClearSenderID() *MessageUpdateOne {
+	_u.mutation.ClearSenderID()
+	return _u
+}
+
 // SetReplyToID sets the "reply_to_id" field.
 func (_u *MessageUpdateOne) SetReplyToID(v int) *MessageUpdateOne {
 	_u.mutation.SetReplyToID(v)
@@ -595,6 +644,20 @@ func (_u *MessageUpdateOne) ClearReplyToID() *MessageUpdateOne {
 	return _u
 }
 
+// SetType sets the "type" field.
+func (_u *MessageUpdateOne) SetType(v message.Type) *MessageUpdateOne {
+	_u.mutation.SetType(v)
+	return _u
+}
+
+// SetNillableType sets the "type" field if the given value is not nil.
+func (_u *MessageUpdateOne) SetNillableType(v *message.Type) *MessageUpdateOne {
+	if v != nil {
+		_u.SetType(*v)
+	}
+	return _u
+}
+
 // SetContent sets the "content" field.
 func (_u *MessageUpdateOne) SetContent(v string) *MessageUpdateOne {
 	_u.mutation.SetContent(v)
@@ -612,6 +675,18 @@ func (_u *MessageUpdateOne) SetNillableContent(v *string) *MessageUpdateOne {
 // ClearContent clears the value of the "content" field.
 func (_u *MessageUpdateOne) ClearContent() *MessageUpdateOne {
 	_u.mutation.ClearContent()
+	return _u
+}
+
+// SetActionData sets the "action_data" field.
+func (_u *MessageUpdateOne) SetActionData(v map[string]interface{}) *MessageUpdateOne {
+	_u.mutation.SetActionData(v)
+	return _u
+}
+
+// ClearActionData clears the value of the "action_data" field.
+func (_u *MessageUpdateOne) ClearActionData() *MessageUpdateOne {
+	_u.mutation.ClearActionData()
 	return _u
 }
 
@@ -816,11 +891,13 @@ func (_u *MessageUpdateOne) defaults() {
 
 // check runs all checks and user-defined validators on the builder.
 func (_u *MessageUpdateOne) check() error {
+	if v, ok := _u.mutation.GetType(); ok {
+		if err := message.TypeValidator(v); err != nil {
+			return &ValidationError{Name: "type", err: fmt.Errorf(`ent: validator failed for field "Message.type": %w`, err)}
+		}
+	}
 	if _u.mutation.ChatCleared() && len(_u.mutation.ChatIDs()) > 0 {
 		return errors.New(`ent: clearing a required unique edge "Message.chat"`)
-	}
-	if _u.mutation.SenderCleared() && len(_u.mutation.SenderIDs()) > 0 {
-		return errors.New(`ent: clearing a required unique edge "Message.sender"`)
 	}
 	return nil
 }
@@ -863,11 +940,20 @@ func (_u *MessageUpdateOne) sqlSave(ctx context.Context) (_node *Message, err er
 	if value, ok := _u.mutation.UpdatedAt(); ok {
 		_spec.SetField(message.FieldUpdatedAt, field.TypeTime, value)
 	}
+	if value, ok := _u.mutation.GetType(); ok {
+		_spec.SetField(message.FieldType, field.TypeEnum, value)
+	}
 	if value, ok := _u.mutation.Content(); ok {
 		_spec.SetField(message.FieldContent, field.TypeString, value)
 	}
 	if _u.mutation.ContentCleared() {
 		_spec.ClearField(message.FieldContent, field.TypeString)
+	}
+	if value, ok := _u.mutation.ActionData(); ok {
+		_spec.SetField(message.FieldActionData, field.TypeJSON, value)
+	}
+	if _u.mutation.ActionDataCleared() {
+		_spec.ClearField(message.FieldActionData, field.TypeJSON)
 	}
 	if value, ok := _u.mutation.DeletedAt(); ok {
 		_spec.SetField(message.FieldDeletedAt, field.TypeTime, value)

@@ -105,7 +105,7 @@ func (s *AuthService) Login(ctx context.Context, req model.LoginRequest) (*model
 		return nil, helper.NewInternalServerError("")
 	}
 
-	if !helper.CheckPasswordHash(req.Password, *u.PasswordHash) {
+	if u.PasswordHash == nil || !helper.CheckPasswordHash(req.Password, *u.PasswordHash) {
 		return nil, helper.NewUnauthorizedError("")
 	}
 
@@ -149,6 +149,13 @@ func (s *AuthService) GoogleExchange(ctx context.Context, req model.GoogleLoginR
 		slog.Warn("Email not found in token claims")
 		return nil, helper.NewBadRequestError("")
 	}
+
+	emailVerified, ok := payload.Claims["email_verified"].(bool)
+	if !ok || !emailVerified {
+		slog.Warn("Email from Google token is not verified", "email", email)
+		return nil, helper.NewBadRequestError("Email from Google is not verified.")
+	}
+
 	email = helper.NormalizeEmail(email)
 
 	name, ok := payload.Claims["name"].(string)
@@ -184,6 +191,27 @@ func (s *AuthService) GoogleExchange(ctx context.Context, req model.GoogleLoginR
 	var mediaID int
 
 	if u == nil {
+
+		if picture != "" {
+			data, contentType, err := s.storageAdapter.Download(picture)
+			if err != nil {
+				slog.Error("Failed to download profile picture", "error", err)
+			} else {
+				fileName := helper.GenerateUniqueFileName(picture)
+				filePath := filepath.Join(s.cfg.StorageProfile, fileName)
+				fileSize = int64(len(data))
+				mimeType = contentType
+
+				if mimeType == "" {
+					mimeType = "image/jpeg"
+				}
+
+				fileData = data
+				fileUploadPath = filePath
+				fileContentType = mimeType
+				avatarFileName = fileName
+			}
+		}
 
 		tx, err := s.client.Tx(ctx)
 		if err != nil {
@@ -233,45 +261,25 @@ func (s *AuthService) GoogleExchange(ctx context.Context, req model.GoogleLoginR
 			return nil, helper.NewInternalServerError("")
 		}
 
-		if picture != "" {
-			data, contentType, err := s.storageAdapter.Download(picture)
+		if fileData != nil {
+			media, err := tx.Media.Create().
+				SetFileName(avatarFileName).
+				SetOriginalName(filepath.Base(picture)).
+				SetFileSize(fileSize).
+				SetMimeType(mimeType).
+				SetStatus(media.StatusActive).
+				SetUploader(u).
+				Save(ctx)
+
 			if err != nil {
-				slog.Error("Failed to download profile picture", "error", err)
+				slog.Error("Failed to create media record for google avatar", "error", err)
+				fileData = nil
 			} else {
-				fileName := helper.GenerateUniqueFileName(picture)
-				filePath := filepath.Join(s.cfg.StorageProfile, fileName)
-				fileSize = int64(len(data))
-				mimeType = contentType
-
-				if mimeType == "" {
-					mimeType = "image/jpeg"
-				}
-
-				fileData = data
-				fileUploadPath = filePath
-				fileContentType = mimeType
-
-				media, err := tx.Media.Create().
-					SetFileName(fileName).
-					SetOriginalName(filepath.Base(picture)).
-					SetFileSize(fileSize).
-					SetMimeType(mimeType).
-					SetStatus(media.StatusActive).
-					SetUploader(u).
-					Save(ctx)
-
+				err = tx.User.UpdateOne(u).SetAvatar(media).Exec(ctx)
 				if err != nil {
-					slog.Error("Failed to create media record for google avatar", "error", err)
-					fileData = nil
+					slog.Error("Failed to link avatar to user", "error", err)
 				} else {
-
-					err = tx.User.UpdateOne(u).SetAvatar(media).Exec(ctx)
-					if err != nil {
-						slog.Error("Failed to link avatar to user", "error", err)
-					} else {
-						avatarFileName = fileName
-						mediaID = media.ID
-					}
+					mediaID = media.ID
 				}
 			}
 		}
@@ -393,8 +401,9 @@ func (s *AuthService) Register(ctx context.Context, req model.RegisterUserReques
 			otp.EmailEQ(req.Email),
 			otp.CodeEQ(hashedCode),
 			otp.ModeEQ(otp.ModeRegister),
-			otp.ExpiresAtGT(time.Now()),
+			otp.ExpiresAtGT(time.Now().UTC()),
 		).
+		ForUpdate().
 		Only(ctx)
 
 	if err != nil {
@@ -505,8 +514,9 @@ func (s *AuthService) ResetPassword(ctx context.Context, req model.ResetPassword
 			otp.EmailEQ(req.Email),
 			otp.CodeEQ(hashedCode),
 			otp.ModeEQ(otp.ModeReset),
-			otp.ExpiresAtGT(time.Now()),
+			otp.ExpiresAtGT(time.Now().UTC()),
 		).
+		ForUpdate().
 		Only(ctx)
 
 	if err != nil {

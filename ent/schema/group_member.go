@@ -1,8 +1,6 @@
 package schema
 
 import (
-	"time"
-
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/entsql"
 	"entgo.io/ent/schema/edge"
@@ -20,7 +18,7 @@ func (GroupMember) Fields() []ent.Field {
 		field.Int("user_id"),
 		field.Enum("role").Values("owner", "admin", "member").Default("member"),
 		field.Time("last_read_at").Optional().Nillable(),
-		field.Time("joined_at").Default(time.Now).Immutable(),
+		field.Time("joined_at").Default(nowUTC).Immutable(),
 		field.Int("unread_count").Default(0),
 	}
 }
