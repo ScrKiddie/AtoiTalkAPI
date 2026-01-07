@@ -1,7 +1,9 @@
 package model
 
+import "github.com/google/uuid"
+
 type CreatePrivateChatRequest struct {
-	Username string `json:"username" validate:"required,min=3,max=50"`
+	TargetUserID uuid.UUID `json:"target_user_id" validate:"required"`
 }
 
 type GetChatsRequest struct {
@@ -11,13 +13,13 @@ type GetChatsRequest struct {
 }
 
 type ChatResponse struct {
-	ID        int    `json:"id"`
-	Type      string `json:"type"`
-	CreatedAt string `json:"created_at"`
+	ID        uuid.UUID `json:"id"`
+	Type      string    `json:"type"`
+	CreatedAt string    `json:"created_at"`
 }
 
 type ChatListResponse struct {
-	ID              int              `json:"id"`
+	ID              uuid.UUID        `json:"id"`
 	Type            string           `json:"type"`
 	Name            string           `json:"name"`
 	Avatar          string           `json:"avatar"`
@@ -26,8 +28,7 @@ type ChatListResponse struct {
 	LastReadAt      *string          `json:"last_read_at,omitempty"`
 	OtherLastReadAt *string          `json:"other_last_read_at,omitempty"`
 	IsOnline        bool             `json:"is_online"`
-	OtherUserID     *int             `json:"other_user_id,omitempty"`
-	OtherUsername   *string          `json:"other_username,omitempty"`
+	OtherUserID     *uuid.UUID       `json:"other_user_id,omitempty"`
 	IsBlockedByMe   bool             `json:"is_blocked_by_me,omitempty"`
 	MyRole          *string          `json:"my_role,omitempty"`
 }

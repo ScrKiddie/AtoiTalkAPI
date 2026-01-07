@@ -8,50 +8,51 @@ import (
 
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
+	"github.com/google/uuid"
 )
 
 // ID filters vertices based on their ID field.
-func ID(id int) predicate.Chat {
+func ID(id uuid.UUID) predicate.Chat {
 	return predicate.Chat(sql.FieldEQ(FieldID, id))
 }
 
 // IDEQ applies the EQ predicate on the ID field.
-func IDEQ(id int) predicate.Chat {
+func IDEQ(id uuid.UUID) predicate.Chat {
 	return predicate.Chat(sql.FieldEQ(FieldID, id))
 }
 
 // IDNEQ applies the NEQ predicate on the ID field.
-func IDNEQ(id int) predicate.Chat {
+func IDNEQ(id uuid.UUID) predicate.Chat {
 	return predicate.Chat(sql.FieldNEQ(FieldID, id))
 }
 
 // IDIn applies the In predicate on the ID field.
-func IDIn(ids ...int) predicate.Chat {
+func IDIn(ids ...uuid.UUID) predicate.Chat {
 	return predicate.Chat(sql.FieldIn(FieldID, ids...))
 }
 
 // IDNotIn applies the NotIn predicate on the ID field.
-func IDNotIn(ids ...int) predicate.Chat {
+func IDNotIn(ids ...uuid.UUID) predicate.Chat {
 	return predicate.Chat(sql.FieldNotIn(FieldID, ids...))
 }
 
 // IDGT applies the GT predicate on the ID field.
-func IDGT(id int) predicate.Chat {
+func IDGT(id uuid.UUID) predicate.Chat {
 	return predicate.Chat(sql.FieldGT(FieldID, id))
 }
 
 // IDGTE applies the GTE predicate on the ID field.
-func IDGTE(id int) predicate.Chat {
+func IDGTE(id uuid.UUID) predicate.Chat {
 	return predicate.Chat(sql.FieldGTE(FieldID, id))
 }
 
 // IDLT applies the LT predicate on the ID field.
-func IDLT(id int) predicate.Chat {
+func IDLT(id uuid.UUID) predicate.Chat {
 	return predicate.Chat(sql.FieldLT(FieldID, id))
 }
 
 // IDLTE applies the LTE predicate on the ID field.
-func IDLTE(id int) predicate.Chat {
+func IDLTE(id uuid.UUID) predicate.Chat {
 	return predicate.Chat(sql.FieldLTE(FieldID, id))
 }
 
@@ -66,7 +67,7 @@ func UpdatedAt(v time.Time) predicate.Chat {
 }
 
 // LastMessageID applies equality check predicate on the "last_message_id" field. It's identical to LastMessageIDEQ.
-func LastMessageID(v int) predicate.Chat {
+func LastMessageID(v uuid.UUID) predicate.Chat {
 	return predicate.Chat(sql.FieldEQ(FieldLastMessageID, v))
 }
 
@@ -176,22 +177,22 @@ func TypeNotIn(vs ...Type) predicate.Chat {
 }
 
 // LastMessageIDEQ applies the EQ predicate on the "last_message_id" field.
-func LastMessageIDEQ(v int) predicate.Chat {
+func LastMessageIDEQ(v uuid.UUID) predicate.Chat {
 	return predicate.Chat(sql.FieldEQ(FieldLastMessageID, v))
 }
 
 // LastMessageIDNEQ applies the NEQ predicate on the "last_message_id" field.
-func LastMessageIDNEQ(v int) predicate.Chat {
+func LastMessageIDNEQ(v uuid.UUID) predicate.Chat {
 	return predicate.Chat(sql.FieldNEQ(FieldLastMessageID, v))
 }
 
 // LastMessageIDIn applies the In predicate on the "last_message_id" field.
-func LastMessageIDIn(vs ...int) predicate.Chat {
+func LastMessageIDIn(vs ...uuid.UUID) predicate.Chat {
 	return predicate.Chat(sql.FieldIn(FieldLastMessageID, vs...))
 }
 
 // LastMessageIDNotIn applies the NotIn predicate on the "last_message_id" field.
-func LastMessageIDNotIn(vs ...int) predicate.Chat {
+func LastMessageIDNotIn(vs ...uuid.UUID) predicate.Chat {
 	return predicate.Chat(sql.FieldNotIn(FieldLastMessageID, vs...))
 }
 

@@ -6,6 +6,7 @@ import (
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
+	"github.com/google/uuid"
 )
 
 const (
@@ -97,6 +98,8 @@ var (
 	DefaultUser1UnreadCount int
 	// DefaultUser2UnreadCount holds the default value on creation for the "user2_unread_count" field.
 	DefaultUser2UnreadCount int
+	// DefaultID holds the default value on creation for the "id" field.
+	DefaultID func() uuid.UUID
 )
 
 // OrderOption defines the ordering options for the PrivateChat queries.

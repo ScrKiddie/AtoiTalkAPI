@@ -13,6 +13,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -21,7 +22,7 @@ func TestChangePassword(t *testing.T) {
 	oldPassword := "OldPassword123!"
 	newPassword := "NewPassword123!"
 
-	setupUser := func(password *string) (string, int) {
+	setupUser := func(password *string) (string, uuid.UUID) {
 		clearDatabase(context.Background())
 
 		create := testClient.User.Create().
@@ -196,7 +197,7 @@ func TestChangeEmail(t *testing.T) {
 	newEmail := "new@example.com"
 	validCode := "123456"
 
-	setupUser := func(withPassword bool) (string, int) {
+	setupUser := func(withPassword bool) (string, uuid.UUID) {
 		clearDatabase(context.Background())
 
 		create := testClient.User.Create().

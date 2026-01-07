@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/go-playground/validator/v10"
+	"github.com/google/uuid"
 )
 
 type AccountService struct {
@@ -29,7 +30,7 @@ func NewAccountService(client *ent.Client, cfg *config.AppConfig, validator *val
 	}
 }
 
-func (s *AccountService) ChangePassword(ctx context.Context, userID int, req model.ChangePasswordRequest) error {
+func (s *AccountService) ChangePassword(ctx context.Context, userID uuid.UUID, req model.ChangePasswordRequest) error {
 	if err := s.validator.Struct(req); err != nil {
 		slog.Warn("Validation failed", "error", err, "userID", userID)
 		return helper.NewBadRequestError("")
@@ -69,7 +70,7 @@ func (s *AccountService) ChangePassword(ctx context.Context, userID int, req mod
 	return nil
 }
 
-func (s *AccountService) ChangeEmail(ctx context.Context, userID int, req model.ChangeEmailRequest) error {
+func (s *AccountService) ChangeEmail(ctx context.Context, userID uuid.UUID, req model.ChangeEmailRequest) error {
 	if err := s.validator.Struct(req); err != nil {
 		slog.Warn("Validation failed", "error", err, "userID", userID)
 		return helper.NewBadRequestError("")

@@ -8,6 +8,7 @@ import (
 
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
+	"github.com/google/uuid"
 )
 
 const (
@@ -75,6 +76,8 @@ var (
 	DefaultJoinedAt func() time.Time
 	// DefaultUnreadCount holds the default value on creation for the "unread_count" field.
 	DefaultUnreadCount int
+	// DefaultID holds the default value on creation for the "id" field.
+	DefaultID func() uuid.UUID
 )
 
 // Role defines the type for the "role" enum field.

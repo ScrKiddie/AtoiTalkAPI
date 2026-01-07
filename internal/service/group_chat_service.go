@@ -22,6 +22,7 @@ import (
 	"time"
 
 	"github.com/go-playground/validator/v10"
+	"github.com/google/uuid"
 )
 
 type GroupChatService struct {
@@ -44,7 +45,7 @@ func NewGroupChatService(client *ent.Client, repo *repository.Repository, cfg *c
 	}
 }
 
-func (s *GroupChatService) CreateGroupChat(ctx context.Context, creatorID int, req model.CreateGroupChatRequest) (*model.ChatResponse, error) {
+func (s *GroupChatService) CreateGroupChat(ctx context.Context, creatorID uuid.UUID, req model.CreateGroupChatRequest) (*model.ChatResponse, error) {
 
 	if err := s.validator.Struct(req); err != nil {
 		slog.Warn("Validation failed for CreateGroupChat", "error", err)
@@ -52,18 +53,18 @@ func (s *GroupChatService) CreateGroupChat(ctx context.Context, creatorID int, r
 	}
 
 	users, err := s.client.User.Query().
-		Where(user.UsernameIn(req.MemberUsernames...)).
+		Where(user.IDIn(req.MemberIDs...)).
 		All(ctx)
 	if err != nil {
 		slog.Error("Failed to query users for group creation", "error", err)
 		return nil, helper.NewInternalServerError("")
 	}
 
-	if len(users) != len(req.MemberUsernames) {
+	if len(users) != len(req.MemberIDs) {
 		return nil, helper.NewBadRequestError("One or more members not found.")
 	}
 
-	var memberIDs []int
+	var memberIDs []uuid.UUID
 	for _, u := range users {
 		if u.ID == creatorID {
 			return nil, helper.NewBadRequestError("Cannot add yourself to the member list.")
@@ -256,7 +257,7 @@ func (s *GroupChatService) CreateGroupChat(ctx context.Context, creatorID int, r
 	}, nil
 }
 
-func (s *GroupChatService) UpdateGroupChat(ctx context.Context, requestorID int, groupID int, req model.UpdateGroupChatRequest) (*model.ChatListResponse, error) {
+func (s *GroupChatService) UpdateGroupChat(ctx context.Context, requestorID uuid.UUID, groupID uuid.UUID, req model.UpdateGroupChatRequest) (*model.ChatListResponse, error) {
 	if err := s.validator.Struct(req); err != nil {
 		return nil, helper.NewBadRequestError("")
 	}
@@ -491,7 +492,7 @@ func (s *GroupChatService) UpdateGroupChat(ctx context.Context, requestorID int,
 	}, nil
 }
 
-func (s *GroupChatService) SearchGroupMembers(ctx context.Context, userID int, req model.SearchGroupMembersRequest) ([]model.GroupMemberDTO, string, bool, error) {
+func (s *GroupChatService) SearchGroupMembers(ctx context.Context, userID uuid.UUID, req model.SearchGroupMembersRequest) ([]model.GroupMemberDTO, string, bool, error) {
 	if err := s.validator.Struct(req); err != nil {
 		return nil, "", false, helper.NewBadRequestError("")
 	}
@@ -539,7 +540,7 @@ func (s *GroupChatService) SearchGroupMembers(ctx context.Context, userID int, r
 	return memberDTOs, nextCursor, hasNext, nil
 }
 
-func (s *GroupChatService) AddMember(ctx context.Context, requestorID int, groupID int, req model.AddGroupMemberRequest) error {
+func (s *GroupChatService) AddMember(ctx context.Context, requestorID uuid.UUID, groupID uuid.UUID, req model.AddGroupMemberRequest) error {
 	if err := s.validator.Struct(req); err != nil {
 		return helper.NewBadRequestError("")
 	}
@@ -583,17 +584,17 @@ func (s *GroupChatService) AddMember(ctx context.Context, requestorID int, group
 	}
 
 	targetUsers, err := tx.User.Query().
-		Where(user.UsernameIn(req.Usernames...)).
+		Where(user.IDIn(req.UserIDs...)).
 		All(ctx)
 	if err != nil {
 		slog.Error("Failed to query target users", "error", err)
 		return helper.NewInternalServerError("")
 	}
-	if len(targetUsers) != len(req.Usernames) {
+	if len(targetUsers) != len(req.UserIDs) {
 		return helper.NewNotFoundError("One or more users not found")
 	}
 
-	var targetUserIDs []int
+	var targetUserIDs []uuid.UUID
 	for _, u := range targetUsers {
 		targetUserIDs = append(targetUserIDs, u.ID)
 	}
@@ -609,7 +610,7 @@ func (s *GroupChatService) AddMember(ctx context.Context, requestorID int, group
 		return helper.NewInternalServerError("")
 	}
 
-	existingMemberIDs := make(map[int]bool)
+	existingMemberIDs := make(map[uuid.UUID]bool)
 	for _, m := range existingMembers {
 		existingMemberIDs[m.UserID] = true
 	}
@@ -661,9 +662,8 @@ func (s *GroupChatService) AddMember(ctx context.Context, requestorID int, group
 			SetSenderID(requestorID).
 			SetType(message.TypeSystemAdd).
 			SetActionData(map[string]interface{}{
-				"target_id":       u.ID,
-				"target_username": u.Username,
-				"target_name":     u.FullName,
+				"target_id": u.ID,
+				"actor_id":  requestorID,
 			}).
 			Save(ctx)
 		if err != nil {
@@ -742,7 +742,7 @@ func (s *GroupChatService) AddMember(ctx context.Context, requestorID int, group
 	return nil
 }
 
-func (s *GroupChatService) LeaveGroup(ctx context.Context, userID int, groupID int) error {
+func (s *GroupChatService) LeaveGroup(ctx context.Context, userID uuid.UUID, groupID uuid.UUID) error {
 	tx, err := s.client.Tx(ctx)
 	if err != nil {
 		slog.Error("Failed to start transaction", "error", err)
@@ -834,7 +834,7 @@ func (s *GroupChatService) LeaveGroup(ctx context.Context, userID int, groupID i
 	return nil
 }
 
-func (s *GroupChatService) KickMember(ctx context.Context, requestorID int, groupID int, targetUserID int) error {
+func (s *GroupChatService) KickMember(ctx context.Context, requestorID uuid.UUID, groupID uuid.UUID, targetUserID uuid.UUID) error {
 	tx, err := s.client.Tx(ctx)
 	if err != nil {
 		slog.Error("Failed to start transaction", "error", err)
@@ -900,9 +900,8 @@ func (s *GroupChatService) KickMember(ctx context.Context, requestorID int, grou
 		SetSenderID(requestorID).
 		SetType(message.TypeSystemKick).
 		SetActionData(map[string]interface{}{
-			"target_id":       targetMember.UserID,
-			"target_username": targetMember.Edges.User.Username,
-			"target_name":     targetMember.Edges.User.FullName,
+			"target_id": targetMember.UserID,
+			"actor_id":  requestorID,
 		}).
 		Save(ctx)
 	if err != nil {
@@ -958,7 +957,7 @@ func (s *GroupChatService) KickMember(ctx context.Context, requestorID int, grou
 	return nil
 }
 
-func (s *GroupChatService) UpdateMemberRole(ctx context.Context, requestorID int, groupID int, targetUserID int, req model.UpdateGroupMemberRoleRequest) error {
+func (s *GroupChatService) UpdateMemberRole(ctx context.Context, requestorID uuid.UUID, groupID uuid.UUID, targetUserID uuid.UUID, req model.UpdateGroupMemberRoleRequest) error {
 	if err := s.validator.Struct(req); err != nil {
 		return helper.NewBadRequestError("")
 	}
@@ -1032,10 +1031,9 @@ func (s *GroupChatService) UpdateMemberRole(ctx context.Context, requestorID int
 		SetSenderID(requestorID).
 		SetType(msgType).
 		SetActionData(map[string]interface{}{
-			"target_id":       targetMember.UserID,
-			"target_username": targetMember.Edges.User.Username,
-			"target_name":     targetMember.Edges.User.FullName,
-			"new_role":        newRole,
+			"target_id": targetMember.UserID,
+			"actor_id":  requestorID,
+			"new_role":  newRole,
 		}).
 		Save(ctx)
 	if err != nil {
@@ -1081,7 +1079,7 @@ func (s *GroupChatService) UpdateMemberRole(ctx context.Context, requestorID int
 	return nil
 }
 
-func (s *GroupChatService) TransferOwnership(ctx context.Context, requestorID int, groupID int, req model.TransferGroupOwnershipRequest) error {
+func (s *GroupChatService) TransferOwnership(ctx context.Context, requestorID uuid.UUID, groupID uuid.UUID, req model.TransferGroupOwnershipRequest) error {
 	if err := s.validator.Struct(req); err != nil {
 		return helper.NewBadRequestError("")
 	}
@@ -1151,11 +1149,10 @@ func (s *GroupChatService) TransferOwnership(ctx context.Context, requestorID in
 		SetSenderID(requestorID).
 		SetType(message.TypeSystemPromote).
 		SetActionData(map[string]interface{}{
-			"target_id":       targetMember.UserID,
-			"target_username": targetMember.Edges.User.Username,
-			"target_name":     targetMember.Edges.User.FullName,
-			"new_role":        "owner",
-			"action":          "ownership_transferred",
+			"target_id": targetMember.UserID,
+			"actor_id":  requestorID,
+			"new_role":  "owner",
+			"action":    "ownership_transferred",
 		}).
 		Save(ctx)
 	if err != nil {

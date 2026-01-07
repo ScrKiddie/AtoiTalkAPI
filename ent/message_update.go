@@ -16,6 +16,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/google/uuid"
 )
 
 // MessageUpdate is the builder for updating Message entities.
@@ -39,13 +40,13 @@ func (_u *MessageUpdate) SetUpdatedAt(v time.Time) *MessageUpdate {
 }
 
 // SetChatID sets the "chat_id" field.
-func (_u *MessageUpdate) SetChatID(v int) *MessageUpdate {
+func (_u *MessageUpdate) SetChatID(v uuid.UUID) *MessageUpdate {
 	_u.mutation.SetChatID(v)
 	return _u
 }
 
 // SetNillableChatID sets the "chat_id" field if the given value is not nil.
-func (_u *MessageUpdate) SetNillableChatID(v *int) *MessageUpdate {
+func (_u *MessageUpdate) SetNillableChatID(v *uuid.UUID) *MessageUpdate {
 	if v != nil {
 		_u.SetChatID(*v)
 	}
@@ -53,13 +54,13 @@ func (_u *MessageUpdate) SetNillableChatID(v *int) *MessageUpdate {
 }
 
 // SetSenderID sets the "sender_id" field.
-func (_u *MessageUpdate) SetSenderID(v int) *MessageUpdate {
+func (_u *MessageUpdate) SetSenderID(v uuid.UUID) *MessageUpdate {
 	_u.mutation.SetSenderID(v)
 	return _u
 }
 
 // SetNillableSenderID sets the "sender_id" field if the given value is not nil.
-func (_u *MessageUpdate) SetNillableSenderID(v *int) *MessageUpdate {
+func (_u *MessageUpdate) SetNillableSenderID(v *uuid.UUID) *MessageUpdate {
 	if v != nil {
 		_u.SetSenderID(*v)
 	}
@@ -73,13 +74,13 @@ func (_u *MessageUpdate) ClearSenderID() *MessageUpdate {
 }
 
 // SetReplyToID sets the "reply_to_id" field.
-func (_u *MessageUpdate) SetReplyToID(v int) *MessageUpdate {
+func (_u *MessageUpdate) SetReplyToID(v uuid.UUID) *MessageUpdate {
 	_u.mutation.SetReplyToID(v)
 	return _u
 }
 
 // SetNillableReplyToID sets the "reply_to_id" field if the given value is not nil.
-func (_u *MessageUpdate) SetNillableReplyToID(v *int) *MessageUpdate {
+func (_u *MessageUpdate) SetNillableReplyToID(v *uuid.UUID) *MessageUpdate {
 	if v != nil {
 		_u.SetReplyToID(*v)
 	}
@@ -189,14 +190,14 @@ func (_u *MessageUpdate) SetSender(v *User) *MessageUpdate {
 }
 
 // AddReplyIDs adds the "replies" edge to the Message entity by IDs.
-func (_u *MessageUpdate) AddReplyIDs(ids ...int) *MessageUpdate {
+func (_u *MessageUpdate) AddReplyIDs(ids ...uuid.UUID) *MessageUpdate {
 	_u.mutation.AddReplyIDs(ids...)
 	return _u
 }
 
 // AddReplies adds the "replies" edges to the Message entity.
 func (_u *MessageUpdate) AddReplies(v ...*Message) *MessageUpdate {
-	ids := make([]int, len(v))
+	ids := make([]uuid.UUID, len(v))
 	for i := range v {
 		ids[i] = v[i].ID
 	}
@@ -209,14 +210,14 @@ func (_u *MessageUpdate) SetReplyTo(v *Message) *MessageUpdate {
 }
 
 // AddAttachmentIDs adds the "attachments" edge to the Media entity by IDs.
-func (_u *MessageUpdate) AddAttachmentIDs(ids ...int) *MessageUpdate {
+func (_u *MessageUpdate) AddAttachmentIDs(ids ...uuid.UUID) *MessageUpdate {
 	_u.mutation.AddAttachmentIDs(ids...)
 	return _u
 }
 
 // AddAttachments adds the "attachments" edges to the Media entity.
 func (_u *MessageUpdate) AddAttachments(v ...*Media) *MessageUpdate {
-	ids := make([]int, len(v))
+	ids := make([]uuid.UUID, len(v))
 	for i := range v {
 		ids[i] = v[i].ID
 	}
@@ -247,14 +248,14 @@ func (_u *MessageUpdate) ClearReplies() *MessageUpdate {
 }
 
 // RemoveReplyIDs removes the "replies" edge to Message entities by IDs.
-func (_u *MessageUpdate) RemoveReplyIDs(ids ...int) *MessageUpdate {
+func (_u *MessageUpdate) RemoveReplyIDs(ids ...uuid.UUID) *MessageUpdate {
 	_u.mutation.RemoveReplyIDs(ids...)
 	return _u
 }
 
 // RemoveReplies removes "replies" edges to Message entities.
 func (_u *MessageUpdate) RemoveReplies(v ...*Message) *MessageUpdate {
-	ids := make([]int, len(v))
+	ids := make([]uuid.UUID, len(v))
 	for i := range v {
 		ids[i] = v[i].ID
 	}
@@ -274,14 +275,14 @@ func (_u *MessageUpdate) ClearAttachments() *MessageUpdate {
 }
 
 // RemoveAttachmentIDs removes the "attachments" edge to Media entities by IDs.
-func (_u *MessageUpdate) RemoveAttachmentIDs(ids ...int) *MessageUpdate {
+func (_u *MessageUpdate) RemoveAttachmentIDs(ids ...uuid.UUID) *MessageUpdate {
 	_u.mutation.RemoveAttachmentIDs(ids...)
 	return _u
 }
 
 // RemoveAttachments removes "attachments" edges to Media entities.
 func (_u *MessageUpdate) RemoveAttachments(v ...*Media) *MessageUpdate {
-	ids := make([]int, len(v))
+	ids := make([]uuid.UUID, len(v))
 	for i := range v {
 		ids[i] = v[i].ID
 	}
@@ -347,7 +348,7 @@ func (_u *MessageUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	if err := _u.check(); err != nil {
 		return _node, err
 	}
-	_spec := sqlgraph.NewUpdateSpec(message.Table, message.Columns, sqlgraph.NewFieldSpec(message.FieldID, field.TypeInt))
+	_spec := sqlgraph.NewUpdateSpec(message.Table, message.Columns, sqlgraph.NewFieldSpec(message.FieldID, field.TypeUUID))
 	if ps := _u.mutation.predicates; len(ps) > 0 {
 		_spec.Predicate = func(selector *sql.Selector) {
 			for i := range ps {
@@ -393,7 +394,7 @@ func (_u *MessageUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 			Columns: []string{message.ChatColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(chat.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(chat.FieldID, field.TypeUUID),
 			},
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
@@ -406,7 +407,7 @@ func (_u *MessageUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 			Columns: []string{message.ChatColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(chat.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(chat.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {
@@ -422,7 +423,7 @@ func (_u *MessageUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 			Columns: []string{message.SenderColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeUUID),
 			},
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
@@ -435,7 +436,7 @@ func (_u *MessageUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 			Columns: []string{message.SenderColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {
@@ -451,7 +452,7 @@ func (_u *MessageUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 			Columns: []string{message.RepliesColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(message.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(message.FieldID, field.TypeUUID),
 			},
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
@@ -464,7 +465,7 @@ func (_u *MessageUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 			Columns: []string{message.RepliesColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(message.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(message.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {
@@ -480,7 +481,7 @@ func (_u *MessageUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 			Columns: []string{message.RepliesColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(message.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(message.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {
@@ -496,7 +497,7 @@ func (_u *MessageUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 			Columns: []string{message.ReplyToColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(message.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(message.FieldID, field.TypeUUID),
 			},
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
@@ -509,7 +510,7 @@ func (_u *MessageUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 			Columns: []string{message.ReplyToColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(message.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(message.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {
@@ -525,7 +526,7 @@ func (_u *MessageUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 			Columns: []string{message.AttachmentsColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(media.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(media.FieldID, field.TypeUUID),
 			},
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
@@ -538,7 +539,7 @@ func (_u *MessageUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 			Columns: []string{message.AttachmentsColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(media.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(media.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {
@@ -554,7 +555,7 @@ func (_u *MessageUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 			Columns: []string{message.AttachmentsColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(media.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(media.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {
@@ -591,13 +592,13 @@ func (_u *MessageUpdateOne) SetUpdatedAt(v time.Time) *MessageUpdateOne {
 }
 
 // SetChatID sets the "chat_id" field.
-func (_u *MessageUpdateOne) SetChatID(v int) *MessageUpdateOne {
+func (_u *MessageUpdateOne) SetChatID(v uuid.UUID) *MessageUpdateOne {
 	_u.mutation.SetChatID(v)
 	return _u
 }
 
 // SetNillableChatID sets the "chat_id" field if the given value is not nil.
-func (_u *MessageUpdateOne) SetNillableChatID(v *int) *MessageUpdateOne {
+func (_u *MessageUpdateOne) SetNillableChatID(v *uuid.UUID) *MessageUpdateOne {
 	if v != nil {
 		_u.SetChatID(*v)
 	}
@@ -605,13 +606,13 @@ func (_u *MessageUpdateOne) SetNillableChatID(v *int) *MessageUpdateOne {
 }
 
 // SetSenderID sets the "sender_id" field.
-func (_u *MessageUpdateOne) SetSenderID(v int) *MessageUpdateOne {
+func (_u *MessageUpdateOne) SetSenderID(v uuid.UUID) *MessageUpdateOne {
 	_u.mutation.SetSenderID(v)
 	return _u
 }
 
 // SetNillableSenderID sets the "sender_id" field if the given value is not nil.
-func (_u *MessageUpdateOne) SetNillableSenderID(v *int) *MessageUpdateOne {
+func (_u *MessageUpdateOne) SetNillableSenderID(v *uuid.UUID) *MessageUpdateOne {
 	if v != nil {
 		_u.SetSenderID(*v)
 	}
@@ -625,13 +626,13 @@ func (_u *MessageUpdateOne) ClearSenderID() *MessageUpdateOne {
 }
 
 // SetReplyToID sets the "reply_to_id" field.
-func (_u *MessageUpdateOne) SetReplyToID(v int) *MessageUpdateOne {
+func (_u *MessageUpdateOne) SetReplyToID(v uuid.UUID) *MessageUpdateOne {
 	_u.mutation.SetReplyToID(v)
 	return _u
 }
 
 // SetNillableReplyToID sets the "reply_to_id" field if the given value is not nil.
-func (_u *MessageUpdateOne) SetNillableReplyToID(v *int) *MessageUpdateOne {
+func (_u *MessageUpdateOne) SetNillableReplyToID(v *uuid.UUID) *MessageUpdateOne {
 	if v != nil {
 		_u.SetReplyToID(*v)
 	}
@@ -741,14 +742,14 @@ func (_u *MessageUpdateOne) SetSender(v *User) *MessageUpdateOne {
 }
 
 // AddReplyIDs adds the "replies" edge to the Message entity by IDs.
-func (_u *MessageUpdateOne) AddReplyIDs(ids ...int) *MessageUpdateOne {
+func (_u *MessageUpdateOne) AddReplyIDs(ids ...uuid.UUID) *MessageUpdateOne {
 	_u.mutation.AddReplyIDs(ids...)
 	return _u
 }
 
 // AddReplies adds the "replies" edges to the Message entity.
 func (_u *MessageUpdateOne) AddReplies(v ...*Message) *MessageUpdateOne {
-	ids := make([]int, len(v))
+	ids := make([]uuid.UUID, len(v))
 	for i := range v {
 		ids[i] = v[i].ID
 	}
@@ -761,14 +762,14 @@ func (_u *MessageUpdateOne) SetReplyTo(v *Message) *MessageUpdateOne {
 }
 
 // AddAttachmentIDs adds the "attachments" edge to the Media entity by IDs.
-func (_u *MessageUpdateOne) AddAttachmentIDs(ids ...int) *MessageUpdateOne {
+func (_u *MessageUpdateOne) AddAttachmentIDs(ids ...uuid.UUID) *MessageUpdateOne {
 	_u.mutation.AddAttachmentIDs(ids...)
 	return _u
 }
 
 // AddAttachments adds the "attachments" edges to the Media entity.
 func (_u *MessageUpdateOne) AddAttachments(v ...*Media) *MessageUpdateOne {
-	ids := make([]int, len(v))
+	ids := make([]uuid.UUID, len(v))
 	for i := range v {
 		ids[i] = v[i].ID
 	}
@@ -799,14 +800,14 @@ func (_u *MessageUpdateOne) ClearReplies() *MessageUpdateOne {
 }
 
 // RemoveReplyIDs removes the "replies" edge to Message entities by IDs.
-func (_u *MessageUpdateOne) RemoveReplyIDs(ids ...int) *MessageUpdateOne {
+func (_u *MessageUpdateOne) RemoveReplyIDs(ids ...uuid.UUID) *MessageUpdateOne {
 	_u.mutation.RemoveReplyIDs(ids...)
 	return _u
 }
 
 // RemoveReplies removes "replies" edges to Message entities.
 func (_u *MessageUpdateOne) RemoveReplies(v ...*Message) *MessageUpdateOne {
-	ids := make([]int, len(v))
+	ids := make([]uuid.UUID, len(v))
 	for i := range v {
 		ids[i] = v[i].ID
 	}
@@ -826,14 +827,14 @@ func (_u *MessageUpdateOne) ClearAttachments() *MessageUpdateOne {
 }
 
 // RemoveAttachmentIDs removes the "attachments" edge to Media entities by IDs.
-func (_u *MessageUpdateOne) RemoveAttachmentIDs(ids ...int) *MessageUpdateOne {
+func (_u *MessageUpdateOne) RemoveAttachmentIDs(ids ...uuid.UUID) *MessageUpdateOne {
 	_u.mutation.RemoveAttachmentIDs(ids...)
 	return _u
 }
 
 // RemoveAttachments removes "attachments" edges to Media entities.
 func (_u *MessageUpdateOne) RemoveAttachments(v ...*Media) *MessageUpdateOne {
-	ids := make([]int, len(v))
+	ids := make([]uuid.UUID, len(v))
 	for i := range v {
 		ids[i] = v[i].ID
 	}
@@ -912,7 +913,7 @@ func (_u *MessageUpdateOne) sqlSave(ctx context.Context) (_node *Message, err er
 	if err := _u.check(); err != nil {
 		return _node, err
 	}
-	_spec := sqlgraph.NewUpdateSpec(message.Table, message.Columns, sqlgraph.NewFieldSpec(message.FieldID, field.TypeInt))
+	_spec := sqlgraph.NewUpdateSpec(message.Table, message.Columns, sqlgraph.NewFieldSpec(message.FieldID, field.TypeUUID))
 	id, ok := _u.mutation.ID()
 	if !ok {
 		return nil, &ValidationError{Name: "id", err: errors.New(`ent: missing "Message.id" for update`)}
@@ -975,7 +976,7 @@ func (_u *MessageUpdateOne) sqlSave(ctx context.Context) (_node *Message, err er
 			Columns: []string{message.ChatColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(chat.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(chat.FieldID, field.TypeUUID),
 			},
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
@@ -988,7 +989,7 @@ func (_u *MessageUpdateOne) sqlSave(ctx context.Context) (_node *Message, err er
 			Columns: []string{message.ChatColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(chat.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(chat.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {
@@ -1004,7 +1005,7 @@ func (_u *MessageUpdateOne) sqlSave(ctx context.Context) (_node *Message, err er
 			Columns: []string{message.SenderColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeUUID),
 			},
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
@@ -1017,7 +1018,7 @@ func (_u *MessageUpdateOne) sqlSave(ctx context.Context) (_node *Message, err er
 			Columns: []string{message.SenderColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {
@@ -1033,7 +1034,7 @@ func (_u *MessageUpdateOne) sqlSave(ctx context.Context) (_node *Message, err er
 			Columns: []string{message.RepliesColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(message.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(message.FieldID, field.TypeUUID),
 			},
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
@@ -1046,7 +1047,7 @@ func (_u *MessageUpdateOne) sqlSave(ctx context.Context) (_node *Message, err er
 			Columns: []string{message.RepliesColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(message.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(message.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {
@@ -1062,7 +1063,7 @@ func (_u *MessageUpdateOne) sqlSave(ctx context.Context) (_node *Message, err er
 			Columns: []string{message.RepliesColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(message.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(message.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {
@@ -1078,7 +1079,7 @@ func (_u *MessageUpdateOne) sqlSave(ctx context.Context) (_node *Message, err er
 			Columns: []string{message.ReplyToColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(message.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(message.FieldID, field.TypeUUID),
 			},
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
@@ -1091,7 +1092,7 @@ func (_u *MessageUpdateOne) sqlSave(ctx context.Context) (_node *Message, err er
 			Columns: []string{message.ReplyToColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(message.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(message.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {
@@ -1107,7 +1108,7 @@ func (_u *MessageUpdateOne) sqlSave(ctx context.Context) (_node *Message, err er
 			Columns: []string{message.AttachmentsColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(media.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(media.FieldID, field.TypeUUID),
 			},
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
@@ -1120,7 +1121,7 @@ func (_u *MessageUpdateOne) sqlSave(ctx context.Context) (_node *Message, err er
 			Columns: []string{message.AttachmentsColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(media.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(media.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {
@@ -1136,7 +1137,7 @@ func (_u *MessageUpdateOne) sqlSave(ctx context.Context) (_node *Message, err er
 			Columns: []string{message.AttachmentsColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(media.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(media.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {

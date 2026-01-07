@@ -22,6 +22,7 @@ import (
 
 	"github.com/go-playground/validator/v10"
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/google/uuid"
 	"google.golang.org/api/idtoken"
 )
 
@@ -188,7 +189,7 @@ func (s *AuthService) GoogleExchange(ctx context.Context, req model.GoogleLoginR
 	var fileData []byte
 	var fileUploadPath string
 	var fileContentType string
-	var mediaID int
+	var mediaID uuid.UUID
 
 	if u == nil {
 
@@ -306,7 +307,7 @@ func (s *AuthService) GoogleExchange(ctx context.Context, req model.GoogleLoginR
 			if err != nil {
 				slog.Error("Failed to store profile picture after db commit", "error", err)
 
-				if mediaID != 0 {
+				if mediaID != uuid.Nil {
 					if delErr := s.client.Media.DeleteOneID(mediaID).Exec(context.Background()); delErr != nil {
 						slog.Error("Failed to delete orphan media record after file upload failure", "error", delErr, "mediaID", mediaID)
 					}

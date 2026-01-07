@@ -16,6 +16,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/google/uuid"
 )
 
 // MediaUpdate is the builder for updating Media entities.
@@ -116,13 +117,13 @@ func (_u *MediaUpdate) SetNillableStatus(v *media.Status) *MediaUpdate {
 }
 
 // SetMessageID sets the "message_id" field.
-func (_u *MediaUpdate) SetMessageID(v int) *MediaUpdate {
+func (_u *MediaUpdate) SetMessageID(v uuid.UUID) *MediaUpdate {
 	_u.mutation.SetMessageID(v)
 	return _u
 }
 
 // SetNillableMessageID sets the "message_id" field if the given value is not nil.
-func (_u *MediaUpdate) SetNillableMessageID(v *int) *MediaUpdate {
+func (_u *MediaUpdate) SetNillableMessageID(v *uuid.UUID) *MediaUpdate {
 	if v != nil {
 		_u.SetMessageID(*v)
 	}
@@ -136,13 +137,13 @@ func (_u *MediaUpdate) ClearMessageID() *MediaUpdate {
 }
 
 // SetUploadedByID sets the "uploaded_by_id" field.
-func (_u *MediaUpdate) SetUploadedByID(v int) *MediaUpdate {
+func (_u *MediaUpdate) SetUploadedByID(v uuid.UUID) *MediaUpdate {
 	_u.mutation.SetUploadedByID(v)
 	return _u
 }
 
 // SetNillableUploadedByID sets the "uploaded_by_id" field if the given value is not nil.
-func (_u *MediaUpdate) SetNillableUploadedByID(v *int) *MediaUpdate {
+func (_u *MediaUpdate) SetNillableUploadedByID(v *uuid.UUID) *MediaUpdate {
 	if v != nil {
 		_u.SetUploadedByID(*v)
 	}
@@ -155,13 +156,13 @@ func (_u *MediaUpdate) SetMessage(v *Message) *MediaUpdate {
 }
 
 // SetUserAvatarID sets the "user_avatar" edge to the User entity by ID.
-func (_u *MediaUpdate) SetUserAvatarID(id int) *MediaUpdate {
+func (_u *MediaUpdate) SetUserAvatarID(id uuid.UUID) *MediaUpdate {
 	_u.mutation.SetUserAvatarID(id)
 	return _u
 }
 
 // SetNillableUserAvatarID sets the "user_avatar" edge to the User entity by ID if the given value is not nil.
-func (_u *MediaUpdate) SetNillableUserAvatarID(id *int) *MediaUpdate {
+func (_u *MediaUpdate) SetNillableUserAvatarID(id *uuid.UUID) *MediaUpdate {
 	if id != nil {
 		_u = _u.SetUserAvatarID(*id)
 	}
@@ -174,13 +175,13 @@ func (_u *MediaUpdate) SetUserAvatar(v *User) *MediaUpdate {
 }
 
 // SetGroupAvatarID sets the "group_avatar" edge to the GroupChat entity by ID.
-func (_u *MediaUpdate) SetGroupAvatarID(id int) *MediaUpdate {
+func (_u *MediaUpdate) SetGroupAvatarID(id uuid.UUID) *MediaUpdate {
 	_u.mutation.SetGroupAvatarID(id)
 	return _u
 }
 
 // SetNillableGroupAvatarID sets the "group_avatar" edge to the GroupChat entity by ID if the given value is not nil.
-func (_u *MediaUpdate) SetNillableGroupAvatarID(id *int) *MediaUpdate {
+func (_u *MediaUpdate) SetNillableGroupAvatarID(id *uuid.UUID) *MediaUpdate {
 	if id != nil {
 		_u = _u.SetGroupAvatarID(*id)
 	}
@@ -193,7 +194,7 @@ func (_u *MediaUpdate) SetGroupAvatar(v *GroupChat) *MediaUpdate {
 }
 
 // SetUploaderID sets the "uploader" edge to the User entity by ID.
-func (_u *MediaUpdate) SetUploaderID(id int) *MediaUpdate {
+func (_u *MediaUpdate) SetUploaderID(id uuid.UUID) *MediaUpdate {
 	_u.mutation.SetUploaderID(id)
 	return _u
 }
@@ -311,7 +312,7 @@ func (_u *MediaUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	if err := _u.check(); err != nil {
 		return _node, err
 	}
-	_spec := sqlgraph.NewUpdateSpec(media.Table, media.Columns, sqlgraph.NewFieldSpec(media.FieldID, field.TypeInt))
+	_spec := sqlgraph.NewUpdateSpec(media.Table, media.Columns, sqlgraph.NewFieldSpec(media.FieldID, field.TypeUUID))
 	if ps := _u.mutation.predicates; len(ps) > 0 {
 		_spec.Predicate = func(selector *sql.Selector) {
 			for i := range ps {
@@ -348,7 +349,7 @@ func (_u *MediaUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 			Columns: []string{media.MessageColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(message.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(message.FieldID, field.TypeUUID),
 			},
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
@@ -361,7 +362,7 @@ func (_u *MediaUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 			Columns: []string{media.MessageColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(message.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(message.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {
@@ -377,7 +378,7 @@ func (_u *MediaUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 			Columns: []string{media.UserAvatarColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeUUID),
 			},
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
@@ -390,7 +391,7 @@ func (_u *MediaUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 			Columns: []string{media.UserAvatarColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {
@@ -406,7 +407,7 @@ func (_u *MediaUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 			Columns: []string{media.GroupAvatarColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(groupchat.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(groupchat.FieldID, field.TypeUUID),
 			},
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
@@ -419,7 +420,7 @@ func (_u *MediaUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 			Columns: []string{media.GroupAvatarColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(groupchat.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(groupchat.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {
@@ -435,7 +436,7 @@ func (_u *MediaUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 			Columns: []string{media.UploaderColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeUUID),
 			},
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
@@ -448,7 +449,7 @@ func (_u *MediaUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 			Columns: []string{media.UploaderColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {
@@ -562,13 +563,13 @@ func (_u *MediaUpdateOne) SetNillableStatus(v *media.Status) *MediaUpdateOne {
 }
 
 // SetMessageID sets the "message_id" field.
-func (_u *MediaUpdateOne) SetMessageID(v int) *MediaUpdateOne {
+func (_u *MediaUpdateOne) SetMessageID(v uuid.UUID) *MediaUpdateOne {
 	_u.mutation.SetMessageID(v)
 	return _u
 }
 
 // SetNillableMessageID sets the "message_id" field if the given value is not nil.
-func (_u *MediaUpdateOne) SetNillableMessageID(v *int) *MediaUpdateOne {
+func (_u *MediaUpdateOne) SetNillableMessageID(v *uuid.UUID) *MediaUpdateOne {
 	if v != nil {
 		_u.SetMessageID(*v)
 	}
@@ -582,13 +583,13 @@ func (_u *MediaUpdateOne) ClearMessageID() *MediaUpdateOne {
 }
 
 // SetUploadedByID sets the "uploaded_by_id" field.
-func (_u *MediaUpdateOne) SetUploadedByID(v int) *MediaUpdateOne {
+func (_u *MediaUpdateOne) SetUploadedByID(v uuid.UUID) *MediaUpdateOne {
 	_u.mutation.SetUploadedByID(v)
 	return _u
 }
 
 // SetNillableUploadedByID sets the "uploaded_by_id" field if the given value is not nil.
-func (_u *MediaUpdateOne) SetNillableUploadedByID(v *int) *MediaUpdateOne {
+func (_u *MediaUpdateOne) SetNillableUploadedByID(v *uuid.UUID) *MediaUpdateOne {
 	if v != nil {
 		_u.SetUploadedByID(*v)
 	}
@@ -601,13 +602,13 @@ func (_u *MediaUpdateOne) SetMessage(v *Message) *MediaUpdateOne {
 }
 
 // SetUserAvatarID sets the "user_avatar" edge to the User entity by ID.
-func (_u *MediaUpdateOne) SetUserAvatarID(id int) *MediaUpdateOne {
+func (_u *MediaUpdateOne) SetUserAvatarID(id uuid.UUID) *MediaUpdateOne {
 	_u.mutation.SetUserAvatarID(id)
 	return _u
 }
 
 // SetNillableUserAvatarID sets the "user_avatar" edge to the User entity by ID if the given value is not nil.
-func (_u *MediaUpdateOne) SetNillableUserAvatarID(id *int) *MediaUpdateOne {
+func (_u *MediaUpdateOne) SetNillableUserAvatarID(id *uuid.UUID) *MediaUpdateOne {
 	if id != nil {
 		_u = _u.SetUserAvatarID(*id)
 	}
@@ -620,13 +621,13 @@ func (_u *MediaUpdateOne) SetUserAvatar(v *User) *MediaUpdateOne {
 }
 
 // SetGroupAvatarID sets the "group_avatar" edge to the GroupChat entity by ID.
-func (_u *MediaUpdateOne) SetGroupAvatarID(id int) *MediaUpdateOne {
+func (_u *MediaUpdateOne) SetGroupAvatarID(id uuid.UUID) *MediaUpdateOne {
 	_u.mutation.SetGroupAvatarID(id)
 	return _u
 }
 
 // SetNillableGroupAvatarID sets the "group_avatar" edge to the GroupChat entity by ID if the given value is not nil.
-func (_u *MediaUpdateOne) SetNillableGroupAvatarID(id *int) *MediaUpdateOne {
+func (_u *MediaUpdateOne) SetNillableGroupAvatarID(id *uuid.UUID) *MediaUpdateOne {
 	if id != nil {
 		_u = _u.SetGroupAvatarID(*id)
 	}
@@ -639,7 +640,7 @@ func (_u *MediaUpdateOne) SetGroupAvatar(v *GroupChat) *MediaUpdateOne {
 }
 
 // SetUploaderID sets the "uploader" edge to the User entity by ID.
-func (_u *MediaUpdateOne) SetUploaderID(id int) *MediaUpdateOne {
+func (_u *MediaUpdateOne) SetUploaderID(id uuid.UUID) *MediaUpdateOne {
 	_u.mutation.SetUploaderID(id)
 	return _u
 }
@@ -770,7 +771,7 @@ func (_u *MediaUpdateOne) sqlSave(ctx context.Context) (_node *Media, err error)
 	if err := _u.check(); err != nil {
 		return _node, err
 	}
-	_spec := sqlgraph.NewUpdateSpec(media.Table, media.Columns, sqlgraph.NewFieldSpec(media.FieldID, field.TypeInt))
+	_spec := sqlgraph.NewUpdateSpec(media.Table, media.Columns, sqlgraph.NewFieldSpec(media.FieldID, field.TypeUUID))
 	id, ok := _u.mutation.ID()
 	if !ok {
 		return nil, &ValidationError{Name: "id", err: errors.New(`ent: missing "Media.id" for update`)}
@@ -824,7 +825,7 @@ func (_u *MediaUpdateOne) sqlSave(ctx context.Context) (_node *Media, err error)
 			Columns: []string{media.MessageColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(message.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(message.FieldID, field.TypeUUID),
 			},
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
@@ -837,7 +838,7 @@ func (_u *MediaUpdateOne) sqlSave(ctx context.Context) (_node *Media, err error)
 			Columns: []string{media.MessageColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(message.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(message.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {
@@ -853,7 +854,7 @@ func (_u *MediaUpdateOne) sqlSave(ctx context.Context) (_node *Media, err error)
 			Columns: []string{media.UserAvatarColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeUUID),
 			},
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
@@ -866,7 +867,7 @@ func (_u *MediaUpdateOne) sqlSave(ctx context.Context) (_node *Media, err error)
 			Columns: []string{media.UserAvatarColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {
@@ -882,7 +883,7 @@ func (_u *MediaUpdateOne) sqlSave(ctx context.Context) (_node *Media, err error)
 			Columns: []string{media.GroupAvatarColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(groupchat.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(groupchat.FieldID, field.TypeUUID),
 			},
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
@@ -895,7 +896,7 @@ func (_u *MediaUpdateOne) sqlSave(ctx context.Context) (_node *Media, err error)
 			Columns: []string{media.GroupAvatarColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(groupchat.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(groupchat.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {
@@ -911,7 +912,7 @@ func (_u *MediaUpdateOne) sqlSave(ctx context.Context) (_node *Media, err error)
 			Columns: []string{media.UploaderColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeUUID),
 			},
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
@@ -924,7 +925,7 @@ func (_u *MediaUpdateOne) sqlSave(ctx context.Context) (_node *Media, err error)
 			Columns: []string{media.UploaderColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {

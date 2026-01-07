@@ -13,23 +13,24 @@ import (
 
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
+	"github.com/google/uuid"
 )
 
 // Message is the model entity for the Message schema.
 type Message struct {
 	config `json:"-"`
 	// ID of the ent.
-	ID int `json:"id,omitempty"`
+	ID uuid.UUID `json:"id,omitempty"`
 	// CreatedAt holds the value of the "created_at" field.
 	CreatedAt time.Time `json:"created_at,omitempty"`
 	// UpdatedAt holds the value of the "updated_at" field.
 	UpdatedAt time.Time `json:"updated_at,omitempty"`
 	// ChatID holds the value of the "chat_id" field.
-	ChatID int `json:"chat_id,omitempty"`
+	ChatID uuid.UUID `json:"chat_id,omitempty"`
 	// SenderID holds the value of the "sender_id" field.
-	SenderID *int `json:"sender_id,omitempty"`
+	SenderID *uuid.UUID `json:"sender_id,omitempty"`
 	// ReplyToID holds the value of the "reply_to_id" field.
-	ReplyToID *int `json:"reply_to_id,omitempty"`
+	ReplyToID *uuid.UUID `json:"reply_to_id,omitempty"`
 	// Type holds the value of the "type" field.
 	Type message.Type `json:"type,omitempty"`
 	// Content holds the value of the "content" field.
@@ -119,14 +120,16 @@ func (*Message) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
+		case message.FieldSenderID, message.FieldReplyToID:
+			values[i] = &sql.NullScanner{S: new(uuid.UUID)}
 		case message.FieldActionData:
 			values[i] = new([]byte)
-		case message.FieldID, message.FieldChatID, message.FieldSenderID, message.FieldReplyToID:
-			values[i] = new(sql.NullInt64)
 		case message.FieldType, message.FieldContent:
 			values[i] = new(sql.NullString)
 		case message.FieldCreatedAt, message.FieldUpdatedAt, message.FieldDeletedAt, message.FieldEditedAt:
 			values[i] = new(sql.NullTime)
+		case message.FieldID, message.FieldChatID:
+			values[i] = new(uuid.UUID)
 		default:
 			values[i] = new(sql.UnknownType)
 		}
@@ -143,11 +146,11 @@ func (_m *Message) assignValues(columns []string, values []any) error {
 	for i := range columns {
 		switch columns[i] {
 		case message.FieldID:
-			value, ok := values[i].(*sql.NullInt64)
-			if !ok {
-				return fmt.Errorf("unexpected type %T for field id", value)
+			if value, ok := values[i].(*uuid.UUID); !ok {
+				return fmt.Errorf("unexpected type %T for field id", values[i])
+			} else if value != nil {
+				_m.ID = *value
 			}
-			_m.ID = int(value.Int64)
 		case message.FieldCreatedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field created_at", values[i])
@@ -161,24 +164,24 @@ func (_m *Message) assignValues(columns []string, values []any) error {
 				_m.UpdatedAt = value.Time
 			}
 		case message.FieldChatID:
-			if value, ok := values[i].(*sql.NullInt64); !ok {
+			if value, ok := values[i].(*uuid.UUID); !ok {
 				return fmt.Errorf("unexpected type %T for field chat_id", values[i])
-			} else if value.Valid {
-				_m.ChatID = int(value.Int64)
+			} else if value != nil {
+				_m.ChatID = *value
 			}
 		case message.FieldSenderID:
-			if value, ok := values[i].(*sql.NullInt64); !ok {
+			if value, ok := values[i].(*sql.NullScanner); !ok {
 				return fmt.Errorf("unexpected type %T for field sender_id", values[i])
 			} else if value.Valid {
-				_m.SenderID = new(int)
-				*_m.SenderID = int(value.Int64)
+				_m.SenderID = new(uuid.UUID)
+				*_m.SenderID = *value.S.(*uuid.UUID)
 			}
 		case message.FieldReplyToID:
-			if value, ok := values[i].(*sql.NullInt64); !ok {
+			if value, ok := values[i].(*sql.NullScanner); !ok {
 				return fmt.Errorf("unexpected type %T for field reply_to_id", values[i])
 			} else if value.Valid {
-				_m.ReplyToID = new(int)
-				*_m.ReplyToID = int(value.Int64)
+				_m.ReplyToID = new(uuid.UUID)
+				*_m.ReplyToID = *value.S.(*uuid.UUID)
 			}
 		case message.FieldType:
 			if value, ok := values[i].(*sql.NullString); !ok {

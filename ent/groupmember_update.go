@@ -15,6 +15,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/google/uuid"
 )
 
 // GroupMemberUpdate is the builder for updating GroupMember entities.
@@ -32,13 +33,13 @@ func (_u *GroupMemberUpdate) Where(ps ...predicate.GroupMember) *GroupMemberUpda
 }
 
 // SetGroupChatID sets the "group_chat_id" field.
-func (_u *GroupMemberUpdate) SetGroupChatID(v int) *GroupMemberUpdate {
+func (_u *GroupMemberUpdate) SetGroupChatID(v uuid.UUID) *GroupMemberUpdate {
 	_u.mutation.SetGroupChatID(v)
 	return _u
 }
 
 // SetNillableGroupChatID sets the "group_chat_id" field if the given value is not nil.
-func (_u *GroupMemberUpdate) SetNillableGroupChatID(v *int) *GroupMemberUpdate {
+func (_u *GroupMemberUpdate) SetNillableGroupChatID(v *uuid.UUID) *GroupMemberUpdate {
 	if v != nil {
 		_u.SetGroupChatID(*v)
 	}
@@ -46,13 +47,13 @@ func (_u *GroupMemberUpdate) SetNillableGroupChatID(v *int) *GroupMemberUpdate {
 }
 
 // SetUserID sets the "user_id" field.
-func (_u *GroupMemberUpdate) SetUserID(v int) *GroupMemberUpdate {
+func (_u *GroupMemberUpdate) SetUserID(v uuid.UUID) *GroupMemberUpdate {
 	_u.mutation.SetUserID(v)
 	return _u
 }
 
 // SetNillableUserID sets the "user_id" field if the given value is not nil.
-func (_u *GroupMemberUpdate) SetNillableUserID(v *int) *GroupMemberUpdate {
+func (_u *GroupMemberUpdate) SetNillableUserID(v *uuid.UUID) *GroupMemberUpdate {
 	if v != nil {
 		_u.SetUserID(*v)
 	}
@@ -194,7 +195,7 @@ func (_u *GroupMemberUpdate) sqlSave(ctx context.Context) (_node int, err error)
 	if err := _u.check(); err != nil {
 		return _node, err
 	}
-	_spec := sqlgraph.NewUpdateSpec(groupmember.Table, groupmember.Columns, sqlgraph.NewFieldSpec(groupmember.FieldID, field.TypeInt))
+	_spec := sqlgraph.NewUpdateSpec(groupmember.Table, groupmember.Columns, sqlgraph.NewFieldSpec(groupmember.FieldID, field.TypeUUID))
 	if ps := _u.mutation.predicates; len(ps) > 0 {
 		_spec.Predicate = func(selector *sql.Selector) {
 			for i := range ps {
@@ -225,7 +226,7 @@ func (_u *GroupMemberUpdate) sqlSave(ctx context.Context) (_node int, err error)
 			Columns: []string{groupmember.GroupChatColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(groupchat.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(groupchat.FieldID, field.TypeUUID),
 			},
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
@@ -238,7 +239,7 @@ func (_u *GroupMemberUpdate) sqlSave(ctx context.Context) (_node int, err error)
 			Columns: []string{groupmember.GroupChatColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(groupchat.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(groupchat.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {
@@ -254,7 +255,7 @@ func (_u *GroupMemberUpdate) sqlSave(ctx context.Context) (_node int, err error)
 			Columns: []string{groupmember.UserColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeUUID),
 			},
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
@@ -267,7 +268,7 @@ func (_u *GroupMemberUpdate) sqlSave(ctx context.Context) (_node int, err error)
 			Columns: []string{groupmember.UserColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {
@@ -298,13 +299,13 @@ type GroupMemberUpdateOne struct {
 }
 
 // SetGroupChatID sets the "group_chat_id" field.
-func (_u *GroupMemberUpdateOne) SetGroupChatID(v int) *GroupMemberUpdateOne {
+func (_u *GroupMemberUpdateOne) SetGroupChatID(v uuid.UUID) *GroupMemberUpdateOne {
 	_u.mutation.SetGroupChatID(v)
 	return _u
 }
 
 // SetNillableGroupChatID sets the "group_chat_id" field if the given value is not nil.
-func (_u *GroupMemberUpdateOne) SetNillableGroupChatID(v *int) *GroupMemberUpdateOne {
+func (_u *GroupMemberUpdateOne) SetNillableGroupChatID(v *uuid.UUID) *GroupMemberUpdateOne {
 	if v != nil {
 		_u.SetGroupChatID(*v)
 	}
@@ -312,13 +313,13 @@ func (_u *GroupMemberUpdateOne) SetNillableGroupChatID(v *int) *GroupMemberUpdat
 }
 
 // SetUserID sets the "user_id" field.
-func (_u *GroupMemberUpdateOne) SetUserID(v int) *GroupMemberUpdateOne {
+func (_u *GroupMemberUpdateOne) SetUserID(v uuid.UUID) *GroupMemberUpdateOne {
 	_u.mutation.SetUserID(v)
 	return _u
 }
 
 // SetNillableUserID sets the "user_id" field if the given value is not nil.
-func (_u *GroupMemberUpdateOne) SetNillableUserID(v *int) *GroupMemberUpdateOne {
+func (_u *GroupMemberUpdateOne) SetNillableUserID(v *uuid.UUID) *GroupMemberUpdateOne {
 	if v != nil {
 		_u.SetUserID(*v)
 	}
@@ -473,7 +474,7 @@ func (_u *GroupMemberUpdateOne) sqlSave(ctx context.Context) (_node *GroupMember
 	if err := _u.check(); err != nil {
 		return _node, err
 	}
-	_spec := sqlgraph.NewUpdateSpec(groupmember.Table, groupmember.Columns, sqlgraph.NewFieldSpec(groupmember.FieldID, field.TypeInt))
+	_spec := sqlgraph.NewUpdateSpec(groupmember.Table, groupmember.Columns, sqlgraph.NewFieldSpec(groupmember.FieldID, field.TypeUUID))
 	id, ok := _u.mutation.ID()
 	if !ok {
 		return nil, &ValidationError{Name: "id", err: errors.New(`ent: missing "GroupMember.id" for update`)}
@@ -521,7 +522,7 @@ func (_u *GroupMemberUpdateOne) sqlSave(ctx context.Context) (_node *GroupMember
 			Columns: []string{groupmember.GroupChatColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(groupchat.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(groupchat.FieldID, field.TypeUUID),
 			},
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
@@ -534,7 +535,7 @@ func (_u *GroupMemberUpdateOne) sqlSave(ctx context.Context) (_node *GroupMember
 			Columns: []string{groupmember.GroupChatColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(groupchat.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(groupchat.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {
@@ -550,7 +551,7 @@ func (_u *GroupMemberUpdateOne) sqlSave(ctx context.Context) (_node *GroupMember
 			Columns: []string{groupmember.UserColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeUUID),
 			},
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
@@ -563,7 +564,7 @@ func (_u *GroupMemberUpdateOne) sqlSave(ctx context.Context) (_node *GroupMember
 			Columns: []string{groupmember.UserColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {

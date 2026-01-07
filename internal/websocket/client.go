@@ -5,6 +5,7 @@ import (
 	"log/slog"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
 )
 
@@ -19,7 +20,7 @@ type Client struct {
 	Hub    *Hub
 	Conn   *websocket.Conn
 	Send   chan []byte
-	UserID int
+	UserID uuid.UUID
 }
 
 func (c *Client) ReadPump() {
@@ -44,7 +45,7 @@ func (c *Client) ReadPump() {
 
 			if event.Type == EventTyping {
 
-				if event.Meta != nil && event.Meta.ChatID != 0 {
+				if event.Meta != nil && event.Meta.ChatID != uuid.Nil {
 					event.Meta.SenderID = c.UserID
 					event.Meta.Timestamp = time.Now().UTC().UnixMilli()
 					c.Hub.BroadcastToChat(event.Meta.ChatID, event)

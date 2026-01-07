@@ -6,6 +6,7 @@ import (
 	"entgo.io/ent/schema"
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/index"
+	"github.com/google/uuid"
 )
 
 type OTP struct {
@@ -20,6 +21,7 @@ func (OTP) Mixin() []ent.Mixin {
 
 func (OTP) Fields() []ent.Field {
 	return []ent.Field{
+		field.UUID("id", uuid.UUID{}).Default(newUUIDv7),
 		field.String("email").
 			Unique().
 			MaxLen(255).

@@ -17,10 +17,10 @@ import (
 	"context"
 	"encoding/base64"
 	"log/slog"
-	"strconv"
 	"time"
 
 	"github.com/go-playground/validator/v10"
+	"github.com/google/uuid"
 )
 
 type MessageService struct {
@@ -43,7 +43,7 @@ func NewMessageService(client *ent.Client, repo *repository.Repository, cfg *con
 	}
 }
 
-func (s *MessageService) SendMessage(ctx context.Context, userID int, req model.SendMessageRequest) (*model.MessageResponse, error) {
+func (s *MessageService) SendMessage(ctx context.Context, userID uuid.UUID, req model.SendMessageRequest) (*model.MessageResponse, error) {
 	if err := s.validator.Struct(req); err != nil {
 		slog.Warn("Validation failed", "error", err, "userID", userID)
 		return nil, helper.NewBadRequestError("")
@@ -85,7 +85,7 @@ func (s *MessageService) SendMessage(ctx context.Context, userID int, req model.
 
 	if chatInfo.Type == chat.TypePrivate && chatInfo.Edges.PrivateChat != nil {
 		pc := chatInfo.Edges.PrivateChat
-		var otherUserID int
+		var otherUserID uuid.UUID
 		if pc.User1ID == userID {
 			otherUserID = pc.User2ID
 		} else if pc.User2ID == userID {
@@ -185,15 +185,12 @@ func (s *MessageService) SendMessage(ctx context.Context, userID int, req model.
 		return nil, helper.NewInternalServerError("")
 	}
 
-	if chatInfo.LastMessageID == nil || *chatInfo.LastMessageID < msg.ID {
-		err = tx.Chat.UpdateOne(chatInfo).
-			SetLastMessageID(msg.ID).
-			SetLastMessageAt(msg.CreatedAt).
-			Exec(ctx)
-		if err != nil {
-			slog.Error("Failed to update chat last message", "error", err)
-
-		}
+	err = tx.Chat.UpdateOne(chatInfo).
+		SetLastMessageID(msg.ID).
+		SetLastMessageAt(msg.CreatedAt).
+		Exec(ctx)
+	if err != nil {
+		slog.Error("Failed to update chat last message", "error", err)
 	}
 
 	if chatInfo.Type == chat.TypePrivate && chatInfo.Edges.PrivateChat != nil {
@@ -286,7 +283,7 @@ func (s *MessageService) SendMessage(ctx context.Context, userID int, req model.
 	return resp, nil
 }
 
-func (s *MessageService) EditMessage(ctx context.Context, userID int, messageID int, req model.EditMessageRequest) (*model.MessageResponse, error) {
+func (s *MessageService) EditMessage(ctx context.Context, userID uuid.UUID, messageID uuid.UUID, req model.EditMessageRequest) (*model.MessageResponse, error) {
 	if err := s.validator.Struct(req); err != nil {
 		slog.Warn("Validation failed", "error", err, "userID", userID)
 		return nil, helper.NewBadRequestError("")
@@ -334,24 +331,24 @@ func (s *MessageService) EditMessage(ctx context.Context, userID int, messageID 
 		return nil, helper.NewBadRequestError("Message is too old to edit")
 	}
 
-	currentAttachmentIDs := make(map[int]bool)
+	currentAttachmentIDs := make(map[uuid.UUID]bool)
 	for _, att := range msg.Edges.Attachments {
 		currentAttachmentIDs[att.ID] = true
 	}
 
-	newAttachmentIDs := make(map[int]bool)
+	newAttachmentIDs := make(map[uuid.UUID]bool)
 	for _, id := range req.AttachmentIDs {
 		newAttachmentIDs[id] = true
 	}
 
-	var toUnlink []int
+	var toUnlink []uuid.UUID
 	for id := range currentAttachmentIDs {
 		if !newAttachmentIDs[id] {
 			toUnlink = append(toUnlink, id)
 		}
 	}
 
-	var toLink []int
+	var toLink []uuid.UUID
 	for id := range newAttachmentIDs {
 		if !currentAttachmentIDs[id] {
 			toLink = append(toLink, id)
@@ -440,7 +437,7 @@ func (s *MessageService) EditMessage(ctx context.Context, userID int, messageID 
 	return resp, nil
 }
 
-func (s *MessageService) GetMessages(ctx context.Context, userID int, req model.GetMessagesRequest) ([]model.MessageResponse, string, bool, error) {
+func (s *MessageService) GetMessages(ctx context.Context, userID uuid.UUID, req model.GetMessagesRequest) ([]model.MessageResponse, string, bool, error) {
 	if err := s.validator.Struct(req); err != nil {
 		return nil, "", false, helper.NewBadRequestError("")
 	}
@@ -489,22 +486,54 @@ func (s *MessageService) GetMessages(ctx context.Context, userID int, req model.
 		return nil, "", false, helper.NewForbiddenError("")
 	}
 
-	var cursorInt int
+	var cursorID uuid.UUID
 	if req.Cursor != "" {
 		decodedBytes, err := base64.URLEncoding.DecodeString(req.Cursor)
 		if err != nil {
 			return nil, "", false, helper.NewBadRequestError("Invalid cursor format")
 		}
-		cursorInt, err = strconv.Atoi(string(decodedBytes))
+		cursorID, err = uuid.Parse(string(decodedBytes))
 		if err != nil {
 			return nil, "", false, helper.NewBadRequestError("Invalid cursor format")
 		}
 	}
 
-	messages, err := s.repo.Message.GetMessages(ctx, req.ChatID, hiddenAt, cursorInt, req.Limit)
+	messages, err := s.repo.Message.GetMessages(ctx, req.ChatID, hiddenAt, cursorID, req.Limit)
 	if err != nil {
 		slog.Error("Failed to get messages", "error", err)
 		return nil, "", false, helper.NewInternalServerError("")
+	}
+
+	userIDsToResolve := make(map[uuid.UUID]bool)
+	for _, msg := range messages {
+		if msg.ActionData != nil {
+			if targetIDStr, ok := msg.ActionData["target_id"].(string); ok {
+				if id, err := uuid.Parse(targetIDStr); err == nil {
+					userIDsToResolve[id] = true
+				}
+			}
+		}
+	}
+
+	userMap := make(map[uuid.UUID]*ent.User)
+	if len(userIDsToResolve) > 0 {
+		ids := make([]uuid.UUID, 0, len(userIDsToResolve))
+		for id := range userIDsToResolve {
+			ids = append(ids, id)
+		}
+
+		users, err := s.client.User.Query().
+			Where(user.IDIn(ids...)).
+			Select(user.FieldID, user.FieldFullName).
+			All(ctx)
+
+		if err != nil {
+			slog.Error("Failed to resolve users for system messages", "error", err)
+		} else {
+			for _, u := range users {
+				userMap[u.ID] = u
+			}
+		}
 	}
 
 	hasNext := false
@@ -513,13 +542,24 @@ func (s *MessageService) GetMessages(ctx context.Context, userID int, req model.
 		hasNext = true
 		messages = messages[:req.Limit]
 		lastID := messages[len(messages)-1].ID
-		nextCursor = base64.URLEncoding.EncodeToString([]byte(strconv.Itoa(lastID)))
+		nextCursor = base64.URLEncoding.EncodeToString([]byte(lastID.String()))
 	}
 
 	var response []model.MessageResponse
 	for _, msg := range messages {
 		resp := helper.ToMessageResponse(msg, s.cfg.StorageMode, s.cfg.AppURL, s.cfg.StorageCDNURL, s.cfg.StorageAttachment)
 		if resp != nil {
+
+			if resp.ActionData != nil {
+
+				if targetIDStr, ok := resp.ActionData["target_id"].(string); ok {
+					if id, err := uuid.Parse(targetIDStr); err == nil {
+						if u, exists := userMap[id]; exists {
+							resp.ActionData["target_name"] = u.FullName
+						}
+					}
+				}
+			}
 			response = append(response, *resp)
 		}
 	}
@@ -531,7 +571,7 @@ func (s *MessageService) GetMessages(ctx context.Context, userID int, req model.
 	return response, nextCursor, hasNext, nil
 }
 
-func (s *MessageService) DeleteMessage(ctx context.Context, userID int, messageID int) error {
+func (s *MessageService) DeleteMessage(ctx context.Context, userID uuid.UUID, messageID uuid.UUID) error {
 	msg, err := s.client.Message.Query().
 		Where(message.ID(messageID)).
 		Only(ctx)
@@ -568,7 +608,7 @@ func (s *MessageService) DeleteMessage(ctx context.Context, userID int, messageI
 	if s.wsHub != nil {
 		go s.wsHub.BroadcastToChat(msg.ChatID, websocket.Event{
 			Type: websocket.EventMessageDelete,
-			Payload: map[string]int{
+			Payload: map[string]uuid.UUID{
 				"message_id": messageID,
 			},
 			Meta: &websocket.EventMeta{

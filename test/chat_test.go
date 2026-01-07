@@ -16,6 +16,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -67,22 +68,22 @@ func TestGetChats(t *testing.T) {
 		c2 := dataList[1].(map[string]interface{})
 		c3 := dataList[2].(map[string]interface{})
 
-		assert.Equal(t, float64(chat3.ID), c1["id"])
+		assert.Equal(t, chat3.ID.String(), c1["id"])
 		assert.Equal(t, "My Group", c1["name"])
 		assert.Equal(t, float64(5), c1["unread_count"])
 		assert.Nil(t, c1["other_user_id"], "Group chat should not have other_user_id")
 		lastMsg1, _ := c1["last_message"].(map[string]interface{})
 		assert.Equal(t, "regular", lastMsg1["type"])
 
-		assert.Equal(t, float64(chat2.ID), c2["id"])
+		assert.Equal(t, chat2.ID.String(), c2["id"])
 		assert.Equal(t, "User 3", c2["name"])
 		assert.NotContains(t, c2, "unread_count", "unread_count should be omitted when it is 0")
-		assert.Equal(t, float64(u3.ID), c2["other_user_id"], "Private chat should have other_user_id")
+		assert.Equal(t, u3.ID.String(), c2["other_user_id"], "Private chat should have other_user_id")
 
-		assert.Equal(t, float64(chat1.ID), c3["id"])
+		assert.Equal(t, chat1.ID.String(), c3["id"])
 		assert.Equal(t, "User 2", c3["name"])
 		assert.Equal(t, float64(3), c3["unread_count"])
-		assert.Equal(t, float64(u2.ID), c3["other_user_id"], "Private chat should have other_user_id")
+		assert.Equal(t, u2.ID.String(), c3["other_user_id"], "Private chat should have other_user_id")
 	})
 
 	t.Run("Success - Pagination", func(t *testing.T) {
@@ -111,7 +112,7 @@ func TestGetChats(t *testing.T) {
 		json.Unmarshal(rr2.Body.Bytes(), &resp2)
 		dataList2 := resp2.Data.([]interface{})
 		assert.Len(t, dataList2, 1)
-		assert.Equal(t, float64(chat1.ID), dataList2[0].(map[string]interface{})["id"])
+		assert.Equal(t, chat1.ID.String(), dataList2[0].(map[string]interface{})["id"])
 	})
 
 	t.Run("Success - Search by Username", func(t *testing.T) {
@@ -167,7 +168,7 @@ func TestGetChats(t *testing.T) {
 		dataList := resp.Data.([]interface{})
 
 		topChat := dataList[0].(map[string]interface{})
-		assert.Equal(t, float64(delChat.ID), topChat["id"])
+		assert.Equal(t, delChat.ID.String(), topChat["id"])
 
 		lastMsg, ok := topChat["last_message"].(map[string]interface{})
 		assert.True(t, ok)
@@ -190,7 +191,7 @@ func TestGetChats(t *testing.T) {
 
 		for _, item := range dataList {
 			c := item.(map[string]interface{})
-			assert.NotEqual(t, float64(chat1.ID), c["id"], "Hidden chat should not appear")
+			assert.NotEqual(t, chat1.ID.String(), c["id"], "Hidden chat should not appear")
 		}
 	})
 
@@ -207,7 +208,7 @@ func TestGetChats(t *testing.T) {
 		dataList1 := resp1.Data.([]interface{})
 		for _, item := range dataList1 {
 			c := item.(map[string]interface{})
-			assert.NotEqual(t, float64(chat1.ID), c["id"], "Chat should be hidden")
+			assert.NotEqual(t, chat1.ID.String(), c["id"], "Chat should be hidden")
 		}
 
 		newMsg := testClient.Message.Create().SetChat(chat1).SetSender(u2).SetType(message.TypeRegular).SetContent("New message").SetCreatedAt(time.Now().UTC().Add(time.Second)).SaveX(context.Background())
@@ -223,7 +224,7 @@ func TestGetChats(t *testing.T) {
 		found := false
 		for _, item := range dataList2 {
 			c := item.(map[string]interface{})
-			if c["id"].(float64) == float64(chat1.ID) {
+			if c["id"].(string) == chat1.ID.String() {
 				found = true
 				break
 			}
@@ -254,7 +255,7 @@ func TestGetChats(t *testing.T) {
 		var blockedChat map[string]interface{}
 		for _, item := range dataList {
 			c := item.(map[string]interface{})
-			if c["id"].(float64) == float64(chat1.ID) {
+			if c["id"].(string) == chat1.ID.String() {
 				blockedChat = c
 				break
 			}
@@ -267,9 +268,42 @@ func TestGetChats(t *testing.T) {
 		assert.NotEqual(t, "", blockedChat["name"])
 
 		assert.False(t, blockedChat["is_online"].(bool))
-		assert.Equal(t, float64(u2.ID), blockedChat["other_user_id"])
+		assert.Equal(t, u2.ID.String(), blockedChat["other_user_id"])
 
 		testClient.UserBlock.Delete().Where(userblock.BlockerID(u1.ID), userblock.BlockedID(u2.ID)).ExecX(context.Background())
+	})
+
+	t.Run("Success - Dynamic Target Name Resolution", func(t *testing.T) {
+
+		sysMsg := testClient.Message.Create().
+			SetChat(chat3).
+			SetSender(u1).
+			SetType(message.TypeSystemAdd).
+			SetActionData(map[string]interface{}{
+				"target_id": u2.ID.String(),
+				"actor_id":  u1.ID.String(),
+			}).
+			SetCreatedAt(time.Now().UTC().Add(time.Hour)).
+			SaveX(context.Background())
+
+		chat3.Update().SetLastMessage(sysMsg).SetLastMessageAt(sysMsg.CreatedAt).ExecX(context.Background())
+
+		req, _ := http.NewRequest("GET", "/api/chats", nil)
+		req.Header.Set("Authorization", "Bearer "+token1)
+		rr := executeRequest(req)
+		assert.Equal(t, http.StatusOK, rr.Code)
+
+		var resp helper.ResponseWithPagination
+		json.Unmarshal(rr.Body.Bytes(), &resp)
+		dataList := resp.Data.([]interface{})
+
+		c := dataList[0].(map[string]interface{})
+		assert.Equal(t, chat3.ID.String(), c["id"])
+
+		lastMsg := c["last_message"].(map[string]interface{})
+		actionData := lastMsg["action_data"].(map[string]interface{})
+
+		assert.Equal(t, "User 2", actionData["target_name"])
 	})
 
 	t.Run("Unauthorized", func(t *testing.T) {
@@ -294,7 +328,7 @@ func TestGetChatByID(t *testing.T) {
 	testClient.PrivateChat.Create().SetChat(chat1).SetUser1(u1).SetUser2(u2).SetUser1UnreadCount(3).SaveX(context.Background())
 
 	t.Run("Success - Get Private Chat", func(t *testing.T) {
-		req, _ := http.NewRequest("GET", fmt.Sprintf("/api/chats/%d", chat1.ID), nil)
+		req, _ := http.NewRequest("GET", fmt.Sprintf("/api/chats/%s", chat1.ID), nil)
 		req.Header.Set("Authorization", "Bearer "+token1)
 
 		rr := executeRequest(req)
@@ -304,7 +338,7 @@ func TestGetChatByID(t *testing.T) {
 		json.Unmarshal(rr.Body.Bytes(), &resp)
 		data := resp.Data.(map[string]interface{})
 
-		assert.Equal(t, float64(chat1.ID), data["id"])
+		assert.Equal(t, chat1.ID.String(), data["id"])
 		assert.Equal(t, "User 2", data["name"])
 		assert.Equal(t, float64(3), data["unread_count"])
 	})
@@ -312,7 +346,7 @@ func TestGetChatByID(t *testing.T) {
 	t.Run("Success - Get Chat with Blocked User", func(t *testing.T) {
 		testClient.UserBlock.Create().SetBlockerID(u1.ID).SetBlockedID(u2.ID).SaveX(context.Background())
 
-		req, _ := http.NewRequest("GET", fmt.Sprintf("/api/chats/%d", chat1.ID), nil)
+		req, _ := http.NewRequest("GET", fmt.Sprintf("/api/chats/%s", chat1.ID), nil)
 		req.Header.Set("Authorization", "Bearer "+token1)
 
 		rr := executeRequest(req)
@@ -341,7 +375,7 @@ func TestGetChatByID(t *testing.T) {
 		chat2 := testClient.Chat.Create().SetType(chat.TypePrivate).SaveX(context.Background())
 		testClient.PrivateChat.Create().SetChat(chat2).SetUser1(u2).SetUser2(u3).SaveX(context.Background())
 
-		req, _ := http.NewRequest("GET", fmt.Sprintf("/api/chats/%d", chat2.ID), nil)
+		req, _ := http.NewRequest("GET", fmt.Sprintf("/api/chats/%s", chat2.ID), nil)
 		req.Header.Set("Authorization", "Bearer "+token1)
 		rr := executeRequest(req)
 		assert.Equal(t, http.StatusNotFound, rr.Code)
@@ -368,7 +402,7 @@ func TestMarkAsRead(t *testing.T) {
 	testClient.GroupMember.Create().SetGroupChat(gc).SetUser(u1).SetUnreadCount(10).SaveX(context.Background())
 
 	t.Run("Success - Mark Private Chat Read", func(t *testing.T) {
-		req, _ := http.NewRequest("POST", fmt.Sprintf("/api/chats/%d/read", chat1.ID), nil)
+		req, _ := http.NewRequest("POST", fmt.Sprintf("/api/chats/%s/read", chat1.ID), nil)
 		req.Header.Set("Authorization", "Bearer "+token1)
 
 		rr := executeRequest(req)
@@ -386,7 +420,7 @@ func TestMarkAsRead(t *testing.T) {
 		pc, _ := testClient.PrivateChat.Query().Where(privatechat.ChatID(chat1.ID)).Only(context.Background())
 		testClient.PrivateChat.UpdateOne(pc).SetUser1UnreadCount(5).SetUser1LastReadAt(time.Time{}).ExecX(context.Background())
 
-		req, _ := http.NewRequest("POST", fmt.Sprintf("/api/chats/%d/read", chat1.ID), nil)
+		req, _ := http.NewRequest("POST", fmt.Sprintf("/api/chats/%s/read", chat1.ID), nil)
 		req.Header.Set("Authorization", "Bearer "+token1)
 
 		rr := executeRequest(req)
@@ -400,7 +434,7 @@ func TestMarkAsRead(t *testing.T) {
 	})
 
 	t.Run("Success - Mark Group Chat Read", func(t *testing.T) {
-		req, _ := http.NewRequest("POST", fmt.Sprintf("/api/chats/%d/read", chat2.ID), nil)
+		req, _ := http.NewRequest("POST", fmt.Sprintf("/api/chats/%s/read", chat2.ID), nil)
 		req.Header.Set("Authorization", "Bearer "+token1)
 
 		rr := executeRequest(req)
@@ -412,7 +446,7 @@ func TestMarkAsRead(t *testing.T) {
 	})
 
 	t.Run("Fail - Not a Member", func(t *testing.T) {
-		req, _ := http.NewRequest("POST", fmt.Sprintf("/api/chats/%d/read", chat1.ID), nil)
+		req, _ := http.NewRequest("POST", fmt.Sprintf("/api/chats/%s/read", chat1.ID), nil)
 		req.Header.Set("Authorization", "Bearer "+token3)
 
 		rr := executeRequest(req)
@@ -420,7 +454,7 @@ func TestMarkAsRead(t *testing.T) {
 	})
 
 	t.Run("Not Found", func(t *testing.T) {
-		req, _ := http.NewRequest("POST", "/api/chats/99999/read", nil)
+		req, _ := http.NewRequest("POST", fmt.Sprintf("/api/chats/%s/read", uuid.New()), nil)
 		req.Header.Set("Authorization", "Bearer "+token1)
 
 		rr := executeRequest(req)
@@ -442,7 +476,7 @@ func TestHideChat(t *testing.T) {
 	testClient.PrivateChat.Create().SetChat(chat1).SetUser1(u1).SetUser2(u2).SetUser1UnreadCount(5).SaveX(context.Background())
 
 	t.Run("Success - Hide Private Chat and Reset Unread Count", func(t *testing.T) {
-		req, _ := http.NewRequest("POST", fmt.Sprintf("/api/chats/%d/hide", chat1.ID), nil)
+		req, _ := http.NewRequest("POST", fmt.Sprintf("/api/chats/%s/hide", chat1.ID), nil)
 		req.Header.Set("Authorization", "Bearer "+token1)
 
 		rr := executeRequest(req)
@@ -455,7 +489,7 @@ func TestHideChat(t *testing.T) {
 	})
 
 	t.Run("Fail - Chat Not Found", func(t *testing.T) {
-		req, _ := http.NewRequest("POST", "/api/chats/99999/hide", nil)
+		req, _ := http.NewRequest("POST", fmt.Sprintf("/api/chats/%s/hide", uuid.New()), nil)
 		req.Header.Set("Authorization", "Bearer "+token1)
 
 		rr := executeRequest(req)
@@ -466,7 +500,7 @@ func TestHideChat(t *testing.T) {
 		chatGroup := testClient.Chat.Create().SetType(chat.TypeGroup).SaveX(context.Background())
 		testClient.GroupChat.Create().SetChat(chatGroup).SetCreator(u1).SetName("Group").SaveX(context.Background())
 
-		req, _ := http.NewRequest("POST", fmt.Sprintf("/api/chats/%d/hide", chatGroup.ID), nil)
+		req, _ := http.NewRequest("POST", fmt.Sprintf("/api/chats/%s/hide", chatGroup.ID), nil)
 		req.Header.Set("Authorization", "Bearer "+token1)
 
 		rr := executeRequest(req)
@@ -510,7 +544,7 @@ func TestGroupUnreadConsistency(t *testing.T) {
 	assert.Equal(t, 1, gm2.UnreadCount, "Member 2 should have 1 unread")
 	assert.Equal(t, 1, gm3.UnreadCount, "Member 3 should have 1 unread")
 
-	reqRead, _ := http.NewRequest("POST", fmt.Sprintf("/api/chats/%d/read", chatGroup.ID), nil)
+	reqRead, _ := http.NewRequest("POST", fmt.Sprintf("/api/chats/%s/read", chatGroup.ID), nil)
 	reqRead.Header.Set("Authorization", "Bearer "+token2)
 	executeRequest(reqRead)
 

@@ -5,14 +5,15 @@ import (
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/google/uuid"
 )
 
 type JWTClaims struct {
-	UserID int `json:"user_id"`
+	UserID uuid.UUID `json:"user_id"`
 	jwt.RegisteredClaims
 }
 
-func GenerateJWT(jwtSecret string, jwtExp int, userID int) (string, error) {
+func GenerateJWT(jwtSecret string, jwtExp int, userID uuid.UUID) (string, error) {
 	claims := JWTClaims{
 		UserID: userID,
 		RegisteredClaims: jwt.RegisteredClaims{

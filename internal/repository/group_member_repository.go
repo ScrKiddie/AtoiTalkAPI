@@ -8,6 +8,8 @@ import (
 	"context"
 	"fmt"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 type GroupMemberRepository struct {
@@ -20,7 +22,7 @@ func NewGroupMemberRepository(client *ent.Client) *GroupMemberRepository {
 	}
 }
 
-func (r *GroupMemberRepository) SearchGroupMembers(ctx context.Context, groupID int, query, cursor string, limit int) ([]*ent.GroupMember, string, bool, error) {
+func (r *GroupMemberRepository) SearchGroupMembers(ctx context.Context, groupID uuid.UUID, query, cursor string, limit int) ([]*ent.GroupMember, string, bool, error) {
 	queryBuilder := r.client.GroupMember.Query().
 		Where(groupmember.GroupChatID(groupID)).
 		Order(ent.Asc(groupmember.FieldJoinedAt), ent.Asc(groupmember.FieldID)).
@@ -39,9 +41,14 @@ func (r *GroupMemberRepository) SearchGroupMembers(ctx context.Context, groupID 
 	}
 
 	if cursor != "" {
-		joinedAtStr, id, err := helper.DecodeCursor(cursor, "|")
+		joinedAtStr, idStr, err := helper.DecodeCursor(cursor, "|")
 		if err != nil {
 			return nil, "", false, fmt.Errorf("invalid cursor format: %w", err)
+		}
+
+		id, err := uuid.Parse(idStr)
+		if err != nil {
+			return nil, "", false, fmt.Errorf("invalid cursor id format: %w", err)
 		}
 
 		joinedAt, err := time.Parse(time.RFC3339Nano, joinedAtStr)
@@ -74,7 +81,7 @@ func (r *GroupMemberRepository) SearchGroupMembers(ctx context.Context, groupID 
 	var nextCursor string
 	if hasNext && len(members) > 0 {
 		lastMember := members[len(members)-1]
-		nextCursor = helper.EncodeCursor(lastMember.JoinedAt.Format(time.RFC3339Nano), lastMember.ID, "|")
+		nextCursor = helper.EncodeCursor(lastMember.JoinedAt.Format(time.RFC3339Nano), lastMember.ID.String(), "|")
 	}
 
 	return members, nextCursor, hasNext, nil

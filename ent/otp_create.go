@@ -9,9 +9,11 @@ import (
 	"fmt"
 	"time"
 
+	"entgo.io/ent/dialect"
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/google/uuid"
 )
 
 // OTPCreate is the builder for creating a OTP entity.
@@ -82,6 +84,20 @@ func (_c *OTPCreate) SetExpiresAt(v time.Time) *OTPCreate {
 	return _c
 }
 
+// SetID sets the "id" field.
+func (_c *OTPCreate) SetID(v uuid.UUID) *OTPCreate {
+	_c.mutation.SetID(v)
+	return _c
+}
+
+// SetNillableID sets the "id" field if the given value is not nil.
+func (_c *OTPCreate) SetNillableID(v *uuid.UUID) *OTPCreate {
+	if v != nil {
+		_c.SetID(*v)
+	}
+	return _c
+}
+
 // Mutation returns the OTPMutation object of the builder.
 func (_c *OTPCreate) Mutation() *OTPMutation {
 	return _c.mutation
@@ -128,6 +144,10 @@ func (_c *OTPCreate) defaults() {
 	if _, ok := _c.mutation.Mode(); !ok {
 		v := otp.DefaultMode
 		_c.mutation.SetMode(v)
+	}
+	if _, ok := _c.mutation.ID(); !ok {
+		v := otp.DefaultID()
+		_c.mutation.SetID(v)
 	}
 }
 
@@ -180,8 +200,13 @@ func (_c *OTPCreate) sqlSave(ctx context.Context) (*OTP, error) {
 		}
 		return nil, err
 	}
-	id := _spec.ID.Value.(int64)
-	_node.ID = int(id)
+	if _spec.ID.Value != nil {
+		if id, ok := _spec.ID.Value.(*uuid.UUID); ok {
+			_node.ID = *id
+		} else if err := _node.ID.Scan(_spec.ID.Value); err != nil {
+			return nil, err
+		}
+	}
 	_c.mutation.id = &_node.ID
 	_c.mutation.done = true
 	return _node, nil
@@ -190,9 +215,13 @@ func (_c *OTPCreate) sqlSave(ctx context.Context) (*OTP, error) {
 func (_c *OTPCreate) createSpec() (*OTP, *sqlgraph.CreateSpec) {
 	var (
 		_node = &OTP{config: _c.config}
-		_spec = sqlgraph.NewCreateSpec(otp.Table, sqlgraph.NewFieldSpec(otp.FieldID, field.TypeInt))
+		_spec = sqlgraph.NewCreateSpec(otp.Table, sqlgraph.NewFieldSpec(otp.FieldID, field.TypeUUID))
 	)
 	_spec.OnConflict = _c.conflict
+	if id, ok := _c.mutation.ID(); ok {
+		_node.ID = id
+		_spec.ID.Value = &id
+	}
 	if value, ok := _c.mutation.CreatedAt(); ok {
 		_spec.SetField(otp.FieldCreatedAt, field.TypeTime, value)
 		_node.CreatedAt = value
@@ -329,17 +358,23 @@ func (u *OTPUpsert) UpdateExpiresAt() *OTPUpsert {
 	return u
 }
 
-// UpdateNewValues updates the mutable fields using the new values that were set on create.
+// UpdateNewValues updates the mutable fields using the new values that were set on create except the ID field.
 // Using this option is equivalent to using:
 //
 //	client.OTP.Create().
 //		OnConflict(
 //			sql.ResolveWithNewValues(),
+//			sql.ResolveWith(func(u *sql.UpdateSet) {
+//				u.SetIgnore(otp.FieldID)
+//			}),
 //		).
 //		Exec(ctx)
 func (u *OTPUpsertOne) UpdateNewValues() *OTPUpsertOne {
 	u.create.conflict = append(u.create.conflict, sql.ResolveWithNewValues())
 	u.create.conflict = append(u.create.conflict, sql.ResolveWith(func(s *sql.UpdateSet) {
+		if _, exists := u.create.mutation.ID(); exists {
+			s.SetIgnore(otp.FieldID)
+		}
 		if _, exists := u.create.mutation.CreatedAt(); exists {
 			s.SetIgnore(otp.FieldCreatedAt)
 		}
@@ -460,7 +495,12 @@ func (u *OTPUpsertOne) ExecX(ctx context.Context) {
 }
 
 // Exec executes the UPSERT query and returns the inserted/updated ID.
-func (u *OTPUpsertOne) ID(ctx context.Context) (id int, err error) {
+func (u *OTPUpsertOne) ID(ctx context.Context) (id uuid.UUID, err error) {
+	if u.create.driver.Dialect() == dialect.MySQL {
+		// In case of "ON CONFLICT", there is no way to get back non-numeric ID
+		// fields from the database since MySQL does not support the RETURNING clause.
+		return id, errors.New("ent: OTPUpsertOne.ID is not supported by MySQL driver. Use OTPUpsertOne.Exec instead")
+	}
 	node, err := u.create.Save(ctx)
 	if err != nil {
 		return id, err
@@ -469,7 +509,7 @@ func (u *OTPUpsertOne) ID(ctx context.Context) (id int, err error) {
 }
 
 // IDX is like ID, but panics if an error occurs.
-func (u *OTPUpsertOne) IDX(ctx context.Context) int {
+func (u *OTPUpsertOne) IDX(ctx context.Context) uuid.UUID {
 	id, err := u.ID(ctx)
 	if err != nil {
 		panic(err)
@@ -524,10 +564,6 @@ func (_c *OTPCreateBulk) Save(ctx context.Context) ([]*OTP, error) {
 					return nil, err
 				}
 				mutation.id = &nodes[i].ID
-				if specs[i].ID.Value != nil {
-					id := specs[i].ID.Value.(int64)
-					nodes[i].ID = int(id)
-				}
 				mutation.done = true
 				return nodes[i], nil
 			})
@@ -614,12 +650,18 @@ type OTPUpsertBulk struct {
 //	client.OTP.Create().
 //		OnConflict(
 //			sql.ResolveWithNewValues(),
+//			sql.ResolveWith(func(u *sql.UpdateSet) {
+//				u.SetIgnore(otp.FieldID)
+//			}),
 //		).
 //		Exec(ctx)
 func (u *OTPUpsertBulk) UpdateNewValues() *OTPUpsertBulk {
 	u.create.conflict = append(u.create.conflict, sql.ResolveWithNewValues())
 	u.create.conflict = append(u.create.conflict, sql.ResolveWith(func(s *sql.UpdateSet) {
 		for _, b := range u.create.builders {
+			if _, exists := b.mutation.ID(); exists {
+				s.SetIgnore(otp.FieldID)
+			}
 			if _, exists := b.mutation.CreatedAt(); exists {
 				s.SetIgnore(otp.FieldCreatedAt)
 			}

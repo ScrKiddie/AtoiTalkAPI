@@ -4,6 +4,7 @@ import (
 	"AtoiTalkAPI/ent"
 	"AtoiTalkAPI/ent/chat"
 	"AtoiTalkAPI/ent/groupmember"
+	"AtoiTalkAPI/ent/user"
 	"AtoiTalkAPI/ent/userblock"
 	"AtoiTalkAPI/internal/adapter"
 	"AtoiTalkAPI/internal/config"
@@ -16,6 +17,7 @@ import (
 	"time"
 
 	"github.com/go-playground/validator/v10"
+	"github.com/google/uuid"
 )
 
 type ChatService struct {
@@ -38,7 +40,7 @@ func NewChatService(client *ent.Client, repo *repository.Repository, cfg *config
 	}
 }
 
-func (s *ChatService) GetChatByID(ctx context.Context, userID, chatID int) (*model.ChatListResponse, error) {
+func (s *ChatService) GetChatByID(ctx context.Context, userID, chatID uuid.UUID) (*model.ChatListResponse, error) {
 	c, err := s.repo.Chat.GetChatByID(ctx, userID, chatID)
 	if err != nil {
 		if ent.IsNotFound(err) {
@@ -48,8 +50,8 @@ func (s *ChatService) GetChatByID(ctx context.Context, userID, chatID int) (*mod
 		return nil, helper.NewInternalServerError("")
 	}
 
-	blockedMap := make(map[int]helper.BlockStatus)
-	var otherUserID int
+	blockedMap := make(map[uuid.UUID]helper.BlockStatus)
+	var otherUserID uuid.UUID
 
 	if c.Type == chat.TypePrivate && c.Edges.PrivateChat != nil {
 		if c.Edges.PrivateChat.User1ID == userID {
@@ -80,10 +82,23 @@ func (s *ChatService) GetChatByID(ctx context.Context, userID, chatID int) (*mod
 		}
 	}
 
-	return helper.MapChatToResponse(userID, c, blockedMap, s.cfg.StorageMode, s.cfg.AppURL, s.cfg.StorageCDNURL, s.cfg.StorageProfile, s.cfg.StorageAttachment), nil
+	resp := helper.MapChatToResponse(userID, c, blockedMap, s.cfg.StorageMode, s.cfg.AppURL, s.cfg.StorageCDNURL, s.cfg.StorageProfile, s.cfg.StorageAttachment)
+
+	if resp != nil && resp.LastMessage != nil && resp.LastMessage.ActionData != nil {
+		if targetIDStr, ok := resp.LastMessage.ActionData["target_id"].(string); ok {
+			if id, err := uuid.Parse(targetIDStr); err == nil {
+				u, err := s.client.User.Query().Where(user.ID(id)).Select(user.FieldFullName).Only(ctx)
+				if err == nil {
+					resp.LastMessage.ActionData["target_name"] = u.FullName
+				}
+			}
+		}
+	}
+
+	return resp, nil
 }
 
-func (s *ChatService) GetChats(ctx context.Context, userID int, req model.GetChatsRequest) ([]model.ChatListResponse, string, bool, error) {
+func (s *ChatService) GetChats(ctx context.Context, userID uuid.UUID, req model.GetChatsRequest) ([]model.ChatListResponse, string, bool, error) {
 	if err := s.validator.Struct(req); err != nil {
 		return nil, "", false, helper.NewBadRequestError("")
 	}
@@ -98,7 +113,7 @@ func (s *ChatService) GetChats(ctx context.Context, userID int, req model.GetCha
 		return nil, "", false, helper.NewInternalServerError("")
 	}
 
-	otherUserIDs := make([]int, 0)
+	otherUserIDs := make([]uuid.UUID, 0)
 	for _, c := range chats {
 		if c.Type == chat.TypePrivate && c.Edges.PrivateChat != nil {
 			if c.Edges.PrivateChat.User1ID == userID {
@@ -109,7 +124,7 @@ func (s *ChatService) GetChats(ctx context.Context, userID int, req model.GetCha
 		}
 	}
 
-	blockedMap := make(map[int]helper.BlockStatus)
+	blockedMap := make(map[uuid.UUID]helper.BlockStatus)
 	if len(otherUserIDs) > 0 {
 		blocks, err := s.client.UserBlock.Query().
 			Where(
@@ -121,7 +136,7 @@ func (s *ChatService) GetChats(ctx context.Context, userID int, req model.GetCha
 			All(ctx)
 		if err == nil {
 			for _, b := range blocks {
-				status := blockedMap[0]
+				status := blockedMap[uuid.Nil]
 				if b.BlockerID == userID {
 					status = blockedMap[b.BlockedID]
 					status.BlockedByMe = true
@@ -135,10 +150,48 @@ func (s *ChatService) GetChats(ctx context.Context, userID int, req model.GetCha
 		}
 	}
 
+	userIDsToResolve := make(map[uuid.UUID]bool)
+	for _, c := range chats {
+		if c.Edges.LastMessage != nil && c.Edges.LastMessage.ActionData != nil {
+			if targetIDStr, ok := c.Edges.LastMessage.ActionData["target_id"].(string); ok {
+				if id, err := uuid.Parse(targetIDStr); err == nil {
+					userIDsToResolve[id] = true
+				}
+			}
+		}
+	}
+
+	userMap := make(map[uuid.UUID]string)
+	if len(userIDsToResolve) > 0 {
+		ids := make([]uuid.UUID, 0, len(userIDsToResolve))
+		for id := range userIDsToResolve {
+			ids = append(ids, id)
+		}
+		users, err := s.client.User.Query().
+			Where(user.IDIn(ids...)).
+			Select(user.FieldID, user.FieldFullName).
+			All(ctx)
+		if err == nil {
+			for _, u := range users {
+				userMap[u.ID] = u.FullName
+			}
+		}
+	}
+
 	response := make([]model.ChatListResponse, 0)
 	for _, c := range chats {
 		resp := helper.MapChatToResponse(userID, c, blockedMap, s.cfg.StorageMode, s.cfg.AppURL, s.cfg.StorageCDNURL, s.cfg.StorageProfile, s.cfg.StorageAttachment)
 		if resp != nil {
+
+			if resp.LastMessage != nil && resp.LastMessage.ActionData != nil {
+				if targetIDStr, ok := resp.LastMessage.ActionData["target_id"].(string); ok {
+					if id, err := uuid.Parse(targetIDStr); err == nil {
+						if name, exists := userMap[id]; exists {
+							resp.LastMessage.ActionData["target_name"] = name
+						}
+					}
+				}
+			}
 			response = append(response, *resp)
 		}
 	}
@@ -146,7 +199,7 @@ func (s *ChatService) GetChats(ctx context.Context, userID int, req model.GetCha
 	return response, nextCursor, hasNext, nil
 }
 
-func (s *ChatService) MarkAsRead(ctx context.Context, userID int, chatID int) error {
+func (s *ChatService) MarkAsRead(ctx context.Context, userID uuid.UUID, chatID uuid.UUID) error {
 	tx, err := s.client.Tx(ctx)
 	if err != nil {
 		slog.Error("Failed to start transaction", "error", err)
@@ -169,7 +222,7 @@ func (s *ChatService) MarkAsRead(ctx context.Context, userID int, chatID int) er
 	}
 
 	var isBlocked bool
-	var otherUserID int
+	var otherUserID uuid.UUID
 
 	if c.Type == chat.TypePrivate && c.Edges.PrivateChat != nil {
 		pc := c.Edges.PrivateChat
@@ -252,7 +305,7 @@ func (s *ChatService) MarkAsRead(ctx context.Context, userID int, chatID int) er
 	return nil
 }
 
-func (s *ChatService) HideChat(ctx context.Context, userID int, chatID int) error {
+func (s *ChatService) HideChat(ctx context.Context, userID uuid.UUID, chatID uuid.UUID) error {
 	c, err := s.client.Chat.Query().
 		Where(chat.ID(chatID)).
 		WithPrivateChat().

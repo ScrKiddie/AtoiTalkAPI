@@ -15,6 +15,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/google/uuid"
 )
 
 // PrivateChatUpdate is the builder for updating PrivateChat entities.
@@ -32,13 +33,13 @@ func (_u *PrivateChatUpdate) Where(ps ...predicate.PrivateChat) *PrivateChatUpda
 }
 
 // SetChatID sets the "chat_id" field.
-func (_u *PrivateChatUpdate) SetChatID(v int) *PrivateChatUpdate {
+func (_u *PrivateChatUpdate) SetChatID(v uuid.UUID) *PrivateChatUpdate {
 	_u.mutation.SetChatID(v)
 	return _u
 }
 
 // SetNillableChatID sets the "chat_id" field if the given value is not nil.
-func (_u *PrivateChatUpdate) SetNillableChatID(v *int) *PrivateChatUpdate {
+func (_u *PrivateChatUpdate) SetNillableChatID(v *uuid.UUID) *PrivateChatUpdate {
 	if v != nil {
 		_u.SetChatID(*v)
 	}
@@ -46,13 +47,13 @@ func (_u *PrivateChatUpdate) SetNillableChatID(v *int) *PrivateChatUpdate {
 }
 
 // SetUser1ID sets the "user1_id" field.
-func (_u *PrivateChatUpdate) SetUser1ID(v int) *PrivateChatUpdate {
+func (_u *PrivateChatUpdate) SetUser1ID(v uuid.UUID) *PrivateChatUpdate {
 	_u.mutation.SetUser1ID(v)
 	return _u
 }
 
 // SetNillableUser1ID sets the "user1_id" field if the given value is not nil.
-func (_u *PrivateChatUpdate) SetNillableUser1ID(v *int) *PrivateChatUpdate {
+func (_u *PrivateChatUpdate) SetNillableUser1ID(v *uuid.UUID) *PrivateChatUpdate {
 	if v != nil {
 		_u.SetUser1ID(*v)
 	}
@@ -60,13 +61,13 @@ func (_u *PrivateChatUpdate) SetNillableUser1ID(v *int) *PrivateChatUpdate {
 }
 
 // SetUser2ID sets the "user2_id" field.
-func (_u *PrivateChatUpdate) SetUser2ID(v int) *PrivateChatUpdate {
+func (_u *PrivateChatUpdate) SetUser2ID(v uuid.UUID) *PrivateChatUpdate {
 	_u.mutation.SetUser2ID(v)
 	return _u
 }
 
 // SetNillableUser2ID sets the "user2_id" field if the given value is not nil.
-func (_u *PrivateChatUpdate) SetNillableUser2ID(v *int) *PrivateChatUpdate {
+func (_u *PrivateChatUpdate) SetNillableUser2ID(v *uuid.UUID) *PrivateChatUpdate {
 	if v != nil {
 		_u.SetUser2ID(*v)
 	}
@@ -284,7 +285,7 @@ func (_u *PrivateChatUpdate) sqlSave(ctx context.Context) (_node int, err error)
 	if err := _u.check(); err != nil {
 		return _node, err
 	}
-	_spec := sqlgraph.NewUpdateSpec(privatechat.Table, privatechat.Columns, sqlgraph.NewFieldSpec(privatechat.FieldID, field.TypeInt))
+	_spec := sqlgraph.NewUpdateSpec(privatechat.Table, privatechat.Columns, sqlgraph.NewFieldSpec(privatechat.FieldID, field.TypeUUID))
 	if ps := _u.mutation.predicates; len(ps) > 0 {
 		_spec.Predicate = func(selector *sql.Selector) {
 			for i := range ps {
@@ -336,7 +337,7 @@ func (_u *PrivateChatUpdate) sqlSave(ctx context.Context) (_node int, err error)
 			Columns: []string{privatechat.ChatColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(chat.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(chat.FieldID, field.TypeUUID),
 			},
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
@@ -349,7 +350,7 @@ func (_u *PrivateChatUpdate) sqlSave(ctx context.Context) (_node int, err error)
 			Columns: []string{privatechat.ChatColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(chat.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(chat.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {
@@ -365,7 +366,7 @@ func (_u *PrivateChatUpdate) sqlSave(ctx context.Context) (_node int, err error)
 			Columns: []string{privatechat.User1Column},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeUUID),
 			},
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
@@ -378,7 +379,7 @@ func (_u *PrivateChatUpdate) sqlSave(ctx context.Context) (_node int, err error)
 			Columns: []string{privatechat.User1Column},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {
@@ -394,7 +395,7 @@ func (_u *PrivateChatUpdate) sqlSave(ctx context.Context) (_node int, err error)
 			Columns: []string{privatechat.User2Column},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeUUID),
 			},
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
@@ -407,7 +408,7 @@ func (_u *PrivateChatUpdate) sqlSave(ctx context.Context) (_node int, err error)
 			Columns: []string{privatechat.User2Column},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {
@@ -438,13 +439,13 @@ type PrivateChatUpdateOne struct {
 }
 
 // SetChatID sets the "chat_id" field.
-func (_u *PrivateChatUpdateOne) SetChatID(v int) *PrivateChatUpdateOne {
+func (_u *PrivateChatUpdateOne) SetChatID(v uuid.UUID) *PrivateChatUpdateOne {
 	_u.mutation.SetChatID(v)
 	return _u
 }
 
 // SetNillableChatID sets the "chat_id" field if the given value is not nil.
-func (_u *PrivateChatUpdateOne) SetNillableChatID(v *int) *PrivateChatUpdateOne {
+func (_u *PrivateChatUpdateOne) SetNillableChatID(v *uuid.UUID) *PrivateChatUpdateOne {
 	if v != nil {
 		_u.SetChatID(*v)
 	}
@@ -452,13 +453,13 @@ func (_u *PrivateChatUpdateOne) SetNillableChatID(v *int) *PrivateChatUpdateOne 
 }
 
 // SetUser1ID sets the "user1_id" field.
-func (_u *PrivateChatUpdateOne) SetUser1ID(v int) *PrivateChatUpdateOne {
+func (_u *PrivateChatUpdateOne) SetUser1ID(v uuid.UUID) *PrivateChatUpdateOne {
 	_u.mutation.SetUser1ID(v)
 	return _u
 }
 
 // SetNillableUser1ID sets the "user1_id" field if the given value is not nil.
-func (_u *PrivateChatUpdateOne) SetNillableUser1ID(v *int) *PrivateChatUpdateOne {
+func (_u *PrivateChatUpdateOne) SetNillableUser1ID(v *uuid.UUID) *PrivateChatUpdateOne {
 	if v != nil {
 		_u.SetUser1ID(*v)
 	}
@@ -466,13 +467,13 @@ func (_u *PrivateChatUpdateOne) SetNillableUser1ID(v *int) *PrivateChatUpdateOne
 }
 
 // SetUser2ID sets the "user2_id" field.
-func (_u *PrivateChatUpdateOne) SetUser2ID(v int) *PrivateChatUpdateOne {
+func (_u *PrivateChatUpdateOne) SetUser2ID(v uuid.UUID) *PrivateChatUpdateOne {
 	_u.mutation.SetUser2ID(v)
 	return _u
 }
 
 // SetNillableUser2ID sets the "user2_id" field if the given value is not nil.
-func (_u *PrivateChatUpdateOne) SetNillableUser2ID(v *int) *PrivateChatUpdateOne {
+func (_u *PrivateChatUpdateOne) SetNillableUser2ID(v *uuid.UUID) *PrivateChatUpdateOne {
 	if v != nil {
 		_u.SetUser2ID(*v)
 	}
@@ -703,7 +704,7 @@ func (_u *PrivateChatUpdateOne) sqlSave(ctx context.Context) (_node *PrivateChat
 	if err := _u.check(); err != nil {
 		return _node, err
 	}
-	_spec := sqlgraph.NewUpdateSpec(privatechat.Table, privatechat.Columns, sqlgraph.NewFieldSpec(privatechat.FieldID, field.TypeInt))
+	_spec := sqlgraph.NewUpdateSpec(privatechat.Table, privatechat.Columns, sqlgraph.NewFieldSpec(privatechat.FieldID, field.TypeUUID))
 	id, ok := _u.mutation.ID()
 	if !ok {
 		return nil, &ValidationError{Name: "id", err: errors.New(`ent: missing "PrivateChat.id" for update`)}
@@ -772,7 +773,7 @@ func (_u *PrivateChatUpdateOne) sqlSave(ctx context.Context) (_node *PrivateChat
 			Columns: []string{privatechat.ChatColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(chat.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(chat.FieldID, field.TypeUUID),
 			},
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
@@ -785,7 +786,7 @@ func (_u *PrivateChatUpdateOne) sqlSave(ctx context.Context) (_node *PrivateChat
 			Columns: []string{privatechat.ChatColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(chat.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(chat.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {
@@ -801,7 +802,7 @@ func (_u *PrivateChatUpdateOne) sqlSave(ctx context.Context) (_node *PrivateChat
 			Columns: []string{privatechat.User1Column},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeUUID),
 			},
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
@@ -814,7 +815,7 @@ func (_u *PrivateChatUpdateOne) sqlSave(ctx context.Context) (_node *PrivateChat
 			Columns: []string{privatechat.User1Column},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {
@@ -830,7 +831,7 @@ func (_u *PrivateChatUpdateOne) sqlSave(ctx context.Context) (_node *PrivateChat
 			Columns: []string{privatechat.User2Column},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeUUID),
 			},
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
@@ -843,7 +844,7 @@ func (_u *PrivateChatUpdateOne) sqlSave(ctx context.Context) (_node *PrivateChat
 			Columns: []string{privatechat.User2Column},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {

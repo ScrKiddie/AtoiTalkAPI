@@ -16,6 +16,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/uuid"
 	ws "github.com/gorilla/websocket"
 	"github.com/stretchr/testify/assert"
 )
@@ -46,7 +47,7 @@ func TestWebSocketBroadcastMessage(t *testing.T) {
 	user2 := createWSUser(t, "user2", "user2@example.com")
 	token2, _ := helper.GenerateJWT(testConfig.JWTSecret, testConfig.JWTExp, user2.ID)
 
-	createWSPrivateChat(t, user2.Username, token1)
+	createWSPrivateChat(t, user2.ID, token1)
 
 	server := httptest.NewServer(testRouter)
 	defer server.Close()
@@ -101,7 +102,7 @@ func TestWebSocketTypingStatus(t *testing.T) {
 	user2 := createWSUser(t, "user2", "user2@example.com")
 	token2, _ := helper.GenerateJWT(testConfig.JWTSecret, testConfig.JWTExp, user2.ID)
 
-	createWSPrivateChat(t, user2.Username, token1)
+	createWSPrivateChat(t, user2.ID, token1)
 
 	chats, _ := testClient.Chat.Query().All(context.Background())
 	chatID := chats[0].ID
@@ -161,7 +162,7 @@ func TestWebSocketUserPresence(t *testing.T) {
 	user2 := createWSUser(t, "user2", "user2@example.com")
 	token2, _ := helper.GenerateJWT(testConfig.JWTSecret, testConfig.JWTExp, user2.ID)
 
-	createWSPrivateChat(t, user2.Username, token1)
+	createWSPrivateChat(t, user2.ID, token1)
 
 	server := httptest.NewServer(testRouter)
 	defer server.Close()
@@ -190,7 +191,8 @@ func TestWebSocketUserPresence(t *testing.T) {
 		json.Unmarshal(message, &event)
 		if event.Type == websocket.EventUserOnline {
 			payload, _ := event.Payload.(map[string]interface{})
-			if int(payload["user_id"].(float64)) == user2.ID {
+
+			if payload["user_id"].(string) == user2.ID.String() {
 				foundOnline = true
 				break
 			}
@@ -212,7 +214,7 @@ func TestWebSocketUserPresence(t *testing.T) {
 		json.Unmarshal(message, &event)
 		if event.Type == websocket.EventUserOffline {
 			payload, _ := event.Payload.(map[string]interface{})
-			if int(payload["user_id"].(float64)) == user2.ID {
+			if payload["user_id"].(string) == user2.ID.String() {
 				foundOffline = true
 				break
 			}
@@ -230,7 +232,7 @@ func TestWebSocketMultiDevice(t *testing.T) {
 	user2 := createWSUser(t, "user2", "user2@example.com")
 	token2, _ := helper.GenerateJWT(testConfig.JWTSecret, testConfig.JWTExp, user2.ID)
 
-	createWSPrivateChat(t, user2.Username, token1)
+	createWSPrivateChat(t, user2.ID, token1)
 	chats, _ := testClient.Chat.Query().All(context.Background())
 	chatID := chats[0].ID
 
@@ -285,7 +287,7 @@ func TestWebSocketReadStatusSync(t *testing.T) {
 	user2 := createWSUser(t, "user2", "user2@example.com")
 	token2, _ := helper.GenerateJWT(testConfig.JWTSecret, testConfig.JWTExp, user2.ID)
 
-	createWSPrivateChat(t, user2.Username, token1)
+	createWSPrivateChat(t, user2.ID, token1)
 	chats, _ := testClient.Chat.Query().All(context.Background())
 	chatID := chats[0].ID
 
@@ -301,7 +303,7 @@ func TestWebSocketReadStatusSync(t *testing.T) {
 
 	time.Sleep(100 * time.Millisecond)
 
-	req, _ := http.NewRequest("POST", fmt.Sprintf("/api/chats/%d/read", chatID), nil)
+	req, _ := http.NewRequest("POST", fmt.Sprintf("/api/chats/%s/read", chatID), nil)
 	req.Header.Set("Authorization", "Bearer "+token2)
 	executeRequest(req)
 
@@ -334,7 +336,7 @@ func TestWebSocketSecurityLeak(t *testing.T) {
 	user3 := createWSUser(t, "user3", "user3@example.com")
 	token3, _ := helper.GenerateJWT(testConfig.JWTSecret, testConfig.JWTExp, user3.ID)
 
-	createWSPrivateChat(t, user2.Username, token1)
+	createWSPrivateChat(t, user2.ID, token1)
 	chats, _ := testClient.Chat.Query().All(context.Background())
 	chatID := chats[0].ID
 
@@ -404,7 +406,7 @@ func TestWebSocketBlockUnblockSync(t *testing.T) {
 
 	time.Sleep(100 * time.Millisecond)
 
-	req, _ := http.NewRequest("POST", fmt.Sprintf("/api/users/%s/block", user2.Username), nil)
+	req, _ := http.NewRequest("POST", fmt.Sprintf("/api/users/%s/block", user2.ID), nil)
 	req.Header.Set("Authorization", "Bearer "+token1)
 	executeRequest(req)
 
@@ -412,7 +414,7 @@ func TestWebSocketBlockUnblockSync(t *testing.T) {
 	verifyEvent(t, conn1B, websocket.EventUserBlock, user1.ID, user2.ID)
 	verifyEvent(t, conn2, websocket.EventUserBlock, user1.ID, user2.ID)
 
-	reqUnblock, _ := http.NewRequest("POST", fmt.Sprintf("/api/users/%s/unblock", user2.Username), nil)
+	reqUnblock, _ := http.NewRequest("POST", fmt.Sprintf("/api/users/%s/unblock", user2.ID), nil)
 	reqUnblock.Header.Set("Authorization", "Bearer "+token1)
 	executeRequest(reqUnblock)
 
@@ -430,7 +432,7 @@ func TestWebSocketProfileUpdate(t *testing.T) {
 	user2 := createWSUser(t, "user2", "user2@example.com")
 	token2, _ := helper.GenerateJWT(testConfig.JWTSecret, testConfig.JWTExp, user2.ID)
 
-	createWSPrivateChat(t, user2.Username, token1)
+	createWSPrivateChat(t, user2.ID, token1)
 
 	server := httptest.NewServer(testRouter)
 	defer server.Close()
@@ -460,9 +462,9 @@ func TestWebSocketProfileUpdate(t *testing.T) {
 	req.Header.Set("Authorization", "Bearer "+token1)
 	executeRequest(req)
 
-	verifyEvent(t, conn1B, websocket.EventUserUpdate, user1.ID, 0)
+	verifyEvent(t, conn1B, websocket.EventUserUpdate, user1.ID, uuid.Nil)
 
-	verifyEvent(t, conn2, websocket.EventUserUpdate, user1.ID, 0)
+	verifyEvent(t, conn2, websocket.EventUserUpdate, user1.ID, uuid.Nil)
 }
 
 func TestWebSocketMessageDelete(t *testing.T) {
@@ -474,7 +476,7 @@ func TestWebSocketMessageDelete(t *testing.T) {
 	user2 := createWSUser(t, "user2", "user2@example.com")
 	token2, _ := helper.GenerateJWT(testConfig.JWTSecret, testConfig.JWTExp, user2.ID)
 
-	createWSPrivateChat(t, user2.Username, token1)
+	createWSPrivateChat(t, user2.ID, token1)
 	chats, _ := testClient.Chat.Query().All(context.Background())
 	chatID := chats[0].ID
 
@@ -502,13 +504,14 @@ func TestWebSocketMessageDelete(t *testing.T) {
 	var msgResp helper.ResponseSuccess
 	json.Unmarshal(rr.Body.Bytes(), &msgResp)
 	msgData := msgResp.Data.(map[string]interface{})
-	msgID := int(msgData["id"].(float64))
+	msgIDStr := msgData["id"].(string)
+	msgID, _ := uuid.Parse(msgIDStr)
 
-	reqDel, _ := http.NewRequest("DELETE", fmt.Sprintf("/api/messages/%d", msgID), nil)
+	reqDel, _ := http.NewRequest("DELETE", fmt.Sprintf("/api/messages/%s", msgID), nil)
 	reqDel.Header.Set("Authorization", "Bearer "+token1)
 	executeRequest(reqDel)
 
-	verifyEvent(t, conn2, websocket.EventMessageDelete, user1.ID, 0)
+	verifyEvent(t, conn2, websocket.EventMessageDelete, user1.ID, uuid.Nil)
 }
 
 func TestWebSocketMessageUpdate(t *testing.T) {
@@ -520,7 +523,7 @@ func TestWebSocketMessageUpdate(t *testing.T) {
 	user2 := createWSUser(t, "user2", "user2@example.com")
 	token2, _ := helper.GenerateJWT(testConfig.JWTSecret, testConfig.JWTExp, user2.ID)
 
-	createWSPrivateChat(t, user2.Username, token1)
+	createWSPrivateChat(t, user2.ID, token1)
 	chats, _ := testClient.Chat.Query().All(context.Background())
 	chatID := chats[0].ID
 
@@ -548,7 +551,8 @@ func TestWebSocketMessageUpdate(t *testing.T) {
 	var msgResp helper.ResponseSuccess
 	json.Unmarshal(rr.Body.Bytes(), &msgResp)
 	msgData := msgResp.Data.(map[string]interface{})
-	msgID := int(msgData["id"].(float64))
+	msgIDStr := msgData["id"].(string)
+	msgID, _ := uuid.Parse(msgIDStr)
 
 	conn2.SetReadDeadline(time.Now().UTC().Add(2 * time.Second))
 	conn2.ReadMessage()
@@ -557,12 +561,12 @@ func TestWebSocketMessageUpdate(t *testing.T) {
 		Content: "Edited Content",
 	}
 	jsonEdit, _ := json.Marshal(editBody)
-	reqEdit, _ := http.NewRequest("PUT", fmt.Sprintf("/api/messages/%d", msgID), bytes.NewBuffer(jsonEdit))
+	reqEdit, _ := http.NewRequest("PUT", fmt.Sprintf("/api/messages/%s", msgID), bytes.NewBuffer(jsonEdit))
 	reqEdit.Header.Set("Authorization", "Bearer "+token1)
 	reqEdit.Header.Set("Content-Type", "application/json")
 	executeRequest(reqEdit)
 
-	verifyEvent(t, conn2, websocket.EventMessageUpdate, user1.ID, 0)
+	verifyEvent(t, conn2, websocket.EventMessageUpdate, user1.ID, uuid.Nil)
 }
 
 func TestWebSocketChatHide(t *testing.T) {
@@ -573,7 +577,7 @@ func TestWebSocketChatHide(t *testing.T) {
 
 	user2 := createWSUser(t, "user2", "user2@example.com")
 
-	createWSPrivateChat(t, user2.Username, token1)
+	createWSPrivateChat(t, user2.ID, token1)
 	chats, _ := testClient.Chat.Query().All(context.Background())
 	chatID := chats[0].ID
 
@@ -588,11 +592,11 @@ func TestWebSocketChatHide(t *testing.T) {
 
 	time.Sleep(100 * time.Millisecond)
 
-	req, _ := http.NewRequest("POST", fmt.Sprintf("/api/chats/%d/hide", chatID), nil)
+	req, _ := http.NewRequest("POST", fmt.Sprintf("/api/chats/%s/hide", chatID), nil)
 	req.Header.Set("Authorization", "Bearer "+token1)
 	executeRequest(req)
 
-	verifyEvent(t, conn1, websocket.EventChatHide, user1.ID, 0)
+	verifyEvent(t, conn1, websocket.EventChatHide, user1.ID, uuid.Nil)
 }
 
 func TestWebSocketGroupChatCreation(t *testing.T) {
@@ -623,8 +627,8 @@ func TestWebSocketGroupChatCreation(t *testing.T) {
 	writer := multipart.NewWriter(body)
 	_ = writer.WriteField("name", "Test Group WS")
 
-	usernamesJSON, _ := json.Marshal([]string{u2.Username, u3.Username})
-	_ = writer.WriteField("member_usernames", string(usernamesJSON))
+	idsJSON, _ := json.Marshal([]string{u2.ID.String(), u3.ID.String()})
+	_ = writer.WriteField("member_ids", string(idsJSON))
 
 	writer.Close()
 
@@ -633,9 +637,9 @@ func TestWebSocketGroupChatCreation(t *testing.T) {
 	req.Header.Set("Authorization", "Bearer "+token1)
 	executeRequest(req)
 
-	verifyEvent(t, conn1, websocket.EventChatNew, u1.ID, 0)
-	verifyEvent(t, conn2, websocket.EventChatNew, u1.ID, 0)
-	verifyEvent(t, conn3, websocket.EventChatNew, u1.ID, 0)
+	verifyEvent(t, conn1, websocket.EventChatNew, u1.ID, uuid.Nil)
+	verifyEvent(t, conn2, websocket.EventChatNew, u1.ID, uuid.Nil)
+	verifyEvent(t, conn3, websocket.EventChatNew, u1.ID, uuid.Nil)
 }
 
 func TestWebSocketAddGroupMember(t *testing.T) {
@@ -651,8 +655,8 @@ func TestWebSocketAddGroupMember(t *testing.T) {
 	writer := multipart.NewWriter(body)
 	_ = writer.WriteField("name", "Add Member WS Test")
 
-	usernamesJSON, _ := json.Marshal([]string{u2.Username})
-	_ = writer.WriteField("member_usernames", string(usernamesJSON))
+	idsJSON, _ := json.Marshal([]string{u2.ID.String()})
+	_ = writer.WriteField("member_ids", string(idsJSON))
 
 	writer.Close()
 	req, _ := http.NewRequest("POST", "/api/chats/group", body)
@@ -666,7 +670,9 @@ func TestWebSocketAddGroupMember(t *testing.T) {
 
 	var chatResp helper.ResponseSuccess
 	json.Unmarshal(rr.Body.Bytes(), &chatResp)
-	chatID := int(chatResp.Data.(map[string]interface{})["id"].(float64))
+	chatData := chatResp.Data.(map[string]interface{})
+	chatIDStr := chatData["id"].(string)
+	chatID, _ := uuid.Parse(chatIDStr)
 
 	server := httptest.NewServer(testRouter)
 	defer server.Close()
@@ -683,18 +689,18 @@ func TestWebSocketAddGroupMember(t *testing.T) {
 
 	time.Sleep(100 * time.Millisecond)
 
-	addReqBody := model.AddGroupMemberRequest{Usernames: []string{u3.Username}}
+	addReqBody := model.AddGroupMemberRequest{UserIDs: []uuid.UUID{u3.ID}}
 	addBody, _ := json.Marshal(addReqBody)
-	addReq, _ := http.NewRequest("POST", fmt.Sprintf("/api/chats/group/%d/members", chatID), bytes.NewBuffer(addBody))
+	addReq, _ := http.NewRequest("POST", fmt.Sprintf("/api/chats/group/%s/members", chatID), bytes.NewBuffer(addBody))
 	addReq.Header.Set("Content-Type", "application/json")
 	addReq.Header.Set("Authorization", "Bearer "+token1)
 	executeRequest(addReq)
 
-	verifyEvent(t, conn3, websocket.EventChatNew, u1.ID, 0)
+	verifyEvent(t, conn3, websocket.EventChatNew, u1.ID, uuid.Nil)
 
-	verifyEvent(t, conn1, websocket.EventMessageNew, u1.ID, 0)
-	verifyEvent(t, conn2, websocket.EventMessageNew, u1.ID, 0)
-	verifyEvent(t, conn3, websocket.EventMessageNew, u1.ID, 0)
+	verifyEvent(t, conn1, websocket.EventMessageNew, u1.ID, uuid.Nil)
+	verifyEvent(t, conn2, websocket.EventMessageNew, u1.ID, uuid.Nil)
+	verifyEvent(t, conn3, websocket.EventMessageNew, u1.ID, uuid.Nil)
 }
 
 func TestWebSocketUpdateGroupChat(t *testing.T) {
@@ -707,8 +713,8 @@ func TestWebSocketUpdateGroupChat(t *testing.T) {
 	body := &bytes.Buffer{}
 	writer := multipart.NewWriter(body)
 	_ = writer.WriteField("name", "Update WS Test")
-	usernamesJSON, _ := json.Marshal([]string{u2.Username})
-	_ = writer.WriteField("member_usernames", string(usernamesJSON))
+	idsJSON, _ := json.Marshal([]string{u2.ID.String()})
+	_ = writer.WriteField("member_ids", string(idsJSON))
 	writer.Close()
 	req, _ := http.NewRequest("POST", "/api/chats/group", body)
 	req.Header.Set("Content-Type", writer.FormDataContentType())
@@ -716,7 +722,9 @@ func TestWebSocketUpdateGroupChat(t *testing.T) {
 	rr := executeRequest(req)
 	var chatResp helper.ResponseSuccess
 	json.Unmarshal(rr.Body.Bytes(), &chatResp)
-	chatID := int(chatResp.Data.(map[string]interface{})["id"].(float64))
+	chatData := chatResp.Data.(map[string]interface{})
+	chatIDStr := chatData["id"].(string)
+	chatID, _ := uuid.Parse(chatIDStr)
 
 	server := httptest.NewServer(testRouter)
 	defer server.Close()
@@ -735,7 +743,7 @@ func TestWebSocketUpdateGroupChat(t *testing.T) {
 	_ = updateWriter.WriteField("name", "New Group Name")
 	updateWriter.Close()
 
-	updateReq, _ := http.NewRequest("PUT", fmt.Sprintf("/api/chats/group/%d", chatID), updateBody)
+	updateReq, _ := http.NewRequest("PUT", fmt.Sprintf("/api/chats/group/%s", chatID), updateBody)
 	updateReq.Header.Set("Content-Type", updateWriter.FormDataContentType())
 	updateReq.Header.Set("Authorization", "Bearer "+token1)
 	executeRequest(updateReq)
@@ -764,8 +772,8 @@ func TestWebSocketKickMember(t *testing.T) {
 	body := &bytes.Buffer{}
 	writer := multipart.NewWriter(body)
 	_ = writer.WriteField("name", "Kick WS Test")
-	usernamesJSON, _ := json.Marshal([]string{u2.Username})
-	_ = writer.WriteField("member_usernames", string(usernamesJSON))
+	idsJSON, _ := json.Marshal([]string{u2.ID.String()})
+	_ = writer.WriteField("member_ids", string(idsJSON))
 	writer.Close()
 	req, _ := http.NewRequest("POST", "/api/chats/group", body)
 	req.Header.Set("Content-Type", writer.FormDataContentType())
@@ -773,7 +781,9 @@ func TestWebSocketKickMember(t *testing.T) {
 	rr := executeRequest(req)
 	var chatResp helper.ResponseSuccess
 	json.Unmarshal(rr.Body.Bytes(), &chatResp)
-	chatID := int(chatResp.Data.(map[string]interface{})["id"].(float64))
+	chatData := chatResp.Data.(map[string]interface{})
+	chatIDStr := chatData["id"].(string)
+	chatID, _ := uuid.Parse(chatIDStr)
 
 	server := httptest.NewServer(testRouter)
 	defer server.Close()
@@ -787,13 +797,13 @@ func TestWebSocketKickMember(t *testing.T) {
 
 	time.Sleep(100 * time.Millisecond)
 
-	kickReq, _ := http.NewRequest("POST", fmt.Sprintf("/api/chats/group/%d/members/%d/kick", chatID, u2.ID), nil)
+	kickReq, _ := http.NewRequest("POST", fmt.Sprintf("/api/chats/group/%s/members/%s/kick", chatID, u2.ID), nil)
 	kickReq.Header.Set("Authorization", "Bearer "+token1)
 	executeRequest(kickReq)
 
-	verifyEvent(t, conn1, websocket.EventMessageNew, u1.ID, 0)
+	verifyEvent(t, conn1, websocket.EventMessageNew, u1.ID, uuid.Nil)
 
-	verifyEvent(t, conn2, websocket.EventMessageNew, u1.ID, 0)
+	verifyEvent(t, conn2, websocket.EventMessageNew, u1.ID, uuid.Nil)
 }
 
 func TestWebSocketUpdateRole(t *testing.T) {
@@ -806,8 +816,8 @@ func TestWebSocketUpdateRole(t *testing.T) {
 	body := &bytes.Buffer{}
 	writer := multipart.NewWriter(body)
 	_ = writer.WriteField("name", "Role WS Test")
-	usernamesJSON, _ := json.Marshal([]string{u2.Username})
-	_ = writer.WriteField("member_usernames", string(usernamesJSON))
+	idsJSON, _ := json.Marshal([]string{u2.ID.String()})
+	_ = writer.WriteField("member_ids", string(idsJSON))
 	writer.Close()
 	req, _ := http.NewRequest("POST", "/api/chats/group", body)
 	req.Header.Set("Content-Type", writer.FormDataContentType())
@@ -815,7 +825,9 @@ func TestWebSocketUpdateRole(t *testing.T) {
 	rr := executeRequest(req)
 	var chatResp helper.ResponseSuccess
 	json.Unmarshal(rr.Body.Bytes(), &chatResp)
-	chatID := int(chatResp.Data.(map[string]interface{})["id"].(float64))
+	chatData := chatResp.Data.(map[string]interface{})
+	chatIDStr := chatData["id"].(string)
+	chatID, _ := uuid.Parse(chatIDStr)
 
 	server := httptest.NewServer(testRouter)
 	defer server.Close()
@@ -831,13 +843,13 @@ func TestWebSocketUpdateRole(t *testing.T) {
 
 	roleBody := model.UpdateGroupMemberRoleRequest{Role: "admin"}
 	jsonRole, _ := json.Marshal(roleBody)
-	roleReq, _ := http.NewRequest("PUT", fmt.Sprintf("/api/chats/group/%d/members/%d/role", chatID, u2.ID), bytes.NewBuffer(jsonRole))
+	roleReq, _ := http.NewRequest("PUT", fmt.Sprintf("/api/chats/group/%s/members/%s/role", chatID, u2.ID), bytes.NewBuffer(jsonRole))
 	roleReq.Header.Set("Content-Type", "application/json")
 	roleReq.Header.Set("Authorization", "Bearer "+token1)
 	executeRequest(roleReq)
 
-	verifyEvent(t, conn1, websocket.EventMessageNew, u1.ID, 0)
-	verifyEvent(t, conn2, websocket.EventMessageNew, u1.ID, 0)
+	verifyEvent(t, conn1, websocket.EventMessageNew, u1.ID, uuid.Nil)
+	verifyEvent(t, conn2, websocket.EventMessageNew, u1.ID, uuid.Nil)
 }
 
 func TestWebSocketTransferOwnership(t *testing.T) {
@@ -850,8 +862,8 @@ func TestWebSocketTransferOwnership(t *testing.T) {
 	body := &bytes.Buffer{}
 	writer := multipart.NewWriter(body)
 	_ = writer.WriteField("name", "Transfer WS Test")
-	usernamesJSON, _ := json.Marshal([]string{u2.Username})
-	_ = writer.WriteField("member_usernames", string(usernamesJSON))
+	idsJSON, _ := json.Marshal([]string{u2.ID.String()})
+	_ = writer.WriteField("member_ids", string(idsJSON))
 	writer.Close()
 	req, _ := http.NewRequest("POST", "/api/chats/group", body)
 	req.Header.Set("Content-Type", writer.FormDataContentType())
@@ -859,7 +871,9 @@ func TestWebSocketTransferOwnership(t *testing.T) {
 	rr := executeRequest(req)
 	var chatResp helper.ResponseSuccess
 	json.Unmarshal(rr.Body.Bytes(), &chatResp)
-	chatID := int(chatResp.Data.(map[string]interface{})["id"].(float64))
+	chatData := chatResp.Data.(map[string]interface{})
+	chatIDStr := chatData["id"].(string)
+	chatID, _ := uuid.Parse(chatIDStr)
 
 	server := httptest.NewServer(testRouter)
 	defer server.Close()
@@ -875,13 +889,13 @@ func TestWebSocketTransferOwnership(t *testing.T) {
 
 	transferBody := model.TransferGroupOwnershipRequest{NewOwnerID: u2.ID}
 	jsonTransfer, _ := json.Marshal(transferBody)
-	transferReq, _ := http.NewRequest("POST", fmt.Sprintf("/api/chats/group/%d/transfer", chatID), bytes.NewBuffer(jsonTransfer))
+	transferReq, _ := http.NewRequest("POST", fmt.Sprintf("/api/chats/group/%s/transfer", chatID), bytes.NewBuffer(jsonTransfer))
 	transferReq.Header.Set("Content-Type", "application/json")
 	transferReq.Header.Set("Authorization", "Bearer "+token1)
 	executeRequest(transferReq)
 
-	verifyEvent(t, conn1, websocket.EventMessageNew, u1.ID, 0)
-	verifyEvent(t, conn2, websocket.EventMessageNew, u1.ID, 0)
+	verifyEvent(t, conn1, websocket.EventMessageNew, u1.ID, uuid.Nil)
+	verifyEvent(t, conn2, websocket.EventMessageNew, u1.ID, uuid.Nil)
 }
 
 func createWSUser(t *testing.T, username, email string) *ent.User {
@@ -900,9 +914,9 @@ func createWSUser(t *testing.T, username, email string) *ent.User {
 	return u
 }
 
-func createWSPrivateChat(t *testing.T, username string, token string) {
+func createWSPrivateChat(t *testing.T, user2ID uuid.UUID, token string) {
 	reqBody := model.CreatePrivateChatRequest{
-		Username: username,
+		TargetUserID: user2ID,
 	}
 	jsonBody, _ := json.Marshal(reqBody)
 	req, _ := http.NewRequest("POST", "/api/chats/private", bytes.NewBuffer(jsonBody))
@@ -912,7 +926,7 @@ func createWSPrivateChat(t *testing.T, username string, token string) {
 	assert.Equal(t, http.StatusOK, rr.Code)
 }
 
-func verifyEvent(t *testing.T, conn *ws.Conn, eventType websocket.EventType, senderID, blockedID int) {
+func verifyEvent(t *testing.T, conn *ws.Conn, eventType websocket.EventType, senderID, blockedID uuid.UUID) {
 	conn.SetReadDeadline(time.Now().UTC().Add(2 * time.Second))
 	foundEvent := false
 	for i := 0; i < 5; i++ {
@@ -926,14 +940,14 @@ func verifyEvent(t *testing.T, conn *ws.Conn, eventType websocket.EventType, sen
 		if event.Type == eventType {
 			foundEvent = true
 			if event.Meta != nil {
-				assert.Equal(t, senderID, event.Meta.SenderID)
+				assert.Equal(t, senderID.String(), event.Meta.SenderID.String())
 			}
 
 			if eventType == websocket.EventUserBlock || eventType == websocket.EventUserUnblock {
 				payload, ok := event.Payload.(map[string]interface{})
 				assert.True(t, ok)
-				assert.Equal(t, float64(senderID), payload["blocker_id"])
-				assert.Equal(t, float64(blockedID), payload["blocked_id"])
+				assert.Equal(t, senderID.String(), payload["blocker_id"])
+				assert.Equal(t, blockedID.String(), payload["blocked_id"])
 			}
 			break
 		}

@@ -16,9 +16,11 @@ import (
 	"fmt"
 	"time"
 
+	"entgo.io/ent/dialect"
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/google/uuid"
 )
 
 // UserCreate is the builder for creating a User entity.
@@ -104,13 +106,13 @@ func (_c *UserCreate) SetNillableBio(v *string) *UserCreate {
 }
 
 // SetAvatarID sets the "avatar_id" field.
-func (_c *UserCreate) SetAvatarID(v int) *UserCreate {
+func (_c *UserCreate) SetAvatarID(v uuid.UUID) *UserCreate {
 	_c.mutation.SetAvatarID(v)
 	return _c
 }
 
 // SetNillableAvatarID sets the "avatar_id" field if the given value is not nil.
-func (_c *UserCreate) SetNillableAvatarID(v *int) *UserCreate {
+func (_c *UserCreate) SetNillableAvatarID(v *uuid.UUID) *UserCreate {
 	if v != nil {
 		_c.SetAvatarID(*v)
 	}
@@ -145,20 +147,34 @@ func (_c *UserCreate) SetNillableLastSeenAt(v *time.Time) *UserCreate {
 	return _c
 }
 
+// SetID sets the "id" field.
+func (_c *UserCreate) SetID(v uuid.UUID) *UserCreate {
+	_c.mutation.SetID(v)
+	return _c
+}
+
+// SetNillableID sets the "id" field if the given value is not nil.
+func (_c *UserCreate) SetNillableID(v *uuid.UUID) *UserCreate {
+	if v != nil {
+		_c.SetID(*v)
+	}
+	return _c
+}
+
 // SetAvatar sets the "avatar" edge to the Media entity.
 func (_c *UserCreate) SetAvatar(v *Media) *UserCreate {
 	return _c.SetAvatarID(v.ID)
 }
 
 // AddIdentityIDs adds the "identities" edge to the UserIdentity entity by IDs.
-func (_c *UserCreate) AddIdentityIDs(ids ...int) *UserCreate {
+func (_c *UserCreate) AddIdentityIDs(ids ...uuid.UUID) *UserCreate {
 	_c.mutation.AddIdentityIDs(ids...)
 	return _c
 }
 
 // AddIdentities adds the "identities" edges to the UserIdentity entity.
 func (_c *UserCreate) AddIdentities(v ...*UserIdentity) *UserCreate {
-	ids := make([]int, len(v))
+	ids := make([]uuid.UUID, len(v))
 	for i := range v {
 		ids[i] = v[i].ID
 	}
@@ -166,14 +182,14 @@ func (_c *UserCreate) AddIdentities(v ...*UserIdentity) *UserCreate {
 }
 
 // AddSentMessageIDs adds the "sent_messages" edge to the Message entity by IDs.
-func (_c *UserCreate) AddSentMessageIDs(ids ...int) *UserCreate {
+func (_c *UserCreate) AddSentMessageIDs(ids ...uuid.UUID) *UserCreate {
 	_c.mutation.AddSentMessageIDs(ids...)
 	return _c
 }
 
 // AddSentMessages adds the "sent_messages" edges to the Message entity.
 func (_c *UserCreate) AddSentMessages(v ...*Message) *UserCreate {
-	ids := make([]int, len(v))
+	ids := make([]uuid.UUID, len(v))
 	for i := range v {
 		ids[i] = v[i].ID
 	}
@@ -181,14 +197,14 @@ func (_c *UserCreate) AddSentMessages(v ...*Message) *UserCreate {
 }
 
 // AddCreatedGroupIDs adds the "created_groups" edge to the GroupChat entity by IDs.
-func (_c *UserCreate) AddCreatedGroupIDs(ids ...int) *UserCreate {
+func (_c *UserCreate) AddCreatedGroupIDs(ids ...uuid.UUID) *UserCreate {
 	_c.mutation.AddCreatedGroupIDs(ids...)
 	return _c
 }
 
 // AddCreatedGroups adds the "created_groups" edges to the GroupChat entity.
 func (_c *UserCreate) AddCreatedGroups(v ...*GroupChat) *UserCreate {
-	ids := make([]int, len(v))
+	ids := make([]uuid.UUID, len(v))
 	for i := range v {
 		ids[i] = v[i].ID
 	}
@@ -196,14 +212,14 @@ func (_c *UserCreate) AddCreatedGroups(v ...*GroupChat) *UserCreate {
 }
 
 // AddGroupMembershipIDs adds the "group_memberships" edge to the GroupMember entity by IDs.
-func (_c *UserCreate) AddGroupMembershipIDs(ids ...int) *UserCreate {
+func (_c *UserCreate) AddGroupMembershipIDs(ids ...uuid.UUID) *UserCreate {
 	_c.mutation.AddGroupMembershipIDs(ids...)
 	return _c
 }
 
 // AddGroupMemberships adds the "group_memberships" edges to the GroupMember entity.
 func (_c *UserCreate) AddGroupMemberships(v ...*GroupMember) *UserCreate {
-	ids := make([]int, len(v))
+	ids := make([]uuid.UUID, len(v))
 	for i := range v {
 		ids[i] = v[i].ID
 	}
@@ -211,14 +227,14 @@ func (_c *UserCreate) AddGroupMemberships(v ...*GroupMember) *UserCreate {
 }
 
 // AddPrivateChatsAsUser1IDs adds the "private_chats_as_user1" edge to the PrivateChat entity by IDs.
-func (_c *UserCreate) AddPrivateChatsAsUser1IDs(ids ...int) *UserCreate {
+func (_c *UserCreate) AddPrivateChatsAsUser1IDs(ids ...uuid.UUID) *UserCreate {
 	_c.mutation.AddPrivateChatsAsUser1IDs(ids...)
 	return _c
 }
 
 // AddPrivateChatsAsUser1 adds the "private_chats_as_user1" edges to the PrivateChat entity.
 func (_c *UserCreate) AddPrivateChatsAsUser1(v ...*PrivateChat) *UserCreate {
-	ids := make([]int, len(v))
+	ids := make([]uuid.UUID, len(v))
 	for i := range v {
 		ids[i] = v[i].ID
 	}
@@ -226,14 +242,14 @@ func (_c *UserCreate) AddPrivateChatsAsUser1(v ...*PrivateChat) *UserCreate {
 }
 
 // AddPrivateChatsAsUser2IDs adds the "private_chats_as_user2" edge to the PrivateChat entity by IDs.
-func (_c *UserCreate) AddPrivateChatsAsUser2IDs(ids ...int) *UserCreate {
+func (_c *UserCreate) AddPrivateChatsAsUser2IDs(ids ...uuid.UUID) *UserCreate {
 	_c.mutation.AddPrivateChatsAsUser2IDs(ids...)
 	return _c
 }
 
 // AddPrivateChatsAsUser2 adds the "private_chats_as_user2" edges to the PrivateChat entity.
 func (_c *UserCreate) AddPrivateChatsAsUser2(v ...*PrivateChat) *UserCreate {
-	ids := make([]int, len(v))
+	ids := make([]uuid.UUID, len(v))
 	for i := range v {
 		ids[i] = v[i].ID
 	}
@@ -241,14 +257,14 @@ func (_c *UserCreate) AddPrivateChatsAsUser2(v ...*PrivateChat) *UserCreate {
 }
 
 // AddUploadedMediumIDs adds the "uploaded_media" edge to the Media entity by IDs.
-func (_c *UserCreate) AddUploadedMediumIDs(ids ...int) *UserCreate {
+func (_c *UserCreate) AddUploadedMediumIDs(ids ...uuid.UUID) *UserCreate {
 	_c.mutation.AddUploadedMediumIDs(ids...)
 	return _c
 }
 
 // AddUploadedMedia adds the "uploaded_media" edges to the Media entity.
 func (_c *UserCreate) AddUploadedMedia(v ...*Media) *UserCreate {
-	ids := make([]int, len(v))
+	ids := make([]uuid.UUID, len(v))
 	for i := range v {
 		ids[i] = v[i].ID
 	}
@@ -256,14 +272,14 @@ func (_c *UserCreate) AddUploadedMedia(v ...*Media) *UserCreate {
 }
 
 // AddBlockedUsersRelIDs adds the "blocked_users_rel" edge to the UserBlock entity by IDs.
-func (_c *UserCreate) AddBlockedUsersRelIDs(ids ...int) *UserCreate {
+func (_c *UserCreate) AddBlockedUsersRelIDs(ids ...uuid.UUID) *UserCreate {
 	_c.mutation.AddBlockedUsersRelIDs(ids...)
 	return _c
 }
 
 // AddBlockedUsersRel adds the "blocked_users_rel" edges to the UserBlock entity.
 func (_c *UserCreate) AddBlockedUsersRel(v ...*UserBlock) *UserCreate {
-	ids := make([]int, len(v))
+	ids := make([]uuid.UUID, len(v))
 	for i := range v {
 		ids[i] = v[i].ID
 	}
@@ -271,14 +287,14 @@ func (_c *UserCreate) AddBlockedUsersRel(v ...*UserBlock) *UserCreate {
 }
 
 // AddBlockedByRelIDs adds the "blocked_by_rel" edge to the UserBlock entity by IDs.
-func (_c *UserCreate) AddBlockedByRelIDs(ids ...int) *UserCreate {
+func (_c *UserCreate) AddBlockedByRelIDs(ids ...uuid.UUID) *UserCreate {
 	_c.mutation.AddBlockedByRelIDs(ids...)
 	return _c
 }
 
 // AddBlockedByRel adds the "blocked_by_rel" edges to the UserBlock entity.
 func (_c *UserCreate) AddBlockedByRel(v ...*UserBlock) *UserCreate {
-	ids := make([]int, len(v))
+	ids := make([]uuid.UUID, len(v))
 	for i := range v {
 		ids[i] = v[i].ID
 	}
@@ -331,6 +347,10 @@ func (_c *UserCreate) defaults() {
 	if _, ok := _c.mutation.IsOnline(); !ok {
 		v := user.DefaultIsOnline
 		_c.mutation.SetIsOnline(v)
+	}
+	if _, ok := _c.mutation.ID(); !ok {
+		v := user.DefaultID()
+		_c.mutation.SetID(v)
 	}
 }
 
@@ -393,8 +413,13 @@ func (_c *UserCreate) sqlSave(ctx context.Context) (*User, error) {
 		}
 		return nil, err
 	}
-	id := _spec.ID.Value.(int64)
-	_node.ID = int(id)
+	if _spec.ID.Value != nil {
+		if id, ok := _spec.ID.Value.(*uuid.UUID); ok {
+			_node.ID = *id
+		} else if err := _node.ID.Scan(_spec.ID.Value); err != nil {
+			return nil, err
+		}
+	}
 	_c.mutation.id = &_node.ID
 	_c.mutation.done = true
 	return _node, nil
@@ -403,9 +428,13 @@ func (_c *UserCreate) sqlSave(ctx context.Context) (*User, error) {
 func (_c *UserCreate) createSpec() (*User, *sqlgraph.CreateSpec) {
 	var (
 		_node = &User{config: _c.config}
-		_spec = sqlgraph.NewCreateSpec(user.Table, sqlgraph.NewFieldSpec(user.FieldID, field.TypeInt))
+		_spec = sqlgraph.NewCreateSpec(user.Table, sqlgraph.NewFieldSpec(user.FieldID, field.TypeUUID))
 	)
 	_spec.OnConflict = _c.conflict
+	if id, ok := _c.mutation.ID(); ok {
+		_node.ID = id
+		_spec.ID.Value = &id
+	}
 	if value, ok := _c.mutation.CreatedAt(); ok {
 		_spec.SetField(user.FieldCreatedAt, field.TypeTime, value)
 		_node.CreatedAt = value
@@ -450,7 +479,7 @@ func (_c *UserCreate) createSpec() (*User, *sqlgraph.CreateSpec) {
 			Columns: []string{user.AvatarColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(media.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(media.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {
@@ -467,7 +496,7 @@ func (_c *UserCreate) createSpec() (*User, *sqlgraph.CreateSpec) {
 			Columns: []string{user.IdentitiesColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(useridentity.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(useridentity.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {
@@ -483,7 +512,7 @@ func (_c *UserCreate) createSpec() (*User, *sqlgraph.CreateSpec) {
 			Columns: []string{user.SentMessagesColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(message.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(message.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {
@@ -499,7 +528,7 @@ func (_c *UserCreate) createSpec() (*User, *sqlgraph.CreateSpec) {
 			Columns: []string{user.CreatedGroupsColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(groupchat.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(groupchat.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {
@@ -515,7 +544,7 @@ func (_c *UserCreate) createSpec() (*User, *sqlgraph.CreateSpec) {
 			Columns: []string{user.GroupMembershipsColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(groupmember.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(groupmember.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {
@@ -531,7 +560,7 @@ func (_c *UserCreate) createSpec() (*User, *sqlgraph.CreateSpec) {
 			Columns: []string{user.PrivateChatsAsUser1Column},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(privatechat.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(privatechat.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {
@@ -547,7 +576,7 @@ func (_c *UserCreate) createSpec() (*User, *sqlgraph.CreateSpec) {
 			Columns: []string{user.PrivateChatsAsUser2Column},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(privatechat.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(privatechat.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {
@@ -563,7 +592,7 @@ func (_c *UserCreate) createSpec() (*User, *sqlgraph.CreateSpec) {
 			Columns: []string{user.UploadedMediaColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(media.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(media.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {
@@ -579,7 +608,7 @@ func (_c *UserCreate) createSpec() (*User, *sqlgraph.CreateSpec) {
 			Columns: []string{user.BlockedUsersRelColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(userblock.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(userblock.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {
@@ -595,7 +624,7 @@ func (_c *UserCreate) createSpec() (*User, *sqlgraph.CreateSpec) {
 			Columns: []string{user.BlockedByRelColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(userblock.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(userblock.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {
@@ -740,7 +769,7 @@ func (u *UserUpsert) ClearBio() *UserUpsert {
 }
 
 // SetAvatarID sets the "avatar_id" field.
-func (u *UserUpsert) SetAvatarID(v int) *UserUpsert {
+func (u *UserUpsert) SetAvatarID(v uuid.UUID) *UserUpsert {
 	u.Set(user.FieldAvatarID, v)
 	return u
 }
@@ -787,17 +816,23 @@ func (u *UserUpsert) ClearLastSeenAt() *UserUpsert {
 	return u
 }
 
-// UpdateNewValues updates the mutable fields using the new values that were set on create.
+// UpdateNewValues updates the mutable fields using the new values that were set on create except the ID field.
 // Using this option is equivalent to using:
 //
 //	client.User.Create().
 //		OnConflict(
 //			sql.ResolveWithNewValues(),
+//			sql.ResolveWith(func(u *sql.UpdateSet) {
+//				u.SetIgnore(user.FieldID)
+//			}),
 //		).
 //		Exec(ctx)
 func (u *UserUpsertOne) UpdateNewValues() *UserUpsertOne {
 	u.create.conflict = append(u.create.conflict, sql.ResolveWithNewValues())
 	u.create.conflict = append(u.create.conflict, sql.ResolveWith(func(s *sql.UpdateSet) {
+		if _, exists := u.create.mutation.ID(); exists {
+			s.SetIgnore(user.FieldID)
+		}
 		if _, exists := u.create.mutation.CreatedAt(); exists {
 			s.SetIgnore(user.FieldCreatedAt)
 		}
@@ -931,7 +966,7 @@ func (u *UserUpsertOne) ClearBio() *UserUpsertOne {
 }
 
 // SetAvatarID sets the "avatar_id" field.
-func (u *UserUpsertOne) SetAvatarID(v int) *UserUpsertOne {
+func (u *UserUpsertOne) SetAvatarID(v uuid.UUID) *UserUpsertOne {
 	return u.Update(func(s *UserUpsert) {
 		s.SetAvatarID(v)
 	})
@@ -1002,7 +1037,12 @@ func (u *UserUpsertOne) ExecX(ctx context.Context) {
 }
 
 // Exec executes the UPSERT query and returns the inserted/updated ID.
-func (u *UserUpsertOne) ID(ctx context.Context) (id int, err error) {
+func (u *UserUpsertOne) ID(ctx context.Context) (id uuid.UUID, err error) {
+	if u.create.driver.Dialect() == dialect.MySQL {
+		// In case of "ON CONFLICT", there is no way to get back non-numeric ID
+		// fields from the database since MySQL does not support the RETURNING clause.
+		return id, errors.New("ent: UserUpsertOne.ID is not supported by MySQL driver. Use UserUpsertOne.Exec instead")
+	}
 	node, err := u.create.Save(ctx)
 	if err != nil {
 		return id, err
@@ -1011,7 +1051,7 @@ func (u *UserUpsertOne) ID(ctx context.Context) (id int, err error) {
 }
 
 // IDX is like ID, but panics if an error occurs.
-func (u *UserUpsertOne) IDX(ctx context.Context) int {
+func (u *UserUpsertOne) IDX(ctx context.Context) uuid.UUID {
 	id, err := u.ID(ctx)
 	if err != nil {
 		panic(err)
@@ -1066,10 +1106,6 @@ func (_c *UserCreateBulk) Save(ctx context.Context) ([]*User, error) {
 					return nil, err
 				}
 				mutation.id = &nodes[i].ID
-				if specs[i].ID.Value != nil {
-					id := specs[i].ID.Value.(int64)
-					nodes[i].ID = int(id)
-				}
 				mutation.done = true
 				return nodes[i], nil
 			})
@@ -1156,12 +1192,18 @@ type UserUpsertBulk struct {
 //	client.User.Create().
 //		OnConflict(
 //			sql.ResolveWithNewValues(),
+//			sql.ResolveWith(func(u *sql.UpdateSet) {
+//				u.SetIgnore(user.FieldID)
+//			}),
 //		).
 //		Exec(ctx)
 func (u *UserUpsertBulk) UpdateNewValues() *UserUpsertBulk {
 	u.create.conflict = append(u.create.conflict, sql.ResolveWithNewValues())
 	u.create.conflict = append(u.create.conflict, sql.ResolveWith(func(s *sql.UpdateSet) {
 		for _, b := range u.create.builders {
+			if _, exists := b.mutation.ID(); exists {
+				s.SetIgnore(user.FieldID)
+			}
 			if _, exists := b.mutation.CreatedAt(); exists {
 				s.SetIgnore(user.FieldCreatedAt)
 			}
@@ -1296,7 +1338,7 @@ func (u *UserUpsertBulk) ClearBio() *UserUpsertBulk {
 }
 
 // SetAvatarID sets the "avatar_id" field.
-func (u *UserUpsertBulk) SetAvatarID(v int) *UserUpsertBulk {
+func (u *UserUpsertBulk) SetAvatarID(v uuid.UUID) *UserUpsertBulk {
 	return u.Update(func(s *UserUpsert) {
 		s.SetAvatarID(v)
 	})

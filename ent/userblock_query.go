@@ -15,6 +15,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/google/uuid"
 )
 
 // UserBlockQuery is the builder for querying UserBlock entities.
@@ -131,8 +132,8 @@ func (_q *UserBlockQuery) FirstX(ctx context.Context) *UserBlock {
 
 // FirstID returns the first UserBlock ID from the query.
 // Returns a *NotFoundError when no UserBlock ID was found.
-func (_q *UserBlockQuery) FirstID(ctx context.Context) (id int, err error) {
-	var ids []int
+func (_q *UserBlockQuery) FirstID(ctx context.Context) (id uuid.UUID, err error) {
+	var ids []uuid.UUID
 	if ids, err = _q.Limit(1).IDs(setContextOp(ctx, _q.ctx, ent.OpQueryFirstID)); err != nil {
 		return
 	}
@@ -144,7 +145,7 @@ func (_q *UserBlockQuery) FirstID(ctx context.Context) (id int, err error) {
 }
 
 // FirstIDX is like FirstID, but panics if an error occurs.
-func (_q *UserBlockQuery) FirstIDX(ctx context.Context) int {
+func (_q *UserBlockQuery) FirstIDX(ctx context.Context) uuid.UUID {
 	id, err := _q.FirstID(ctx)
 	if err != nil && !IsNotFound(err) {
 		panic(err)
@@ -182,8 +183,8 @@ func (_q *UserBlockQuery) OnlyX(ctx context.Context) *UserBlock {
 // OnlyID is like Only, but returns the only UserBlock ID in the query.
 // Returns a *NotSingularError when more than one UserBlock ID is found.
 // Returns a *NotFoundError when no entities are found.
-func (_q *UserBlockQuery) OnlyID(ctx context.Context) (id int, err error) {
-	var ids []int
+func (_q *UserBlockQuery) OnlyID(ctx context.Context) (id uuid.UUID, err error) {
+	var ids []uuid.UUID
 	if ids, err = _q.Limit(2).IDs(setContextOp(ctx, _q.ctx, ent.OpQueryOnlyID)); err != nil {
 		return
 	}
@@ -199,7 +200,7 @@ func (_q *UserBlockQuery) OnlyID(ctx context.Context) (id int, err error) {
 }
 
 // OnlyIDX is like OnlyID, but panics if an error occurs.
-func (_q *UserBlockQuery) OnlyIDX(ctx context.Context) int {
+func (_q *UserBlockQuery) OnlyIDX(ctx context.Context) uuid.UUID {
 	id, err := _q.OnlyID(ctx)
 	if err != nil {
 		panic(err)
@@ -227,7 +228,7 @@ func (_q *UserBlockQuery) AllX(ctx context.Context) []*UserBlock {
 }
 
 // IDs executes the query and returns a list of UserBlock IDs.
-func (_q *UserBlockQuery) IDs(ctx context.Context) (ids []int, err error) {
+func (_q *UserBlockQuery) IDs(ctx context.Context) (ids []uuid.UUID, err error) {
 	if _q.ctx.Unique == nil && _q.path != nil {
 		_q.Unique(true)
 	}
@@ -239,7 +240,7 @@ func (_q *UserBlockQuery) IDs(ctx context.Context) (ids []int, err error) {
 }
 
 // IDsX is like IDs, but panics if an error occurs.
-func (_q *UserBlockQuery) IDsX(ctx context.Context) []int {
+func (_q *UserBlockQuery) IDsX(ctx context.Context) []uuid.UUID {
 	ids, err := _q.IDs(ctx)
 	if err != nil {
 		panic(err)
@@ -450,8 +451,8 @@ func (_q *UserBlockQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Us
 }
 
 func (_q *UserBlockQuery) loadBlocker(ctx context.Context, query *UserQuery, nodes []*UserBlock, init func(*UserBlock), assign func(*UserBlock, *User)) error {
-	ids := make([]int, 0, len(nodes))
-	nodeids := make(map[int][]*UserBlock)
+	ids := make([]uuid.UUID, 0, len(nodes))
+	nodeids := make(map[uuid.UUID][]*UserBlock)
 	for i := range nodes {
 		fk := nodes[i].BlockerID
 		if _, ok := nodeids[fk]; !ok {
@@ -479,8 +480,8 @@ func (_q *UserBlockQuery) loadBlocker(ctx context.Context, query *UserQuery, nod
 	return nil
 }
 func (_q *UserBlockQuery) loadBlocked(ctx context.Context, query *UserQuery, nodes []*UserBlock, init func(*UserBlock), assign func(*UserBlock, *User)) error {
-	ids := make([]int, 0, len(nodes))
-	nodeids := make(map[int][]*UserBlock)
+	ids := make([]uuid.UUID, 0, len(nodes))
+	nodeids := make(map[uuid.UUID][]*UserBlock)
 	for i := range nodes {
 		fk := nodes[i].BlockedID
 		if _, ok := nodeids[fk]; !ok {
@@ -521,7 +522,7 @@ func (_q *UserBlockQuery) sqlCount(ctx context.Context) (int, error) {
 }
 
 func (_q *UserBlockQuery) querySpec() *sqlgraph.QuerySpec {
-	_spec := sqlgraph.NewQuerySpec(userblock.Table, userblock.Columns, sqlgraph.NewFieldSpec(userblock.FieldID, field.TypeInt))
+	_spec := sqlgraph.NewQuerySpec(userblock.Table, userblock.Columns, sqlgraph.NewFieldSpec(userblock.FieldID, field.TypeUUID))
 	_spec.From = _q.sql
 	if unique := _q.ctx.Unique; unique != nil {
 		_spec.Unique = *unique

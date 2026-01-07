@@ -12,9 +12,11 @@ import (
 	"fmt"
 	"time"
 
+	"entgo.io/ent/dialect"
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/google/uuid"
 )
 
 // MessageCreate is the builder for creating a Message entity.
@@ -54,19 +56,19 @@ func (_c *MessageCreate) SetNillableUpdatedAt(v *time.Time) *MessageCreate {
 }
 
 // SetChatID sets the "chat_id" field.
-func (_c *MessageCreate) SetChatID(v int) *MessageCreate {
+func (_c *MessageCreate) SetChatID(v uuid.UUID) *MessageCreate {
 	_c.mutation.SetChatID(v)
 	return _c
 }
 
 // SetSenderID sets the "sender_id" field.
-func (_c *MessageCreate) SetSenderID(v int) *MessageCreate {
+func (_c *MessageCreate) SetSenderID(v uuid.UUID) *MessageCreate {
 	_c.mutation.SetSenderID(v)
 	return _c
 }
 
 // SetNillableSenderID sets the "sender_id" field if the given value is not nil.
-func (_c *MessageCreate) SetNillableSenderID(v *int) *MessageCreate {
+func (_c *MessageCreate) SetNillableSenderID(v *uuid.UUID) *MessageCreate {
 	if v != nil {
 		_c.SetSenderID(*v)
 	}
@@ -74,13 +76,13 @@ func (_c *MessageCreate) SetNillableSenderID(v *int) *MessageCreate {
 }
 
 // SetReplyToID sets the "reply_to_id" field.
-func (_c *MessageCreate) SetReplyToID(v int) *MessageCreate {
+func (_c *MessageCreate) SetReplyToID(v uuid.UUID) *MessageCreate {
 	_c.mutation.SetReplyToID(v)
 	return _c
 }
 
 // SetNillableReplyToID sets the "reply_to_id" field if the given value is not nil.
-func (_c *MessageCreate) SetNillableReplyToID(v *int) *MessageCreate {
+func (_c *MessageCreate) SetNillableReplyToID(v *uuid.UUID) *MessageCreate {
 	if v != nil {
 		_c.SetReplyToID(*v)
 	}
@@ -149,6 +151,20 @@ func (_c *MessageCreate) SetNillableEditedAt(v *time.Time) *MessageCreate {
 	return _c
 }
 
+// SetID sets the "id" field.
+func (_c *MessageCreate) SetID(v uuid.UUID) *MessageCreate {
+	_c.mutation.SetID(v)
+	return _c
+}
+
+// SetNillableID sets the "id" field if the given value is not nil.
+func (_c *MessageCreate) SetNillableID(v *uuid.UUID) *MessageCreate {
+	if v != nil {
+		_c.SetID(*v)
+	}
+	return _c
+}
+
 // SetChat sets the "chat" edge to the Chat entity.
 func (_c *MessageCreate) SetChat(v *Chat) *MessageCreate {
 	return _c.SetChatID(v.ID)
@@ -160,14 +176,14 @@ func (_c *MessageCreate) SetSender(v *User) *MessageCreate {
 }
 
 // AddReplyIDs adds the "replies" edge to the Message entity by IDs.
-func (_c *MessageCreate) AddReplyIDs(ids ...int) *MessageCreate {
+func (_c *MessageCreate) AddReplyIDs(ids ...uuid.UUID) *MessageCreate {
 	_c.mutation.AddReplyIDs(ids...)
 	return _c
 }
 
 // AddReplies adds the "replies" edges to the Message entity.
 func (_c *MessageCreate) AddReplies(v ...*Message) *MessageCreate {
-	ids := make([]int, len(v))
+	ids := make([]uuid.UUID, len(v))
 	for i := range v {
 		ids[i] = v[i].ID
 	}
@@ -180,14 +196,14 @@ func (_c *MessageCreate) SetReplyTo(v *Message) *MessageCreate {
 }
 
 // AddAttachmentIDs adds the "attachments" edge to the Media entity by IDs.
-func (_c *MessageCreate) AddAttachmentIDs(ids ...int) *MessageCreate {
+func (_c *MessageCreate) AddAttachmentIDs(ids ...uuid.UUID) *MessageCreate {
 	_c.mutation.AddAttachmentIDs(ids...)
 	return _c
 }
 
 // AddAttachments adds the "attachments" edges to the Media entity.
 func (_c *MessageCreate) AddAttachments(v ...*Media) *MessageCreate {
-	ids := make([]int, len(v))
+	ids := make([]uuid.UUID, len(v))
 	for i := range v {
 		ids[i] = v[i].ID
 	}
@@ -241,6 +257,10 @@ func (_c *MessageCreate) defaults() {
 		v := message.DefaultType
 		_c.mutation.SetType(v)
 	}
+	if _, ok := _c.mutation.ID(); !ok {
+		v := message.DefaultID()
+		_c.mutation.SetID(v)
+	}
 }
 
 // check runs all checks and user-defined validators on the builder.
@@ -279,8 +299,13 @@ func (_c *MessageCreate) sqlSave(ctx context.Context) (*Message, error) {
 		}
 		return nil, err
 	}
-	id := _spec.ID.Value.(int64)
-	_node.ID = int(id)
+	if _spec.ID.Value != nil {
+		if id, ok := _spec.ID.Value.(*uuid.UUID); ok {
+			_node.ID = *id
+		} else if err := _node.ID.Scan(_spec.ID.Value); err != nil {
+			return nil, err
+		}
+	}
 	_c.mutation.id = &_node.ID
 	_c.mutation.done = true
 	return _node, nil
@@ -289,9 +314,13 @@ func (_c *MessageCreate) sqlSave(ctx context.Context) (*Message, error) {
 func (_c *MessageCreate) createSpec() (*Message, *sqlgraph.CreateSpec) {
 	var (
 		_node = &Message{config: _c.config}
-		_spec = sqlgraph.NewCreateSpec(message.Table, sqlgraph.NewFieldSpec(message.FieldID, field.TypeInt))
+		_spec = sqlgraph.NewCreateSpec(message.Table, sqlgraph.NewFieldSpec(message.FieldID, field.TypeUUID))
 	)
 	_spec.OnConflict = _c.conflict
+	if id, ok := _c.mutation.ID(); ok {
+		_node.ID = id
+		_spec.ID.Value = &id
+	}
 	if value, ok := _c.mutation.CreatedAt(); ok {
 		_spec.SetField(message.FieldCreatedAt, field.TypeTime, value)
 		_node.CreatedAt = value
@@ -328,7 +357,7 @@ func (_c *MessageCreate) createSpec() (*Message, *sqlgraph.CreateSpec) {
 			Columns: []string{message.ChatColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(chat.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(chat.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {
@@ -345,7 +374,7 @@ func (_c *MessageCreate) createSpec() (*Message, *sqlgraph.CreateSpec) {
 			Columns: []string{message.SenderColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {
@@ -362,7 +391,7 @@ func (_c *MessageCreate) createSpec() (*Message, *sqlgraph.CreateSpec) {
 			Columns: []string{message.RepliesColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(message.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(message.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {
@@ -378,7 +407,7 @@ func (_c *MessageCreate) createSpec() (*Message, *sqlgraph.CreateSpec) {
 			Columns: []string{message.ReplyToColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(message.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(message.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {
@@ -395,7 +424,7 @@ func (_c *MessageCreate) createSpec() (*Message, *sqlgraph.CreateSpec) {
 			Columns: []string{message.AttachmentsColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(media.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(media.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {
@@ -468,7 +497,7 @@ func (u *MessageUpsert) UpdateUpdatedAt() *MessageUpsert {
 }
 
 // SetChatID sets the "chat_id" field.
-func (u *MessageUpsert) SetChatID(v int) *MessageUpsert {
+func (u *MessageUpsert) SetChatID(v uuid.UUID) *MessageUpsert {
 	u.Set(message.FieldChatID, v)
 	return u
 }
@@ -480,7 +509,7 @@ func (u *MessageUpsert) UpdateChatID() *MessageUpsert {
 }
 
 // SetSenderID sets the "sender_id" field.
-func (u *MessageUpsert) SetSenderID(v int) *MessageUpsert {
+func (u *MessageUpsert) SetSenderID(v uuid.UUID) *MessageUpsert {
 	u.Set(message.FieldSenderID, v)
 	return u
 }
@@ -498,7 +527,7 @@ func (u *MessageUpsert) ClearSenderID() *MessageUpsert {
 }
 
 // SetReplyToID sets the "reply_to_id" field.
-func (u *MessageUpsert) SetReplyToID(v int) *MessageUpsert {
+func (u *MessageUpsert) SetReplyToID(v uuid.UUID) *MessageUpsert {
 	u.Set(message.FieldReplyToID, v)
 	return u
 }
@@ -599,17 +628,23 @@ func (u *MessageUpsert) ClearEditedAt() *MessageUpsert {
 	return u
 }
 
-// UpdateNewValues updates the mutable fields using the new values that were set on create.
+// UpdateNewValues updates the mutable fields using the new values that were set on create except the ID field.
 // Using this option is equivalent to using:
 //
 //	client.Message.Create().
 //		OnConflict(
 //			sql.ResolveWithNewValues(),
+//			sql.ResolveWith(func(u *sql.UpdateSet) {
+//				u.SetIgnore(message.FieldID)
+//			}),
 //		).
 //		Exec(ctx)
 func (u *MessageUpsertOne) UpdateNewValues() *MessageUpsertOne {
 	u.create.conflict = append(u.create.conflict, sql.ResolveWithNewValues())
 	u.create.conflict = append(u.create.conflict, sql.ResolveWith(func(s *sql.UpdateSet) {
+		if _, exists := u.create.mutation.ID(); exists {
+			s.SetIgnore(message.FieldID)
+		}
 		if _, exists := u.create.mutation.CreatedAt(); exists {
 			s.SetIgnore(message.FieldCreatedAt)
 		}
@@ -659,7 +694,7 @@ func (u *MessageUpsertOne) UpdateUpdatedAt() *MessageUpsertOne {
 }
 
 // SetChatID sets the "chat_id" field.
-func (u *MessageUpsertOne) SetChatID(v int) *MessageUpsertOne {
+func (u *MessageUpsertOne) SetChatID(v uuid.UUID) *MessageUpsertOne {
 	return u.Update(func(s *MessageUpsert) {
 		s.SetChatID(v)
 	})
@@ -673,7 +708,7 @@ func (u *MessageUpsertOne) UpdateChatID() *MessageUpsertOne {
 }
 
 // SetSenderID sets the "sender_id" field.
-func (u *MessageUpsertOne) SetSenderID(v int) *MessageUpsertOne {
+func (u *MessageUpsertOne) SetSenderID(v uuid.UUID) *MessageUpsertOne {
 	return u.Update(func(s *MessageUpsert) {
 		s.SetSenderID(v)
 	})
@@ -694,7 +729,7 @@ func (u *MessageUpsertOne) ClearSenderID() *MessageUpsertOne {
 }
 
 // SetReplyToID sets the "reply_to_id" field.
-func (u *MessageUpsertOne) SetReplyToID(v int) *MessageUpsertOne {
+func (u *MessageUpsertOne) SetReplyToID(v uuid.UUID) *MessageUpsertOne {
 	return u.Update(func(s *MessageUpsert) {
 		s.SetReplyToID(v)
 	})
@@ -828,7 +863,12 @@ func (u *MessageUpsertOne) ExecX(ctx context.Context) {
 }
 
 // Exec executes the UPSERT query and returns the inserted/updated ID.
-func (u *MessageUpsertOne) ID(ctx context.Context) (id int, err error) {
+func (u *MessageUpsertOne) ID(ctx context.Context) (id uuid.UUID, err error) {
+	if u.create.driver.Dialect() == dialect.MySQL {
+		// In case of "ON CONFLICT", there is no way to get back non-numeric ID
+		// fields from the database since MySQL does not support the RETURNING clause.
+		return id, errors.New("ent: MessageUpsertOne.ID is not supported by MySQL driver. Use MessageUpsertOne.Exec instead")
+	}
 	node, err := u.create.Save(ctx)
 	if err != nil {
 		return id, err
@@ -837,7 +877,7 @@ func (u *MessageUpsertOne) ID(ctx context.Context) (id int, err error) {
 }
 
 // IDX is like ID, but panics if an error occurs.
-func (u *MessageUpsertOne) IDX(ctx context.Context) int {
+func (u *MessageUpsertOne) IDX(ctx context.Context) uuid.UUID {
 	id, err := u.ID(ctx)
 	if err != nil {
 		panic(err)
@@ -892,10 +932,6 @@ func (_c *MessageCreateBulk) Save(ctx context.Context) ([]*Message, error) {
 					return nil, err
 				}
 				mutation.id = &nodes[i].ID
-				if specs[i].ID.Value != nil {
-					id := specs[i].ID.Value.(int64)
-					nodes[i].ID = int(id)
-				}
 				mutation.done = true
 				return nodes[i], nil
 			})
@@ -982,12 +1018,18 @@ type MessageUpsertBulk struct {
 //	client.Message.Create().
 //		OnConflict(
 //			sql.ResolveWithNewValues(),
+//			sql.ResolveWith(func(u *sql.UpdateSet) {
+//				u.SetIgnore(message.FieldID)
+//			}),
 //		).
 //		Exec(ctx)
 func (u *MessageUpsertBulk) UpdateNewValues() *MessageUpsertBulk {
 	u.create.conflict = append(u.create.conflict, sql.ResolveWithNewValues())
 	u.create.conflict = append(u.create.conflict, sql.ResolveWith(func(s *sql.UpdateSet) {
 		for _, b := range u.create.builders {
+			if _, exists := b.mutation.ID(); exists {
+				s.SetIgnore(message.FieldID)
+			}
 			if _, exists := b.mutation.CreatedAt(); exists {
 				s.SetIgnore(message.FieldCreatedAt)
 			}
@@ -1038,7 +1080,7 @@ func (u *MessageUpsertBulk) UpdateUpdatedAt() *MessageUpsertBulk {
 }
 
 // SetChatID sets the "chat_id" field.
-func (u *MessageUpsertBulk) SetChatID(v int) *MessageUpsertBulk {
+func (u *MessageUpsertBulk) SetChatID(v uuid.UUID) *MessageUpsertBulk {
 	return u.Update(func(s *MessageUpsert) {
 		s.SetChatID(v)
 	})
@@ -1052,7 +1094,7 @@ func (u *MessageUpsertBulk) UpdateChatID() *MessageUpsertBulk {
 }
 
 // SetSenderID sets the "sender_id" field.
-func (u *MessageUpsertBulk) SetSenderID(v int) *MessageUpsertBulk {
+func (u *MessageUpsertBulk) SetSenderID(v uuid.UUID) *MessageUpsertBulk {
 	return u.Update(func(s *MessageUpsert) {
 		s.SetSenderID(v)
 	})
@@ -1073,7 +1115,7 @@ func (u *MessageUpsertBulk) ClearSenderID() *MessageUpsertBulk {
 }
 
 // SetReplyToID sets the "reply_to_id" field.
-func (u *MessageUpsertBulk) SetReplyToID(v int) *MessageUpsertBulk {
+func (u *MessageUpsertBulk) SetReplyToID(v uuid.UUID) *MessageUpsertBulk {
 	return u.Update(func(s *MessageUpsert) {
 		s.SetReplyToID(v)
 	})

@@ -5,6 +5,8 @@ import (
 	"AtoiTalkAPI/ent/message"
 	"context"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 type MessageRepository struct {
@@ -17,7 +19,7 @@ func NewMessageRepository(client *ent.Client) *MessageRepository {
 	}
 }
 
-func (r *MessageRepository) GetMessages(ctx context.Context, chatID int, hiddenAt *time.Time, cursor int, limit int) ([]*ent.Message, error) {
+func (r *MessageRepository) GetMessages(ctx context.Context, chatID uuid.UUID, hiddenAt *time.Time, cursor uuid.UUID, limit int) ([]*ent.Message, error) {
 	query := r.client.Message.Query().
 		Where(
 			message.ChatID(chatID),
@@ -38,7 +40,7 @@ func (r *MessageRepository) GetMessages(ctx context.Context, chatID int, hiddenA
 			})
 		})
 
-	if cursor > 0 {
+	if cursor != uuid.Nil {
 		query = query.Where(message.IDLT(cursor))
 	}
 

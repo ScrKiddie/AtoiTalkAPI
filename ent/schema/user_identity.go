@@ -5,6 +5,7 @@ import (
 	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/index"
+	"github.com/google/uuid"
 )
 
 type UserIdentity struct {
@@ -15,7 +16,8 @@ func (UserIdentity) Mixin() []ent.Mixin { return []ent.Mixin{TimeMixin{}} }
 
 func (UserIdentity) Fields() []ent.Field {
 	return []ent.Field{
-		field.Int("user_id"),
+		field.UUID("id", uuid.UUID{}).Default(newUUIDv7),
+		field.UUID("user_id", uuid.UUID{}),
 		field.Enum("provider").Values("google").Default("google"),
 		field.String("provider_id").MaxLen(255).NotEmpty(),
 		field.String("provider_email").MaxLen(255).Optional().Nillable(),

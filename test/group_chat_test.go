@@ -18,6 +18,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -39,8 +40,8 @@ func TestCreateGroupChat(t *testing.T) {
 		_ = writer.WriteField("name", "Test Group 1")
 		_ = writer.WriteField("description", "A group for testing")
 
-		usernamesJSON, _ := json.Marshal([]string{u2.Username, u3.Username})
-		_ = writer.WriteField("member_usernames", string(usernamesJSON))
+		idsJSON, _ := json.Marshal([]string{u2.ID.String(), u3.ID.String()})
+		_ = writer.WriteField("member_ids", string(idsJSON))
 
 		writer.Close()
 
@@ -87,8 +88,8 @@ func TestCreateGroupChat(t *testing.T) {
 		writer := multipart.NewWriter(body)
 		_ = writer.WriteField("name", "Group With Avatar")
 
-		usernamesJSON, _ := json.Marshal([]string{u2.Username})
-		_ = writer.WriteField("member_usernames", string(usernamesJSON))
+		idsJSON, _ := json.Marshal([]string{u2.ID.String()})
+		_ = writer.WriteField("member_ids", string(idsJSON))
 
 		part, _ := writer.CreateFormFile("avatar", "test_avatar.jpg")
 		fileContent := createTestImage(t, 100, 100)
@@ -134,8 +135,8 @@ func TestCreateGroupChat(t *testing.T) {
 		writer := multipart.NewWriter(body)
 		_ = writer.WriteField("name", "Self Group")
 
-		usernamesJSON, _ := json.Marshal([]string{u1.Username})
-		_ = writer.WriteField("member_usernames", string(usernamesJSON))
+		idsJSON, _ := json.Marshal([]string{u1.ID.String()})
+		_ = writer.WriteField("member_ids", string(idsJSON))
 
 		writer.Close()
 
@@ -147,13 +148,13 @@ func TestCreateGroupChat(t *testing.T) {
 		assert.Equal(t, http.StatusBadRequest, rr.Code)
 	})
 
-	t.Run("Fail - Invalid Member Username", func(t *testing.T) {
+	t.Run("Fail - Invalid Member ID", func(t *testing.T) {
 		body := &bytes.Buffer{}
 		writer := multipart.NewWriter(body)
 		_ = writer.WriteField("name", "Ghost Group")
 
-		usernamesJSON, _ := json.Marshal([]string{"ghostuser"})
-		_ = writer.WriteField("member_usernames", string(usernamesJSON))
+		idsJSON, _ := json.Marshal([]string{uuid.New().String()})
+		_ = writer.WriteField("member_ids", string(idsJSON))
 
 		writer.Close()
 
@@ -173,8 +174,8 @@ func TestCreateGroupChat(t *testing.T) {
 		writer := multipart.NewWriter(body)
 		_ = writer.WriteField("name", "Blocked Group")
 
-		usernamesJSON, _ := json.Marshal([]string{u2.Username})
-		_ = writer.WriteField("member_usernames", string(usernamesJSON))
+		idsJSON, _ := json.Marshal([]string{u2.ID.String()})
+		_ = writer.WriteField("member_ids", string(idsJSON))
 
 		writer.Close()
 
@@ -192,8 +193,8 @@ func TestCreateGroupChat(t *testing.T) {
 		body := &bytes.Buffer{}
 		writer := multipart.NewWriter(body)
 
-		usernamesJSON, _ := json.Marshal([]string{u2.Username})
-		_ = writer.WriteField("member_usernames", string(usernamesJSON))
+		idsJSON, _ := json.Marshal([]string{u2.ID.String()})
+		_ = writer.WriteField("member_ids", string(idsJSON))
 
 		writer.Close()
 
@@ -205,11 +206,11 @@ func TestCreateGroupChat(t *testing.T) {
 		assert.Equal(t, http.StatusBadRequest, rr.Code)
 	})
 
-	t.Run("Fail - Invalid JSON in member_usernames", func(t *testing.T) {
+	t.Run("Fail - Invalid JSON in member_ids", func(t *testing.T) {
 		body := &bytes.Buffer{}
 		writer := multipart.NewWriter(body)
 		_ = writer.WriteField("name", "Invalid JSON Group")
-		_ = writer.WriteField("member_usernames", `[1,2,abc]`)
+		_ = writer.WriteField("member_ids", `[1,2,abc]`)
 		writer.Close()
 
 		req, _ := http.NewRequest("POST", "/api/chats/group", body)
@@ -269,7 +270,7 @@ func TestUpdateGroupChat(t *testing.T) {
 		_ = writer.WriteField("name", "New Group Name")
 		writer.Close()
 
-		req, _ := http.NewRequest("PUT", fmt.Sprintf("/api/chats/group/%d", gc.ChatID), body)
+		req, _ := http.NewRequest("PUT", fmt.Sprintf("/api/chats/group/%s", gc.ChatID), body)
 		req.Header.Set("Content-Type", writer.FormDataContentType())
 		req.Header.Set("Authorization", "Bearer "+token1)
 
@@ -297,7 +298,7 @@ func TestUpdateGroupChat(t *testing.T) {
 		_ = writer.WriteField("description", "New Description")
 		writer.Close()
 
-		req, _ := http.NewRequest("PUT", fmt.Sprintf("/api/chats/group/%d", gc.ChatID), body)
+		req, _ := http.NewRequest("PUT", fmt.Sprintf("/api/chats/group/%s", gc.ChatID), body)
 		req.Header.Set("Content-Type", writer.FormDataContentType())
 		req.Header.Set("Authorization", "Bearer "+token1)
 
@@ -316,7 +317,7 @@ func TestUpdateGroupChat(t *testing.T) {
 		_, _ = io.Copy(part, bytes.NewReader(fileContent))
 		writer.Close()
 
-		req, _ := http.NewRequest("PUT", fmt.Sprintf("/api/chats/group/%d", gc.ChatID), body)
+		req, _ := http.NewRequest("PUT", fmt.Sprintf("/api/chats/group/%s", gc.ChatID), body)
 		req.Header.Set("Content-Type", writer.FormDataContentType())
 		req.Header.Set("Authorization", "Bearer "+token1)
 
@@ -337,7 +338,7 @@ func TestUpdateGroupChat(t *testing.T) {
 		_ = writer.WriteField("name", "Hacked Name")
 		writer.Close()
 
-		req, _ := http.NewRequest("PUT", fmt.Sprintf("/api/chats/group/%d", gc.ChatID), body)
+		req, _ := http.NewRequest("PUT", fmt.Sprintf("/api/chats/group/%s", gc.ChatID), body)
 		req.Header.Set("Content-Type", writer.FormDataContentType())
 		req.Header.Set("Authorization", "Bearer "+token3)
 
@@ -351,7 +352,7 @@ func TestUpdateGroupChat(t *testing.T) {
 		_ = writer.WriteField("name", "Hacked Name")
 		writer.Close()
 
-		req, _ := http.NewRequest("PUT", fmt.Sprintf("/api/chats/group/%d", gc.ChatID), body)
+		req, _ := http.NewRequest("PUT", fmt.Sprintf("/api/chats/group/%s", gc.ChatID), body)
 		req.Header.Set("Content-Type", writer.FormDataContentType())
 		req.Header.Set("Authorization", "Bearer "+token4)
 
@@ -365,7 +366,7 @@ func TestUpdateGroupChat(t *testing.T) {
 		_ = writer.WriteField("name", "Hi")
 		writer.Close()
 
-		req, _ := http.NewRequest("PUT", fmt.Sprintf("/api/chats/group/%d", gc.ChatID), body)
+		req, _ := http.NewRequest("PUT", fmt.Sprintf("/api/chats/group/%s", gc.ChatID), body)
 		req.Header.Set("Content-Type", writer.FormDataContentType())
 		req.Header.Set("Authorization", "Bearer "+token1)
 
@@ -391,7 +392,7 @@ func TestSearchGroupMembers(t *testing.T) {
 	testClient.GroupMember.Create().SetGroupChat(gc).SetUser(u3).SetRole(groupmember.RoleMember).SaveX(context.Background())
 
 	t.Run("Success - Get All Members", func(t *testing.T) {
-		req, _ := http.NewRequest("GET", fmt.Sprintf("/api/chats/group/%d/members", chatEntity.ID), nil)
+		req, _ := http.NewRequest("GET", fmt.Sprintf("/api/chats/group/%s/members", chatEntity.ID), nil)
 		req.Header.Set("Authorization", "Bearer "+token1)
 
 		rr := executeRequest(req)
@@ -406,7 +407,7 @@ func TestSearchGroupMembers(t *testing.T) {
 	})
 
 	t.Run("Success - Search by Username", func(t *testing.T) {
-		req, _ := http.NewRequest("GET", fmt.Sprintf("/api/chats/group/%d/members?query=beta", chatEntity.ID), nil)
+		req, _ := http.NewRequest("GET", fmt.Sprintf("/api/chats/group/%s/members?query=beta", chatEntity.ID), nil)
 		req.Header.Set("Authorization", "Bearer "+token1)
 
 		rr := executeRequest(req)
@@ -418,11 +419,12 @@ func TestSearchGroupMembers(t *testing.T) {
 
 		assert.Len(t, dataList, 1)
 		member := dataList[0].(map[string]interface{})
-		assert.Equal(t, "beta", member["username"])
+
+		assert.Equal(t, "Beta User", member["full_name"])
 	})
 
 	t.Run("Success - Search by Full Name", func(t *testing.T) {
-		req, _ := http.NewRequest("GET", fmt.Sprintf("/api/chats/group/%d/members?query=Gamma", chatEntity.ID), nil)
+		req, _ := http.NewRequest("GET", fmt.Sprintf("/api/chats/group/%s/members?query=Gamma", chatEntity.ID), nil)
 		req.Header.Set("Authorization", "Bearer "+token1)
 
 		rr := executeRequest(req)
@@ -439,7 +441,7 @@ func TestSearchGroupMembers(t *testing.T) {
 
 	t.Run("Success - Pagination", func(t *testing.T) {
 
-		req1, _ := http.NewRequest("GET", fmt.Sprintf("/api/chats/group/%d/members?limit=2", chatEntity.ID), nil)
+		req1, _ := http.NewRequest("GET", fmt.Sprintf("/api/chats/group/%s/members?limit=2", chatEntity.ID), nil)
 		req1.Header.Set("Authorization", "Bearer "+token1)
 		rr1 := executeRequest(req1)
 		assert.Equal(t, http.StatusOK, rr1.Code)
@@ -451,7 +453,7 @@ func TestSearchGroupMembers(t *testing.T) {
 		assert.True(t, resp1.Meta.HasNext)
 		assert.NotEmpty(t, resp1.Meta.NextCursor)
 
-		req2, _ := http.NewRequest("GET", fmt.Sprintf("/api/chats/group/%d/members?limit=2&cursor=%s", chatEntity.ID, resp1.Meta.NextCursor), nil)
+		req2, _ := http.NewRequest("GET", fmt.Sprintf("/api/chats/group/%s/members?limit=2&cursor=%s", chatEntity.ID, resp1.Meta.NextCursor), nil)
 		req2.Header.Set("Authorization", "Bearer "+token1)
 		rr2 := executeRequest(req2)
 		assert.Equal(t, http.StatusOK, rr2.Code)
@@ -464,7 +466,7 @@ func TestSearchGroupMembers(t *testing.T) {
 	})
 
 	t.Run("Fail - Not a Member", func(t *testing.T) {
-		req, _ := http.NewRequest("GET", fmt.Sprintf("/api/chats/group/%d/members", chatEntity.ID), nil)
+		req, _ := http.NewRequest("GET", fmt.Sprintf("/api/chats/group/%s/members", chatEntity.ID), nil)
 		req.Header.Set("Authorization", "Bearer "+token4)
 
 		rr := executeRequest(req)
@@ -476,7 +478,7 @@ func TestSearchGroupMembers(t *testing.T) {
 		req.Header.Set("Authorization", "Bearer "+token1)
 
 		rr := executeRequest(req)
-		assert.Equal(t, http.StatusNotFound, rr.Code)
+		assert.Equal(t, http.StatusBadRequest, rr.Code)
 	})
 }
 
@@ -498,9 +500,9 @@ func TestAddGroupMember(t *testing.T) {
 	testClient.GroupMember.Create().SetGroupChat(gc).SetUser(u3).SetRole(groupmember.RoleMember).SaveX(context.Background())
 
 	t.Run("Success - Owner Adds Multiple Members", func(t *testing.T) {
-		reqBody := model.AddGroupMemberRequest{Usernames: []string{u4.Username, u5.Username}}
+		reqBody := model.AddGroupMemberRequest{UserIDs: []uuid.UUID{u4.ID, u5.ID}}
 		body, _ := json.Marshal(reqBody)
-		req, _ := http.NewRequest("POST", fmt.Sprintf("/api/chats/group/%d/members", chatEntity.ID), bytes.NewBuffer(body))
+		req, _ := http.NewRequest("POST", fmt.Sprintf("/api/chats/group/%s/members", chatEntity.ID), bytes.NewBuffer(body))
 		req.Header.Set("Content-Type", "application/json")
 		req.Header.Set("Authorization", "Bearer "+token1)
 
@@ -520,14 +522,15 @@ func TestAddGroupMember(t *testing.T) {
 		assert.Equal(t, message.TypeSystemAdd, sysMsg.Type)
 		assert.Equal(t, u1.ID, *sysMsg.SenderID)
 
-		assert.Equal(t, float64(u5.ID), sysMsg.ActionData["target_id"])
+		assert.Equal(t, u5.ID.String(), sysMsg.ActionData["target_id"])
+		assert.Equal(t, u1.ID.String(), sysMsg.ActionData["actor_id"])
 	})
 
 	t.Run("Fail - Member Tries to Add Member", func(t *testing.T) {
 		u6 := testClient.User.Create().SetEmail("u6@test.com").SetUsername("another").SetFullName("Another User").SaveX(context.Background())
-		reqBody := model.AddGroupMemberRequest{Usernames: []string{u6.Username}}
+		reqBody := model.AddGroupMemberRequest{UserIDs: []uuid.UUID{u6.ID}}
 		body, _ := json.Marshal(reqBody)
-		req, _ := http.NewRequest("POST", fmt.Sprintf("/api/chats/group/%d/members", chatEntity.ID), bytes.NewBuffer(body))
+		req, _ := http.NewRequest("POST", fmt.Sprintf("/api/chats/group/%s/members", chatEntity.ID), bytes.NewBuffer(body))
 		req.Header.Set("Content-Type", "application/json")
 		req.Header.Set("Authorization", "Bearer "+token3)
 
@@ -536,9 +539,9 @@ func TestAddGroupMember(t *testing.T) {
 	})
 
 	t.Run("Fail - Add Existing Member", func(t *testing.T) {
-		reqBody := model.AddGroupMemberRequest{Usernames: []string{u2.Username}}
+		reqBody := model.AddGroupMemberRequest{UserIDs: []uuid.UUID{u2.ID}}
 		body, _ := json.Marshal(reqBody)
-		req, _ := http.NewRequest("POST", fmt.Sprintf("/api/chats/group/%d/members", chatEntity.ID), bytes.NewBuffer(body))
+		req, _ := http.NewRequest("POST", fmt.Sprintf("/api/chats/group/%s/members", chatEntity.ID), bytes.NewBuffer(body))
 		req.Header.Set("Content-Type", "application/json")
 		req.Header.Set("Authorization", "Bearer "+token1)
 
@@ -547,9 +550,9 @@ func TestAddGroupMember(t *testing.T) {
 	})
 
 	t.Run("Fail - Add Non-Existent User", func(t *testing.T) {
-		reqBody := model.AddGroupMemberRequest{Usernames: []string{"ghostuser"}}
+		reqBody := model.AddGroupMemberRequest{UserIDs: []uuid.UUID{uuid.New()}}
 		body, _ := json.Marshal(reqBody)
-		req, _ := http.NewRequest("POST", fmt.Sprintf("/api/chats/group/%d/members", chatEntity.ID), bytes.NewBuffer(body))
+		req, _ := http.NewRequest("POST", fmt.Sprintf("/api/chats/group/%s/members", chatEntity.ID), bytes.NewBuffer(body))
 		req.Header.Set("Content-Type", "application/json")
 		req.Header.Set("Authorization", "Bearer "+token1)
 
@@ -574,7 +577,7 @@ func TestLeaveGroup(t *testing.T) {
 	testClient.GroupMember.Create().SetGroupChat(gc).SetUser(u2).SetRole(groupmember.RoleMember).SaveX(context.Background())
 
 	t.Run("Success - Member Leaves", func(t *testing.T) {
-		req, _ := http.NewRequest("POST", fmt.Sprintf("/api/chats/group/%d/leave", gc.ChatID), nil)
+		req, _ := http.NewRequest("POST", fmt.Sprintf("/api/chats/group/%s/leave", gc.ChatID), nil)
 		req.Header.Set("Authorization", "Bearer "+token2)
 
 		rr := executeRequest(req)
@@ -589,7 +592,7 @@ func TestLeaveGroup(t *testing.T) {
 	})
 
 	t.Run("Fail - Owner Leaves", func(t *testing.T) {
-		req, _ := http.NewRequest("POST", fmt.Sprintf("/api/chats/group/%d/leave", gc.ChatID), nil)
+		req, _ := http.NewRequest("POST", fmt.Sprintf("/api/chats/group/%s/leave", gc.ChatID), nil)
 		req.Header.Set("Authorization", "Bearer "+token1)
 
 		rr := executeRequest(req)
@@ -597,7 +600,7 @@ func TestLeaveGroup(t *testing.T) {
 	})
 
 	t.Run("Fail - Not Member", func(t *testing.T) {
-		req, _ := http.NewRequest("POST", fmt.Sprintf("/api/chats/group/%d/leave", gc.ChatID), nil)
+		req, _ := http.NewRequest("POST", fmt.Sprintf("/api/chats/group/%s/leave", gc.ChatID), nil)
 		req.Header.Set("Authorization", "Bearer "+token3)
 
 		rr := executeRequest(req)
@@ -624,7 +627,7 @@ func TestKickMember(t *testing.T) {
 	testClient.GroupMember.Create().SetGroupChat(gc).SetUser(u3).SetRole(groupmember.RoleMember).SaveX(context.Background())
 
 	t.Run("Success - Owner Kicks Member", func(t *testing.T) {
-		req, _ := http.NewRequest("POST", fmt.Sprintf("/api/chats/group/%d/members/%d/kick", gc.ChatID, u3.ID), nil)
+		req, _ := http.NewRequest("POST", fmt.Sprintf("/api/chats/group/%s/members/%s/kick", gc.ChatID, u3.ID), nil)
 		req.Header.Set("Authorization", "Bearer "+token1)
 
 		rr := executeRequest(req)
@@ -632,13 +635,18 @@ func TestKickMember(t *testing.T) {
 
 		exists, _ := testClient.GroupMember.Query().Where(groupmember.GroupChatID(gc.ID), groupmember.UserID(u3.ID)).Exist(context.Background())
 		assert.False(t, exists)
+
+		lastMsg, _ := testClient.Chat.Query().Where(chat.ID(gc.ChatID)).QueryLastMessage().Only(context.Background())
+		assert.Equal(t, message.TypeSystemKick, lastMsg.Type)
+		assert.Equal(t, u3.ID.String(), lastMsg.ActionData["target_id"])
+		assert.Equal(t, u1.ID.String(), lastMsg.ActionData["actor_id"])
 	})
 
 	t.Run("Success - Admin Kicks Member", func(t *testing.T) {
 
 		testClient.GroupMember.Create().SetGroupChat(gc).SetUser(u3).SetRole(groupmember.RoleMember).SaveX(context.Background())
 
-		req, _ := http.NewRequest("POST", fmt.Sprintf("/api/chats/group/%d/members/%d/kick", gc.ChatID, u3.ID), nil)
+		req, _ := http.NewRequest("POST", fmt.Sprintf("/api/chats/group/%s/members/%s/kick", gc.ChatID, u3.ID), nil)
 		req.Header.Set("Authorization", "Bearer "+token2)
 
 		rr := executeRequest(req)
@@ -652,7 +660,7 @@ func TestKickMember(t *testing.T) {
 
 		testClient.GroupMember.Create().SetGroupChat(gc).SetUser(u3).SetRole(groupmember.RoleAdmin).SaveX(context.Background())
 
-		req, _ := http.NewRequest("POST", fmt.Sprintf("/api/chats/group/%d/members/%d/kick", gc.ChatID, u3.ID), nil)
+		req, _ := http.NewRequest("POST", fmt.Sprintf("/api/chats/group/%s/members/%s/kick", gc.ChatID, u3.ID), nil)
 		req.Header.Set("Authorization", "Bearer "+token2)
 
 		rr := executeRequest(req)
@@ -660,7 +668,7 @@ func TestKickMember(t *testing.T) {
 	})
 
 	t.Run("Fail - Admin Kicks Owner", func(t *testing.T) {
-		req, _ := http.NewRequest("POST", fmt.Sprintf("/api/chats/group/%d/members/%d/kick", gc.ChatID, u1.ID), nil)
+		req, _ := http.NewRequest("POST", fmt.Sprintf("/api/chats/group/%s/members/%s/kick", gc.ChatID, u1.ID), nil)
 		req.Header.Set("Authorization", "Bearer "+token2)
 
 		rr := executeRequest(req)
@@ -673,7 +681,7 @@ func TestKickMember(t *testing.T) {
 
 		testClient.GroupMember.Create().SetGroupChat(gc).SetUser(u4).SetRole(groupmember.RoleMember).SaveX(context.Background())
 
-		req, _ := http.NewRequest("POST", fmt.Sprintf("/api/chats/group/%d/members/%d/kick", gc.ChatID, u4.ID), nil)
+		req, _ := http.NewRequest("POST", fmt.Sprintf("/api/chats/group/%s/members/%s/kick", gc.ChatID, u4.ID), nil)
 		req.Header.Set("Authorization", "Bearer "+token3)
 
 		rr := executeRequest(req)
@@ -681,7 +689,7 @@ func TestKickMember(t *testing.T) {
 	})
 
 	t.Run("Fail - Kick Self", func(t *testing.T) {
-		req, _ := http.NewRequest("POST", fmt.Sprintf("/api/chats/group/%d/members/%d/kick", gc.ChatID, u1.ID), nil)
+		req, _ := http.NewRequest("POST", fmt.Sprintf("/api/chats/group/%s/members/%s/kick", gc.ChatID, u1.ID), nil)
 		req.Header.Set("Authorization", "Bearer "+token1)
 
 		rr := executeRequest(req)
@@ -689,7 +697,7 @@ func TestKickMember(t *testing.T) {
 	})
 
 	t.Run("Fail - Not Member", func(t *testing.T) {
-		req, _ := http.NewRequest("POST", fmt.Sprintf("/api/chats/group/%d/members/%d/kick", gc.ChatID, u2.ID), nil)
+		req, _ := http.NewRequest("POST", fmt.Sprintf("/api/chats/group/%s/members/%s/kick", gc.ChatID, u2.ID), nil)
 		req.Header.Set("Authorization", "Bearer "+token4)
 
 		rr := executeRequest(req)
@@ -715,7 +723,7 @@ func TestUpdateMemberRole(t *testing.T) {
 	t.Run("Success - Promote to Admin", func(t *testing.T) {
 		reqBody := model.UpdateGroupMemberRoleRequest{Role: "admin"}
 		body, _ := json.Marshal(reqBody)
-		req, _ := http.NewRequest("PUT", fmt.Sprintf("/api/chats/group/%d/members/%d/role", gc.ChatID, u2.ID), bytes.NewBuffer(body))
+		req, _ := http.NewRequest("PUT", fmt.Sprintf("/api/chats/group/%s/members/%s/role", gc.ChatID, u2.ID), bytes.NewBuffer(body))
 		req.Header.Set("Content-Type", "application/json")
 		req.Header.Set("Authorization", "Bearer "+token1)
 
@@ -724,12 +732,18 @@ func TestUpdateMemberRole(t *testing.T) {
 
 		member, _ := testClient.GroupMember.Query().Where(groupmember.GroupChatID(gc.ID), groupmember.UserID(u2.ID)).Only(context.Background())
 		assert.Equal(t, groupmember.RoleAdmin, member.Role)
+
+		lastMsg, _ := testClient.Chat.Query().Where(chat.ID(gc.ChatID)).QueryLastMessage().Only(context.Background())
+		assert.Equal(t, message.TypeSystemPromote, lastMsg.Type)
+		assert.Equal(t, u2.ID.String(), lastMsg.ActionData["target_id"])
+		assert.Equal(t, u1.ID.String(), lastMsg.ActionData["actor_id"])
+		assert.Equal(t, "admin", lastMsg.ActionData["new_role"])
 	})
 
 	t.Run("Success - Demote to Member", func(t *testing.T) {
 		reqBody := model.UpdateGroupMemberRoleRequest{Role: "member"}
 		body, _ := json.Marshal(reqBody)
-		req, _ := http.NewRequest("PUT", fmt.Sprintf("/api/chats/group/%d/members/%d/role", gc.ChatID, u3.ID), bytes.NewBuffer(body))
+		req, _ := http.NewRequest("PUT", fmt.Sprintf("/api/chats/group/%s/members/%s/role", gc.ChatID, u3.ID), bytes.NewBuffer(body))
 		req.Header.Set("Content-Type", "application/json")
 		req.Header.Set("Authorization", "Bearer "+token1)
 
@@ -744,7 +758,7 @@ func TestUpdateMemberRole(t *testing.T) {
 
 		reqBody := model.UpdateGroupMemberRoleRequest{Role: "admin"}
 		body, _ := json.Marshal(reqBody)
-		req, _ := http.NewRequest("PUT", fmt.Sprintf("/api/chats/group/%d/members/%d/role", gc.ChatID, u3.ID), bytes.NewBuffer(body))
+		req, _ := http.NewRequest("PUT", fmt.Sprintf("/api/chats/group/%s/members/%s/role", gc.ChatID, u3.ID), bytes.NewBuffer(body))
 		req.Header.Set("Content-Type", "application/json")
 
 		req.Header.Set("Authorization", "Bearer "+token2)
@@ -756,7 +770,7 @@ func TestUpdateMemberRole(t *testing.T) {
 	t.Run("Fail - Promote Self", func(t *testing.T) {
 		reqBody := model.UpdateGroupMemberRoleRequest{Role: "member"}
 		body, _ := json.Marshal(reqBody)
-		req, _ := http.NewRequest("PUT", fmt.Sprintf("/api/chats/group/%d/members/%d/role", gc.ChatID, u1.ID), bytes.NewBuffer(body))
+		req, _ := http.NewRequest("PUT", fmt.Sprintf("/api/chats/group/%s/members/%s/role", gc.ChatID, u1.ID), bytes.NewBuffer(body))
 		req.Header.Set("Content-Type", "application/json")
 		req.Header.Set("Authorization", "Bearer "+token1)
 
@@ -783,7 +797,7 @@ func TestTransferOwnership(t *testing.T) {
 	t.Run("Success - Transfer to Admin", func(t *testing.T) {
 		reqBody := model.TransferGroupOwnershipRequest{NewOwnerID: u2.ID}
 		body, _ := json.Marshal(reqBody)
-		req, _ := http.NewRequest("POST", fmt.Sprintf("/api/chats/group/%d/transfer", gc.ChatID), bytes.NewBuffer(body))
+		req, _ := http.NewRequest("POST", fmt.Sprintf("/api/chats/group/%s/transfer", gc.ChatID), bytes.NewBuffer(body))
 		req.Header.Set("Content-Type", "application/json")
 		req.Header.Set("Authorization", "Bearer "+token1)
 
@@ -795,13 +809,20 @@ func TestTransferOwnership(t *testing.T) {
 
 		assert.Equal(t, groupmember.RoleAdmin, oldOwner.Role)
 		assert.Equal(t, groupmember.RoleOwner, newOwner.Role)
+
+		lastMsg, _ := testClient.Chat.Query().Where(chat.ID(gc.ChatID)).QueryLastMessage().Only(context.Background())
+		assert.Equal(t, message.TypeSystemPromote, lastMsg.Type)
+		assert.Equal(t, u2.ID.String(), lastMsg.ActionData["target_id"])
+		assert.Equal(t, u1.ID.String(), lastMsg.ActionData["actor_id"])
+		assert.Equal(t, "owner", lastMsg.ActionData["new_role"])
+		assert.Equal(t, "ownership_transferred", lastMsg.ActionData["action"])
 	})
 
 	t.Run("Fail - Not Owner", func(t *testing.T) {
 
 		reqBody := model.TransferGroupOwnershipRequest{NewOwnerID: u3.ID}
 		body, _ := json.Marshal(reqBody)
-		req, _ := http.NewRequest("POST", fmt.Sprintf("/api/chats/group/%d/transfer", gc.ChatID), bytes.NewBuffer(body))
+		req, _ := http.NewRequest("POST", fmt.Sprintf("/api/chats/group/%s/transfer", gc.ChatID), bytes.NewBuffer(body))
 		req.Header.Set("Content-Type", "application/json")
 		req.Header.Set("Authorization", "Bearer "+token1)
 
@@ -813,7 +834,7 @@ func TestTransferOwnership(t *testing.T) {
 
 		reqBody := model.TransferGroupOwnershipRequest{NewOwnerID: u2.ID}
 		body, _ := json.Marshal(reqBody)
-		req, _ := http.NewRequest("POST", fmt.Sprintf("/api/chats/group/%d/transfer", gc.ChatID), bytes.NewBuffer(body))
+		req, _ := http.NewRequest("POST", fmt.Sprintf("/api/chats/group/%s/transfer", gc.ChatID), bytes.NewBuffer(body))
 		req.Header.Set("Content-Type", "application/json")
 		req.Header.Set("Authorization", "Bearer "+token2)
 

@@ -8,6 +8,7 @@ import (
 	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/index"
+	"github.com/google/uuid"
 )
 
 type PrivateChat struct {
@@ -16,9 +17,10 @@ type PrivateChat struct {
 
 func (PrivateChat) Fields() []ent.Field {
 	return []ent.Field{
-		field.Int("chat_id").Unique(),
-		field.Int("user1_id"),
-		field.Int("user2_id"),
+		field.UUID("id", uuid.UUID{}).Default(newUUIDv7),
+		field.UUID("chat_id", uuid.UUID{}).Unique(),
+		field.UUID("user1_id", uuid.UUID{}),
+		field.UUID("user2_id", uuid.UUID{}),
 		field.Time("user1_last_read_at").Optional().Nillable(),
 		field.Time("user2_last_read_at").Optional().Nillable(),
 		field.Time("user1_hidden_at").Optional().Nillable(),
@@ -35,8 +37,8 @@ func (PrivateChat) Hooks() []ent.Hook {
 				if m.Op().Is(ent.OpCreate) {
 					v1, _ := m.Field("user1_id")
 					v2, _ := m.Field("user2_id")
-					id1, id2 := v1.(int), v2.(int)
-					if id1 > id2 {
+					id1, id2 := v1.(uuid.UUID), v2.(uuid.UUID)
+					if id1.String() > id2.String() {
 						m.SetField("user1_id", id2)
 						m.SetField("user2_id", id1)
 					}
@@ -61,5 +63,6 @@ func (PrivateChat) Edges() []ent.Edge {
 func (PrivateChat) Indexes() []ent.Index {
 	return []ent.Index{
 		index.Fields("user1_id", "user2_id").Unique().StorageKey("unique_user_pair"),
+		index.Fields("user2_id"),
 	}
 }

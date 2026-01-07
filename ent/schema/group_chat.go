@@ -5,6 +5,7 @@ import (
 	"entgo.io/ent/dialect/entsql"
 	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
+	"github.com/google/uuid"
 )
 
 type GroupChat struct {
@@ -13,11 +14,12 @@ type GroupChat struct {
 
 func (GroupChat) Fields() []ent.Field {
 	return []ent.Field{
-		field.Int("chat_id").Unique(),
-		field.Int("created_by").Optional().Nillable(),
+		field.UUID("id", uuid.UUID{}).Default(newUUIDv7),
+		field.UUID("chat_id", uuid.UUID{}).Unique(),
+		field.UUID("created_by", uuid.UUID{}).Optional().Nillable(),
 		field.String("name").MaxLen(100).NotEmpty(),
 		field.Text("description").Optional().Nillable(),
-		field.Int("avatar_id").Optional().Nillable(),
+		field.UUID("avatar_id", uuid.UUID{}).Optional().Nillable(),
 	}
 }
 

@@ -8,65 +8,66 @@ import (
 
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
+	"github.com/google/uuid"
 )
 
 // ID filters vertices based on their ID field.
-func ID(id int) predicate.PrivateChat {
+func ID(id uuid.UUID) predicate.PrivateChat {
 	return predicate.PrivateChat(sql.FieldEQ(FieldID, id))
 }
 
 // IDEQ applies the EQ predicate on the ID field.
-func IDEQ(id int) predicate.PrivateChat {
+func IDEQ(id uuid.UUID) predicate.PrivateChat {
 	return predicate.PrivateChat(sql.FieldEQ(FieldID, id))
 }
 
 // IDNEQ applies the NEQ predicate on the ID field.
-func IDNEQ(id int) predicate.PrivateChat {
+func IDNEQ(id uuid.UUID) predicate.PrivateChat {
 	return predicate.PrivateChat(sql.FieldNEQ(FieldID, id))
 }
 
 // IDIn applies the In predicate on the ID field.
-func IDIn(ids ...int) predicate.PrivateChat {
+func IDIn(ids ...uuid.UUID) predicate.PrivateChat {
 	return predicate.PrivateChat(sql.FieldIn(FieldID, ids...))
 }
 
 // IDNotIn applies the NotIn predicate on the ID field.
-func IDNotIn(ids ...int) predicate.PrivateChat {
+func IDNotIn(ids ...uuid.UUID) predicate.PrivateChat {
 	return predicate.PrivateChat(sql.FieldNotIn(FieldID, ids...))
 }
 
 // IDGT applies the GT predicate on the ID field.
-func IDGT(id int) predicate.PrivateChat {
+func IDGT(id uuid.UUID) predicate.PrivateChat {
 	return predicate.PrivateChat(sql.FieldGT(FieldID, id))
 }
 
 // IDGTE applies the GTE predicate on the ID field.
-func IDGTE(id int) predicate.PrivateChat {
+func IDGTE(id uuid.UUID) predicate.PrivateChat {
 	return predicate.PrivateChat(sql.FieldGTE(FieldID, id))
 }
 
 // IDLT applies the LT predicate on the ID field.
-func IDLT(id int) predicate.PrivateChat {
+func IDLT(id uuid.UUID) predicate.PrivateChat {
 	return predicate.PrivateChat(sql.FieldLT(FieldID, id))
 }
 
 // IDLTE applies the LTE predicate on the ID field.
-func IDLTE(id int) predicate.PrivateChat {
+func IDLTE(id uuid.UUID) predicate.PrivateChat {
 	return predicate.PrivateChat(sql.FieldLTE(FieldID, id))
 }
 
 // ChatID applies equality check predicate on the "chat_id" field. It's identical to ChatIDEQ.
-func ChatID(v int) predicate.PrivateChat {
+func ChatID(v uuid.UUID) predicate.PrivateChat {
 	return predicate.PrivateChat(sql.FieldEQ(FieldChatID, v))
 }
 
 // User1ID applies equality check predicate on the "user1_id" field. It's identical to User1IDEQ.
-func User1ID(v int) predicate.PrivateChat {
+func User1ID(v uuid.UUID) predicate.PrivateChat {
 	return predicate.PrivateChat(sql.FieldEQ(FieldUser1ID, v))
 }
 
 // User2ID applies equality check predicate on the "user2_id" field. It's identical to User2IDEQ.
-func User2ID(v int) predicate.PrivateChat {
+func User2ID(v uuid.UUID) predicate.PrivateChat {
 	return predicate.PrivateChat(sql.FieldEQ(FieldUser2ID, v))
 }
 
@@ -101,62 +102,62 @@ func User2UnreadCount(v int) predicate.PrivateChat {
 }
 
 // ChatIDEQ applies the EQ predicate on the "chat_id" field.
-func ChatIDEQ(v int) predicate.PrivateChat {
+func ChatIDEQ(v uuid.UUID) predicate.PrivateChat {
 	return predicate.PrivateChat(sql.FieldEQ(FieldChatID, v))
 }
 
 // ChatIDNEQ applies the NEQ predicate on the "chat_id" field.
-func ChatIDNEQ(v int) predicate.PrivateChat {
+func ChatIDNEQ(v uuid.UUID) predicate.PrivateChat {
 	return predicate.PrivateChat(sql.FieldNEQ(FieldChatID, v))
 }
 
 // ChatIDIn applies the In predicate on the "chat_id" field.
-func ChatIDIn(vs ...int) predicate.PrivateChat {
+func ChatIDIn(vs ...uuid.UUID) predicate.PrivateChat {
 	return predicate.PrivateChat(sql.FieldIn(FieldChatID, vs...))
 }
 
 // ChatIDNotIn applies the NotIn predicate on the "chat_id" field.
-func ChatIDNotIn(vs ...int) predicate.PrivateChat {
+func ChatIDNotIn(vs ...uuid.UUID) predicate.PrivateChat {
 	return predicate.PrivateChat(sql.FieldNotIn(FieldChatID, vs...))
 }
 
 // User1IDEQ applies the EQ predicate on the "user1_id" field.
-func User1IDEQ(v int) predicate.PrivateChat {
+func User1IDEQ(v uuid.UUID) predicate.PrivateChat {
 	return predicate.PrivateChat(sql.FieldEQ(FieldUser1ID, v))
 }
 
 // User1IDNEQ applies the NEQ predicate on the "user1_id" field.
-func User1IDNEQ(v int) predicate.PrivateChat {
+func User1IDNEQ(v uuid.UUID) predicate.PrivateChat {
 	return predicate.PrivateChat(sql.FieldNEQ(FieldUser1ID, v))
 }
 
 // User1IDIn applies the In predicate on the "user1_id" field.
-func User1IDIn(vs ...int) predicate.PrivateChat {
+func User1IDIn(vs ...uuid.UUID) predicate.PrivateChat {
 	return predicate.PrivateChat(sql.FieldIn(FieldUser1ID, vs...))
 }
 
 // User1IDNotIn applies the NotIn predicate on the "user1_id" field.
-func User1IDNotIn(vs ...int) predicate.PrivateChat {
+func User1IDNotIn(vs ...uuid.UUID) predicate.PrivateChat {
 	return predicate.PrivateChat(sql.FieldNotIn(FieldUser1ID, vs...))
 }
 
 // User2IDEQ applies the EQ predicate on the "user2_id" field.
-func User2IDEQ(v int) predicate.PrivateChat {
+func User2IDEQ(v uuid.UUID) predicate.PrivateChat {
 	return predicate.PrivateChat(sql.FieldEQ(FieldUser2ID, v))
 }
 
 // User2IDNEQ applies the NEQ predicate on the "user2_id" field.
-func User2IDNEQ(v int) predicate.PrivateChat {
+func User2IDNEQ(v uuid.UUID) predicate.PrivateChat {
 	return predicate.PrivateChat(sql.FieldNEQ(FieldUser2ID, v))
 }
 
 // User2IDIn applies the In predicate on the "user2_id" field.
-func User2IDIn(vs ...int) predicate.PrivateChat {
+func User2IDIn(vs ...uuid.UUID) predicate.PrivateChat {
 	return predicate.PrivateChat(sql.FieldIn(FieldUser2ID, vs...))
 }
 
 // User2IDNotIn applies the NotIn predicate on the "user2_id" field.
-func User2IDNotIn(vs ...int) predicate.PrivateChat {
+func User2IDNotIn(vs ...uuid.UUID) predicate.PrivateChat {
 	return predicate.PrivateChat(sql.FieldNotIn(FieldUser2ID, vs...))
 }
 

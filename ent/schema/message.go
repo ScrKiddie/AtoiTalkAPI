@@ -6,6 +6,7 @@ import (
 	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/index"
+	"github.com/google/uuid"
 )
 
 type Message struct {
@@ -16,9 +17,10 @@ func (Message) Mixin() []ent.Mixin { return []ent.Mixin{TimeMixin{}} }
 
 func (Message) Fields() []ent.Field {
 	return []ent.Field{
-		field.Int("chat_id"),
-		field.Int("sender_id").Optional().Nillable(),
-		field.Int("reply_to_id").Optional().Nillable(),
+		field.UUID("id", uuid.UUID{}).Default(newUUIDv7),
+		field.UUID("chat_id", uuid.UUID{}),
+		field.UUID("sender_id", uuid.UUID{}).Optional().Nillable(),
+		field.UUID("reply_to_id", uuid.UUID{}).Optional().Nillable(),
 		field.Enum("type").
 			Values(
 				"regular",

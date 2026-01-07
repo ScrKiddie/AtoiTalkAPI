@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"entgo.io/ent/dialect/sql"
+	"github.com/google/uuid"
 )
 
 type ChatRepository struct {
@@ -27,7 +28,7 @@ func NewChatRepository(client *ent.Client) *ChatRepository {
 	}
 }
 
-func (r *ChatRepository) GetChatByID(ctx context.Context, userID, chatID int) (*ent.Chat, error) {
+func (r *ChatRepository) GetChatByID(ctx context.Context, userID, chatID uuid.UUID) (*ent.Chat, error) {
 	return r.client.Chat.Query().
 		Where(
 			chat.ID(chatID),
@@ -54,7 +55,7 @@ func (r *ChatRepository) GetChatByID(ctx context.Context, userID, chatID int) (*
 		Only(ctx)
 }
 
-func (r *ChatRepository) GetChats(ctx context.Context, userID int, queryStr string, cursor string, limit int) ([]*ent.Chat, string, bool, error) {
+func (r *ChatRepository) GetChats(ctx context.Context, userID uuid.UUID, queryStr string, cursor string, limit int) ([]*ent.Chat, string, bool, error) {
 	query := r.client.Chat.Query().
 		Where(
 			chat.Or(
@@ -123,14 +124,14 @@ func (r *ChatRepository) GetChats(ctx context.Context, userID int, queryStr stri
 			parts := strings.Split(string(decodedBytes), ",")
 			if len(parts) == 2 {
 				cursorTimeMicro, err1 := strconv.ParseInt(parts[0], 10, 64)
-				cursorID, err2 := strconv.Atoi(parts[1])
+				cursorID, err2 := uuid.Parse(parts[1])
 				if err1 == nil && err2 == nil {
 					cursorTime := time.UnixMicro(cursorTimeMicro)
 					query = query.Where(
 						chat.Or(
-							chat.UpdatedAtLT(cursorTime),
+							chat.LastMessageAtLT(cursorTime),
 							chat.And(
-								chat.UpdatedAtEQ(cursorTime),
+								chat.LastMessageAtEQ(cursorTime),
 								chat.IDLT(cursorID),
 							),
 						),
@@ -143,7 +144,7 @@ func (r *ChatRepository) GetChats(ctx context.Context, userID int, queryStr stri
 	fetchLimit := limit
 
 	chats, err := query.
-		Order(ent.Desc(chat.FieldUpdatedAt), ent.Desc(chat.FieldID)).
+		Order(ent.Desc(chat.FieldLastMessageAt), ent.Desc(chat.FieldID)).
 		Limit(fetchLimit + 1).
 		WithPrivateChat(func(q *ent.PrivateChatQuery) {
 			q.WithUser1(func(uq *ent.UserQuery) { uq.WithAvatar() })
@@ -172,7 +173,16 @@ func (r *ChatRepository) GetChats(ctx context.Context, userID int, queryStr stri
 		hasNext = true
 		chats = chats[:limit]
 		lastChat := chats[len(chats)-1]
-		cursorString := fmt.Sprintf("%d,%d", lastChat.UpdatedAt.UnixMicro(), lastChat.ID)
+
+		var cursorTime int64
+		if lastChat.LastMessageAt != nil {
+			cursorTime = lastChat.LastMessageAt.UnixMicro()
+		} else {
+
+			cursorTime = 0
+		}
+
+		cursorString := fmt.Sprintf("%d,%s", cursorTime, lastChat.ID.String())
 		nextCursor = base64.URLEncoding.EncodeToString([]byte(cursorString))
 	}
 

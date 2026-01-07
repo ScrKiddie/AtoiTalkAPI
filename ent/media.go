@@ -13,13 +13,14 @@ import (
 
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
+	"github.com/google/uuid"
 )
 
 // Media is the model entity for the Media schema.
 type Media struct {
 	config `json:"-"`
 	// ID of the ent.
-	ID int `json:"id,omitempty"`
+	ID uuid.UUID `json:"id,omitempty"`
 	// CreatedAt holds the value of the "created_at" field.
 	CreatedAt time.Time `json:"created_at,omitempty"`
 	// UpdatedAt holds the value of the "updated_at" field.
@@ -35,9 +36,9 @@ type Media struct {
 	// Status holds the value of the "status" field.
 	Status media.Status `json:"status,omitempty"`
 	// MessageID holds the value of the "message_id" field.
-	MessageID *int `json:"message_id,omitempty"`
+	MessageID *uuid.UUID `json:"message_id,omitempty"`
 	// UploadedByID holds the value of the "uploaded_by_id" field.
-	UploadedByID int `json:"uploaded_by_id,omitempty"`
+	UploadedByID uuid.UUID `json:"uploaded_by_id,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the MediaQuery when eager-loading is set.
 	Edges        MediaEdges `json:"edges"`
@@ -108,12 +109,16 @@ func (*Media) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case media.FieldID, media.FieldFileSize, media.FieldMessageID, media.FieldUploadedByID:
+		case media.FieldMessageID:
+			values[i] = &sql.NullScanner{S: new(uuid.UUID)}
+		case media.FieldFileSize:
 			values[i] = new(sql.NullInt64)
 		case media.FieldFileName, media.FieldOriginalName, media.FieldMimeType, media.FieldStatus:
 			values[i] = new(sql.NullString)
 		case media.FieldCreatedAt, media.FieldUpdatedAt:
 			values[i] = new(sql.NullTime)
+		case media.FieldID, media.FieldUploadedByID:
+			values[i] = new(uuid.UUID)
 		default:
 			values[i] = new(sql.UnknownType)
 		}
@@ -130,11 +135,11 @@ func (_m *Media) assignValues(columns []string, values []any) error {
 	for i := range columns {
 		switch columns[i] {
 		case media.FieldID:
-			value, ok := values[i].(*sql.NullInt64)
-			if !ok {
-				return fmt.Errorf("unexpected type %T for field id", value)
+			if value, ok := values[i].(*uuid.UUID); !ok {
+				return fmt.Errorf("unexpected type %T for field id", values[i])
+			} else if value != nil {
+				_m.ID = *value
 			}
-			_m.ID = int(value.Int64)
 		case media.FieldCreatedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field created_at", values[i])
@@ -178,17 +183,17 @@ func (_m *Media) assignValues(columns []string, values []any) error {
 				_m.Status = media.Status(value.String)
 			}
 		case media.FieldMessageID:
-			if value, ok := values[i].(*sql.NullInt64); !ok {
+			if value, ok := values[i].(*sql.NullScanner); !ok {
 				return fmt.Errorf("unexpected type %T for field message_id", values[i])
 			} else if value.Valid {
-				_m.MessageID = new(int)
-				*_m.MessageID = int(value.Int64)
+				_m.MessageID = new(uuid.UUID)
+				*_m.MessageID = *value.S.(*uuid.UUID)
 			}
 		case media.FieldUploadedByID:
-			if value, ok := values[i].(*sql.NullInt64); !ok {
+			if value, ok := values[i].(*uuid.UUID); !ok {
 				return fmt.Errorf("unexpected type %T for field uploaded_by_id", values[i])
-			} else if value.Valid {
-				_m.UploadedByID = int(value.Int64)
+			} else if value != nil {
+				_m.UploadedByID = *value
 			}
 		default:
 			_m.selectValues.Set(columns[i], values[i])

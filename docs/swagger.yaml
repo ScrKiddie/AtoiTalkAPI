@@ -23,13 +23,13 @@ definitions:
     type: object
   model.AddGroupMemberRequest:
     properties:
-      usernames:
+      user_ids:
         items:
           type: string
         minItems: 1
         type: array
     required:
-    - usernames
+    - user_ids
     type: object
   model.AuthResponse:
     properties:
@@ -67,7 +67,7 @@ definitions:
       avatar:
         type: string
       id:
-        type: integer
+        type: string
       is_blocked_by_me:
         type: boolean
       is_online:
@@ -83,8 +83,6 @@ definitions:
       other_last_read_at:
         type: string
       other_user_id:
-        type: integer
-      other_username:
         type: string
       type:
         type: string
@@ -96,24 +94,22 @@ definitions:
       created_at:
         type: string
       id:
-        type: integer
+        type: string
       type:
         type: string
     type: object
   model.CreatePrivateChatRequest:
     properties:
-      username:
-        maxLength: 50
-        minLength: 3
+      target_user_id:
         type: string
     required:
-    - username
+    - target_user_id
     type: object
   model.EditMessageRequest:
     properties:
       attachment_ids:
         items:
-          type: integer
+          type: string
         type: array
       content:
         type: string
@@ -132,7 +128,7 @@ definitions:
       full_name:
         type: string
       id:
-        type: integer
+        type: string
       is_online:
         type: boolean
       joined_at:
@@ -140,8 +136,6 @@ definitions:
       role:
         type: string
       user_id:
-        type: integer
-      username:
         type: string
     type: object
   model.LoginRequest:
@@ -166,7 +160,7 @@ definitions:
       file_size:
         type: integer
       id:
-        type: integer
+        type: string
       mime_type:
         type: string
       original_name:
@@ -178,13 +172,29 @@ definitions:
     properties:
       action_data:
         additionalProperties: true
+        description: |-
+          ActionData contains metadata for system messages.
+
+          Structure depends on Type:
+          - system_create: { "initial_name": string }
+          - system_rename: { "old_name": string, "new_name": string }
+          - system_description: { "old_description": string, "new_description": string }
+          - system_avatar: { "action": "updated" }
+          - system_add: { "target_id": uuid, "actor_id": uuid }
+          - system_kick: { "target_id": uuid, "actor_id": uuid }
+          - system_promote: { "target_id": uuid, "actor_id": uuid, "new_role": string }
+          - system_demote: { "target_id": uuid, "actor_id": uuid, "new_role": string }
+          - system_transfer: { "target_id": uuid, "actor_id": uuid, "new_role": "owner", "action": "ownership_transferred" }
+          - system_leave: (empty, relies on sender_id)
+
+          Note: "target_name" and "actor_name" are injected dynamically by the backend for display convenience.
         type: object
       attachments:
         items:
           $ref: '#/definitions/model.MediaDTO'
         type: array
       chat_id:
-        type: integer
+        type: string
       content:
         type: string
       created_at:
@@ -194,14 +204,12 @@ definitions:
       edited_at:
         type: string
       id:
-        type: integer
+        type: string
       reply_to:
         $ref: '#/definitions/model.ReplyPreviewDTO'
       sender_id:
-        type: integer
-      sender_name:
         type: string
-      sender_username:
+      sender_name:
         type: string
       type:
         type: string
@@ -244,7 +252,7 @@ definitions:
       deleted_at:
         type: string
       id:
-        type: integer
+        type: string
       sender_name:
         type: string
       type:
@@ -275,14 +283,14 @@ definitions:
     properties:
       attachment_ids:
         items:
-          type: integer
+          type: string
         type: array
       chat_id:
-        type: integer
+        type: string
       content:
         type: string
       reply_to_id:
-        type: integer
+        type: string
     required:
     - chat_id
     type: object
@@ -302,7 +310,7 @@ definitions:
   model.TransferGroupOwnershipRequest:
     properties:
       new_owner_id:
-        type: integer
+        type: string
     required:
     - new_owner_id
     type: object
@@ -329,7 +337,7 @@ definitions:
       has_password:
         type: boolean
       id:
-        type: integer
+        type: string
       is_blocked_by_me:
         type: boolean
       is_blocked_by_other:
@@ -339,7 +347,7 @@ definitions:
       last_seen_at:
         type: string
       private_chat_id:
-        type: integer
+        type: string
       username:
         type: string
     type: object
@@ -629,11 +637,11 @@ paths:
       - application/json
       description: Get a paginated list of messages from a chat.
       parameters:
-      - description: Chat ID
+      - description: Chat ID (UUID)
         in: path
         name: chatID
         required: true
-        type: integer
+        type: string
       - description: Pagination cursor (Base64 encoded message ID)
         in: query
         name: cursor
@@ -683,11 +691,11 @@ paths:
       - application/json
       description: Get detailed information about a single chat.
       parameters:
-      - description: Chat ID
+      - description: Chat ID (UUID)
         in: path
         name: id
         required: true
-        type: integer
+        type: string
       produces:
       - application/json
       responses:
@@ -728,11 +736,11 @@ paths:
       description: Hide a private chat from the chat list. It will reappear if a new
         message is sent or received.
       parameters:
-      - description: Chat ID
+      - description: Chat ID (UUID)
         in: path
         name: id
         required: true
-        type: integer
+        type: string
       produces:
       - application/json
       responses:
@@ -767,11 +775,11 @@ paths:
       - application/json
       description: Mark all messages in a chat as read for the current user.
       parameters:
-      - description: Chat ID
+      - description: Chat ID (UUID)
         in: path
         name: id
         required: true
-        type: integer
+        type: string
       produces:
       - application/json
       responses:
@@ -815,9 +823,9 @@ paths:
         in: formData
         name: description
         type: string
-      - description: JSON Array of Member Usernames (e.g. [\
+      - description: JSON Array of Member IDs (UUIDs)
         in: formData
-        name: member_usernames
+        name: member_ids
         required: true
         type: string
       - description: Group Avatar Image
@@ -864,11 +872,11 @@ paths:
       description: Update group name, description, or avatar. Only owners or admins
         can perform this action.
       parameters:
-      - description: Group Chat ID
+      - description: Group Chat ID (UUID)
         in: path
         name: groupID
         required: true
-        type: integer
+        type: string
       - description: Group Name
         in: formData
         name: name
@@ -925,11 +933,11 @@ paths:
       description: Leave a group chat. Owner cannot leave without transferring ownership
         first.
       parameters:
-      - description: Group Chat ID
+      - description: Group Chat ID (UUID)
         in: path
         name: groupID
         required: true
-        type: integer
+        type: string
       produces:
       - application/json
       responses:
@@ -964,11 +972,11 @@ paths:
       - application/json
       description: Search for members in a group chat by username or full name.
       parameters:
-      - description: Group Chat ID
+      - description: Group Chat ID (UUID)
         in: path
         name: groupID
         required: true
-        type: integer
+        type: string
       - description: Search query
         in: query
         name: query
@@ -1026,11 +1034,11 @@ paths:
       description: Add new members to a group chat. Only owners or admins can perform
         this action.
       parameters:
-      - description: Group Chat ID
+      - description: Group Chat ID (UUID)
         in: path
         name: groupID
         required: true
-        type: integer
+        type: string
       - description: Add Member Request
         in: body
         name: request
@@ -1080,16 +1088,16 @@ paths:
       description: Kick a member from a group chat. Only owners or admins can perform
         this action.
       parameters:
-      - description: Group Chat ID
+      - description: Group Chat ID (UUID)
         in: path
         name: groupID
         required: true
-        type: integer
-      - description: Target User ID
+        type: string
+      - description: Target User ID (UUID)
         in: path
         name: userID
         required: true
-        type: integer
+        type: string
       produces:
       - application/json
       responses:
@@ -1128,16 +1136,16 @@ paths:
       - application/json
       description: Promote or demote a group member. Only owner can perform this action.
       parameters:
-      - description: Group Chat ID
+      - description: Group Chat ID (UUID)
         in: path
         name: groupID
         required: true
-        type: integer
-      - description: Target User ID
+        type: string
+      - description: Target User ID (UUID)
         in: path
         name: userID
         required: true
-        type: integer
+        type: string
       - description: Update Role Request
         in: body
         name: request
@@ -1183,11 +1191,11 @@ paths:
       description: Transfer group ownership to another member. Only owner can perform
         this action.
       parameters:
-      - description: Group Chat ID
+      - description: Group Chat ID (UUID)
         in: path
         name: groupID
         required: true
-        type: integer
+        type: string
       - description: Transfer Ownership Request
         in: body
         name: request
@@ -1364,11 +1372,11 @@ paths:
       - application/json
       description: Soft delete a message. Only the sender can delete their own message.
       parameters:
-      - description: Message ID
+      - description: Message ID (UUID)
         in: path
         name: messageID
         required: true
-        type: integer
+        type: string
       produces:
       - application/json
       responses:
@@ -1406,11 +1414,11 @@ paths:
       - application/json
       description: Edit a message's content and/or attachments.
       parameters:
-      - description: Message ID
+      - description: Message ID (UUID)
         in: path
         name: messageID
         required: true
-        type: integer
+        type: string
       - description: Edit Message Request
         in: body
         name: request
@@ -1640,15 +1648,15 @@ paths:
       summary: Search Users
       tags:
       - user
-  /api/users/{username}:
+  /api/users/{id}:
     get:
       consumes:
       - application/json
-      description: Get another user's profile by Username.
+      description: Get another user's profile by ID.
       parameters:
-      - description: Username
+      - description: User ID (UUID)
         in: path
-        name: username
+        name: id
         required: true
         type: string
       produces:
@@ -1684,15 +1692,15 @@ paths:
       summary: Get User Profile
       tags:
       - user
-  /api/users/{username}/block:
+  /api/users/{id}/block:
     post:
       consumes:
       - application/json
-      description: Block a user by their Username.
+      description: Block a user by their ID.
       parameters:
-      - description: Username to block
+      - description: User ID to block (UUID)
         in: path
-        name: username
+        name: id
         required: true
         type: string
       produces:
@@ -1723,15 +1731,15 @@ paths:
       summary: Block a User
       tags:
       - user
-  /api/users/{username}/unblock:
+  /api/users/{id}/unblock:
     post:
       consumes:
       - application/json
-      description: Unblock a user by their Username.
+      description: Unblock a user by their ID.
       parameters:
-      - description: Username to unblock
+      - description: User ID to unblock (UUID)
         in: path
-        name: username
+        name: id
         required: true
         type: string
       produces:

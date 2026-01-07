@@ -5,6 +5,8 @@ import (
 	"AtoiTalkAPI/ent/chat"
 	"AtoiTalkAPI/internal/model"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 type BlockStatus struct {
@@ -12,14 +14,13 @@ type BlockStatus struct {
 	BlockedByOther bool
 }
 
-func MapChatToResponse(userID int, c *ent.Chat, blockedMap map[int]BlockStatus, storageMode, appURL, cdnURL, storageProfile, storageAttachment string) *model.ChatListResponse {
+func MapChatToResponse(userID uuid.UUID, c *ent.Chat, blockedMap map[uuid.UUID]BlockStatus, storageMode, appURL, cdnURL, storageProfile, storageAttachment string) *model.ChatListResponse {
 	var name, avatar string
 	var lastReadAt *string
 	var otherLastReadAt *string
 	var unreadCount int
 	var isOnline bool
-	var otherUserID *int
-	var otherUsername *string
+	var otherUserID *uuid.UUID
 	var isBlockedByMe bool
 	var myRole *string
 
@@ -43,7 +44,6 @@ func MapChatToResponse(userID int, c *ent.Chat, blockedMap map[int]BlockStatus, 
 
 		if otherUser != nil {
 			otherUserID = &otherUser.ID
-			otherUsername = &otherUser.Username
 			name = otherUser.FullName
 
 			status := blockedMap[otherUser.ID]
@@ -105,7 +105,6 @@ func MapChatToResponse(userID int, c *ent.Chat, blockedMap map[int]BlockStatus, 
 		OtherLastReadAt: otherLastReadAt,
 		IsOnline:        isOnline,
 		OtherUserID:     otherUserID,
-		OtherUsername:   otherUsername,
 		IsBlockedByMe:   isBlockedByMe,
 		MyRole:          myRole,
 	}

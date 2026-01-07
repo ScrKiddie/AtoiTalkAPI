@@ -8,50 +8,51 @@ import (
 
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
+	"github.com/google/uuid"
 )
 
 // ID filters vertices based on their ID field.
-func ID(id int) predicate.Media {
+func ID(id uuid.UUID) predicate.Media {
 	return predicate.Media(sql.FieldEQ(FieldID, id))
 }
 
 // IDEQ applies the EQ predicate on the ID field.
-func IDEQ(id int) predicate.Media {
+func IDEQ(id uuid.UUID) predicate.Media {
 	return predicate.Media(sql.FieldEQ(FieldID, id))
 }
 
 // IDNEQ applies the NEQ predicate on the ID field.
-func IDNEQ(id int) predicate.Media {
+func IDNEQ(id uuid.UUID) predicate.Media {
 	return predicate.Media(sql.FieldNEQ(FieldID, id))
 }
 
 // IDIn applies the In predicate on the ID field.
-func IDIn(ids ...int) predicate.Media {
+func IDIn(ids ...uuid.UUID) predicate.Media {
 	return predicate.Media(sql.FieldIn(FieldID, ids...))
 }
 
 // IDNotIn applies the NotIn predicate on the ID field.
-func IDNotIn(ids ...int) predicate.Media {
+func IDNotIn(ids ...uuid.UUID) predicate.Media {
 	return predicate.Media(sql.FieldNotIn(FieldID, ids...))
 }
 
 // IDGT applies the GT predicate on the ID field.
-func IDGT(id int) predicate.Media {
+func IDGT(id uuid.UUID) predicate.Media {
 	return predicate.Media(sql.FieldGT(FieldID, id))
 }
 
 // IDGTE applies the GTE predicate on the ID field.
-func IDGTE(id int) predicate.Media {
+func IDGTE(id uuid.UUID) predicate.Media {
 	return predicate.Media(sql.FieldGTE(FieldID, id))
 }
 
 // IDLT applies the LT predicate on the ID field.
-func IDLT(id int) predicate.Media {
+func IDLT(id uuid.UUID) predicate.Media {
 	return predicate.Media(sql.FieldLT(FieldID, id))
 }
 
 // IDLTE applies the LTE predicate on the ID field.
-func IDLTE(id int) predicate.Media {
+func IDLTE(id uuid.UUID) predicate.Media {
 	return predicate.Media(sql.FieldLTE(FieldID, id))
 }
 
@@ -86,12 +87,12 @@ func MimeType(v string) predicate.Media {
 }
 
 // MessageID applies equality check predicate on the "message_id" field. It's identical to MessageIDEQ.
-func MessageID(v int) predicate.Media {
+func MessageID(v uuid.UUID) predicate.Media {
 	return predicate.Media(sql.FieldEQ(FieldMessageID, v))
 }
 
 // UploadedByID applies equality check predicate on the "uploaded_by_id" field. It's identical to UploadedByIDEQ.
-func UploadedByID(v int) predicate.Media {
+func UploadedByID(v uuid.UUID) predicate.Media {
 	return predicate.Media(sql.FieldEQ(FieldUploadedByID, v))
 }
 
@@ -431,22 +432,22 @@ func StatusNotIn(vs ...Status) predicate.Media {
 }
 
 // MessageIDEQ applies the EQ predicate on the "message_id" field.
-func MessageIDEQ(v int) predicate.Media {
+func MessageIDEQ(v uuid.UUID) predicate.Media {
 	return predicate.Media(sql.FieldEQ(FieldMessageID, v))
 }
 
 // MessageIDNEQ applies the NEQ predicate on the "message_id" field.
-func MessageIDNEQ(v int) predicate.Media {
+func MessageIDNEQ(v uuid.UUID) predicate.Media {
 	return predicate.Media(sql.FieldNEQ(FieldMessageID, v))
 }
 
 // MessageIDIn applies the In predicate on the "message_id" field.
-func MessageIDIn(vs ...int) predicate.Media {
+func MessageIDIn(vs ...uuid.UUID) predicate.Media {
 	return predicate.Media(sql.FieldIn(FieldMessageID, vs...))
 }
 
 // MessageIDNotIn applies the NotIn predicate on the "message_id" field.
-func MessageIDNotIn(vs ...int) predicate.Media {
+func MessageIDNotIn(vs ...uuid.UUID) predicate.Media {
 	return predicate.Media(sql.FieldNotIn(FieldMessageID, vs...))
 }
 
@@ -461,22 +462,22 @@ func MessageIDNotNil() predicate.Media {
 }
 
 // UploadedByIDEQ applies the EQ predicate on the "uploaded_by_id" field.
-func UploadedByIDEQ(v int) predicate.Media {
+func UploadedByIDEQ(v uuid.UUID) predicate.Media {
 	return predicate.Media(sql.FieldEQ(FieldUploadedByID, v))
 }
 
 // UploadedByIDNEQ applies the NEQ predicate on the "uploaded_by_id" field.
-func UploadedByIDNEQ(v int) predicate.Media {
+func UploadedByIDNEQ(v uuid.UUID) predicate.Media {
 	return predicate.Media(sql.FieldNEQ(FieldUploadedByID, v))
 }
 
 // UploadedByIDIn applies the In predicate on the "uploaded_by_id" field.
-func UploadedByIDIn(vs ...int) predicate.Media {
+func UploadedByIDIn(vs ...uuid.UUID) predicate.Media {
 	return predicate.Media(sql.FieldIn(FieldUploadedByID, vs...))
 }
 
 // UploadedByIDNotIn applies the NotIn predicate on the "uploaded_by_id" field.
-func UploadedByIDNotIn(vs ...int) predicate.Media {
+func UploadedByIDNotIn(vs ...uuid.UUID) predicate.Media {
 	return predicate.Media(sql.FieldNotIn(FieldUploadedByID, vs...))
 }
 

@@ -8,6 +8,7 @@ import (
 
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
+	"github.com/google/uuid"
 )
 
 const (
@@ -72,6 +73,8 @@ var (
 	ProviderIDValidator func(string) error
 	// ProviderEmailValidator is a validator for the "provider_email" field. It is called by the builders before save.
 	ProviderEmailValidator func(string) error
+	// DefaultID holds the default value on creation for the "id" field.
+	DefaultID func() uuid.UUID
 )
 
 // Provider defines the type for the "provider" enum field.

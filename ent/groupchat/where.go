@@ -7,60 +7,61 @@ import (
 
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
+	"github.com/google/uuid"
 )
 
 // ID filters vertices based on their ID field.
-func ID(id int) predicate.GroupChat {
+func ID(id uuid.UUID) predicate.GroupChat {
 	return predicate.GroupChat(sql.FieldEQ(FieldID, id))
 }
 
 // IDEQ applies the EQ predicate on the ID field.
-func IDEQ(id int) predicate.GroupChat {
+func IDEQ(id uuid.UUID) predicate.GroupChat {
 	return predicate.GroupChat(sql.FieldEQ(FieldID, id))
 }
 
 // IDNEQ applies the NEQ predicate on the ID field.
-func IDNEQ(id int) predicate.GroupChat {
+func IDNEQ(id uuid.UUID) predicate.GroupChat {
 	return predicate.GroupChat(sql.FieldNEQ(FieldID, id))
 }
 
 // IDIn applies the In predicate on the ID field.
-func IDIn(ids ...int) predicate.GroupChat {
+func IDIn(ids ...uuid.UUID) predicate.GroupChat {
 	return predicate.GroupChat(sql.FieldIn(FieldID, ids...))
 }
 
 // IDNotIn applies the NotIn predicate on the ID field.
-func IDNotIn(ids ...int) predicate.GroupChat {
+func IDNotIn(ids ...uuid.UUID) predicate.GroupChat {
 	return predicate.GroupChat(sql.FieldNotIn(FieldID, ids...))
 }
 
 // IDGT applies the GT predicate on the ID field.
-func IDGT(id int) predicate.GroupChat {
+func IDGT(id uuid.UUID) predicate.GroupChat {
 	return predicate.GroupChat(sql.FieldGT(FieldID, id))
 }
 
 // IDGTE applies the GTE predicate on the ID field.
-func IDGTE(id int) predicate.GroupChat {
+func IDGTE(id uuid.UUID) predicate.GroupChat {
 	return predicate.GroupChat(sql.FieldGTE(FieldID, id))
 }
 
 // IDLT applies the LT predicate on the ID field.
-func IDLT(id int) predicate.GroupChat {
+func IDLT(id uuid.UUID) predicate.GroupChat {
 	return predicate.GroupChat(sql.FieldLT(FieldID, id))
 }
 
 // IDLTE applies the LTE predicate on the ID field.
-func IDLTE(id int) predicate.GroupChat {
+func IDLTE(id uuid.UUID) predicate.GroupChat {
 	return predicate.GroupChat(sql.FieldLTE(FieldID, id))
 }
 
 // ChatID applies equality check predicate on the "chat_id" field. It's identical to ChatIDEQ.
-func ChatID(v int) predicate.GroupChat {
+func ChatID(v uuid.UUID) predicate.GroupChat {
 	return predicate.GroupChat(sql.FieldEQ(FieldChatID, v))
 }
 
 // CreatedBy applies equality check predicate on the "created_by" field. It's identical to CreatedByEQ.
-func CreatedBy(v int) predicate.GroupChat {
+func CreatedBy(v uuid.UUID) predicate.GroupChat {
 	return predicate.GroupChat(sql.FieldEQ(FieldCreatedBy, v))
 }
 
@@ -75,47 +76,47 @@ func Description(v string) predicate.GroupChat {
 }
 
 // AvatarID applies equality check predicate on the "avatar_id" field. It's identical to AvatarIDEQ.
-func AvatarID(v int) predicate.GroupChat {
+func AvatarID(v uuid.UUID) predicate.GroupChat {
 	return predicate.GroupChat(sql.FieldEQ(FieldAvatarID, v))
 }
 
 // ChatIDEQ applies the EQ predicate on the "chat_id" field.
-func ChatIDEQ(v int) predicate.GroupChat {
+func ChatIDEQ(v uuid.UUID) predicate.GroupChat {
 	return predicate.GroupChat(sql.FieldEQ(FieldChatID, v))
 }
 
 // ChatIDNEQ applies the NEQ predicate on the "chat_id" field.
-func ChatIDNEQ(v int) predicate.GroupChat {
+func ChatIDNEQ(v uuid.UUID) predicate.GroupChat {
 	return predicate.GroupChat(sql.FieldNEQ(FieldChatID, v))
 }
 
 // ChatIDIn applies the In predicate on the "chat_id" field.
-func ChatIDIn(vs ...int) predicate.GroupChat {
+func ChatIDIn(vs ...uuid.UUID) predicate.GroupChat {
 	return predicate.GroupChat(sql.FieldIn(FieldChatID, vs...))
 }
 
 // ChatIDNotIn applies the NotIn predicate on the "chat_id" field.
-func ChatIDNotIn(vs ...int) predicate.GroupChat {
+func ChatIDNotIn(vs ...uuid.UUID) predicate.GroupChat {
 	return predicate.GroupChat(sql.FieldNotIn(FieldChatID, vs...))
 }
 
 // CreatedByEQ applies the EQ predicate on the "created_by" field.
-func CreatedByEQ(v int) predicate.GroupChat {
+func CreatedByEQ(v uuid.UUID) predicate.GroupChat {
 	return predicate.GroupChat(sql.FieldEQ(FieldCreatedBy, v))
 }
 
 // CreatedByNEQ applies the NEQ predicate on the "created_by" field.
-func CreatedByNEQ(v int) predicate.GroupChat {
+func CreatedByNEQ(v uuid.UUID) predicate.GroupChat {
 	return predicate.GroupChat(sql.FieldNEQ(FieldCreatedBy, v))
 }
 
 // CreatedByIn applies the In predicate on the "created_by" field.
-func CreatedByIn(vs ...int) predicate.GroupChat {
+func CreatedByIn(vs ...uuid.UUID) predicate.GroupChat {
 	return predicate.GroupChat(sql.FieldIn(FieldCreatedBy, vs...))
 }
 
 // CreatedByNotIn applies the NotIn predicate on the "created_by" field.
-func CreatedByNotIn(vs ...int) predicate.GroupChat {
+func CreatedByNotIn(vs ...uuid.UUID) predicate.GroupChat {
 	return predicate.GroupChat(sql.FieldNotIn(FieldCreatedBy, vs...))
 }
 
@@ -270,22 +271,22 @@ func DescriptionContainsFold(v string) predicate.GroupChat {
 }
 
 // AvatarIDEQ applies the EQ predicate on the "avatar_id" field.
-func AvatarIDEQ(v int) predicate.GroupChat {
+func AvatarIDEQ(v uuid.UUID) predicate.GroupChat {
 	return predicate.GroupChat(sql.FieldEQ(FieldAvatarID, v))
 }
 
 // AvatarIDNEQ applies the NEQ predicate on the "avatar_id" field.
-func AvatarIDNEQ(v int) predicate.GroupChat {
+func AvatarIDNEQ(v uuid.UUID) predicate.GroupChat {
 	return predicate.GroupChat(sql.FieldNEQ(FieldAvatarID, v))
 }
 
 // AvatarIDIn applies the In predicate on the "avatar_id" field.
-func AvatarIDIn(vs ...int) predicate.GroupChat {
+func AvatarIDIn(vs ...uuid.UUID) predicate.GroupChat {
 	return predicate.GroupChat(sql.FieldIn(FieldAvatarID, vs...))
 }
 
 // AvatarIDNotIn applies the NotIn predicate on the "avatar_id" field.
-func AvatarIDNotIn(vs ...int) predicate.GroupChat {
+func AvatarIDNotIn(vs ...uuid.UUID) predicate.GroupChat {
 	return predicate.GroupChat(sql.FieldNotIn(FieldAvatarID, vs...))
 }
 

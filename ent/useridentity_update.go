@@ -14,6 +14,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/google/uuid"
 )
 
 // UserIdentityUpdate is the builder for updating UserIdentity entities.
@@ -37,13 +38,13 @@ func (_u *UserIdentityUpdate) SetUpdatedAt(v time.Time) *UserIdentityUpdate {
 }
 
 // SetUserID sets the "user_id" field.
-func (_u *UserIdentityUpdate) SetUserID(v int) *UserIdentityUpdate {
+func (_u *UserIdentityUpdate) SetUserID(v uuid.UUID) *UserIdentityUpdate {
 	_u.mutation.SetUserID(v)
 	return _u
 }
 
 // SetNillableUserID sets the "user_id" field if the given value is not nil.
-func (_u *UserIdentityUpdate) SetNillableUserID(v *int) *UserIdentityUpdate {
+func (_u *UserIdentityUpdate) SetNillableUserID(v *uuid.UUID) *UserIdentityUpdate {
 	if v != nil {
 		_u.SetUserID(*v)
 	}
@@ -183,7 +184,7 @@ func (_u *UserIdentityUpdate) sqlSave(ctx context.Context) (_node int, err error
 	if err := _u.check(); err != nil {
 		return _node, err
 	}
-	_spec := sqlgraph.NewUpdateSpec(useridentity.Table, useridentity.Columns, sqlgraph.NewFieldSpec(useridentity.FieldID, field.TypeInt))
+	_spec := sqlgraph.NewUpdateSpec(useridentity.Table, useridentity.Columns, sqlgraph.NewFieldSpec(useridentity.FieldID, field.TypeUUID))
 	if ps := _u.mutation.predicates; len(ps) > 0 {
 		_spec.Predicate = func(selector *sql.Selector) {
 			for i := range ps {
@@ -214,7 +215,7 @@ func (_u *UserIdentityUpdate) sqlSave(ctx context.Context) (_node int, err error
 			Columns: []string{useridentity.UserColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeUUID),
 			},
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
@@ -227,7 +228,7 @@ func (_u *UserIdentityUpdate) sqlSave(ctx context.Context) (_node int, err error
 			Columns: []string{useridentity.UserColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {
@@ -264,13 +265,13 @@ func (_u *UserIdentityUpdateOne) SetUpdatedAt(v time.Time) *UserIdentityUpdateOn
 }
 
 // SetUserID sets the "user_id" field.
-func (_u *UserIdentityUpdateOne) SetUserID(v int) *UserIdentityUpdateOne {
+func (_u *UserIdentityUpdateOne) SetUserID(v uuid.UUID) *UserIdentityUpdateOne {
 	_u.mutation.SetUserID(v)
 	return _u
 }
 
 // SetNillableUserID sets the "user_id" field if the given value is not nil.
-func (_u *UserIdentityUpdateOne) SetNillableUserID(v *int) *UserIdentityUpdateOne {
+func (_u *UserIdentityUpdateOne) SetNillableUserID(v *uuid.UUID) *UserIdentityUpdateOne {
 	if v != nil {
 		_u.SetUserID(*v)
 	}
@@ -423,7 +424,7 @@ func (_u *UserIdentityUpdateOne) sqlSave(ctx context.Context) (_node *UserIdenti
 	if err := _u.check(); err != nil {
 		return _node, err
 	}
-	_spec := sqlgraph.NewUpdateSpec(useridentity.Table, useridentity.Columns, sqlgraph.NewFieldSpec(useridentity.FieldID, field.TypeInt))
+	_spec := sqlgraph.NewUpdateSpec(useridentity.Table, useridentity.Columns, sqlgraph.NewFieldSpec(useridentity.FieldID, field.TypeUUID))
 	id, ok := _u.mutation.ID()
 	if !ok {
 		return nil, &ValidationError{Name: "id", err: errors.New(`ent: missing "UserIdentity.id" for update`)}
@@ -471,7 +472,7 @@ func (_u *UserIdentityUpdateOne) sqlSave(ctx context.Context) (_node *UserIdenti
 			Columns: []string{useridentity.UserColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeUUID),
 			},
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
@@ -484,7 +485,7 @@ func (_u *UserIdentityUpdateOne) sqlSave(ctx context.Context) (_node *UserIdenti
 			Columns: []string{useridentity.UserColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {

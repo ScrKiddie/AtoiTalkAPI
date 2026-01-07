@@ -8,50 +8,51 @@ import (
 
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
+	"github.com/google/uuid"
 )
 
 // ID filters vertices based on their ID field.
-func ID(id int) predicate.UserBlock {
+func ID(id uuid.UUID) predicate.UserBlock {
 	return predicate.UserBlock(sql.FieldEQ(FieldID, id))
 }
 
 // IDEQ applies the EQ predicate on the ID field.
-func IDEQ(id int) predicate.UserBlock {
+func IDEQ(id uuid.UUID) predicate.UserBlock {
 	return predicate.UserBlock(sql.FieldEQ(FieldID, id))
 }
 
 // IDNEQ applies the NEQ predicate on the ID field.
-func IDNEQ(id int) predicate.UserBlock {
+func IDNEQ(id uuid.UUID) predicate.UserBlock {
 	return predicate.UserBlock(sql.FieldNEQ(FieldID, id))
 }
 
 // IDIn applies the In predicate on the ID field.
-func IDIn(ids ...int) predicate.UserBlock {
+func IDIn(ids ...uuid.UUID) predicate.UserBlock {
 	return predicate.UserBlock(sql.FieldIn(FieldID, ids...))
 }
 
 // IDNotIn applies the NotIn predicate on the ID field.
-func IDNotIn(ids ...int) predicate.UserBlock {
+func IDNotIn(ids ...uuid.UUID) predicate.UserBlock {
 	return predicate.UserBlock(sql.FieldNotIn(FieldID, ids...))
 }
 
 // IDGT applies the GT predicate on the ID field.
-func IDGT(id int) predicate.UserBlock {
+func IDGT(id uuid.UUID) predicate.UserBlock {
 	return predicate.UserBlock(sql.FieldGT(FieldID, id))
 }
 
 // IDGTE applies the GTE predicate on the ID field.
-func IDGTE(id int) predicate.UserBlock {
+func IDGTE(id uuid.UUID) predicate.UserBlock {
 	return predicate.UserBlock(sql.FieldGTE(FieldID, id))
 }
 
 // IDLT applies the LT predicate on the ID field.
-func IDLT(id int) predicate.UserBlock {
+func IDLT(id uuid.UUID) predicate.UserBlock {
 	return predicate.UserBlock(sql.FieldLT(FieldID, id))
 }
 
 // IDLTE applies the LTE predicate on the ID field.
-func IDLTE(id int) predicate.UserBlock {
+func IDLTE(id uuid.UUID) predicate.UserBlock {
 	return predicate.UserBlock(sql.FieldLTE(FieldID, id))
 }
 
@@ -66,12 +67,12 @@ func UpdatedAt(v time.Time) predicate.UserBlock {
 }
 
 // BlockerID applies equality check predicate on the "blocker_id" field. It's identical to BlockerIDEQ.
-func BlockerID(v int) predicate.UserBlock {
+func BlockerID(v uuid.UUID) predicate.UserBlock {
 	return predicate.UserBlock(sql.FieldEQ(FieldBlockerID, v))
 }
 
 // BlockedID applies equality check predicate on the "blocked_id" field. It's identical to BlockedIDEQ.
-func BlockedID(v int) predicate.UserBlock {
+func BlockedID(v uuid.UUID) predicate.UserBlock {
 	return predicate.UserBlock(sql.FieldEQ(FieldBlockedID, v))
 }
 
@@ -156,42 +157,42 @@ func UpdatedAtLTE(v time.Time) predicate.UserBlock {
 }
 
 // BlockerIDEQ applies the EQ predicate on the "blocker_id" field.
-func BlockerIDEQ(v int) predicate.UserBlock {
+func BlockerIDEQ(v uuid.UUID) predicate.UserBlock {
 	return predicate.UserBlock(sql.FieldEQ(FieldBlockerID, v))
 }
 
 // BlockerIDNEQ applies the NEQ predicate on the "blocker_id" field.
-func BlockerIDNEQ(v int) predicate.UserBlock {
+func BlockerIDNEQ(v uuid.UUID) predicate.UserBlock {
 	return predicate.UserBlock(sql.FieldNEQ(FieldBlockerID, v))
 }
 
 // BlockerIDIn applies the In predicate on the "blocker_id" field.
-func BlockerIDIn(vs ...int) predicate.UserBlock {
+func BlockerIDIn(vs ...uuid.UUID) predicate.UserBlock {
 	return predicate.UserBlock(sql.FieldIn(FieldBlockerID, vs...))
 }
 
 // BlockerIDNotIn applies the NotIn predicate on the "blocker_id" field.
-func BlockerIDNotIn(vs ...int) predicate.UserBlock {
+func BlockerIDNotIn(vs ...uuid.UUID) predicate.UserBlock {
 	return predicate.UserBlock(sql.FieldNotIn(FieldBlockerID, vs...))
 }
 
 // BlockedIDEQ applies the EQ predicate on the "blocked_id" field.
-func BlockedIDEQ(v int) predicate.UserBlock {
+func BlockedIDEQ(v uuid.UUID) predicate.UserBlock {
 	return predicate.UserBlock(sql.FieldEQ(FieldBlockedID, v))
 }
 
 // BlockedIDNEQ applies the NEQ predicate on the "blocked_id" field.
-func BlockedIDNEQ(v int) predicate.UserBlock {
+func BlockedIDNEQ(v uuid.UUID) predicate.UserBlock {
 	return predicate.UserBlock(sql.FieldNEQ(FieldBlockedID, v))
 }
 
 // BlockedIDIn applies the In predicate on the "blocked_id" field.
-func BlockedIDIn(vs ...int) predicate.UserBlock {
+func BlockedIDIn(vs ...uuid.UUID) predicate.UserBlock {
 	return predicate.UserBlock(sql.FieldIn(FieldBlockedID, vs...))
 }
 
 // BlockedIDNotIn applies the NotIn predicate on the "blocked_id" field.
-func BlockedIDNotIn(vs ...int) predicate.UserBlock {
+func BlockedIDNotIn(vs ...uuid.UUID) predicate.UserBlock {
 	return predicate.UserBlock(sql.FieldNotIn(FieldBlockedID, vs...))
 }
 

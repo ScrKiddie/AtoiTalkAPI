@@ -11,13 +11,14 @@ import (
 
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
+	"github.com/google/uuid"
 )
 
 // User is the model entity for the User schema.
 type User struct {
 	config `json:"-"`
 	// ID of the ent.
-	ID int `json:"id,omitempty"`
+	ID uuid.UUID `json:"id,omitempty"`
 	// CreatedAt holds the value of the "created_at" field.
 	CreatedAt time.Time `json:"created_at,omitempty"`
 	// UpdatedAt holds the value of the "updated_at" field.
@@ -33,7 +34,7 @@ type User struct {
 	// Bio holds the value of the "bio" field.
 	Bio *string `json:"bio,omitempty"`
 	// AvatarID holds the value of the "avatar_id" field.
-	AvatarID *int `json:"avatar_id,omitempty"`
+	AvatarID *uuid.UUID `json:"avatar_id,omitempty"`
 	// IsOnline holds the value of the "is_online" field.
 	IsOnline bool `json:"is_online,omitempty"`
 	// LastSeenAt holds the value of the "last_seen_at" field.
@@ -168,14 +169,16 @@ func (*User) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
+		case user.FieldAvatarID:
+			values[i] = &sql.NullScanner{S: new(uuid.UUID)}
 		case user.FieldIsOnline:
 			values[i] = new(sql.NullBool)
-		case user.FieldID, user.FieldAvatarID:
-			values[i] = new(sql.NullInt64)
 		case user.FieldEmail, user.FieldUsername, user.FieldPasswordHash, user.FieldFullName, user.FieldBio:
 			values[i] = new(sql.NullString)
 		case user.FieldCreatedAt, user.FieldUpdatedAt, user.FieldLastSeenAt:
 			values[i] = new(sql.NullTime)
+		case user.FieldID:
+			values[i] = new(uuid.UUID)
 		default:
 			values[i] = new(sql.UnknownType)
 		}
@@ -192,11 +195,11 @@ func (_m *User) assignValues(columns []string, values []any) error {
 	for i := range columns {
 		switch columns[i] {
 		case user.FieldID:
-			value, ok := values[i].(*sql.NullInt64)
-			if !ok {
-				return fmt.Errorf("unexpected type %T for field id", value)
+			if value, ok := values[i].(*uuid.UUID); !ok {
+				return fmt.Errorf("unexpected type %T for field id", values[i])
+			} else if value != nil {
+				_m.ID = *value
 			}
-			_m.ID = int(value.Int64)
 		case user.FieldCreatedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field created_at", values[i])
@@ -242,11 +245,11 @@ func (_m *User) assignValues(columns []string, values []any) error {
 				*_m.Bio = value.String
 			}
 		case user.FieldAvatarID:
-			if value, ok := values[i].(*sql.NullInt64); !ok {
+			if value, ok := values[i].(*sql.NullScanner); !ok {
 				return fmt.Errorf("unexpected type %T for field avatar_id", values[i])
 			} else if value.Valid {
-				_m.AvatarID = new(int)
-				*_m.AvatarID = int(value.Int64)
+				_m.AvatarID = new(uuid.UUID)
+				*_m.AvatarID = *value.S.(*uuid.UUID)
 			}
 		case user.FieldIsOnline:
 			if value, ok := values[i].(*sql.NullBool); !ok {

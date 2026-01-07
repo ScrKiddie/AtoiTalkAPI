@@ -66,9 +66,11 @@ func TestUploadMedia(t *testing.T) {
 		assert.Equal(t, "image/jpeg", dataMap["mime_type"])
 		assert.NotEmpty(t, dataMap["url"])
 
-		mediaID := int(dataMap["id"].(float64))
-		m, err := testClient.Media.Query().Where(media.ID(mediaID)).Only(context.Background())
+		mediaIDStr := dataMap["id"].(string)
+
+		m, err := testClient.Media.Query().Where(media.FileName(dataMap["file_name"].(string))).Only(context.Background())
 		assert.NoError(t, err)
+		assert.Equal(t, mediaIDStr, m.ID.String())
 		assert.Equal(t, media.StatusActive, m.Status)
 		assert.Equal(t, u.ID, m.UploadedByID, "Media uploader should be set to the user")
 

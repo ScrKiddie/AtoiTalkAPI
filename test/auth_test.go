@@ -20,6 +20,7 @@ import (
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -245,7 +246,9 @@ func TestGoogleExchange(t *testing.T) {
 
 			assert.True(t, strings.HasPrefix(userMap["username"].(string), emailPrefix))
 
-			userID := int(userMap["id"].(float64))
+			userIDStr := userMap["id"].(string)
+			userID, _ := uuid.Parse(userIDStr)
+
 			identity, err := testClient.UserIdentity.Query().
 				Where(useridentity.UserID(userID)).
 				Only(context.Background())

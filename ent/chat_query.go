@@ -18,6 +18,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/google/uuid"
 )
 
 // ChatQuery is the builder for querying Chat entities.
@@ -180,8 +181,8 @@ func (_q *ChatQuery) FirstX(ctx context.Context) *Chat {
 
 // FirstID returns the first Chat ID from the query.
 // Returns a *NotFoundError when no Chat ID was found.
-func (_q *ChatQuery) FirstID(ctx context.Context) (id int, err error) {
-	var ids []int
+func (_q *ChatQuery) FirstID(ctx context.Context) (id uuid.UUID, err error) {
+	var ids []uuid.UUID
 	if ids, err = _q.Limit(1).IDs(setContextOp(ctx, _q.ctx, ent.OpQueryFirstID)); err != nil {
 		return
 	}
@@ -193,7 +194,7 @@ func (_q *ChatQuery) FirstID(ctx context.Context) (id int, err error) {
 }
 
 // FirstIDX is like FirstID, but panics if an error occurs.
-func (_q *ChatQuery) FirstIDX(ctx context.Context) int {
+func (_q *ChatQuery) FirstIDX(ctx context.Context) uuid.UUID {
 	id, err := _q.FirstID(ctx)
 	if err != nil && !IsNotFound(err) {
 		panic(err)
@@ -231,8 +232,8 @@ func (_q *ChatQuery) OnlyX(ctx context.Context) *Chat {
 // OnlyID is like Only, but returns the only Chat ID in the query.
 // Returns a *NotSingularError when more than one Chat ID is found.
 // Returns a *NotFoundError when no entities are found.
-func (_q *ChatQuery) OnlyID(ctx context.Context) (id int, err error) {
-	var ids []int
+func (_q *ChatQuery) OnlyID(ctx context.Context) (id uuid.UUID, err error) {
+	var ids []uuid.UUID
 	if ids, err = _q.Limit(2).IDs(setContextOp(ctx, _q.ctx, ent.OpQueryOnlyID)); err != nil {
 		return
 	}
@@ -248,7 +249,7 @@ func (_q *ChatQuery) OnlyID(ctx context.Context) (id int, err error) {
 }
 
 // OnlyIDX is like OnlyID, but panics if an error occurs.
-func (_q *ChatQuery) OnlyIDX(ctx context.Context) int {
+func (_q *ChatQuery) OnlyIDX(ctx context.Context) uuid.UUID {
 	id, err := _q.OnlyID(ctx)
 	if err != nil {
 		panic(err)
@@ -276,7 +277,7 @@ func (_q *ChatQuery) AllX(ctx context.Context) []*Chat {
 }
 
 // IDs executes the query and returns a list of Chat IDs.
-func (_q *ChatQuery) IDs(ctx context.Context) (ids []int, err error) {
+func (_q *ChatQuery) IDs(ctx context.Context) (ids []uuid.UUID, err error) {
 	if _q.ctx.Unique == nil && _q.path != nil {
 		_q.Unique(true)
 	}
@@ -288,7 +289,7 @@ func (_q *ChatQuery) IDs(ctx context.Context) (ids []int, err error) {
 }
 
 // IDsX is like IDs, but panics if an error occurs.
-func (_q *ChatQuery) IDsX(ctx context.Context) []int {
+func (_q *ChatQuery) IDsX(ctx context.Context) []uuid.UUID {
 	ids, err := _q.IDs(ctx)
 	if err != nil {
 		panic(err)
@@ -539,7 +540,7 @@ func (_q *ChatQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Chat, e
 
 func (_q *ChatQuery) loadMessages(ctx context.Context, query *MessageQuery, nodes []*Chat, init func(*Chat), assign func(*Chat, *Message)) error {
 	fks := make([]driver.Value, 0, len(nodes))
-	nodeids := make(map[int]*Chat)
+	nodeids := make(map[uuid.UUID]*Chat)
 	for i := range nodes {
 		fks = append(fks, nodes[i].ID)
 		nodeids[nodes[i].ID] = nodes[i]
@@ -569,7 +570,7 @@ func (_q *ChatQuery) loadMessages(ctx context.Context, query *MessageQuery, node
 }
 func (_q *ChatQuery) loadPrivateChat(ctx context.Context, query *PrivateChatQuery, nodes []*Chat, init func(*Chat), assign func(*Chat, *PrivateChat)) error {
 	fks := make([]driver.Value, 0, len(nodes))
-	nodeids := make(map[int]*Chat)
+	nodeids := make(map[uuid.UUID]*Chat)
 	for i := range nodes {
 		fks = append(fks, nodes[i].ID)
 		nodeids[nodes[i].ID] = nodes[i]
@@ -596,7 +597,7 @@ func (_q *ChatQuery) loadPrivateChat(ctx context.Context, query *PrivateChatQuer
 }
 func (_q *ChatQuery) loadGroupChat(ctx context.Context, query *GroupChatQuery, nodes []*Chat, init func(*Chat), assign func(*Chat, *GroupChat)) error {
 	fks := make([]driver.Value, 0, len(nodes))
-	nodeids := make(map[int]*Chat)
+	nodeids := make(map[uuid.UUID]*Chat)
 	for i := range nodes {
 		fks = append(fks, nodes[i].ID)
 		nodeids[nodes[i].ID] = nodes[i]
@@ -622,8 +623,8 @@ func (_q *ChatQuery) loadGroupChat(ctx context.Context, query *GroupChatQuery, n
 	return nil
 }
 func (_q *ChatQuery) loadLastMessage(ctx context.Context, query *MessageQuery, nodes []*Chat, init func(*Chat), assign func(*Chat, *Message)) error {
-	ids := make([]int, 0, len(nodes))
-	nodeids := make(map[int][]*Chat)
+	ids := make([]uuid.UUID, 0, len(nodes))
+	nodeids := make(map[uuid.UUID][]*Chat)
 	for i := range nodes {
 		if nodes[i].LastMessageID == nil {
 			continue
@@ -667,7 +668,7 @@ func (_q *ChatQuery) sqlCount(ctx context.Context) (int, error) {
 }
 
 func (_q *ChatQuery) querySpec() *sqlgraph.QuerySpec {
-	_spec := sqlgraph.NewQuerySpec(chat.Table, chat.Columns, sqlgraph.NewFieldSpec(chat.FieldID, field.TypeInt))
+	_spec := sqlgraph.NewQuerySpec(chat.Table, chat.Columns, sqlgraph.NewFieldSpec(chat.FieldID, field.TypeUUID))
 	_spec.From = _q.sql
 	if unique := _q.ctx.Unique; unique != nil {
 		_spec.Unique = *unique

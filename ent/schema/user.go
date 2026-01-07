@@ -6,6 +6,7 @@ import (
 	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/index"
+	"github.com/google/uuid"
 )
 
 type User struct {
@@ -16,12 +17,13 @@ func (User) Mixin() []ent.Mixin { return []ent.Mixin{TimeMixin{}} }
 
 func (User) Fields() []ent.Field {
 	return []ent.Field{
+		field.UUID("id", uuid.UUID{}).Default(newUUIDv7),
 		field.String("email").MaxLen(255).Unique().NotEmpty(),
 		field.String("username").MaxLen(50).Unique().NotEmpty(),
 		field.String("password_hash").MaxLen(255).Optional().Nillable().Sensitive(),
 		field.String("full_name").MaxLen(100).NotEmpty(),
 		field.String("bio").MaxLen(255).Optional().Nillable(),
-		field.Int("avatar_id").Optional().Nillable(),
+		field.UUID("avatar_id", uuid.UUID{}).Optional().Nillable(),
 		field.Bool("is_online").Default(false),
 		field.Time("last_seen_at").Optional().Nillable(),
 	}
@@ -57,6 +59,5 @@ func (User) Edges() []ent.Edge {
 func (User) Indexes() []ent.Index {
 	return []ent.Index{
 		index.Fields("full_name"),
-		index.Fields("username"),
 	}
 }
