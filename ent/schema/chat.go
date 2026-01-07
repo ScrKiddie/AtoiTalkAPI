@@ -6,6 +6,7 @@ import (
 	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/index"
+	"github.com/google/uuid"
 )
 
 type Chat struct {
@@ -16,8 +17,9 @@ func (Chat) Mixin() []ent.Mixin { return []ent.Mixin{TimeMixin{}} }
 
 func (Chat) Fields() []ent.Field {
 	return []ent.Field{
+		field.UUID("id", uuid.UUID{}).Default(newUUIDv7),
 		field.Enum("type").Values("private", "group").Immutable(),
-		field.Int("last_message_id").Optional().Nillable(),
+		field.UUID("last_message_id", uuid.UUID{}).Optional().Nillable(),
 		field.Time("last_message_at").Optional().Nillable(),
 	}
 }
@@ -34,5 +36,6 @@ func (Chat) Edges() []ent.Edge {
 func (Chat) Indexes() []ent.Index {
 	return []ent.Index{
 		index.Fields("updated_at"),
+		index.Fields("last_message_at"),
 	}
 }

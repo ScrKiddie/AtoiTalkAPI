@@ -9,6 +9,7 @@ import (
 	"fmt"
 
 	"entgo.io/ent/dialect/sql"
+	"github.com/google/uuid"
 )
 
 type UserRepository struct {
@@ -21,7 +22,7 @@ func NewUserRepository(client *ent.Client) *UserRepository {
 	}
 }
 
-func (r *UserRepository) SearchUsers(ctx context.Context, currentUserID int, queryStr string, cursor string, limit int) ([]*ent.User, string, bool, error) {
+func (r *UserRepository) SearchUsers(ctx context.Context, currentUserID uuid.UUID, queryStr string, cursor string, limit int) ([]*ent.User, string, bool, error) {
 	query := r.client.User.Query().
 		Where(
 			user.IDNEQ(currentUserID),
@@ -61,10 +62,16 @@ func (r *UserRepository) SearchUsers(ctx context.Context, currentUserID int, que
 	delimiter := "|||"
 
 	if cursor != "" {
-		cursorName, cursorID, err := helper.DecodeCursor(cursor, delimiter)
+		cursorName, cursorIDStr, err := helper.DecodeCursor(cursor, delimiter)
 		if err != nil {
 			return nil, "", false, fmt.Errorf("invalid cursor format: %w", err)
 		}
+		
+		cursorID, err := uuid.Parse(cursorIDStr)
+		if err != nil {
+			return nil, "", false, fmt.Errorf("invalid cursor id format: %w", err)
+		}
+
 		query = query.Where(
 			user.Or(
 				user.FullNameGT(cursorName),
@@ -93,13 +100,13 @@ func (r *UserRepository) SearchUsers(ctx context.Context, currentUserID int, que
 		hasNext = true
 		users = users[:limit]
 		lastUser := users[len(users)-1]
-		nextCursor = helper.EncodeCursor(lastUser.FullName, lastUser.ID, delimiter)
+		nextCursor = helper.EncodeCursor(lastUser.FullName, lastUser.ID.String(), delimiter)
 	}
 
 	return users, nextCursor, hasNext, nil
 }
 
-func (r *UserRepository) GetBlockedUsers(ctx context.Context, currentUserID int, queryStr string, cursor string, limit int) ([]*ent.User, string, bool, error) {
+func (r *UserRepository) GetBlockedUsers(ctx context.Context, currentUserID uuid.UUID, queryStr string, cursor string, limit int) ([]*ent.User, string, bool, error) {
 	query := r.client.User.Query().
 		Where(
 			user.HasBlockedByRelWith(userblock.BlockerID(currentUserID)),
@@ -117,10 +124,16 @@ func (r *UserRepository) GetBlockedUsers(ctx context.Context, currentUserID int,
 	delimiter := "|||"
 
 	if cursor != "" {
-		cursorName, cursorID, err := helper.DecodeCursor(cursor, delimiter)
+		cursorName, cursorIDStr, err := helper.DecodeCursor(cursor, delimiter)
 		if err != nil {
 			return nil, "", false, fmt.Errorf("invalid cursor format: %w", err)
 		}
+		
+		cursorID, err := uuid.Parse(cursorIDStr)
+		if err != nil {
+			return nil, "", false, fmt.Errorf("invalid cursor id format: %w", err)
+		}
+
 		query = query.Where(
 			user.Or(
 				user.FullNameGT(cursorName),
@@ -149,7 +162,7 @@ func (r *UserRepository) GetBlockedUsers(ctx context.Context, currentUserID int,
 		hasNext = true
 		users = users[:limit]
 		lastUser := users[len(users)-1]
-		nextCursor = helper.EncodeCursor(lastUser.FullName, lastUser.ID, delimiter)
+		nextCursor = helper.EncodeCursor(lastUser.FullName, lastUser.ID.String(), delimiter)
 	}
 
 	return users, nextCursor, hasNext, nil

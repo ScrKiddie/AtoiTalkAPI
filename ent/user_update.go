@@ -20,6 +20,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/google/uuid"
 )
 
 // UserUpdate is the builder for updating User entities.
@@ -125,13 +126,13 @@ func (_u *UserUpdate) ClearBio() *UserUpdate {
 }
 
 // SetAvatarID sets the "avatar_id" field.
-func (_u *UserUpdate) SetAvatarID(v int) *UserUpdate {
+func (_u *UserUpdate) SetAvatarID(v uuid.UUID) *UserUpdate {
 	_u.mutation.SetAvatarID(v)
 	return _u
 }
 
 // SetNillableAvatarID sets the "avatar_id" field if the given value is not nil.
-func (_u *UserUpdate) SetNillableAvatarID(v *int) *UserUpdate {
+func (_u *UserUpdate) SetNillableAvatarID(v *uuid.UUID) *UserUpdate {
 	if v != nil {
 		_u.SetAvatarID(*v)
 	}
@@ -184,14 +185,14 @@ func (_u *UserUpdate) SetAvatar(v *Media) *UserUpdate {
 }
 
 // AddIdentityIDs adds the "identities" edge to the UserIdentity entity by IDs.
-func (_u *UserUpdate) AddIdentityIDs(ids ...int) *UserUpdate {
+func (_u *UserUpdate) AddIdentityIDs(ids ...uuid.UUID) *UserUpdate {
 	_u.mutation.AddIdentityIDs(ids...)
 	return _u
 }
 
 // AddIdentities adds the "identities" edges to the UserIdentity entity.
 func (_u *UserUpdate) AddIdentities(v ...*UserIdentity) *UserUpdate {
-	ids := make([]int, len(v))
+	ids := make([]uuid.UUID, len(v))
 	for i := range v {
 		ids[i] = v[i].ID
 	}
@@ -199,14 +200,14 @@ func (_u *UserUpdate) AddIdentities(v ...*UserIdentity) *UserUpdate {
 }
 
 // AddSentMessageIDs adds the "sent_messages" edge to the Message entity by IDs.
-func (_u *UserUpdate) AddSentMessageIDs(ids ...int) *UserUpdate {
+func (_u *UserUpdate) AddSentMessageIDs(ids ...uuid.UUID) *UserUpdate {
 	_u.mutation.AddSentMessageIDs(ids...)
 	return _u
 }
 
 // AddSentMessages adds the "sent_messages" edges to the Message entity.
 func (_u *UserUpdate) AddSentMessages(v ...*Message) *UserUpdate {
-	ids := make([]int, len(v))
+	ids := make([]uuid.UUID, len(v))
 	for i := range v {
 		ids[i] = v[i].ID
 	}
@@ -214,14 +215,14 @@ func (_u *UserUpdate) AddSentMessages(v ...*Message) *UserUpdate {
 }
 
 // AddCreatedGroupIDs adds the "created_groups" edge to the GroupChat entity by IDs.
-func (_u *UserUpdate) AddCreatedGroupIDs(ids ...int) *UserUpdate {
+func (_u *UserUpdate) AddCreatedGroupIDs(ids ...uuid.UUID) *UserUpdate {
 	_u.mutation.AddCreatedGroupIDs(ids...)
 	return _u
 }
 
 // AddCreatedGroups adds the "created_groups" edges to the GroupChat entity.
 func (_u *UserUpdate) AddCreatedGroups(v ...*GroupChat) *UserUpdate {
-	ids := make([]int, len(v))
+	ids := make([]uuid.UUID, len(v))
 	for i := range v {
 		ids[i] = v[i].ID
 	}
@@ -229,14 +230,14 @@ func (_u *UserUpdate) AddCreatedGroups(v ...*GroupChat) *UserUpdate {
 }
 
 // AddGroupMembershipIDs adds the "group_memberships" edge to the GroupMember entity by IDs.
-func (_u *UserUpdate) AddGroupMembershipIDs(ids ...int) *UserUpdate {
+func (_u *UserUpdate) AddGroupMembershipIDs(ids ...uuid.UUID) *UserUpdate {
 	_u.mutation.AddGroupMembershipIDs(ids...)
 	return _u
 }
 
 // AddGroupMemberships adds the "group_memberships" edges to the GroupMember entity.
 func (_u *UserUpdate) AddGroupMemberships(v ...*GroupMember) *UserUpdate {
-	ids := make([]int, len(v))
+	ids := make([]uuid.UUID, len(v))
 	for i := range v {
 		ids[i] = v[i].ID
 	}
@@ -244,14 +245,14 @@ func (_u *UserUpdate) AddGroupMemberships(v ...*GroupMember) *UserUpdate {
 }
 
 // AddPrivateChatsAsUser1IDs adds the "private_chats_as_user1" edge to the PrivateChat entity by IDs.
-func (_u *UserUpdate) AddPrivateChatsAsUser1IDs(ids ...int) *UserUpdate {
+func (_u *UserUpdate) AddPrivateChatsAsUser1IDs(ids ...uuid.UUID) *UserUpdate {
 	_u.mutation.AddPrivateChatsAsUser1IDs(ids...)
 	return _u
 }
 
 // AddPrivateChatsAsUser1 adds the "private_chats_as_user1" edges to the PrivateChat entity.
 func (_u *UserUpdate) AddPrivateChatsAsUser1(v ...*PrivateChat) *UserUpdate {
-	ids := make([]int, len(v))
+	ids := make([]uuid.UUID, len(v))
 	for i := range v {
 		ids[i] = v[i].ID
 	}
@@ -259,14 +260,14 @@ func (_u *UserUpdate) AddPrivateChatsAsUser1(v ...*PrivateChat) *UserUpdate {
 }
 
 // AddPrivateChatsAsUser2IDs adds the "private_chats_as_user2" edge to the PrivateChat entity by IDs.
-func (_u *UserUpdate) AddPrivateChatsAsUser2IDs(ids ...int) *UserUpdate {
+func (_u *UserUpdate) AddPrivateChatsAsUser2IDs(ids ...uuid.UUID) *UserUpdate {
 	_u.mutation.AddPrivateChatsAsUser2IDs(ids...)
 	return _u
 }
 
 // AddPrivateChatsAsUser2 adds the "private_chats_as_user2" edges to the PrivateChat entity.
 func (_u *UserUpdate) AddPrivateChatsAsUser2(v ...*PrivateChat) *UserUpdate {
-	ids := make([]int, len(v))
+	ids := make([]uuid.UUID, len(v))
 	for i := range v {
 		ids[i] = v[i].ID
 	}
@@ -274,14 +275,14 @@ func (_u *UserUpdate) AddPrivateChatsAsUser2(v ...*PrivateChat) *UserUpdate {
 }
 
 // AddUploadedMediumIDs adds the "uploaded_media" edge to the Media entity by IDs.
-func (_u *UserUpdate) AddUploadedMediumIDs(ids ...int) *UserUpdate {
+func (_u *UserUpdate) AddUploadedMediumIDs(ids ...uuid.UUID) *UserUpdate {
 	_u.mutation.AddUploadedMediumIDs(ids...)
 	return _u
 }
 
 // AddUploadedMedia adds the "uploaded_media" edges to the Media entity.
 func (_u *UserUpdate) AddUploadedMedia(v ...*Media) *UserUpdate {
-	ids := make([]int, len(v))
+	ids := make([]uuid.UUID, len(v))
 	for i := range v {
 		ids[i] = v[i].ID
 	}
@@ -289,14 +290,14 @@ func (_u *UserUpdate) AddUploadedMedia(v ...*Media) *UserUpdate {
 }
 
 // AddBlockedUsersRelIDs adds the "blocked_users_rel" edge to the UserBlock entity by IDs.
-func (_u *UserUpdate) AddBlockedUsersRelIDs(ids ...int) *UserUpdate {
+func (_u *UserUpdate) AddBlockedUsersRelIDs(ids ...uuid.UUID) *UserUpdate {
 	_u.mutation.AddBlockedUsersRelIDs(ids...)
 	return _u
 }
 
 // AddBlockedUsersRel adds the "blocked_users_rel" edges to the UserBlock entity.
 func (_u *UserUpdate) AddBlockedUsersRel(v ...*UserBlock) *UserUpdate {
-	ids := make([]int, len(v))
+	ids := make([]uuid.UUID, len(v))
 	for i := range v {
 		ids[i] = v[i].ID
 	}
@@ -304,14 +305,14 @@ func (_u *UserUpdate) AddBlockedUsersRel(v ...*UserBlock) *UserUpdate {
 }
 
 // AddBlockedByRelIDs adds the "blocked_by_rel" edge to the UserBlock entity by IDs.
-func (_u *UserUpdate) AddBlockedByRelIDs(ids ...int) *UserUpdate {
+func (_u *UserUpdate) AddBlockedByRelIDs(ids ...uuid.UUID) *UserUpdate {
 	_u.mutation.AddBlockedByRelIDs(ids...)
 	return _u
 }
 
 // AddBlockedByRel adds the "blocked_by_rel" edges to the UserBlock entity.
 func (_u *UserUpdate) AddBlockedByRel(v ...*UserBlock) *UserUpdate {
-	ids := make([]int, len(v))
+	ids := make([]uuid.UUID, len(v))
 	for i := range v {
 		ids[i] = v[i].ID
 	}
@@ -336,14 +337,14 @@ func (_u *UserUpdate) ClearIdentities() *UserUpdate {
 }
 
 // RemoveIdentityIDs removes the "identities" edge to UserIdentity entities by IDs.
-func (_u *UserUpdate) RemoveIdentityIDs(ids ...int) *UserUpdate {
+func (_u *UserUpdate) RemoveIdentityIDs(ids ...uuid.UUID) *UserUpdate {
 	_u.mutation.RemoveIdentityIDs(ids...)
 	return _u
 }
 
 // RemoveIdentities removes "identities" edges to UserIdentity entities.
 func (_u *UserUpdate) RemoveIdentities(v ...*UserIdentity) *UserUpdate {
-	ids := make([]int, len(v))
+	ids := make([]uuid.UUID, len(v))
 	for i := range v {
 		ids[i] = v[i].ID
 	}
@@ -357,14 +358,14 @@ func (_u *UserUpdate) ClearSentMessages() *UserUpdate {
 }
 
 // RemoveSentMessageIDs removes the "sent_messages" edge to Message entities by IDs.
-func (_u *UserUpdate) RemoveSentMessageIDs(ids ...int) *UserUpdate {
+func (_u *UserUpdate) RemoveSentMessageIDs(ids ...uuid.UUID) *UserUpdate {
 	_u.mutation.RemoveSentMessageIDs(ids...)
 	return _u
 }
 
 // RemoveSentMessages removes "sent_messages" edges to Message entities.
 func (_u *UserUpdate) RemoveSentMessages(v ...*Message) *UserUpdate {
-	ids := make([]int, len(v))
+	ids := make([]uuid.UUID, len(v))
 	for i := range v {
 		ids[i] = v[i].ID
 	}
@@ -378,14 +379,14 @@ func (_u *UserUpdate) ClearCreatedGroups() *UserUpdate {
 }
 
 // RemoveCreatedGroupIDs removes the "created_groups" edge to GroupChat entities by IDs.
-func (_u *UserUpdate) RemoveCreatedGroupIDs(ids ...int) *UserUpdate {
+func (_u *UserUpdate) RemoveCreatedGroupIDs(ids ...uuid.UUID) *UserUpdate {
 	_u.mutation.RemoveCreatedGroupIDs(ids...)
 	return _u
 }
 
 // RemoveCreatedGroups removes "created_groups" edges to GroupChat entities.
 func (_u *UserUpdate) RemoveCreatedGroups(v ...*GroupChat) *UserUpdate {
-	ids := make([]int, len(v))
+	ids := make([]uuid.UUID, len(v))
 	for i := range v {
 		ids[i] = v[i].ID
 	}
@@ -399,14 +400,14 @@ func (_u *UserUpdate) ClearGroupMemberships() *UserUpdate {
 }
 
 // RemoveGroupMembershipIDs removes the "group_memberships" edge to GroupMember entities by IDs.
-func (_u *UserUpdate) RemoveGroupMembershipIDs(ids ...int) *UserUpdate {
+func (_u *UserUpdate) RemoveGroupMembershipIDs(ids ...uuid.UUID) *UserUpdate {
 	_u.mutation.RemoveGroupMembershipIDs(ids...)
 	return _u
 }
 
 // RemoveGroupMemberships removes "group_memberships" edges to GroupMember entities.
 func (_u *UserUpdate) RemoveGroupMemberships(v ...*GroupMember) *UserUpdate {
-	ids := make([]int, len(v))
+	ids := make([]uuid.UUID, len(v))
 	for i := range v {
 		ids[i] = v[i].ID
 	}
@@ -420,14 +421,14 @@ func (_u *UserUpdate) ClearPrivateChatsAsUser1() *UserUpdate {
 }
 
 // RemovePrivateChatsAsUser1IDs removes the "private_chats_as_user1" edge to PrivateChat entities by IDs.
-func (_u *UserUpdate) RemovePrivateChatsAsUser1IDs(ids ...int) *UserUpdate {
+func (_u *UserUpdate) RemovePrivateChatsAsUser1IDs(ids ...uuid.UUID) *UserUpdate {
 	_u.mutation.RemovePrivateChatsAsUser1IDs(ids...)
 	return _u
 }
 
 // RemovePrivateChatsAsUser1 removes "private_chats_as_user1" edges to PrivateChat entities.
 func (_u *UserUpdate) RemovePrivateChatsAsUser1(v ...*PrivateChat) *UserUpdate {
-	ids := make([]int, len(v))
+	ids := make([]uuid.UUID, len(v))
 	for i := range v {
 		ids[i] = v[i].ID
 	}
@@ -441,14 +442,14 @@ func (_u *UserUpdate) ClearPrivateChatsAsUser2() *UserUpdate {
 }
 
 // RemovePrivateChatsAsUser2IDs removes the "private_chats_as_user2" edge to PrivateChat entities by IDs.
-func (_u *UserUpdate) RemovePrivateChatsAsUser2IDs(ids ...int) *UserUpdate {
+func (_u *UserUpdate) RemovePrivateChatsAsUser2IDs(ids ...uuid.UUID) *UserUpdate {
 	_u.mutation.RemovePrivateChatsAsUser2IDs(ids...)
 	return _u
 }
 
 // RemovePrivateChatsAsUser2 removes "private_chats_as_user2" edges to PrivateChat entities.
 func (_u *UserUpdate) RemovePrivateChatsAsUser2(v ...*PrivateChat) *UserUpdate {
-	ids := make([]int, len(v))
+	ids := make([]uuid.UUID, len(v))
 	for i := range v {
 		ids[i] = v[i].ID
 	}
@@ -462,14 +463,14 @@ func (_u *UserUpdate) ClearUploadedMedia() *UserUpdate {
 }
 
 // RemoveUploadedMediumIDs removes the "uploaded_media" edge to Media entities by IDs.
-func (_u *UserUpdate) RemoveUploadedMediumIDs(ids ...int) *UserUpdate {
+func (_u *UserUpdate) RemoveUploadedMediumIDs(ids ...uuid.UUID) *UserUpdate {
 	_u.mutation.RemoveUploadedMediumIDs(ids...)
 	return _u
 }
 
 // RemoveUploadedMedia removes "uploaded_media" edges to Media entities.
 func (_u *UserUpdate) RemoveUploadedMedia(v ...*Media) *UserUpdate {
-	ids := make([]int, len(v))
+	ids := make([]uuid.UUID, len(v))
 	for i := range v {
 		ids[i] = v[i].ID
 	}
@@ -483,14 +484,14 @@ func (_u *UserUpdate) ClearBlockedUsersRel() *UserUpdate {
 }
 
 // RemoveBlockedUsersRelIDs removes the "blocked_users_rel" edge to UserBlock entities by IDs.
-func (_u *UserUpdate) RemoveBlockedUsersRelIDs(ids ...int) *UserUpdate {
+func (_u *UserUpdate) RemoveBlockedUsersRelIDs(ids ...uuid.UUID) *UserUpdate {
 	_u.mutation.RemoveBlockedUsersRelIDs(ids...)
 	return _u
 }
 
 // RemoveBlockedUsersRel removes "blocked_users_rel" edges to UserBlock entities.
 func (_u *UserUpdate) RemoveBlockedUsersRel(v ...*UserBlock) *UserUpdate {
-	ids := make([]int, len(v))
+	ids := make([]uuid.UUID, len(v))
 	for i := range v {
 		ids[i] = v[i].ID
 	}
@@ -504,14 +505,14 @@ func (_u *UserUpdate) ClearBlockedByRel() *UserUpdate {
 }
 
 // RemoveBlockedByRelIDs removes the "blocked_by_rel" edge to UserBlock entities by IDs.
-func (_u *UserUpdate) RemoveBlockedByRelIDs(ids ...int) *UserUpdate {
+func (_u *UserUpdate) RemoveBlockedByRelIDs(ids ...uuid.UUID) *UserUpdate {
 	_u.mutation.RemoveBlockedByRelIDs(ids...)
 	return _u
 }
 
 // RemoveBlockedByRel removes "blocked_by_rel" edges to UserBlock entities.
 func (_u *UserUpdate) RemoveBlockedByRel(v ...*UserBlock) *UserUpdate {
-	ids := make([]int, len(v))
+	ids := make([]uuid.UUID, len(v))
 	for i := range v {
 		ids[i] = v[i].ID
 	}
@@ -594,7 +595,7 @@ func (_u *UserUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	if err := _u.check(); err != nil {
 		return _node, err
 	}
-	_spec := sqlgraph.NewUpdateSpec(user.Table, user.Columns, sqlgraph.NewFieldSpec(user.FieldID, field.TypeInt))
+	_spec := sqlgraph.NewUpdateSpec(user.Table, user.Columns, sqlgraph.NewFieldSpec(user.FieldID, field.TypeUUID))
 	if ps := _u.mutation.predicates; len(ps) > 0 {
 		_spec.Predicate = func(selector *sql.Selector) {
 			for i := range ps {
@@ -643,7 +644,7 @@ func (_u *UserUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 			Columns: []string{user.AvatarColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(media.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(media.FieldID, field.TypeUUID),
 			},
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
@@ -656,7 +657,7 @@ func (_u *UserUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 			Columns: []string{user.AvatarColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(media.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(media.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {
@@ -672,7 +673,7 @@ func (_u *UserUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 			Columns: []string{user.IdentitiesColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(useridentity.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(useridentity.FieldID, field.TypeUUID),
 			},
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
@@ -685,7 +686,7 @@ func (_u *UserUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 			Columns: []string{user.IdentitiesColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(useridentity.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(useridentity.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {
@@ -701,7 +702,7 @@ func (_u *UserUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 			Columns: []string{user.IdentitiesColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(useridentity.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(useridentity.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {
@@ -717,7 +718,7 @@ func (_u *UserUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 			Columns: []string{user.SentMessagesColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(message.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(message.FieldID, field.TypeUUID),
 			},
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
@@ -730,7 +731,7 @@ func (_u *UserUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 			Columns: []string{user.SentMessagesColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(message.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(message.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {
@@ -746,7 +747,7 @@ func (_u *UserUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 			Columns: []string{user.SentMessagesColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(message.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(message.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {
@@ -762,7 +763,7 @@ func (_u *UserUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 			Columns: []string{user.CreatedGroupsColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(groupchat.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(groupchat.FieldID, field.TypeUUID),
 			},
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
@@ -775,7 +776,7 @@ func (_u *UserUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 			Columns: []string{user.CreatedGroupsColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(groupchat.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(groupchat.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {
@@ -791,7 +792,7 @@ func (_u *UserUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 			Columns: []string{user.CreatedGroupsColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(groupchat.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(groupchat.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {
@@ -807,7 +808,7 @@ func (_u *UserUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 			Columns: []string{user.GroupMembershipsColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(groupmember.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(groupmember.FieldID, field.TypeUUID),
 			},
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
@@ -820,7 +821,7 @@ func (_u *UserUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 			Columns: []string{user.GroupMembershipsColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(groupmember.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(groupmember.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {
@@ -836,7 +837,7 @@ func (_u *UserUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 			Columns: []string{user.GroupMembershipsColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(groupmember.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(groupmember.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {
@@ -852,7 +853,7 @@ func (_u *UserUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 			Columns: []string{user.PrivateChatsAsUser1Column},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(privatechat.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(privatechat.FieldID, field.TypeUUID),
 			},
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
@@ -865,7 +866,7 @@ func (_u *UserUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 			Columns: []string{user.PrivateChatsAsUser1Column},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(privatechat.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(privatechat.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {
@@ -881,7 +882,7 @@ func (_u *UserUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 			Columns: []string{user.PrivateChatsAsUser1Column},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(privatechat.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(privatechat.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {
@@ -897,7 +898,7 @@ func (_u *UserUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 			Columns: []string{user.PrivateChatsAsUser2Column},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(privatechat.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(privatechat.FieldID, field.TypeUUID),
 			},
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
@@ -910,7 +911,7 @@ func (_u *UserUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 			Columns: []string{user.PrivateChatsAsUser2Column},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(privatechat.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(privatechat.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {
@@ -926,7 +927,7 @@ func (_u *UserUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 			Columns: []string{user.PrivateChatsAsUser2Column},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(privatechat.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(privatechat.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {
@@ -942,7 +943,7 @@ func (_u *UserUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 			Columns: []string{user.UploadedMediaColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(media.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(media.FieldID, field.TypeUUID),
 			},
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
@@ -955,7 +956,7 @@ func (_u *UserUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 			Columns: []string{user.UploadedMediaColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(media.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(media.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {
@@ -971,7 +972,7 @@ func (_u *UserUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 			Columns: []string{user.UploadedMediaColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(media.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(media.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {
@@ -987,7 +988,7 @@ func (_u *UserUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 			Columns: []string{user.BlockedUsersRelColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(userblock.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(userblock.FieldID, field.TypeUUID),
 			},
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
@@ -1000,7 +1001,7 @@ func (_u *UserUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 			Columns: []string{user.BlockedUsersRelColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(userblock.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(userblock.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {
@@ -1016,7 +1017,7 @@ func (_u *UserUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 			Columns: []string{user.BlockedUsersRelColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(userblock.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(userblock.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {
@@ -1032,7 +1033,7 @@ func (_u *UserUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 			Columns: []string{user.BlockedByRelColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(userblock.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(userblock.FieldID, field.TypeUUID),
 			},
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
@@ -1045,7 +1046,7 @@ func (_u *UserUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 			Columns: []string{user.BlockedByRelColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(userblock.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(userblock.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {
@@ -1061,7 +1062,7 @@ func (_u *UserUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 			Columns: []string{user.BlockedByRelColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(userblock.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(userblock.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {
@@ -1180,13 +1181,13 @@ func (_u *UserUpdateOne) ClearBio() *UserUpdateOne {
 }
 
 // SetAvatarID sets the "avatar_id" field.
-func (_u *UserUpdateOne) SetAvatarID(v int) *UserUpdateOne {
+func (_u *UserUpdateOne) SetAvatarID(v uuid.UUID) *UserUpdateOne {
 	_u.mutation.SetAvatarID(v)
 	return _u
 }
 
 // SetNillableAvatarID sets the "avatar_id" field if the given value is not nil.
-func (_u *UserUpdateOne) SetNillableAvatarID(v *int) *UserUpdateOne {
+func (_u *UserUpdateOne) SetNillableAvatarID(v *uuid.UUID) *UserUpdateOne {
 	if v != nil {
 		_u.SetAvatarID(*v)
 	}
@@ -1239,14 +1240,14 @@ func (_u *UserUpdateOne) SetAvatar(v *Media) *UserUpdateOne {
 }
 
 // AddIdentityIDs adds the "identities" edge to the UserIdentity entity by IDs.
-func (_u *UserUpdateOne) AddIdentityIDs(ids ...int) *UserUpdateOne {
+func (_u *UserUpdateOne) AddIdentityIDs(ids ...uuid.UUID) *UserUpdateOne {
 	_u.mutation.AddIdentityIDs(ids...)
 	return _u
 }
 
 // AddIdentities adds the "identities" edges to the UserIdentity entity.
 func (_u *UserUpdateOne) AddIdentities(v ...*UserIdentity) *UserUpdateOne {
-	ids := make([]int, len(v))
+	ids := make([]uuid.UUID, len(v))
 	for i := range v {
 		ids[i] = v[i].ID
 	}
@@ -1254,14 +1255,14 @@ func (_u *UserUpdateOne) AddIdentities(v ...*UserIdentity) *UserUpdateOne {
 }
 
 // AddSentMessageIDs adds the "sent_messages" edge to the Message entity by IDs.
-func (_u *UserUpdateOne) AddSentMessageIDs(ids ...int) *UserUpdateOne {
+func (_u *UserUpdateOne) AddSentMessageIDs(ids ...uuid.UUID) *UserUpdateOne {
 	_u.mutation.AddSentMessageIDs(ids...)
 	return _u
 }
 
 // AddSentMessages adds the "sent_messages" edges to the Message entity.
 func (_u *UserUpdateOne) AddSentMessages(v ...*Message) *UserUpdateOne {
-	ids := make([]int, len(v))
+	ids := make([]uuid.UUID, len(v))
 	for i := range v {
 		ids[i] = v[i].ID
 	}
@@ -1269,14 +1270,14 @@ func (_u *UserUpdateOne) AddSentMessages(v ...*Message) *UserUpdateOne {
 }
 
 // AddCreatedGroupIDs adds the "created_groups" edge to the GroupChat entity by IDs.
-func (_u *UserUpdateOne) AddCreatedGroupIDs(ids ...int) *UserUpdateOne {
+func (_u *UserUpdateOne) AddCreatedGroupIDs(ids ...uuid.UUID) *UserUpdateOne {
 	_u.mutation.AddCreatedGroupIDs(ids...)
 	return _u
 }
 
 // AddCreatedGroups adds the "created_groups" edges to the GroupChat entity.
 func (_u *UserUpdateOne) AddCreatedGroups(v ...*GroupChat) *UserUpdateOne {
-	ids := make([]int, len(v))
+	ids := make([]uuid.UUID, len(v))
 	for i := range v {
 		ids[i] = v[i].ID
 	}
@@ -1284,14 +1285,14 @@ func (_u *UserUpdateOne) AddCreatedGroups(v ...*GroupChat) *UserUpdateOne {
 }
 
 // AddGroupMembershipIDs adds the "group_memberships" edge to the GroupMember entity by IDs.
-func (_u *UserUpdateOne) AddGroupMembershipIDs(ids ...int) *UserUpdateOne {
+func (_u *UserUpdateOne) AddGroupMembershipIDs(ids ...uuid.UUID) *UserUpdateOne {
 	_u.mutation.AddGroupMembershipIDs(ids...)
 	return _u
 }
 
 // AddGroupMemberships adds the "group_memberships" edges to the GroupMember entity.
 func (_u *UserUpdateOne) AddGroupMemberships(v ...*GroupMember) *UserUpdateOne {
-	ids := make([]int, len(v))
+	ids := make([]uuid.UUID, len(v))
 	for i := range v {
 		ids[i] = v[i].ID
 	}
@@ -1299,14 +1300,14 @@ func (_u *UserUpdateOne) AddGroupMemberships(v ...*GroupMember) *UserUpdateOne {
 }
 
 // AddPrivateChatsAsUser1IDs adds the "private_chats_as_user1" edge to the PrivateChat entity by IDs.
-func (_u *UserUpdateOne) AddPrivateChatsAsUser1IDs(ids ...int) *UserUpdateOne {
+func (_u *UserUpdateOne) AddPrivateChatsAsUser1IDs(ids ...uuid.UUID) *UserUpdateOne {
 	_u.mutation.AddPrivateChatsAsUser1IDs(ids...)
 	return _u
 }
 
 // AddPrivateChatsAsUser1 adds the "private_chats_as_user1" edges to the PrivateChat entity.
 func (_u *UserUpdateOne) AddPrivateChatsAsUser1(v ...*PrivateChat) *UserUpdateOne {
-	ids := make([]int, len(v))
+	ids := make([]uuid.UUID, len(v))
 	for i := range v {
 		ids[i] = v[i].ID
 	}
@@ -1314,14 +1315,14 @@ func (_u *UserUpdateOne) AddPrivateChatsAsUser1(v ...*PrivateChat) *UserUpdateOn
 }
 
 // AddPrivateChatsAsUser2IDs adds the "private_chats_as_user2" edge to the PrivateChat entity by IDs.
-func (_u *UserUpdateOne) AddPrivateChatsAsUser2IDs(ids ...int) *UserUpdateOne {
+func (_u *UserUpdateOne) AddPrivateChatsAsUser2IDs(ids ...uuid.UUID) *UserUpdateOne {
 	_u.mutation.AddPrivateChatsAsUser2IDs(ids...)
 	return _u
 }
 
 // AddPrivateChatsAsUser2 adds the "private_chats_as_user2" edges to the PrivateChat entity.
 func (_u *UserUpdateOne) AddPrivateChatsAsUser2(v ...*PrivateChat) *UserUpdateOne {
-	ids := make([]int, len(v))
+	ids := make([]uuid.UUID, len(v))
 	for i := range v {
 		ids[i] = v[i].ID
 	}
@@ -1329,14 +1330,14 @@ func (_u *UserUpdateOne) AddPrivateChatsAsUser2(v ...*PrivateChat) *UserUpdateOn
 }
 
 // AddUploadedMediumIDs adds the "uploaded_media" edge to the Media entity by IDs.
-func (_u *UserUpdateOne) AddUploadedMediumIDs(ids ...int) *UserUpdateOne {
+func (_u *UserUpdateOne) AddUploadedMediumIDs(ids ...uuid.UUID) *UserUpdateOne {
 	_u.mutation.AddUploadedMediumIDs(ids...)
 	return _u
 }
 
 // AddUploadedMedia adds the "uploaded_media" edges to the Media entity.
 func (_u *UserUpdateOne) AddUploadedMedia(v ...*Media) *UserUpdateOne {
-	ids := make([]int, len(v))
+	ids := make([]uuid.UUID, len(v))
 	for i := range v {
 		ids[i] = v[i].ID
 	}
@@ -1344,14 +1345,14 @@ func (_u *UserUpdateOne) AddUploadedMedia(v ...*Media) *UserUpdateOne {
 }
 
 // AddBlockedUsersRelIDs adds the "blocked_users_rel" edge to the UserBlock entity by IDs.
-func (_u *UserUpdateOne) AddBlockedUsersRelIDs(ids ...int) *UserUpdateOne {
+func (_u *UserUpdateOne) AddBlockedUsersRelIDs(ids ...uuid.UUID) *UserUpdateOne {
 	_u.mutation.AddBlockedUsersRelIDs(ids...)
 	return _u
 }
 
 // AddBlockedUsersRel adds the "blocked_users_rel" edges to the UserBlock entity.
 func (_u *UserUpdateOne) AddBlockedUsersRel(v ...*UserBlock) *UserUpdateOne {
-	ids := make([]int, len(v))
+	ids := make([]uuid.UUID, len(v))
 	for i := range v {
 		ids[i] = v[i].ID
 	}
@@ -1359,14 +1360,14 @@ func (_u *UserUpdateOne) AddBlockedUsersRel(v ...*UserBlock) *UserUpdateOne {
 }
 
 // AddBlockedByRelIDs adds the "blocked_by_rel" edge to the UserBlock entity by IDs.
-func (_u *UserUpdateOne) AddBlockedByRelIDs(ids ...int) *UserUpdateOne {
+func (_u *UserUpdateOne) AddBlockedByRelIDs(ids ...uuid.UUID) *UserUpdateOne {
 	_u.mutation.AddBlockedByRelIDs(ids...)
 	return _u
 }
 
 // AddBlockedByRel adds the "blocked_by_rel" edges to the UserBlock entity.
 func (_u *UserUpdateOne) AddBlockedByRel(v ...*UserBlock) *UserUpdateOne {
-	ids := make([]int, len(v))
+	ids := make([]uuid.UUID, len(v))
 	for i := range v {
 		ids[i] = v[i].ID
 	}
@@ -1391,14 +1392,14 @@ func (_u *UserUpdateOne) ClearIdentities() *UserUpdateOne {
 }
 
 // RemoveIdentityIDs removes the "identities" edge to UserIdentity entities by IDs.
-func (_u *UserUpdateOne) RemoveIdentityIDs(ids ...int) *UserUpdateOne {
+func (_u *UserUpdateOne) RemoveIdentityIDs(ids ...uuid.UUID) *UserUpdateOne {
 	_u.mutation.RemoveIdentityIDs(ids...)
 	return _u
 }
 
 // RemoveIdentities removes "identities" edges to UserIdentity entities.
 func (_u *UserUpdateOne) RemoveIdentities(v ...*UserIdentity) *UserUpdateOne {
-	ids := make([]int, len(v))
+	ids := make([]uuid.UUID, len(v))
 	for i := range v {
 		ids[i] = v[i].ID
 	}
@@ -1412,14 +1413,14 @@ func (_u *UserUpdateOne) ClearSentMessages() *UserUpdateOne {
 }
 
 // RemoveSentMessageIDs removes the "sent_messages" edge to Message entities by IDs.
-func (_u *UserUpdateOne) RemoveSentMessageIDs(ids ...int) *UserUpdateOne {
+func (_u *UserUpdateOne) RemoveSentMessageIDs(ids ...uuid.UUID) *UserUpdateOne {
 	_u.mutation.RemoveSentMessageIDs(ids...)
 	return _u
 }
 
 // RemoveSentMessages removes "sent_messages" edges to Message entities.
 func (_u *UserUpdateOne) RemoveSentMessages(v ...*Message) *UserUpdateOne {
-	ids := make([]int, len(v))
+	ids := make([]uuid.UUID, len(v))
 	for i := range v {
 		ids[i] = v[i].ID
 	}
@@ -1433,14 +1434,14 @@ func (_u *UserUpdateOne) ClearCreatedGroups() *UserUpdateOne {
 }
 
 // RemoveCreatedGroupIDs removes the "created_groups" edge to GroupChat entities by IDs.
-func (_u *UserUpdateOne) RemoveCreatedGroupIDs(ids ...int) *UserUpdateOne {
+func (_u *UserUpdateOne) RemoveCreatedGroupIDs(ids ...uuid.UUID) *UserUpdateOne {
 	_u.mutation.RemoveCreatedGroupIDs(ids...)
 	return _u
 }
 
 // RemoveCreatedGroups removes "created_groups" edges to GroupChat entities.
 func (_u *UserUpdateOne) RemoveCreatedGroups(v ...*GroupChat) *UserUpdateOne {
-	ids := make([]int, len(v))
+	ids := make([]uuid.UUID, len(v))
 	for i := range v {
 		ids[i] = v[i].ID
 	}
@@ -1454,14 +1455,14 @@ func (_u *UserUpdateOne) ClearGroupMemberships() *UserUpdateOne {
 }
 
 // RemoveGroupMembershipIDs removes the "group_memberships" edge to GroupMember entities by IDs.
-func (_u *UserUpdateOne) RemoveGroupMembershipIDs(ids ...int) *UserUpdateOne {
+func (_u *UserUpdateOne) RemoveGroupMembershipIDs(ids ...uuid.UUID) *UserUpdateOne {
 	_u.mutation.RemoveGroupMembershipIDs(ids...)
 	return _u
 }
 
 // RemoveGroupMemberships removes "group_memberships" edges to GroupMember entities.
 func (_u *UserUpdateOne) RemoveGroupMemberships(v ...*GroupMember) *UserUpdateOne {
-	ids := make([]int, len(v))
+	ids := make([]uuid.UUID, len(v))
 	for i := range v {
 		ids[i] = v[i].ID
 	}
@@ -1475,14 +1476,14 @@ func (_u *UserUpdateOne) ClearPrivateChatsAsUser1() *UserUpdateOne {
 }
 
 // RemovePrivateChatsAsUser1IDs removes the "private_chats_as_user1" edge to PrivateChat entities by IDs.
-func (_u *UserUpdateOne) RemovePrivateChatsAsUser1IDs(ids ...int) *UserUpdateOne {
+func (_u *UserUpdateOne) RemovePrivateChatsAsUser1IDs(ids ...uuid.UUID) *UserUpdateOne {
 	_u.mutation.RemovePrivateChatsAsUser1IDs(ids...)
 	return _u
 }
 
 // RemovePrivateChatsAsUser1 removes "private_chats_as_user1" edges to PrivateChat entities.
 func (_u *UserUpdateOne) RemovePrivateChatsAsUser1(v ...*PrivateChat) *UserUpdateOne {
-	ids := make([]int, len(v))
+	ids := make([]uuid.UUID, len(v))
 	for i := range v {
 		ids[i] = v[i].ID
 	}
@@ -1496,14 +1497,14 @@ func (_u *UserUpdateOne) ClearPrivateChatsAsUser2() *UserUpdateOne {
 }
 
 // RemovePrivateChatsAsUser2IDs removes the "private_chats_as_user2" edge to PrivateChat entities by IDs.
-func (_u *UserUpdateOne) RemovePrivateChatsAsUser2IDs(ids ...int) *UserUpdateOne {
+func (_u *UserUpdateOne) RemovePrivateChatsAsUser2IDs(ids ...uuid.UUID) *UserUpdateOne {
 	_u.mutation.RemovePrivateChatsAsUser2IDs(ids...)
 	return _u
 }
 
 // RemovePrivateChatsAsUser2 removes "private_chats_as_user2" edges to PrivateChat entities.
 func (_u *UserUpdateOne) RemovePrivateChatsAsUser2(v ...*PrivateChat) *UserUpdateOne {
-	ids := make([]int, len(v))
+	ids := make([]uuid.UUID, len(v))
 	for i := range v {
 		ids[i] = v[i].ID
 	}
@@ -1517,14 +1518,14 @@ func (_u *UserUpdateOne) ClearUploadedMedia() *UserUpdateOne {
 }
 
 // RemoveUploadedMediumIDs removes the "uploaded_media" edge to Media entities by IDs.
-func (_u *UserUpdateOne) RemoveUploadedMediumIDs(ids ...int) *UserUpdateOne {
+func (_u *UserUpdateOne) RemoveUploadedMediumIDs(ids ...uuid.UUID) *UserUpdateOne {
 	_u.mutation.RemoveUploadedMediumIDs(ids...)
 	return _u
 }
 
 // RemoveUploadedMedia removes "uploaded_media" edges to Media entities.
 func (_u *UserUpdateOne) RemoveUploadedMedia(v ...*Media) *UserUpdateOne {
-	ids := make([]int, len(v))
+	ids := make([]uuid.UUID, len(v))
 	for i := range v {
 		ids[i] = v[i].ID
 	}
@@ -1538,14 +1539,14 @@ func (_u *UserUpdateOne) ClearBlockedUsersRel() *UserUpdateOne {
 }
 
 // RemoveBlockedUsersRelIDs removes the "blocked_users_rel" edge to UserBlock entities by IDs.
-func (_u *UserUpdateOne) RemoveBlockedUsersRelIDs(ids ...int) *UserUpdateOne {
+func (_u *UserUpdateOne) RemoveBlockedUsersRelIDs(ids ...uuid.UUID) *UserUpdateOne {
 	_u.mutation.RemoveBlockedUsersRelIDs(ids...)
 	return _u
 }
 
 // RemoveBlockedUsersRel removes "blocked_users_rel" edges to UserBlock entities.
 func (_u *UserUpdateOne) RemoveBlockedUsersRel(v ...*UserBlock) *UserUpdateOne {
-	ids := make([]int, len(v))
+	ids := make([]uuid.UUID, len(v))
 	for i := range v {
 		ids[i] = v[i].ID
 	}
@@ -1559,14 +1560,14 @@ func (_u *UserUpdateOne) ClearBlockedByRel() *UserUpdateOne {
 }
 
 // RemoveBlockedByRelIDs removes the "blocked_by_rel" edge to UserBlock entities by IDs.
-func (_u *UserUpdateOne) RemoveBlockedByRelIDs(ids ...int) *UserUpdateOne {
+func (_u *UserUpdateOne) RemoveBlockedByRelIDs(ids ...uuid.UUID) *UserUpdateOne {
 	_u.mutation.RemoveBlockedByRelIDs(ids...)
 	return _u
 }
 
 // RemoveBlockedByRel removes "blocked_by_rel" edges to UserBlock entities.
 func (_u *UserUpdateOne) RemoveBlockedByRel(v ...*UserBlock) *UserUpdateOne {
-	ids := make([]int, len(v))
+	ids := make([]uuid.UUID, len(v))
 	for i := range v {
 		ids[i] = v[i].ID
 	}
@@ -1662,7 +1663,7 @@ func (_u *UserUpdateOne) sqlSave(ctx context.Context) (_node *User, err error) {
 	if err := _u.check(); err != nil {
 		return _node, err
 	}
-	_spec := sqlgraph.NewUpdateSpec(user.Table, user.Columns, sqlgraph.NewFieldSpec(user.FieldID, field.TypeInt))
+	_spec := sqlgraph.NewUpdateSpec(user.Table, user.Columns, sqlgraph.NewFieldSpec(user.FieldID, field.TypeUUID))
 	id, ok := _u.mutation.ID()
 	if !ok {
 		return nil, &ValidationError{Name: "id", err: errors.New(`ent: missing "User.id" for update`)}
@@ -1728,7 +1729,7 @@ func (_u *UserUpdateOne) sqlSave(ctx context.Context) (_node *User, err error) {
 			Columns: []string{user.AvatarColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(media.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(media.FieldID, field.TypeUUID),
 			},
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
@@ -1741,7 +1742,7 @@ func (_u *UserUpdateOne) sqlSave(ctx context.Context) (_node *User, err error) {
 			Columns: []string{user.AvatarColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(media.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(media.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {
@@ -1757,7 +1758,7 @@ func (_u *UserUpdateOne) sqlSave(ctx context.Context) (_node *User, err error) {
 			Columns: []string{user.IdentitiesColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(useridentity.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(useridentity.FieldID, field.TypeUUID),
 			},
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
@@ -1770,7 +1771,7 @@ func (_u *UserUpdateOne) sqlSave(ctx context.Context) (_node *User, err error) {
 			Columns: []string{user.IdentitiesColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(useridentity.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(useridentity.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {
@@ -1786,7 +1787,7 @@ func (_u *UserUpdateOne) sqlSave(ctx context.Context) (_node *User, err error) {
 			Columns: []string{user.IdentitiesColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(useridentity.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(useridentity.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {
@@ -1802,7 +1803,7 @@ func (_u *UserUpdateOne) sqlSave(ctx context.Context) (_node *User, err error) {
 			Columns: []string{user.SentMessagesColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(message.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(message.FieldID, field.TypeUUID),
 			},
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
@@ -1815,7 +1816,7 @@ func (_u *UserUpdateOne) sqlSave(ctx context.Context) (_node *User, err error) {
 			Columns: []string{user.SentMessagesColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(message.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(message.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {
@@ -1831,7 +1832,7 @@ func (_u *UserUpdateOne) sqlSave(ctx context.Context) (_node *User, err error) {
 			Columns: []string{user.SentMessagesColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(message.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(message.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {
@@ -1847,7 +1848,7 @@ func (_u *UserUpdateOne) sqlSave(ctx context.Context) (_node *User, err error) {
 			Columns: []string{user.CreatedGroupsColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(groupchat.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(groupchat.FieldID, field.TypeUUID),
 			},
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
@@ -1860,7 +1861,7 @@ func (_u *UserUpdateOne) sqlSave(ctx context.Context) (_node *User, err error) {
 			Columns: []string{user.CreatedGroupsColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(groupchat.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(groupchat.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {
@@ -1876,7 +1877,7 @@ func (_u *UserUpdateOne) sqlSave(ctx context.Context) (_node *User, err error) {
 			Columns: []string{user.CreatedGroupsColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(groupchat.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(groupchat.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {
@@ -1892,7 +1893,7 @@ func (_u *UserUpdateOne) sqlSave(ctx context.Context) (_node *User, err error) {
 			Columns: []string{user.GroupMembershipsColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(groupmember.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(groupmember.FieldID, field.TypeUUID),
 			},
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
@@ -1905,7 +1906,7 @@ func (_u *UserUpdateOne) sqlSave(ctx context.Context) (_node *User, err error) {
 			Columns: []string{user.GroupMembershipsColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(groupmember.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(groupmember.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {
@@ -1921,7 +1922,7 @@ func (_u *UserUpdateOne) sqlSave(ctx context.Context) (_node *User, err error) {
 			Columns: []string{user.GroupMembershipsColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(groupmember.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(groupmember.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {
@@ -1937,7 +1938,7 @@ func (_u *UserUpdateOne) sqlSave(ctx context.Context) (_node *User, err error) {
 			Columns: []string{user.PrivateChatsAsUser1Column},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(privatechat.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(privatechat.FieldID, field.TypeUUID),
 			},
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
@@ -1950,7 +1951,7 @@ func (_u *UserUpdateOne) sqlSave(ctx context.Context) (_node *User, err error) {
 			Columns: []string{user.PrivateChatsAsUser1Column},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(privatechat.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(privatechat.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {
@@ -1966,7 +1967,7 @@ func (_u *UserUpdateOne) sqlSave(ctx context.Context) (_node *User, err error) {
 			Columns: []string{user.PrivateChatsAsUser1Column},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(privatechat.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(privatechat.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {
@@ -1982,7 +1983,7 @@ func (_u *UserUpdateOne) sqlSave(ctx context.Context) (_node *User, err error) {
 			Columns: []string{user.PrivateChatsAsUser2Column},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(privatechat.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(privatechat.FieldID, field.TypeUUID),
 			},
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
@@ -1995,7 +1996,7 @@ func (_u *UserUpdateOne) sqlSave(ctx context.Context) (_node *User, err error) {
 			Columns: []string{user.PrivateChatsAsUser2Column},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(privatechat.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(privatechat.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {
@@ -2011,7 +2012,7 @@ func (_u *UserUpdateOne) sqlSave(ctx context.Context) (_node *User, err error) {
 			Columns: []string{user.PrivateChatsAsUser2Column},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(privatechat.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(privatechat.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {
@@ -2027,7 +2028,7 @@ func (_u *UserUpdateOne) sqlSave(ctx context.Context) (_node *User, err error) {
 			Columns: []string{user.UploadedMediaColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(media.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(media.FieldID, field.TypeUUID),
 			},
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
@@ -2040,7 +2041,7 @@ func (_u *UserUpdateOne) sqlSave(ctx context.Context) (_node *User, err error) {
 			Columns: []string{user.UploadedMediaColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(media.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(media.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {
@@ -2056,7 +2057,7 @@ func (_u *UserUpdateOne) sqlSave(ctx context.Context) (_node *User, err error) {
 			Columns: []string{user.UploadedMediaColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(media.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(media.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {
@@ -2072,7 +2073,7 @@ func (_u *UserUpdateOne) sqlSave(ctx context.Context) (_node *User, err error) {
 			Columns: []string{user.BlockedUsersRelColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(userblock.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(userblock.FieldID, field.TypeUUID),
 			},
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
@@ -2085,7 +2086,7 @@ func (_u *UserUpdateOne) sqlSave(ctx context.Context) (_node *User, err error) {
 			Columns: []string{user.BlockedUsersRelColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(userblock.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(userblock.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {
@@ -2101,7 +2102,7 @@ func (_u *UserUpdateOne) sqlSave(ctx context.Context) (_node *User, err error) {
 			Columns: []string{user.BlockedUsersRelColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(userblock.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(userblock.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {
@@ -2117,7 +2118,7 @@ func (_u *UserUpdateOne) sqlSave(ctx context.Context) (_node *User, err error) {
 			Columns: []string{user.BlockedByRelColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(userblock.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(userblock.FieldID, field.TypeUUID),
 			},
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
@@ -2130,7 +2131,7 @@ func (_u *UserUpdateOne) sqlSave(ctx context.Context) (_node *User, err error) {
 			Columns: []string{user.BlockedByRelColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(userblock.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(userblock.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {
@@ -2146,7 +2147,7 @@ func (_u *UserUpdateOne) sqlSave(ctx context.Context) (_node *User, err error) {
 			Columns: []string{user.BlockedByRelColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(userblock.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(userblock.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {

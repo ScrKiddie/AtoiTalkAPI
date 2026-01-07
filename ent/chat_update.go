@@ -16,6 +16,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/google/uuid"
 )
 
 // ChatUpdate is the builder for updating Chat entities.
@@ -39,13 +40,13 @@ func (_u *ChatUpdate) SetUpdatedAt(v time.Time) *ChatUpdate {
 }
 
 // SetLastMessageID sets the "last_message_id" field.
-func (_u *ChatUpdate) SetLastMessageID(v int) *ChatUpdate {
+func (_u *ChatUpdate) SetLastMessageID(v uuid.UUID) *ChatUpdate {
 	_u.mutation.SetLastMessageID(v)
 	return _u
 }
 
 // SetNillableLastMessageID sets the "last_message_id" field if the given value is not nil.
-func (_u *ChatUpdate) SetNillableLastMessageID(v *int) *ChatUpdate {
+func (_u *ChatUpdate) SetNillableLastMessageID(v *uuid.UUID) *ChatUpdate {
 	if v != nil {
 		_u.SetLastMessageID(*v)
 	}
@@ -79,14 +80,14 @@ func (_u *ChatUpdate) ClearLastMessageAt() *ChatUpdate {
 }
 
 // AddMessageIDs adds the "messages" edge to the Message entity by IDs.
-func (_u *ChatUpdate) AddMessageIDs(ids ...int) *ChatUpdate {
+func (_u *ChatUpdate) AddMessageIDs(ids ...uuid.UUID) *ChatUpdate {
 	_u.mutation.AddMessageIDs(ids...)
 	return _u
 }
 
 // AddMessages adds the "messages" edges to the Message entity.
 func (_u *ChatUpdate) AddMessages(v ...*Message) *ChatUpdate {
-	ids := make([]int, len(v))
+	ids := make([]uuid.UUID, len(v))
 	for i := range v {
 		ids[i] = v[i].ID
 	}
@@ -94,13 +95,13 @@ func (_u *ChatUpdate) AddMessages(v ...*Message) *ChatUpdate {
 }
 
 // SetPrivateChatID sets the "private_chat" edge to the PrivateChat entity by ID.
-func (_u *ChatUpdate) SetPrivateChatID(id int) *ChatUpdate {
+func (_u *ChatUpdate) SetPrivateChatID(id uuid.UUID) *ChatUpdate {
 	_u.mutation.SetPrivateChatID(id)
 	return _u
 }
 
 // SetNillablePrivateChatID sets the "private_chat" edge to the PrivateChat entity by ID if the given value is not nil.
-func (_u *ChatUpdate) SetNillablePrivateChatID(id *int) *ChatUpdate {
+func (_u *ChatUpdate) SetNillablePrivateChatID(id *uuid.UUID) *ChatUpdate {
 	if id != nil {
 		_u = _u.SetPrivateChatID(*id)
 	}
@@ -113,13 +114,13 @@ func (_u *ChatUpdate) SetPrivateChat(v *PrivateChat) *ChatUpdate {
 }
 
 // SetGroupChatID sets the "group_chat" edge to the GroupChat entity by ID.
-func (_u *ChatUpdate) SetGroupChatID(id int) *ChatUpdate {
+func (_u *ChatUpdate) SetGroupChatID(id uuid.UUID) *ChatUpdate {
 	_u.mutation.SetGroupChatID(id)
 	return _u
 }
 
 // SetNillableGroupChatID sets the "group_chat" edge to the GroupChat entity by ID if the given value is not nil.
-func (_u *ChatUpdate) SetNillableGroupChatID(id *int) *ChatUpdate {
+func (_u *ChatUpdate) SetNillableGroupChatID(id *uuid.UUID) *ChatUpdate {
 	if id != nil {
 		_u = _u.SetGroupChatID(*id)
 	}
@@ -148,14 +149,14 @@ func (_u *ChatUpdate) ClearMessages() *ChatUpdate {
 }
 
 // RemoveMessageIDs removes the "messages" edge to Message entities by IDs.
-func (_u *ChatUpdate) RemoveMessageIDs(ids ...int) *ChatUpdate {
+func (_u *ChatUpdate) RemoveMessageIDs(ids ...uuid.UUID) *ChatUpdate {
 	_u.mutation.RemoveMessageIDs(ids...)
 	return _u
 }
 
 // RemoveMessages removes "messages" edges to Message entities.
 func (_u *ChatUpdate) RemoveMessages(v ...*Message) *ChatUpdate {
-	ids := make([]int, len(v))
+	ids := make([]uuid.UUID, len(v))
 	for i := range v {
 		ids[i] = v[i].ID
 	}
@@ -223,7 +224,7 @@ func (_u *ChatUpdate) Modify(modifiers ...func(u *sql.UpdateBuilder)) *ChatUpdat
 }
 
 func (_u *ChatUpdate) sqlSave(ctx context.Context) (_node int, err error) {
-	_spec := sqlgraph.NewUpdateSpec(chat.Table, chat.Columns, sqlgraph.NewFieldSpec(chat.FieldID, field.TypeInt))
+	_spec := sqlgraph.NewUpdateSpec(chat.Table, chat.Columns, sqlgraph.NewFieldSpec(chat.FieldID, field.TypeUUID))
 	if ps := _u.mutation.predicates; len(ps) > 0 {
 		_spec.Predicate = func(selector *sql.Selector) {
 			for i := range ps {
@@ -248,7 +249,7 @@ func (_u *ChatUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 			Columns: []string{chat.MessagesColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(message.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(message.FieldID, field.TypeUUID),
 			},
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
@@ -261,7 +262,7 @@ func (_u *ChatUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 			Columns: []string{chat.MessagesColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(message.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(message.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {
@@ -277,7 +278,7 @@ func (_u *ChatUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 			Columns: []string{chat.MessagesColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(message.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(message.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {
@@ -293,7 +294,7 @@ func (_u *ChatUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 			Columns: []string{chat.PrivateChatColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(privatechat.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(privatechat.FieldID, field.TypeUUID),
 			},
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
@@ -306,7 +307,7 @@ func (_u *ChatUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 			Columns: []string{chat.PrivateChatColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(privatechat.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(privatechat.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {
@@ -322,7 +323,7 @@ func (_u *ChatUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 			Columns: []string{chat.GroupChatColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(groupchat.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(groupchat.FieldID, field.TypeUUID),
 			},
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
@@ -335,7 +336,7 @@ func (_u *ChatUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 			Columns: []string{chat.GroupChatColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(groupchat.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(groupchat.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {
@@ -351,7 +352,7 @@ func (_u *ChatUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 			Columns: []string{chat.LastMessageColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(message.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(message.FieldID, field.TypeUUID),
 			},
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
@@ -364,7 +365,7 @@ func (_u *ChatUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 			Columns: []string{chat.LastMessageColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(message.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(message.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {
@@ -401,13 +402,13 @@ func (_u *ChatUpdateOne) SetUpdatedAt(v time.Time) *ChatUpdateOne {
 }
 
 // SetLastMessageID sets the "last_message_id" field.
-func (_u *ChatUpdateOne) SetLastMessageID(v int) *ChatUpdateOne {
+func (_u *ChatUpdateOne) SetLastMessageID(v uuid.UUID) *ChatUpdateOne {
 	_u.mutation.SetLastMessageID(v)
 	return _u
 }
 
 // SetNillableLastMessageID sets the "last_message_id" field if the given value is not nil.
-func (_u *ChatUpdateOne) SetNillableLastMessageID(v *int) *ChatUpdateOne {
+func (_u *ChatUpdateOne) SetNillableLastMessageID(v *uuid.UUID) *ChatUpdateOne {
 	if v != nil {
 		_u.SetLastMessageID(*v)
 	}
@@ -441,14 +442,14 @@ func (_u *ChatUpdateOne) ClearLastMessageAt() *ChatUpdateOne {
 }
 
 // AddMessageIDs adds the "messages" edge to the Message entity by IDs.
-func (_u *ChatUpdateOne) AddMessageIDs(ids ...int) *ChatUpdateOne {
+func (_u *ChatUpdateOne) AddMessageIDs(ids ...uuid.UUID) *ChatUpdateOne {
 	_u.mutation.AddMessageIDs(ids...)
 	return _u
 }
 
 // AddMessages adds the "messages" edges to the Message entity.
 func (_u *ChatUpdateOne) AddMessages(v ...*Message) *ChatUpdateOne {
-	ids := make([]int, len(v))
+	ids := make([]uuid.UUID, len(v))
 	for i := range v {
 		ids[i] = v[i].ID
 	}
@@ -456,13 +457,13 @@ func (_u *ChatUpdateOne) AddMessages(v ...*Message) *ChatUpdateOne {
 }
 
 // SetPrivateChatID sets the "private_chat" edge to the PrivateChat entity by ID.
-func (_u *ChatUpdateOne) SetPrivateChatID(id int) *ChatUpdateOne {
+func (_u *ChatUpdateOne) SetPrivateChatID(id uuid.UUID) *ChatUpdateOne {
 	_u.mutation.SetPrivateChatID(id)
 	return _u
 }
 
 // SetNillablePrivateChatID sets the "private_chat" edge to the PrivateChat entity by ID if the given value is not nil.
-func (_u *ChatUpdateOne) SetNillablePrivateChatID(id *int) *ChatUpdateOne {
+func (_u *ChatUpdateOne) SetNillablePrivateChatID(id *uuid.UUID) *ChatUpdateOne {
 	if id != nil {
 		_u = _u.SetPrivateChatID(*id)
 	}
@@ -475,13 +476,13 @@ func (_u *ChatUpdateOne) SetPrivateChat(v *PrivateChat) *ChatUpdateOne {
 }
 
 // SetGroupChatID sets the "group_chat" edge to the GroupChat entity by ID.
-func (_u *ChatUpdateOne) SetGroupChatID(id int) *ChatUpdateOne {
+func (_u *ChatUpdateOne) SetGroupChatID(id uuid.UUID) *ChatUpdateOne {
 	_u.mutation.SetGroupChatID(id)
 	return _u
 }
 
 // SetNillableGroupChatID sets the "group_chat" edge to the GroupChat entity by ID if the given value is not nil.
-func (_u *ChatUpdateOne) SetNillableGroupChatID(id *int) *ChatUpdateOne {
+func (_u *ChatUpdateOne) SetNillableGroupChatID(id *uuid.UUID) *ChatUpdateOne {
 	if id != nil {
 		_u = _u.SetGroupChatID(*id)
 	}
@@ -510,14 +511,14 @@ func (_u *ChatUpdateOne) ClearMessages() *ChatUpdateOne {
 }
 
 // RemoveMessageIDs removes the "messages" edge to Message entities by IDs.
-func (_u *ChatUpdateOne) RemoveMessageIDs(ids ...int) *ChatUpdateOne {
+func (_u *ChatUpdateOne) RemoveMessageIDs(ids ...uuid.UUID) *ChatUpdateOne {
 	_u.mutation.RemoveMessageIDs(ids...)
 	return _u
 }
 
 // RemoveMessages removes "messages" edges to Message entities.
 func (_u *ChatUpdateOne) RemoveMessages(v ...*Message) *ChatUpdateOne {
-	ids := make([]int, len(v))
+	ids := make([]uuid.UUID, len(v))
 	for i := range v {
 		ids[i] = v[i].ID
 	}
@@ -598,7 +599,7 @@ func (_u *ChatUpdateOne) Modify(modifiers ...func(u *sql.UpdateBuilder)) *ChatUp
 }
 
 func (_u *ChatUpdateOne) sqlSave(ctx context.Context) (_node *Chat, err error) {
-	_spec := sqlgraph.NewUpdateSpec(chat.Table, chat.Columns, sqlgraph.NewFieldSpec(chat.FieldID, field.TypeInt))
+	_spec := sqlgraph.NewUpdateSpec(chat.Table, chat.Columns, sqlgraph.NewFieldSpec(chat.FieldID, field.TypeUUID))
 	id, ok := _u.mutation.ID()
 	if !ok {
 		return nil, &ValidationError{Name: "id", err: errors.New(`ent: missing "Chat.id" for update`)}
@@ -640,7 +641,7 @@ func (_u *ChatUpdateOne) sqlSave(ctx context.Context) (_node *Chat, err error) {
 			Columns: []string{chat.MessagesColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(message.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(message.FieldID, field.TypeUUID),
 			},
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
@@ -653,7 +654,7 @@ func (_u *ChatUpdateOne) sqlSave(ctx context.Context) (_node *Chat, err error) {
 			Columns: []string{chat.MessagesColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(message.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(message.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {
@@ -669,7 +670,7 @@ func (_u *ChatUpdateOne) sqlSave(ctx context.Context) (_node *Chat, err error) {
 			Columns: []string{chat.MessagesColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(message.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(message.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {
@@ -685,7 +686,7 @@ func (_u *ChatUpdateOne) sqlSave(ctx context.Context) (_node *Chat, err error) {
 			Columns: []string{chat.PrivateChatColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(privatechat.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(privatechat.FieldID, field.TypeUUID),
 			},
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
@@ -698,7 +699,7 @@ func (_u *ChatUpdateOne) sqlSave(ctx context.Context) (_node *Chat, err error) {
 			Columns: []string{chat.PrivateChatColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(privatechat.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(privatechat.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {
@@ -714,7 +715,7 @@ func (_u *ChatUpdateOne) sqlSave(ctx context.Context) (_node *Chat, err error) {
 			Columns: []string{chat.GroupChatColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(groupchat.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(groupchat.FieldID, field.TypeUUID),
 			},
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
@@ -727,7 +728,7 @@ func (_u *ChatUpdateOne) sqlSave(ctx context.Context) (_node *Chat, err error) {
 			Columns: []string{chat.GroupChatColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(groupchat.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(groupchat.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {
@@ -743,7 +744,7 @@ func (_u *ChatUpdateOne) sqlSave(ctx context.Context) (_node *Chat, err error) {
 			Columns: []string{chat.LastMessageColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(message.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(message.FieldID, field.TypeUUID),
 			},
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
@@ -756,7 +757,7 @@ func (_u *ChatUpdateOne) sqlSave(ctx context.Context) (_node *Chat, err error) {
 			Columns: []string{chat.LastMessageColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(message.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(message.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {

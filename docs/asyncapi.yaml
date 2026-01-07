@@ -106,10 +106,12 @@ components:
           type: integer
           description: Unix timestamp in milliseconds
         chat_id:
-          type: integer
+          type: string
+          format: uuid
           description: ID of the chat context (optional)
         sender_id:
-          type: integer
+          type: string
+          format: uuid
           description: ID of the user who triggered the event
         unread_count:
           type: integer
@@ -129,7 +131,8 @@ components:
       type: object
       properties:
         id:
-          type: integer
+          type: string
+          format: uuid
         username:
           type: string
         full_name:
@@ -154,7 +157,8 @@ components:
       description: Payload for user.update event containing only public info
       properties:
         id:
-          type: integer
+          type: string
+          format: uuid
         username:
           type: string
         full_name:
@@ -173,7 +177,8 @@ components:
       description: Payload for user.online and user.offline events
       properties:
         user_id:
-          type: integer
+          type: string
+          format: uuid
         is_online:
           type: boolean
         last_seen_at:
@@ -184,7 +189,8 @@ components:
       type: object
       properties:
         id:
-          type: integer
+          type: string
+          format: uuid
         file_name:
           type: string
         original_name:
@@ -201,7 +207,8 @@ components:
       type: object
       properties:
         id:
-          type: integer
+          type: string
+          format: uuid
         sender_name:
           type: string
         type:
@@ -221,11 +228,14 @@ components:
       type: object
       properties:
         id:
-          type: integer
+          type: string
+          format: uuid
         chat_id:
-          type: integer
+          type: string
+          format: uuid
         sender_id:
-          type: integer
+          type: string
+          format: uuid
         sender_name:
           type: string
         sender_username:
@@ -262,7 +272,8 @@ components:
       type: object
       properties:
         id:
-          type: integer
+          type: string
+          format: uuid
         type:
           type: string
           enum: [private, group]
@@ -288,7 +299,8 @@ components:
         is_online:
           type: boolean
         other_user_id:
-          type: integer
+          type: string
+          format: uuid
           description: Omitted if not applicable (e.g. group chat)
         other_username:
           type: string
@@ -305,9 +317,11 @@ components:
       type: object
       properties:
         id:
-          type: integer
+          type: string
+          format: uuid
         user_id:
-          type: integer
+          type: string
+          format: uuid
         username:
           type: string
         full_name:
@@ -338,7 +352,8 @@ components:
             type: object
             properties:
               chat_id:
-                type: integer
+                type: string
+                format: uuid
                 
     ServerTyping:
       name: chat.typing
@@ -395,7 +410,8 @@ components:
                 type: object
                 properties:
                   message_id:
-                    type: integer
+                    type: string
+                    format: uuid
 
     ServerChatNew:
       name: chat.new
@@ -426,9 +442,11 @@ components:
                 type: object
                 properties:
                   chat_id:
-                    type: integer
+                    type: string
+                    format: uuid
                   user_id:
-                    type: integer
+                    type: string
+                    format: uuid
                     description: The user who read the chat
 
     ServerChatHide:
@@ -446,7 +464,8 @@ components:
                 type: object
                 properties:
                   chat_id:
-                    type: integer
+                    type: string
+                    format: uuid
 
     ServerUserOnline:
       name: user.online
@@ -505,9 +524,11 @@ components:
                 type: object
                 properties:
                   blocker_id:
-                    type: integer
+                    type: string
+                    format: uuid
                   blocked_id:
-                    type: integer
+                    type: string
+                    format: uuid
 
     ServerUserUnblock:
       name: user.unblock
@@ -524,6 +545,8 @@ components:
                 type: object
                 properties:
                   blocker_id:
-                    type: integer
+                    type: string
+                    format: uuid
                   blocked_id:
-                    type: integer
+                    type: string
+                    format: uuid

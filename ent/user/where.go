@@ -8,50 +8,51 @@ import (
 
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
+	"github.com/google/uuid"
 )
 
 // ID filters vertices based on their ID field.
-func ID(id int) predicate.User {
+func ID(id uuid.UUID) predicate.User {
 	return predicate.User(sql.FieldEQ(FieldID, id))
 }
 
 // IDEQ applies the EQ predicate on the ID field.
-func IDEQ(id int) predicate.User {
+func IDEQ(id uuid.UUID) predicate.User {
 	return predicate.User(sql.FieldEQ(FieldID, id))
 }
 
 // IDNEQ applies the NEQ predicate on the ID field.
-func IDNEQ(id int) predicate.User {
+func IDNEQ(id uuid.UUID) predicate.User {
 	return predicate.User(sql.FieldNEQ(FieldID, id))
 }
 
 // IDIn applies the In predicate on the ID field.
-func IDIn(ids ...int) predicate.User {
+func IDIn(ids ...uuid.UUID) predicate.User {
 	return predicate.User(sql.FieldIn(FieldID, ids...))
 }
 
 // IDNotIn applies the NotIn predicate on the ID field.
-func IDNotIn(ids ...int) predicate.User {
+func IDNotIn(ids ...uuid.UUID) predicate.User {
 	return predicate.User(sql.FieldNotIn(FieldID, ids...))
 }
 
 // IDGT applies the GT predicate on the ID field.
-func IDGT(id int) predicate.User {
+func IDGT(id uuid.UUID) predicate.User {
 	return predicate.User(sql.FieldGT(FieldID, id))
 }
 
 // IDGTE applies the GTE predicate on the ID field.
-func IDGTE(id int) predicate.User {
+func IDGTE(id uuid.UUID) predicate.User {
 	return predicate.User(sql.FieldGTE(FieldID, id))
 }
 
 // IDLT applies the LT predicate on the ID field.
-func IDLT(id int) predicate.User {
+func IDLT(id uuid.UUID) predicate.User {
 	return predicate.User(sql.FieldLT(FieldID, id))
 }
 
 // IDLTE applies the LTE predicate on the ID field.
-func IDLTE(id int) predicate.User {
+func IDLTE(id uuid.UUID) predicate.User {
 	return predicate.User(sql.FieldLTE(FieldID, id))
 }
 
@@ -91,7 +92,7 @@ func Bio(v string) predicate.User {
 }
 
 // AvatarID applies equality check predicate on the "avatar_id" field. It's identical to AvatarIDEQ.
-func AvatarID(v int) predicate.User {
+func AvatarID(v uuid.UUID) predicate.User {
 	return predicate.User(sql.FieldEQ(FieldAvatarID, v))
 }
 
@@ -531,22 +532,22 @@ func BioContainsFold(v string) predicate.User {
 }
 
 // AvatarIDEQ applies the EQ predicate on the "avatar_id" field.
-func AvatarIDEQ(v int) predicate.User {
+func AvatarIDEQ(v uuid.UUID) predicate.User {
 	return predicate.User(sql.FieldEQ(FieldAvatarID, v))
 }
 
 // AvatarIDNEQ applies the NEQ predicate on the "avatar_id" field.
-func AvatarIDNEQ(v int) predicate.User {
+func AvatarIDNEQ(v uuid.UUID) predicate.User {
 	return predicate.User(sql.FieldNEQ(FieldAvatarID, v))
 }
 
 // AvatarIDIn applies the In predicate on the "avatar_id" field.
-func AvatarIDIn(vs ...int) predicate.User {
+func AvatarIDIn(vs ...uuid.UUID) predicate.User {
 	return predicate.User(sql.FieldIn(FieldAvatarID, vs...))
 }
 
 // AvatarIDNotIn applies the NotIn predicate on the "avatar_id" field.
-func AvatarIDNotIn(vs ...int) predicate.User {
+func AvatarIDNotIn(vs ...uuid.UUID) predicate.User {
 	return predicate.User(sql.FieldNotIn(FieldAvatarID, vs...))
 }
 

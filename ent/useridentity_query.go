@@ -15,6 +15,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/google/uuid"
 )
 
 // UserIdentityQuery is the builder for querying UserIdentity entities.
@@ -108,8 +109,8 @@ func (_q *UserIdentityQuery) FirstX(ctx context.Context) *UserIdentity {
 
 // FirstID returns the first UserIdentity ID from the query.
 // Returns a *NotFoundError when no UserIdentity ID was found.
-func (_q *UserIdentityQuery) FirstID(ctx context.Context) (id int, err error) {
-	var ids []int
+func (_q *UserIdentityQuery) FirstID(ctx context.Context) (id uuid.UUID, err error) {
+	var ids []uuid.UUID
 	if ids, err = _q.Limit(1).IDs(setContextOp(ctx, _q.ctx, ent.OpQueryFirstID)); err != nil {
 		return
 	}
@@ -121,7 +122,7 @@ func (_q *UserIdentityQuery) FirstID(ctx context.Context) (id int, err error) {
 }
 
 // FirstIDX is like FirstID, but panics if an error occurs.
-func (_q *UserIdentityQuery) FirstIDX(ctx context.Context) int {
+func (_q *UserIdentityQuery) FirstIDX(ctx context.Context) uuid.UUID {
 	id, err := _q.FirstID(ctx)
 	if err != nil && !IsNotFound(err) {
 		panic(err)
@@ -159,8 +160,8 @@ func (_q *UserIdentityQuery) OnlyX(ctx context.Context) *UserIdentity {
 // OnlyID is like Only, but returns the only UserIdentity ID in the query.
 // Returns a *NotSingularError when more than one UserIdentity ID is found.
 // Returns a *NotFoundError when no entities are found.
-func (_q *UserIdentityQuery) OnlyID(ctx context.Context) (id int, err error) {
-	var ids []int
+func (_q *UserIdentityQuery) OnlyID(ctx context.Context) (id uuid.UUID, err error) {
+	var ids []uuid.UUID
 	if ids, err = _q.Limit(2).IDs(setContextOp(ctx, _q.ctx, ent.OpQueryOnlyID)); err != nil {
 		return
 	}
@@ -176,7 +177,7 @@ func (_q *UserIdentityQuery) OnlyID(ctx context.Context) (id int, err error) {
 }
 
 // OnlyIDX is like OnlyID, but panics if an error occurs.
-func (_q *UserIdentityQuery) OnlyIDX(ctx context.Context) int {
+func (_q *UserIdentityQuery) OnlyIDX(ctx context.Context) uuid.UUID {
 	id, err := _q.OnlyID(ctx)
 	if err != nil {
 		panic(err)
@@ -204,7 +205,7 @@ func (_q *UserIdentityQuery) AllX(ctx context.Context) []*UserIdentity {
 }
 
 // IDs executes the query and returns a list of UserIdentity IDs.
-func (_q *UserIdentityQuery) IDs(ctx context.Context) (ids []int, err error) {
+func (_q *UserIdentityQuery) IDs(ctx context.Context) (ids []uuid.UUID, err error) {
 	if _q.ctx.Unique == nil && _q.path != nil {
 		_q.Unique(true)
 	}
@@ -216,7 +217,7 @@ func (_q *UserIdentityQuery) IDs(ctx context.Context) (ids []int, err error) {
 }
 
 // IDsX is like IDs, but panics if an error occurs.
-func (_q *UserIdentityQuery) IDsX(ctx context.Context) []int {
+func (_q *UserIdentityQuery) IDsX(ctx context.Context) []uuid.UUID {
 	ids, err := _q.IDs(ctx)
 	if err != nil {
 		panic(err)
@@ -408,8 +409,8 @@ func (_q *UserIdentityQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]
 }
 
 func (_q *UserIdentityQuery) loadUser(ctx context.Context, query *UserQuery, nodes []*UserIdentity, init func(*UserIdentity), assign func(*UserIdentity, *User)) error {
-	ids := make([]int, 0, len(nodes))
-	nodeids := make(map[int][]*UserIdentity)
+	ids := make([]uuid.UUID, 0, len(nodes))
+	nodeids := make(map[uuid.UUID][]*UserIdentity)
 	for i := range nodes {
 		fk := nodes[i].UserID
 		if _, ok := nodeids[fk]; !ok {
@@ -450,7 +451,7 @@ func (_q *UserIdentityQuery) sqlCount(ctx context.Context) (int, error) {
 }
 
 func (_q *UserIdentityQuery) querySpec() *sqlgraph.QuerySpec {
-	_spec := sqlgraph.NewQuerySpec(useridentity.Table, useridentity.Columns, sqlgraph.NewFieldSpec(useridentity.FieldID, field.TypeInt))
+	_spec := sqlgraph.NewQuerySpec(useridentity.Table, useridentity.Columns, sqlgraph.NewFieldSpec(useridentity.FieldID, field.TypeUUID))
 	_spec.From = _q.sql
 	if unique := _q.ctx.Unique; unique != nil {
 		_spec.Unique = *unique

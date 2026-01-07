@@ -16,6 +16,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/google/uuid"
 )
 
 // PrivateChatQuery is the builder for querying PrivateChat entities.
@@ -155,8 +156,8 @@ func (_q *PrivateChatQuery) FirstX(ctx context.Context) *PrivateChat {
 
 // FirstID returns the first PrivateChat ID from the query.
 // Returns a *NotFoundError when no PrivateChat ID was found.
-func (_q *PrivateChatQuery) FirstID(ctx context.Context) (id int, err error) {
-	var ids []int
+func (_q *PrivateChatQuery) FirstID(ctx context.Context) (id uuid.UUID, err error) {
+	var ids []uuid.UUID
 	if ids, err = _q.Limit(1).IDs(setContextOp(ctx, _q.ctx, ent.OpQueryFirstID)); err != nil {
 		return
 	}
@@ -168,7 +169,7 @@ func (_q *PrivateChatQuery) FirstID(ctx context.Context) (id int, err error) {
 }
 
 // FirstIDX is like FirstID, but panics if an error occurs.
-func (_q *PrivateChatQuery) FirstIDX(ctx context.Context) int {
+func (_q *PrivateChatQuery) FirstIDX(ctx context.Context) uuid.UUID {
 	id, err := _q.FirstID(ctx)
 	if err != nil && !IsNotFound(err) {
 		panic(err)
@@ -206,8 +207,8 @@ func (_q *PrivateChatQuery) OnlyX(ctx context.Context) *PrivateChat {
 // OnlyID is like Only, but returns the only PrivateChat ID in the query.
 // Returns a *NotSingularError when more than one PrivateChat ID is found.
 // Returns a *NotFoundError when no entities are found.
-func (_q *PrivateChatQuery) OnlyID(ctx context.Context) (id int, err error) {
-	var ids []int
+func (_q *PrivateChatQuery) OnlyID(ctx context.Context) (id uuid.UUID, err error) {
+	var ids []uuid.UUID
 	if ids, err = _q.Limit(2).IDs(setContextOp(ctx, _q.ctx, ent.OpQueryOnlyID)); err != nil {
 		return
 	}
@@ -223,7 +224,7 @@ func (_q *PrivateChatQuery) OnlyID(ctx context.Context) (id int, err error) {
 }
 
 // OnlyIDX is like OnlyID, but panics if an error occurs.
-func (_q *PrivateChatQuery) OnlyIDX(ctx context.Context) int {
+func (_q *PrivateChatQuery) OnlyIDX(ctx context.Context) uuid.UUID {
 	id, err := _q.OnlyID(ctx)
 	if err != nil {
 		panic(err)
@@ -251,7 +252,7 @@ func (_q *PrivateChatQuery) AllX(ctx context.Context) []*PrivateChat {
 }
 
 // IDs executes the query and returns a list of PrivateChat IDs.
-func (_q *PrivateChatQuery) IDs(ctx context.Context) (ids []int, err error) {
+func (_q *PrivateChatQuery) IDs(ctx context.Context) (ids []uuid.UUID, err error) {
 	if _q.ctx.Unique == nil && _q.path != nil {
 		_q.Unique(true)
 	}
@@ -263,7 +264,7 @@ func (_q *PrivateChatQuery) IDs(ctx context.Context) (ids []int, err error) {
 }
 
 // IDsX is like IDs, but panics if an error occurs.
-func (_q *PrivateChatQuery) IDsX(ctx context.Context) []int {
+func (_q *PrivateChatQuery) IDsX(ctx context.Context) []uuid.UUID {
 	ids, err := _q.IDs(ctx)
 	if err != nil {
 		panic(err)
@@ -372,7 +373,7 @@ func (_q *PrivateChatQuery) WithUser2(opts ...func(*UserQuery)) *PrivateChatQuer
 // Example:
 //
 //	var v []struct {
-//		ChatID int `json:"chat_id,omitempty"`
+//		ChatID uuid.UUID `json:"chat_id,omitempty"`
 //		Count int `json:"count,omitempty"`
 //	}
 //
@@ -395,7 +396,7 @@ func (_q *PrivateChatQuery) GroupBy(field string, fields ...string) *PrivateChat
 // Example:
 //
 //	var v []struct {
-//		ChatID int `json:"chat_id,omitempty"`
+//		ChatID uuid.UUID `json:"chat_id,omitempty"`
 //	}
 //
 //	client.PrivateChat.Query().
@@ -493,8 +494,8 @@ func (_q *PrivateChatQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*
 }
 
 func (_q *PrivateChatQuery) loadChat(ctx context.Context, query *ChatQuery, nodes []*PrivateChat, init func(*PrivateChat), assign func(*PrivateChat, *Chat)) error {
-	ids := make([]int, 0, len(nodes))
-	nodeids := make(map[int][]*PrivateChat)
+	ids := make([]uuid.UUID, 0, len(nodes))
+	nodeids := make(map[uuid.UUID][]*PrivateChat)
 	for i := range nodes {
 		fk := nodes[i].ChatID
 		if _, ok := nodeids[fk]; !ok {
@@ -522,8 +523,8 @@ func (_q *PrivateChatQuery) loadChat(ctx context.Context, query *ChatQuery, node
 	return nil
 }
 func (_q *PrivateChatQuery) loadUser1(ctx context.Context, query *UserQuery, nodes []*PrivateChat, init func(*PrivateChat), assign func(*PrivateChat, *User)) error {
-	ids := make([]int, 0, len(nodes))
-	nodeids := make(map[int][]*PrivateChat)
+	ids := make([]uuid.UUID, 0, len(nodes))
+	nodeids := make(map[uuid.UUID][]*PrivateChat)
 	for i := range nodes {
 		fk := nodes[i].User1ID
 		if _, ok := nodeids[fk]; !ok {
@@ -551,8 +552,8 @@ func (_q *PrivateChatQuery) loadUser1(ctx context.Context, query *UserQuery, nod
 	return nil
 }
 func (_q *PrivateChatQuery) loadUser2(ctx context.Context, query *UserQuery, nodes []*PrivateChat, init func(*PrivateChat), assign func(*PrivateChat, *User)) error {
-	ids := make([]int, 0, len(nodes))
-	nodeids := make(map[int][]*PrivateChat)
+	ids := make([]uuid.UUID, 0, len(nodes))
+	nodeids := make(map[uuid.UUID][]*PrivateChat)
 	for i := range nodes {
 		fk := nodes[i].User2ID
 		if _, ok := nodeids[fk]; !ok {
@@ -593,7 +594,7 @@ func (_q *PrivateChatQuery) sqlCount(ctx context.Context) (int, error) {
 }
 
 func (_q *PrivateChatQuery) querySpec() *sqlgraph.QuerySpec {
-	_spec := sqlgraph.NewQuerySpec(privatechat.Table, privatechat.Columns, sqlgraph.NewFieldSpec(privatechat.FieldID, field.TypeInt))
+	_spec := sqlgraph.NewQuerySpec(privatechat.Table, privatechat.Columns, sqlgraph.NewFieldSpec(privatechat.FieldID, field.TypeUUID))
 	_spec.From = _q.sql
 	if unique := _q.ctx.Unique; unique != nil {
 		_spec.Unique = *unique

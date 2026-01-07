@@ -20,6 +20,7 @@ import (
 	"time"
 
 	"github.com/go-playground/validator/v10"
+	"github.com/google/uuid"
 )
 
 type UserService struct {
@@ -42,7 +43,7 @@ func NewUserService(client *ent.Client, repo *repository.Repository, cfg *config
 	}
 }
 
-func (s *UserService) GetCurrentUser(ctx context.Context, userID int) (*model.UserDTO, error) {
+func (s *UserService) GetCurrentUser(ctx context.Context, userID uuid.UUID) (*model.UserDTO, error) {
 	u, err := s.client.User.Query().
 		Where(user.ID(userID)).
 		WithAvatar().
@@ -77,21 +78,7 @@ func (s *UserService) GetCurrentUser(ctx context.Context, userID int) (*model.Us
 	}, nil
 }
 
-func (s *UserService) GetUserProfile(ctx context.Context, currentUserID int, username string) (*model.UserDTO, error) {
-
-	targetUser, err := s.client.User.Query().
-		Where(user.UsernameEQ(username)).
-		WithAvatar().
-		Only(ctx)
-
-	if err != nil {
-		if ent.IsNotFound(err) {
-			return nil, helper.NewNotFoundError("User not found")
-		}
-		slog.Error("Failed to resolve username", "error", err, "username", username)
-		return nil, helper.NewInternalServerError("")
-	}
-	targetUserID := targetUser.ID
+func (s *UserService) GetUserProfile(ctx context.Context, currentUserID uuid.UUID, targetUserID uuid.UUID) (*model.UserDTO, error) {
 
 	blocks, err := s.client.UserBlock.Query().
 		Where(
@@ -125,34 +112,49 @@ func (s *UserService) GetUserProfile(ctx context.Context, currentUserID int, use
 		}
 	}
 
+	u, err := s.client.User.Query().
+		Where(user.ID(targetUserID)).
+		Select(user.FieldID, user.FieldUsername, user.FieldFullName, user.FieldBio, user.FieldIsOnline, user.FieldLastSeenAt, user.FieldAvatarID).
+		WithAvatar().
+		Only(ctx)
+
+	if err != nil {
+		if ent.IsNotFound(err) {
+			return nil, helper.NewNotFoundError("User not found")
+		}
+		slog.Error("Failed to query user profile", "error", err, "targetUserID", targetUserID)
+		return nil, helper.NewInternalServerError("")
+	}
+
 	avatarURL := ""
-	if targetUser.Edges.Avatar != nil {
-		avatarURL = helper.BuildImageURL(s.cfg.StorageMode, s.cfg.AppURL, s.cfg.StorageCDNURL, s.cfg.StorageProfile, targetUser.Edges.Avatar.FileName)
+	if u.Edges.Avatar != nil {
+		avatarURL = helper.BuildImageURL(s.cfg.StorageMode, s.cfg.AppURL, s.cfg.StorageCDNURL, s.cfg.StorageProfile, u.Edges.Avatar.FileName)
 	}
 
 	bio := ""
-	if targetUser.Bio != nil {
-		bio = *targetUser.Bio
+	if u.Bio != nil {
+		bio = *u.Bio
 	}
 
 	var lastSeenAt *string
-	isOnline := targetUser.IsOnline
+	isOnline := u.IsOnline
+	username := u.Username
 
 	if isBlockedByMe || isBlockedByOther {
 		isOnline = false
 		lastSeenAt = nil
 
 	} else {
-		if targetUser.LastSeenAt != nil {
-			t := targetUser.LastSeenAt.Format(time.RFC3339)
+		if u.LastSeenAt != nil {
+			t := u.LastSeenAt.Format(time.RFC3339)
 			lastSeenAt = &t
 		}
 	}
 
 	return &model.UserDTO{
-		ID:               targetUser.ID,
-		Username:         targetUser.Username,
-		FullName:         targetUser.FullName,
+		ID:               u.ID,
+		Username:         username,
+		FullName:         u.FullName,
 		Avatar:           avatarURL,
 		Bio:              bio,
 		HasPassword:      false,
@@ -163,7 +165,7 @@ func (s *UserService) GetUserProfile(ctx context.Context, currentUserID int, use
 	}, nil
 }
 
-func (s *UserService) UpdateProfile(ctx context.Context, userID int, req model.UpdateProfileRequest) (*model.UserDTO, error) {
+func (s *UserService) UpdateProfile(ctx context.Context, userID uuid.UUID, req model.UpdateProfileRequest) (*model.UserDTO, error) {
 	if req.DeleteAvatar && req.Avatar != nil {
 		return nil, helper.NewBadRequestError("")
 	}
@@ -224,7 +226,7 @@ func (s *UserService) UpdateProfile(ctx context.Context, userID int, req model.U
 	var fileToUpload multipart.File
 	var fileUploadPath string
 	var fileContentType string
-	var mediaID int
+	var mediaID uuid.UUID
 
 	if req.DeleteAvatar {
 		update.ClearAvatar().ClearAvatarID()
@@ -286,7 +288,7 @@ func (s *UserService) UpdateProfile(ctx context.Context, userID int, req model.U
 		if err := s.storageAdapter.StoreFromReader(fileToUpload, fileContentType, fileUploadPath); err != nil {
 			slog.Error("Failed to store avatar to storage after db commit", "error", err, "userID", userID)
 
-			if mediaID != 0 {
+			if mediaID != uuid.Nil {
 				cleanupCtx := context.Background()
 
 				_, unlinkErr := s.client.User.UpdateOneID(userID).ClearAvatar().Save(cleanupCtx)
@@ -352,7 +354,7 @@ func (s *UserService) UpdateProfile(ctx context.Context, userID int, req model.U
 				Type:    websocket.EventUserUpdate,
 				Payload: wsPayload,
 				Meta: &websocket.EventMeta{
-					Timestamp: time.Now().UnixMilli(),
+					Timestamp: time.Now().UTC().UnixMilli(),
 					SenderID:  userID,
 				},
 			}
@@ -366,7 +368,7 @@ func (s *UserService) UpdateProfile(ctx context.Context, userID int, req model.U
 	return httpResp, nil
 }
 
-func (s *UserService) SearchUsers(ctx context.Context, currentUserID int, req model.SearchUserRequest) ([]model.UserDTO, string, bool, error) {
+func (s *UserService) SearchUsers(ctx context.Context, currentUserID uuid.UUID, req model.SearchUserRequest) ([]model.UserDTO, string, bool, error) {
 	if err := s.validator.Struct(req); err != nil {
 		return nil, "", false, helper.NewBadRequestError("")
 	}
@@ -385,10 +387,10 @@ func (s *UserService) SearchUsers(ctx context.Context, currentUserID int, req mo
 		return nil, "", false, helper.NewInternalServerError("")
 	}
 
-	privateChatMap := make(map[int]int)
+	privateChatMap := make(map[uuid.UUID]uuid.UUID)
 
 	if req.IncludeChatID && len(users) > 0 {
-		userIDs := make([]int, len(users))
+		userIDs := make([]uuid.UUID, len(users))
 		for i, u := range users {
 			userIDs[i] = u.ID
 		}
@@ -412,7 +414,7 @@ func (s *UserService) SearchUsers(ctx context.Context, currentUserID int, req mo
 			slog.Error("Failed to fetch private chats for search results", "error", err)
 		} else {
 			for _, pc := range chats {
-				var targetID int
+				var targetID uuid.UUID
 				if pc.User1ID == currentUserID {
 					targetID = pc.User2ID
 				} else {
@@ -453,7 +455,7 @@ func (s *UserService) SearchUsers(ctx context.Context, currentUserID int, req mo
 	return userDTOs, nextCursor, hasNext, nil
 }
 
-func (s *UserService) GetBlockedUsers(ctx context.Context, currentUserID int, req model.GetBlockedUsersRequest) ([]model.UserDTO, string, bool, error) {
+func (s *UserService) GetBlockedUsers(ctx context.Context, currentUserID uuid.UUID, req model.GetBlockedUsersRequest) ([]model.UserDTO, string, bool, error) {
 	if err := s.validator.Struct(req); err != nil {
 		return nil, "", false, helper.NewBadRequestError("")
 	}
@@ -496,22 +498,18 @@ func (s *UserService) GetBlockedUsers(ctx context.Context, currentUserID int, re
 	return userDTOs, nextCursor, hasNext, nil
 }
 
-func (s *UserService) BlockUser(ctx context.Context, blockerID int, username string) error {
-
-	blockedUser, err := s.client.User.Query().
-		Where(user.UsernameEQ(username)).
-		Only(ctx)
-	if err != nil {
-		if ent.IsNotFound(err) {
-			return helper.NewNotFoundError("User not found")
-		}
-		slog.Error("Failed to resolve username", "error", err, "username", username)
-		return helper.NewInternalServerError("")
-	}
-	blockedID := blockedUser.ID
-
+func (s *UserService) BlockUser(ctx context.Context, blockerID uuid.UUID, blockedID uuid.UUID) error {
 	if blockerID == blockedID {
 		return helper.NewBadRequestError("Cannot block yourself")
+	}
+
+	exists, err := s.client.User.Query().Where(user.ID(blockedID)).Exist(ctx)
+	if err != nil {
+		slog.Error("Failed to check user existence", "error", err)
+		return helper.NewInternalServerError("")
+	}
+	if !exists {
+		return helper.NewNotFoundError("")
 	}
 
 	_, err = s.client.UserBlock.Create().
@@ -531,12 +529,12 @@ func (s *UserService) BlockUser(ctx context.Context, blockerID int, username str
 		go func() {
 			event := websocket.Event{
 				Type: websocket.EventUserBlock,
-				Payload: map[string]int{
+				Payload: map[string]uuid.UUID{
 					"blocker_id": blockerID,
 					"blocked_id": blockedID,
 				},
 				Meta: &websocket.EventMeta{
-					Timestamp: time.Now().UnixMilli(),
+					Timestamp: time.Now().UTC().UnixMilli(),
 					SenderID:  blockerID,
 				},
 			}
@@ -550,21 +548,8 @@ func (s *UserService) BlockUser(ctx context.Context, blockerID int, username str
 	return nil
 }
 
-func (s *UserService) UnblockUser(ctx context.Context, blockerID int, username string) error {
-
-	blockedUser, err := s.client.User.Query().
-		Where(user.UsernameEQ(username)).
-		Only(ctx)
-	if err != nil {
-		if ent.IsNotFound(err) {
-			return helper.NewNotFoundError("User not found")
-		}
-		slog.Error("Failed to resolve username", "error", err, "username", username)
-		return helper.NewInternalServerError("")
-	}
-	blockedID := blockedUser.ID
-
-	_, err = s.client.UserBlock.Delete().
+func (s *UserService) UnblockUser(ctx context.Context, blockerID uuid.UUID, blockedID uuid.UUID) error {
+	_, err := s.client.UserBlock.Delete().
 		Where(
 			userblock.BlockerID(blockerID),
 			userblock.BlockedID(blockedID),
@@ -580,12 +565,12 @@ func (s *UserService) UnblockUser(ctx context.Context, blockerID int, username s
 		go func() {
 			event := websocket.Event{
 				Type: websocket.EventUserUnblock,
-				Payload: map[string]int{
+				Payload: map[string]uuid.UUID{
 					"blocker_id": blockerID,
 					"blocked_id": blockedID,
 				},
 				Meta: &websocket.EventMeta{
-					Timestamp: time.Now().UnixMilli(),
+					Timestamp: time.Now().UTC().UnixMilli(),
 					SenderID:  blockerID,
 				},
 			}

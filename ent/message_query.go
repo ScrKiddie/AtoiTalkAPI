@@ -18,6 +18,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/google/uuid"
 )
 
 // MessageQuery is the builder for querying Message entities.
@@ -203,8 +204,8 @@ func (_q *MessageQuery) FirstX(ctx context.Context) *Message {
 
 // FirstID returns the first Message ID from the query.
 // Returns a *NotFoundError when no Message ID was found.
-func (_q *MessageQuery) FirstID(ctx context.Context) (id int, err error) {
-	var ids []int
+func (_q *MessageQuery) FirstID(ctx context.Context) (id uuid.UUID, err error) {
+	var ids []uuid.UUID
 	if ids, err = _q.Limit(1).IDs(setContextOp(ctx, _q.ctx, ent.OpQueryFirstID)); err != nil {
 		return
 	}
@@ -216,7 +217,7 @@ func (_q *MessageQuery) FirstID(ctx context.Context) (id int, err error) {
 }
 
 // FirstIDX is like FirstID, but panics if an error occurs.
-func (_q *MessageQuery) FirstIDX(ctx context.Context) int {
+func (_q *MessageQuery) FirstIDX(ctx context.Context) uuid.UUID {
 	id, err := _q.FirstID(ctx)
 	if err != nil && !IsNotFound(err) {
 		panic(err)
@@ -254,8 +255,8 @@ func (_q *MessageQuery) OnlyX(ctx context.Context) *Message {
 // OnlyID is like Only, but returns the only Message ID in the query.
 // Returns a *NotSingularError when more than one Message ID is found.
 // Returns a *NotFoundError when no entities are found.
-func (_q *MessageQuery) OnlyID(ctx context.Context) (id int, err error) {
-	var ids []int
+func (_q *MessageQuery) OnlyID(ctx context.Context) (id uuid.UUID, err error) {
+	var ids []uuid.UUID
 	if ids, err = _q.Limit(2).IDs(setContextOp(ctx, _q.ctx, ent.OpQueryOnlyID)); err != nil {
 		return
 	}
@@ -271,7 +272,7 @@ func (_q *MessageQuery) OnlyID(ctx context.Context) (id int, err error) {
 }
 
 // OnlyIDX is like OnlyID, but panics if an error occurs.
-func (_q *MessageQuery) OnlyIDX(ctx context.Context) int {
+func (_q *MessageQuery) OnlyIDX(ctx context.Context) uuid.UUID {
 	id, err := _q.OnlyID(ctx)
 	if err != nil {
 		panic(err)
@@ -299,7 +300,7 @@ func (_q *MessageQuery) AllX(ctx context.Context) []*Message {
 }
 
 // IDs executes the query and returns a list of Message IDs.
-func (_q *MessageQuery) IDs(ctx context.Context) (ids []int, err error) {
+func (_q *MessageQuery) IDs(ctx context.Context) (ids []uuid.UUID, err error) {
 	if _q.ctx.Unique == nil && _q.path != nil {
 		_q.Unique(true)
 	}
@@ -311,7 +312,7 @@ func (_q *MessageQuery) IDs(ctx context.Context) (ids []int, err error) {
 }
 
 // IDsX is like IDs, but panics if an error occurs.
-func (_q *MessageQuery) IDsX(ctx context.Context) []int {
+func (_q *MessageQuery) IDsX(ctx context.Context) []uuid.UUID {
 	ids, err := _q.IDs(ctx)
 	if err != nil {
 		panic(err)
@@ -581,8 +582,8 @@ func (_q *MessageQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Mess
 }
 
 func (_q *MessageQuery) loadChat(ctx context.Context, query *ChatQuery, nodes []*Message, init func(*Message), assign func(*Message, *Chat)) error {
-	ids := make([]int, 0, len(nodes))
-	nodeids := make(map[int][]*Message)
+	ids := make([]uuid.UUID, 0, len(nodes))
+	nodeids := make(map[uuid.UUID][]*Message)
 	for i := range nodes {
 		fk := nodes[i].ChatID
 		if _, ok := nodeids[fk]; !ok {
@@ -610,8 +611,8 @@ func (_q *MessageQuery) loadChat(ctx context.Context, query *ChatQuery, nodes []
 	return nil
 }
 func (_q *MessageQuery) loadSender(ctx context.Context, query *UserQuery, nodes []*Message, init func(*Message), assign func(*Message, *User)) error {
-	ids := make([]int, 0, len(nodes))
-	nodeids := make(map[int][]*Message)
+	ids := make([]uuid.UUID, 0, len(nodes))
+	nodeids := make(map[uuid.UUID][]*Message)
 	for i := range nodes {
 		if nodes[i].SenderID == nil {
 			continue
@@ -643,7 +644,7 @@ func (_q *MessageQuery) loadSender(ctx context.Context, query *UserQuery, nodes 
 }
 func (_q *MessageQuery) loadReplies(ctx context.Context, query *MessageQuery, nodes []*Message, init func(*Message), assign func(*Message, *Message)) error {
 	fks := make([]driver.Value, 0, len(nodes))
-	nodeids := make(map[int]*Message)
+	nodeids := make(map[uuid.UUID]*Message)
 	for i := range nodes {
 		fks = append(fks, nodes[i].ID)
 		nodeids[nodes[i].ID] = nodes[i]
@@ -675,8 +676,8 @@ func (_q *MessageQuery) loadReplies(ctx context.Context, query *MessageQuery, no
 	return nil
 }
 func (_q *MessageQuery) loadReplyTo(ctx context.Context, query *MessageQuery, nodes []*Message, init func(*Message), assign func(*Message, *Message)) error {
-	ids := make([]int, 0, len(nodes))
-	nodeids := make(map[int][]*Message)
+	ids := make([]uuid.UUID, 0, len(nodes))
+	nodeids := make(map[uuid.UUID][]*Message)
 	for i := range nodes {
 		if nodes[i].ReplyToID == nil {
 			continue
@@ -708,7 +709,7 @@ func (_q *MessageQuery) loadReplyTo(ctx context.Context, query *MessageQuery, no
 }
 func (_q *MessageQuery) loadAttachments(ctx context.Context, query *MediaQuery, nodes []*Message, init func(*Message), assign func(*Message, *Media)) error {
 	fks := make([]driver.Value, 0, len(nodes))
-	nodeids := make(map[int]*Message)
+	nodeids := make(map[uuid.UUID]*Message)
 	for i := range nodes {
 		fks = append(fks, nodes[i].ID)
 		nodeids[nodes[i].ID] = nodes[i]
@@ -753,7 +754,7 @@ func (_q *MessageQuery) sqlCount(ctx context.Context) (int, error) {
 }
 
 func (_q *MessageQuery) querySpec() *sqlgraph.QuerySpec {
-	_spec := sqlgraph.NewQuerySpec(message.Table, message.Columns, sqlgraph.NewFieldSpec(message.FieldID, field.TypeInt))
+	_spec := sqlgraph.NewQuerySpec(message.Table, message.Columns, sqlgraph.NewFieldSpec(message.FieldID, field.TypeUUID))
 	_spec.From = _q.sql
 	if unique := _q.ctx.Unique; unique != nil {
 		_spec.Unique = *unique

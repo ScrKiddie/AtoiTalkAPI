@@ -12,19 +12,20 @@ import (
 
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
+	"github.com/google/uuid"
 )
 
 // PrivateChat is the model entity for the PrivateChat schema.
 type PrivateChat struct {
 	config `json:"-"`
 	// ID of the ent.
-	ID int `json:"id,omitempty"`
+	ID uuid.UUID `json:"id,omitempty"`
 	// ChatID holds the value of the "chat_id" field.
-	ChatID int `json:"chat_id,omitempty"`
+	ChatID uuid.UUID `json:"chat_id,omitempty"`
 	// User1ID holds the value of the "user1_id" field.
-	User1ID int `json:"user1_id,omitempty"`
+	User1ID uuid.UUID `json:"user1_id,omitempty"`
 	// User2ID holds the value of the "user2_id" field.
-	User2ID int `json:"user2_id,omitempty"`
+	User2ID uuid.UUID `json:"user2_id,omitempty"`
 	// User1LastReadAt holds the value of the "user1_last_read_at" field.
 	User1LastReadAt *time.Time `json:"user1_last_read_at,omitempty"`
 	// User2LastReadAt holds the value of the "user2_last_read_at" field.
@@ -94,10 +95,12 @@ func (*PrivateChat) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case privatechat.FieldID, privatechat.FieldChatID, privatechat.FieldUser1ID, privatechat.FieldUser2ID, privatechat.FieldUser1UnreadCount, privatechat.FieldUser2UnreadCount:
+		case privatechat.FieldUser1UnreadCount, privatechat.FieldUser2UnreadCount:
 			values[i] = new(sql.NullInt64)
 		case privatechat.FieldUser1LastReadAt, privatechat.FieldUser2LastReadAt, privatechat.FieldUser1HiddenAt, privatechat.FieldUser2HiddenAt:
 			values[i] = new(sql.NullTime)
+		case privatechat.FieldID, privatechat.FieldChatID, privatechat.FieldUser1ID, privatechat.FieldUser2ID:
+			values[i] = new(uuid.UUID)
 		default:
 			values[i] = new(sql.UnknownType)
 		}
@@ -114,28 +117,28 @@ func (_m *PrivateChat) assignValues(columns []string, values []any) error {
 	for i := range columns {
 		switch columns[i] {
 		case privatechat.FieldID:
-			value, ok := values[i].(*sql.NullInt64)
-			if !ok {
-				return fmt.Errorf("unexpected type %T for field id", value)
+			if value, ok := values[i].(*uuid.UUID); !ok {
+				return fmt.Errorf("unexpected type %T for field id", values[i])
+			} else if value != nil {
+				_m.ID = *value
 			}
-			_m.ID = int(value.Int64)
 		case privatechat.FieldChatID:
-			if value, ok := values[i].(*sql.NullInt64); !ok {
+			if value, ok := values[i].(*uuid.UUID); !ok {
 				return fmt.Errorf("unexpected type %T for field chat_id", values[i])
-			} else if value.Valid {
-				_m.ChatID = int(value.Int64)
+			} else if value != nil {
+				_m.ChatID = *value
 			}
 		case privatechat.FieldUser1ID:
-			if value, ok := values[i].(*sql.NullInt64); !ok {
+			if value, ok := values[i].(*uuid.UUID); !ok {
 				return fmt.Errorf("unexpected type %T for field user1_id", values[i])
-			} else if value.Valid {
-				_m.User1ID = int(value.Int64)
+			} else if value != nil {
+				_m.User1ID = *value
 			}
 		case privatechat.FieldUser2ID:
-			if value, ok := values[i].(*sql.NullInt64); !ok {
+			if value, ok := values[i].(*uuid.UUID); !ok {
 				return fmt.Errorf("unexpected type %T for field user2_id", values[i])
-			} else if value.Valid {
-				_m.User2ID = int(value.Int64)
+			} else if value != nil {
+				_m.User2ID = *value
 			}
 		case privatechat.FieldUser1LastReadAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {

@@ -494,8 +494,8 @@ const docTemplate = `{
                     },
                     {
                         "type": "string",
-                        "description": "JSON Array of Member Usernames (e.g. [\\",
-                        "name": "member_usernames",
+                        "description": "JSON Array of Member IDs (UUIDs)",
+                        "name": "member_ids",
                         "in": "formData",
                         "required": true
                     },
@@ -572,8 +572,8 @@ const docTemplate = `{
                 "summary": "Update Group Chat Info",
                 "parameters": [
                     {
-                        "type": "integer",
-                        "description": "Group Chat ID",
+                        "type": "string",
+                        "description": "Group Chat ID (UUID)",
                         "name": "groupID",
                         "in": "path",
                         "required": true
@@ -669,8 +669,8 @@ const docTemplate = `{
                 "summary": "Leave Group",
                 "parameters": [
                     {
-                        "type": "integer",
-                        "description": "Group Chat ID",
+                        "type": "string",
+                        "description": "Group Chat ID (UUID)",
                         "name": "groupID",
                         "in": "path",
                         "required": true
@@ -730,8 +730,8 @@ const docTemplate = `{
                 "summary": "Search Group Members",
                 "parameters": [
                     {
-                        "type": "integer",
-                        "description": "Group Chat ID",
+                        "type": "string",
+                        "description": "Group Chat ID (UUID)",
                         "name": "groupID",
                         "in": "path",
                         "required": true
@@ -828,8 +828,8 @@ const docTemplate = `{
                 "summary": "Add Member to Group",
                 "parameters": [
                     {
-                        "type": "integer",
-                        "description": "Group Chat ID",
+                        "type": "string",
+                        "description": "Group Chat ID (UUID)",
                         "name": "groupID",
                         "in": "path",
                         "required": true
@@ -910,15 +910,15 @@ const docTemplate = `{
                 "summary": "Kick Member from Group",
                 "parameters": [
                     {
-                        "type": "integer",
-                        "description": "Group Chat ID",
+                        "type": "string",
+                        "description": "Group Chat ID (UUID)",
                         "name": "groupID",
                         "in": "path",
                         "required": true
                     },
                     {
-                        "type": "integer",
-                        "description": "Target User ID",
+                        "type": "string",
+                        "description": "Target User ID (UUID)",
                         "name": "userID",
                         "in": "path",
                         "required": true
@@ -984,15 +984,15 @@ const docTemplate = `{
                 "summary": "Update Member Role",
                 "parameters": [
                     {
-                        "type": "integer",
-                        "description": "Group Chat ID",
+                        "type": "string",
+                        "description": "Group Chat ID (UUID)",
                         "name": "groupID",
                         "in": "path",
                         "required": true
                     },
                     {
-                        "type": "integer",
-                        "description": "Target User ID",
+                        "type": "string",
+                        "description": "Target User ID (UUID)",
                         "name": "userID",
                         "in": "path",
                         "required": true
@@ -1067,8 +1067,8 @@ const docTemplate = `{
                 "summary": "Transfer Ownership",
                 "parameters": [
                     {
-                        "type": "integer",
-                        "description": "Group Chat ID",
+                        "type": "string",
+                        "description": "Group Chat ID (UUID)",
                         "name": "groupID",
                         "in": "path",
                         "required": true
@@ -1218,8 +1218,8 @@ const docTemplate = `{
                 "summary": "Get Messages",
                 "parameters": [
                     {
-                        "type": "integer",
-                        "description": "Chat ID",
+                        "type": "string",
+                        "description": "Chat ID (UUID)",
                         "name": "chatID",
                         "in": "path",
                         "required": true
@@ -1306,8 +1306,8 @@ const docTemplate = `{
                 "summary": "Get Chat by ID",
                 "parameters": [
                     {
-                        "type": "integer",
-                        "description": "Chat ID",
+                        "type": "string",
+                        "description": "Chat ID (UUID)",
                         "name": "id",
                         "in": "path",
                         "required": true
@@ -1379,8 +1379,8 @@ const docTemplate = `{
                 "summary": "Hide Chat",
                 "parameters": [
                     {
-                        "type": "integer",
-                        "description": "Chat ID",
+                        "type": "string",
+                        "description": "Chat ID (UUID)",
                         "name": "id",
                         "in": "path",
                         "required": true
@@ -1440,8 +1440,8 @@ const docTemplate = `{
                 "summary": "Mark Chat as Read",
                 "parameters": [
                     {
-                        "type": "integer",
-                        "description": "Chat ID",
+                        "type": "string",
+                        "description": "Chat ID (UUID)",
                         "name": "id",
                         "in": "path",
                         "required": true
@@ -1643,8 +1643,8 @@ const docTemplate = `{
                 "summary": "Edit Message",
                 "parameters": [
                     {
-                        "type": "integer",
-                        "description": "Message ID",
+                        "type": "string",
+                        "description": "Message ID (UUID)",
                         "name": "messageID",
                         "in": "path",
                         "required": true
@@ -1729,8 +1729,8 @@ const docTemplate = `{
                 "summary": "Delete Message",
                 "parameters": [
                     {
-                        "type": "integer",
-                        "description": "Message ID",
+                        "type": "string",
+                        "description": "Message ID (UUID)",
                         "name": "messageID",
                         "in": "path",
                         "required": true
@@ -2157,14 +2157,14 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/users/{username}": {
+        "/api/users/{id}": {
             "get": {
                 "security": [
                     {
                         "BearerAuth": []
                     }
                 ],
-                "description": "Get another user's profile by Username.",
+                "description": "Get another user's profile by ID.",
                 "consumes": [
                     "application/json"
                 ],
@@ -2178,8 +2178,8 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Username",
-                        "name": "username",
+                        "description": "User ID (UUID)",
+                        "name": "id",
                         "in": "path",
                         "required": true
                     }
@@ -2230,14 +2230,14 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/users/{username}/block": {
+        "/api/users/{id}/block": {
             "post": {
                 "security": [
                     {
                         "BearerAuth": []
                     }
                 ],
-                "description": "Block a user by their Username.",
+                "description": "Block a user by their ID.",
                 "consumes": [
                     "application/json"
                 ],
@@ -2251,8 +2251,8 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Username to block",
-                        "name": "username",
+                        "description": "User ID to block (UUID)",
+                        "name": "id",
                         "in": "path",
                         "required": true
                     }
@@ -2291,14 +2291,14 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/users/{username}/unblock": {
+        "/api/users/{id}/unblock": {
             "post": {
                 "security": [
                     {
                         "BearerAuth": []
                     }
                 ],
-                "description": "Unblock a user by their Username.",
+                "description": "Unblock a user by their ID.",
                 "consumes": [
                     "application/json"
                 ],
@@ -2312,8 +2312,8 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Username to unblock",
-                        "name": "username",
+                        "description": "User ID to unblock (UUID)",
+                        "name": "id",
                         "in": "path",
                         "required": true
                     }
@@ -2413,10 +2413,10 @@ const docTemplate = `{
         "model.AddGroupMemberRequest": {
             "type": "object",
             "required": [
-                "usernames"
+                "user_ids"
             ],
             "properties": {
-                "usernames": {
+                "user_ids": {
                     "type": "array",
                     "minItems": 1,
                     "items": {
@@ -2478,7 +2478,7 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "id": {
-                    "type": "integer"
+                    "type": "string"
                 },
                 "is_blocked_by_me": {
                     "type": "boolean"
@@ -2502,9 +2502,6 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "other_user_id": {
-                    "type": "integer"
-                },
-                "other_username": {
                     "type": "string"
                 },
                 "type": {
@@ -2522,7 +2519,7 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "id": {
-                    "type": "integer"
+                    "type": "string"
                 },
                 "type": {
                     "type": "string"
@@ -2532,13 +2529,11 @@ const docTemplate = `{
         "model.CreatePrivateChatRequest": {
             "type": "object",
             "required": [
-                "username"
+                "target_user_id"
             ],
             "properties": {
-                "username": {
-                    "type": "string",
-                    "maxLength": 50,
-                    "minLength": 3
+                "target_user_id": {
+                    "type": "string"
                 }
             }
         },
@@ -2548,7 +2543,7 @@ const docTemplate = `{
                 "attachment_ids": {
                     "type": "array",
                     "items": {
-                        "type": "integer"
+                        "type": "string"
                     }
                 },
                 "content": {
@@ -2577,7 +2572,7 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "id": {
-                    "type": "integer"
+                    "type": "string"
                 },
                 "is_online": {
                     "type": "boolean"
@@ -2589,9 +2584,6 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "user_id": {
-                    "type": "integer"
-                },
-                "username": {
                     "type": "string"
                 }
             }
@@ -2627,7 +2619,7 @@ const docTemplate = `{
                     "type": "integer"
                 },
                 "id": {
-                    "type": "integer"
+                    "type": "string"
                 },
                 "mime_type": {
                     "type": "string"
@@ -2644,6 +2636,7 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "action_data": {
+                    "description": "ActionData contains metadata for system messages.\n\nStructure depends on Type:\n- system_create: { \"initial_name\": string }\n- system_rename: { \"old_name\": string, \"new_name\": string }\n- system_description: { \"old_description\": string, \"new_description\": string }\n- system_avatar: { \"action\": \"updated\" }\n- system_add: { \"target_id\": uuid, \"actor_id\": uuid }\n- system_kick: { \"target_id\": uuid, \"actor_id\": uuid }\n- system_promote: { \"target_id\": uuid, \"actor_id\": uuid, \"new_role\": string }\n- system_demote: { \"target_id\": uuid, \"actor_id\": uuid, \"new_role\": string }\n- system_transfer: { \"target_id\": uuid, \"actor_id\": uuid, \"new_role\": \"owner\", \"action\": \"ownership_transferred\" }\n- system_leave: (empty, relies on sender_id)\n\nNote: \"target_name\" and \"actor_name\" are injected dynamically by the backend for display convenience.",
                     "type": "object",
                     "additionalProperties": true
                 },
@@ -2654,7 +2647,7 @@ const docTemplate = `{
                     }
                 },
                 "chat_id": {
-                    "type": "integer"
+                    "type": "string"
                 },
                 "content": {
                     "type": "string"
@@ -2669,18 +2662,15 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "id": {
-                    "type": "integer"
+                    "type": "string"
                 },
                 "reply_to": {
                     "$ref": "#/definitions/model.ReplyPreviewDTO"
                 },
                 "sender_id": {
-                    "type": "integer"
-                },
-                "sender_name": {
                     "type": "string"
                 },
-                "sender_username": {
+                "sender_name": {
                     "type": "string"
                 },
                 "type": {
@@ -2739,7 +2729,7 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "id": {
-                    "type": "integer"
+                    "type": "string"
                 },
                 "sender_name": {
                     "type": "string"
@@ -2787,17 +2777,17 @@ const docTemplate = `{
                 "attachment_ids": {
                     "type": "array",
                     "items": {
-                        "type": "integer"
+                        "type": "string"
                     }
                 },
                 "chat_id": {
-                    "type": "integer"
+                    "type": "string"
                 },
                 "content": {
                     "type": "string"
                 },
                 "reply_to_id": {
-                    "type": "integer"
+                    "type": "string"
                 }
             }
         },
@@ -2827,7 +2817,7 @@ const docTemplate = `{
             ],
             "properties": {
                 "new_owner_id": {
-                    "type": "integer"
+                    "type": "string"
                 }
             }
         },
@@ -2865,7 +2855,7 @@ const docTemplate = `{
                     "type": "boolean"
                 },
                 "id": {
-                    "type": "integer"
+                    "type": "string"
                 },
                 "is_blocked_by_me": {
                     "type": "boolean"
@@ -2880,7 +2870,7 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "private_chat_id": {
-                    "type": "integer"
+                    "type": "string"
                 },
                 "username": {
                     "type": "string"

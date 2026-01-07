@@ -11,12 +11,12 @@ import (
 var (
 	// ChatsColumns holds the columns for the "chats" table.
 	ChatsColumns = []*schema.Column{
-		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "id", Type: field.TypeUUID},
 		{Name: "created_at", Type: field.TypeTime, Default: "CURRENT_TIMESTAMP"},
 		{Name: "updated_at", Type: field.TypeTime, Default: "CURRENT_TIMESTAMP"},
 		{Name: "type", Type: field.TypeEnum, Enums: []string{"private", "group"}},
 		{Name: "last_message_at", Type: field.TypeTime, Nullable: true},
-		{Name: "last_message_id", Type: field.TypeInt, Nullable: true},
+		{Name: "last_message_id", Type: field.TypeUUID, Nullable: true},
 	}
 	// ChatsTable holds the schema information for the "chats" table.
 	ChatsTable = &schema.Table{
@@ -37,16 +37,21 @@ var (
 				Unique:  false,
 				Columns: []*schema.Column{ChatsColumns[2]},
 			},
+			{
+				Name:    "chat_last_message_at",
+				Unique:  false,
+				Columns: []*schema.Column{ChatsColumns[4]},
+			},
 		},
 	}
 	// GroupChatsColumns holds the columns for the "group_chats" table.
 	GroupChatsColumns = []*schema.Column{
-		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "id", Type: field.TypeUUID},
 		{Name: "name", Type: field.TypeString, Size: 100},
 		{Name: "description", Type: field.TypeString, Nullable: true, Size: 2147483647},
-		{Name: "chat_id", Type: field.TypeInt, Unique: true},
-		{Name: "avatar_id", Type: field.TypeInt, Unique: true, Nullable: true},
-		{Name: "created_by", Type: field.TypeInt, Nullable: true},
+		{Name: "chat_id", Type: field.TypeUUID, Unique: true},
+		{Name: "avatar_id", Type: field.TypeUUID, Unique: true, Nullable: true},
+		{Name: "created_by", Type: field.TypeUUID, Nullable: true},
 	}
 	// GroupChatsTable holds the schema information for the "group_chats" table.
 	GroupChatsTable = &schema.Table{
@@ -76,13 +81,13 @@ var (
 	}
 	// GroupMembersColumns holds the columns for the "group_members" table.
 	GroupMembersColumns = []*schema.Column{
-		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "id", Type: field.TypeUUID},
 		{Name: "role", Type: field.TypeEnum, Enums: []string{"owner", "admin", "member"}, Default: "member"},
 		{Name: "last_read_at", Type: field.TypeTime, Nullable: true},
 		{Name: "joined_at", Type: field.TypeTime},
 		{Name: "unread_count", Type: field.TypeInt, Default: 0},
-		{Name: "group_chat_id", Type: field.TypeInt},
-		{Name: "user_id", Type: field.TypeInt},
+		{Name: "group_chat_id", Type: field.TypeUUID},
+		{Name: "user_id", Type: field.TypeUUID},
 	}
 	// GroupMembersTable holds the schema information for the "group_members" table.
 	GroupMembersTable = &schema.Table{
@@ -109,11 +114,16 @@ var (
 				Unique:  true,
 				Columns: []*schema.Column{GroupMembersColumns[5], GroupMembersColumns[6]},
 			},
+			{
+				Name:    "groupmember_user_id",
+				Unique:  false,
+				Columns: []*schema.Column{GroupMembersColumns[6]},
+			},
 		},
 	}
 	// MediaColumns holds the columns for the "media" table.
 	MediaColumns = []*schema.Column{
-		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "id", Type: field.TypeUUID},
 		{Name: "created_at", Type: field.TypeTime, Default: "CURRENT_TIMESTAMP"},
 		{Name: "updated_at", Type: field.TypeTime, Default: "CURRENT_TIMESTAMP"},
 		{Name: "file_name", Type: field.TypeString, Unique: true, Size: 255},
@@ -121,8 +131,8 @@ var (
 		{Name: "file_size", Type: field.TypeInt64},
 		{Name: "mime_type", Type: field.TypeString, Size: 100},
 		{Name: "status", Type: field.TypeEnum, Enums: []string{"pending", "active", "failed"}, Default: "pending"},
-		{Name: "message_id", Type: field.TypeInt, Nullable: true},
-		{Name: "uploaded_by_id", Type: field.TypeInt},
+		{Name: "message_id", Type: field.TypeUUID, Nullable: true},
+		{Name: "uploaded_by_id", Type: field.TypeUUID},
 	}
 	// MediaTable holds the schema information for the "media" table.
 	MediaTable = &schema.Table{
@@ -146,7 +156,7 @@ var (
 	}
 	// MessagesColumns holds the columns for the "messages" table.
 	MessagesColumns = []*schema.Column{
-		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "id", Type: field.TypeUUID},
 		{Name: "created_at", Type: field.TypeTime, Default: "CURRENT_TIMESTAMP"},
 		{Name: "updated_at", Type: field.TypeTime, Default: "CURRENT_TIMESTAMP"},
 		{Name: "type", Type: field.TypeEnum, Enums: []string{"regular", "system_create", "system_rename", "system_description", "system_avatar", "system_join", "system_add", "system_leave", "system_kick", "system_promote", "system_demote"}, Default: "regular"},
@@ -154,9 +164,9 @@ var (
 		{Name: "action_data", Type: field.TypeJSON, Nullable: true},
 		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
 		{Name: "edited_at", Type: field.TypeTime, Nullable: true},
-		{Name: "chat_id", Type: field.TypeInt},
-		{Name: "reply_to_id", Type: field.TypeInt, Nullable: true},
-		{Name: "sender_id", Type: field.TypeInt, Nullable: true},
+		{Name: "chat_id", Type: field.TypeUUID},
+		{Name: "reply_to_id", Type: field.TypeUUID, Nullable: true},
+		{Name: "sender_id", Type: field.TypeUUID, Nullable: true},
 	}
 	// MessagesTable holds the schema information for the "messages" table.
 	MessagesTable = &schema.Table{
@@ -205,7 +215,7 @@ var (
 	}
 	// OtpsColumns holds the columns for the "otps" table.
 	OtpsColumns = []*schema.Column{
-		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "id", Type: field.TypeUUID},
 		{Name: "created_at", Type: field.TypeTime, Default: "CURRENT_TIMESTAMP"},
 		{Name: "updated_at", Type: field.TypeTime, Default: "CURRENT_TIMESTAMP"},
 		{Name: "email", Type: field.TypeString, Unique: true, Size: 255},
@@ -243,16 +253,16 @@ var (
 	}
 	// PrivateChatsColumns holds the columns for the "private_chats" table.
 	PrivateChatsColumns = []*schema.Column{
-		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "id", Type: field.TypeUUID},
 		{Name: "user1_last_read_at", Type: field.TypeTime, Nullable: true},
 		{Name: "user2_last_read_at", Type: field.TypeTime, Nullable: true},
 		{Name: "user1_hidden_at", Type: field.TypeTime, Nullable: true},
 		{Name: "user2_hidden_at", Type: field.TypeTime, Nullable: true},
 		{Name: "user1_unread_count", Type: field.TypeInt, Default: 0},
 		{Name: "user2_unread_count", Type: field.TypeInt, Default: 0},
-		{Name: "chat_id", Type: field.TypeInt, Unique: true},
-		{Name: "user1_id", Type: field.TypeInt},
-		{Name: "user2_id", Type: field.TypeInt},
+		{Name: "chat_id", Type: field.TypeUUID, Unique: true},
+		{Name: "user1_id", Type: field.TypeUUID},
+		{Name: "user2_id", Type: field.TypeUUID},
 	}
 	// PrivateChatsTable holds the schema information for the "private_chats" table.
 	PrivateChatsTable = &schema.Table{
@@ -285,11 +295,16 @@ var (
 				Unique:  true,
 				Columns: []*schema.Column{PrivateChatsColumns[8], PrivateChatsColumns[9]},
 			},
+			{
+				Name:    "privatechat_user2_id",
+				Unique:  false,
+				Columns: []*schema.Column{PrivateChatsColumns[9]},
+			},
 		},
 	}
 	// UsersColumns holds the columns for the "users" table.
 	UsersColumns = []*schema.Column{
-		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "id", Type: field.TypeUUID},
 		{Name: "created_at", Type: field.TypeTime, Default: "CURRENT_TIMESTAMP"},
 		{Name: "updated_at", Type: field.TypeTime, Default: "CURRENT_TIMESTAMP"},
 		{Name: "email", Type: field.TypeString, Unique: true, Size: 255},
@@ -299,7 +314,7 @@ var (
 		{Name: "bio", Type: field.TypeString, Nullable: true, Size: 255},
 		{Name: "is_online", Type: field.TypeBool, Default: false},
 		{Name: "last_seen_at", Type: field.TypeTime, Nullable: true},
-		{Name: "avatar_id", Type: field.TypeInt, Unique: true, Nullable: true},
+		{Name: "avatar_id", Type: field.TypeUUID, Unique: true, Nullable: true},
 	}
 	// UsersTable holds the schema information for the "users" table.
 	UsersTable = &schema.Table{
@@ -320,20 +335,15 @@ var (
 				Unique:  false,
 				Columns: []*schema.Column{UsersColumns[6]},
 			},
-			{
-				Name:    "user_username",
-				Unique:  false,
-				Columns: []*schema.Column{UsersColumns[4]},
-			},
 		},
 	}
 	// UserBlocksColumns holds the columns for the "user_blocks" table.
 	UserBlocksColumns = []*schema.Column{
-		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "id", Type: field.TypeUUID},
 		{Name: "created_at", Type: field.TypeTime, Default: "CURRENT_TIMESTAMP"},
 		{Name: "updated_at", Type: field.TypeTime, Default: "CURRENT_TIMESTAMP"},
-		{Name: "blocker_id", Type: field.TypeInt},
-		{Name: "blocked_id", Type: field.TypeInt},
+		{Name: "blocker_id", Type: field.TypeUUID},
+		{Name: "blocked_id", Type: field.TypeUUID},
 	}
 	// UserBlocksTable holds the schema information for the "user_blocks" table.
 	UserBlocksTable = &schema.Table{
@@ -360,17 +370,22 @@ var (
 				Unique:  true,
 				Columns: []*schema.Column{UserBlocksColumns[3], UserBlocksColumns[4]},
 			},
+			{
+				Name:    "userblock_blocked_id",
+				Unique:  false,
+				Columns: []*schema.Column{UserBlocksColumns[4]},
+			},
 		},
 	}
 	// UserIdentitiesColumns holds the columns for the "user_identities" table.
 	UserIdentitiesColumns = []*schema.Column{
-		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "id", Type: field.TypeUUID},
 		{Name: "created_at", Type: field.TypeTime, Default: "CURRENT_TIMESTAMP"},
 		{Name: "updated_at", Type: field.TypeTime, Default: "CURRENT_TIMESTAMP"},
 		{Name: "provider", Type: field.TypeEnum, Enums: []string{"google"}, Default: "google"},
 		{Name: "provider_id", Type: field.TypeString, Size: 255},
 		{Name: "provider_email", Type: field.TypeString, Nullable: true, Size: 255},
-		{Name: "user_id", Type: field.TypeInt},
+		{Name: "user_id", Type: field.TypeUUID},
 	}
 	// UserIdentitiesTable holds the schema information for the "user_identities" table.
 	UserIdentitiesTable = &schema.Table{

@@ -6,6 +6,7 @@ import (
 	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/index"
+	"github.com/google/uuid"
 )
 
 type UserBlock struct {
@@ -20,8 +21,9 @@ func (UserBlock) Mixin() []ent.Mixin {
 
 func (UserBlock) Fields() []ent.Field {
 	return []ent.Field{
-		field.Int("blocker_id"),
-		field.Int("blocked_id"),
+		field.UUID("id", uuid.UUID{}).Default(newUUIDv7),
+		field.UUID("blocker_id", uuid.UUID{}),
+		field.UUID("blocked_id", uuid.UUID{}),
 	}
 }
 

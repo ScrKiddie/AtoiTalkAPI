@@ -16,6 +16,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/google/uuid"
 )
 
 // GroupMemberQuery is the builder for querying GroupMember entities.
@@ -132,8 +133,8 @@ func (_q *GroupMemberQuery) FirstX(ctx context.Context) *GroupMember {
 
 // FirstID returns the first GroupMember ID from the query.
 // Returns a *NotFoundError when no GroupMember ID was found.
-func (_q *GroupMemberQuery) FirstID(ctx context.Context) (id int, err error) {
-	var ids []int
+func (_q *GroupMemberQuery) FirstID(ctx context.Context) (id uuid.UUID, err error) {
+	var ids []uuid.UUID
 	if ids, err = _q.Limit(1).IDs(setContextOp(ctx, _q.ctx, ent.OpQueryFirstID)); err != nil {
 		return
 	}
@@ -145,7 +146,7 @@ func (_q *GroupMemberQuery) FirstID(ctx context.Context) (id int, err error) {
 }
 
 // FirstIDX is like FirstID, but panics if an error occurs.
-func (_q *GroupMemberQuery) FirstIDX(ctx context.Context) int {
+func (_q *GroupMemberQuery) FirstIDX(ctx context.Context) uuid.UUID {
 	id, err := _q.FirstID(ctx)
 	if err != nil && !IsNotFound(err) {
 		panic(err)
@@ -183,8 +184,8 @@ func (_q *GroupMemberQuery) OnlyX(ctx context.Context) *GroupMember {
 // OnlyID is like Only, but returns the only GroupMember ID in the query.
 // Returns a *NotSingularError when more than one GroupMember ID is found.
 // Returns a *NotFoundError when no entities are found.
-func (_q *GroupMemberQuery) OnlyID(ctx context.Context) (id int, err error) {
-	var ids []int
+func (_q *GroupMemberQuery) OnlyID(ctx context.Context) (id uuid.UUID, err error) {
+	var ids []uuid.UUID
 	if ids, err = _q.Limit(2).IDs(setContextOp(ctx, _q.ctx, ent.OpQueryOnlyID)); err != nil {
 		return
 	}
@@ -200,7 +201,7 @@ func (_q *GroupMemberQuery) OnlyID(ctx context.Context) (id int, err error) {
 }
 
 // OnlyIDX is like OnlyID, but panics if an error occurs.
-func (_q *GroupMemberQuery) OnlyIDX(ctx context.Context) int {
+func (_q *GroupMemberQuery) OnlyIDX(ctx context.Context) uuid.UUID {
 	id, err := _q.OnlyID(ctx)
 	if err != nil {
 		panic(err)
@@ -228,7 +229,7 @@ func (_q *GroupMemberQuery) AllX(ctx context.Context) []*GroupMember {
 }
 
 // IDs executes the query and returns a list of GroupMember IDs.
-func (_q *GroupMemberQuery) IDs(ctx context.Context) (ids []int, err error) {
+func (_q *GroupMemberQuery) IDs(ctx context.Context) (ids []uuid.UUID, err error) {
 	if _q.ctx.Unique == nil && _q.path != nil {
 		_q.Unique(true)
 	}
@@ -240,7 +241,7 @@ func (_q *GroupMemberQuery) IDs(ctx context.Context) (ids []int, err error) {
 }
 
 // IDsX is like IDs, but panics if an error occurs.
-func (_q *GroupMemberQuery) IDsX(ctx context.Context) []int {
+func (_q *GroupMemberQuery) IDsX(ctx context.Context) []uuid.UUID {
 	ids, err := _q.IDs(ctx)
 	if err != nil {
 		panic(err)
@@ -337,7 +338,7 @@ func (_q *GroupMemberQuery) WithUser(opts ...func(*UserQuery)) *GroupMemberQuery
 // Example:
 //
 //	var v []struct {
-//		GroupChatID int `json:"group_chat_id,omitempty"`
+//		GroupChatID uuid.UUID `json:"group_chat_id,omitempty"`
 //		Count int `json:"count,omitempty"`
 //	}
 //
@@ -360,7 +361,7 @@ func (_q *GroupMemberQuery) GroupBy(field string, fields ...string) *GroupMember
 // Example:
 //
 //	var v []struct {
-//		GroupChatID int `json:"group_chat_id,omitempty"`
+//		GroupChatID uuid.UUID `json:"group_chat_id,omitempty"`
 //	}
 //
 //	client.GroupMember.Query().
@@ -451,8 +452,8 @@ func (_q *GroupMemberQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*
 }
 
 func (_q *GroupMemberQuery) loadGroupChat(ctx context.Context, query *GroupChatQuery, nodes []*GroupMember, init func(*GroupMember), assign func(*GroupMember, *GroupChat)) error {
-	ids := make([]int, 0, len(nodes))
-	nodeids := make(map[int][]*GroupMember)
+	ids := make([]uuid.UUID, 0, len(nodes))
+	nodeids := make(map[uuid.UUID][]*GroupMember)
 	for i := range nodes {
 		fk := nodes[i].GroupChatID
 		if _, ok := nodeids[fk]; !ok {
@@ -480,8 +481,8 @@ func (_q *GroupMemberQuery) loadGroupChat(ctx context.Context, query *GroupChatQ
 	return nil
 }
 func (_q *GroupMemberQuery) loadUser(ctx context.Context, query *UserQuery, nodes []*GroupMember, init func(*GroupMember), assign func(*GroupMember, *User)) error {
-	ids := make([]int, 0, len(nodes))
-	nodeids := make(map[int][]*GroupMember)
+	ids := make([]uuid.UUID, 0, len(nodes))
+	nodeids := make(map[uuid.UUID][]*GroupMember)
 	for i := range nodes {
 		fk := nodes[i].UserID
 		if _, ok := nodeids[fk]; !ok {
@@ -522,7 +523,7 @@ func (_q *GroupMemberQuery) sqlCount(ctx context.Context) (int, error) {
 }
 
 func (_q *GroupMemberQuery) querySpec() *sqlgraph.QuerySpec {
-	_spec := sqlgraph.NewQuerySpec(groupmember.Table, groupmember.Columns, sqlgraph.NewFieldSpec(groupmember.FieldID, field.TypeInt))
+	_spec := sqlgraph.NewQuerySpec(groupmember.Table, groupmember.Columns, sqlgraph.NewFieldSpec(groupmember.FieldID, field.TypeUUID))
 	_spec.From = _q.sql
 	if unique := _q.ctx.Unique; unique != nil {
 		_spec.Unique = *unique

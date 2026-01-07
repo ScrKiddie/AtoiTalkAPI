@@ -13,13 +13,14 @@ import (
 
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
+	"github.com/google/uuid"
 )
 
 // Chat is the model entity for the Chat schema.
 type Chat struct {
 	config `json:"-"`
 	// ID of the ent.
-	ID int `json:"id,omitempty"`
+	ID uuid.UUID `json:"id,omitempty"`
 	// CreatedAt holds the value of the "created_at" field.
 	CreatedAt time.Time `json:"created_at,omitempty"`
 	// UpdatedAt holds the value of the "updated_at" field.
@@ -27,7 +28,7 @@ type Chat struct {
 	// Type holds the value of the "type" field.
 	Type chat.Type `json:"type,omitempty"`
 	// LastMessageID holds the value of the "last_message_id" field.
-	LastMessageID *int `json:"last_message_id,omitempty"`
+	LastMessageID *uuid.UUID `json:"last_message_id,omitempty"`
 	// LastMessageAt holds the value of the "last_message_at" field.
 	LastMessageAt *time.Time `json:"last_message_at,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
@@ -98,12 +99,14 @@ func (*Chat) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case chat.FieldID, chat.FieldLastMessageID:
-			values[i] = new(sql.NullInt64)
+		case chat.FieldLastMessageID:
+			values[i] = &sql.NullScanner{S: new(uuid.UUID)}
 		case chat.FieldType:
 			values[i] = new(sql.NullString)
 		case chat.FieldCreatedAt, chat.FieldUpdatedAt, chat.FieldLastMessageAt:
 			values[i] = new(sql.NullTime)
+		case chat.FieldID:
+			values[i] = new(uuid.UUID)
 		default:
 			values[i] = new(sql.UnknownType)
 		}
@@ -120,11 +123,11 @@ func (_m *Chat) assignValues(columns []string, values []any) error {
 	for i := range columns {
 		switch columns[i] {
 		case chat.FieldID:
-			value, ok := values[i].(*sql.NullInt64)
-			if !ok {
-				return fmt.Errorf("unexpected type %T for field id", value)
+			if value, ok := values[i].(*uuid.UUID); !ok {
+				return fmt.Errorf("unexpected type %T for field id", values[i])
+			} else if value != nil {
+				_m.ID = *value
 			}
-			_m.ID = int(value.Int64)
 		case chat.FieldCreatedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field created_at", values[i])
@@ -144,11 +147,11 @@ func (_m *Chat) assignValues(columns []string, values []any) error {
 				_m.Type = chat.Type(value.String)
 			}
 		case chat.FieldLastMessageID:
-			if value, ok := values[i].(*sql.NullInt64); !ok {
+			if value, ok := values[i].(*sql.NullScanner); !ok {
 				return fmt.Errorf("unexpected type %T for field last_message_id", values[i])
 			} else if value.Valid {
-				_m.LastMessageID = new(int)
-				*_m.LastMessageID = int(value.Int64)
+				_m.LastMessageID = new(uuid.UUID)
+				*_m.LastMessageID = *value.S.(*uuid.UUID)
 			}
 		case chat.FieldLastMessageAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {

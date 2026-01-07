@@ -162,7 +162,7 @@ func (_u *OTPUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	if err := _u.check(); err != nil {
 		return _node, err
 	}
-	_spec := sqlgraph.NewUpdateSpec(otp.Table, otp.Columns, sqlgraph.NewFieldSpec(otp.FieldID, field.TypeInt))
+	_spec := sqlgraph.NewUpdateSpec(otp.Table, otp.Columns, sqlgraph.NewFieldSpec(otp.FieldID, field.TypeUUID))
 	if ps := _u.mutation.predicates; len(ps) > 0 {
 		_spec.Predicate = func(selector *sql.Selector) {
 			for i := range ps {
@@ -353,7 +353,7 @@ func (_u *OTPUpdateOne) sqlSave(ctx context.Context) (_node *OTP, err error) {
 	if err := _u.check(); err != nil {
 		return _node, err
 	}
-	_spec := sqlgraph.NewUpdateSpec(otp.Table, otp.Columns, sqlgraph.NewFieldSpec(otp.FieldID, field.TypeInt))
+	_spec := sqlgraph.NewUpdateSpec(otp.Table, otp.Columns, sqlgraph.NewFieldSpec(otp.FieldID, field.TypeUUID))
 	id, ok := _u.mutation.ID()
 	if !ok {
 		return nil, &ValidationError{Name: "id", err: errors.New(`ent: missing "OTP.id" for update`)}

@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/go-playground/validator/v10"
+	"github.com/google/uuid"
 )
 
 type PrivateChatService struct {
@@ -33,35 +34,32 @@ func NewPrivateChatService(client *ent.Client, cfg *config.AppConfig, validator 
 	}
 }
 
-func (s *PrivateChatService) CreatePrivateChat(ctx context.Context, userID int, req model.CreatePrivateChatRequest) (*model.ChatResponse, error) {
+func (s *PrivateChatService) CreatePrivateChat(ctx context.Context, userID uuid.UUID, req model.CreatePrivateChatRequest) (*model.ChatResponse, error) {
 	if err := s.validator.Struct(req); err != nil {
 		slog.Warn("Validation failed", "error", err, "userID", userID)
 		return nil, helper.NewBadRequestError("")
 	}
 
-	targetUser, err := s.client.User.Query().
-		Where(user.UsernameEQ(req.Username)).
-		WithAvatar().
-		Only(ctx)
-
-	if err != nil {
-		if ent.IsNotFound(err) {
-			return nil, helper.NewNotFoundError("User not found")
-		}
-		slog.Error("Failed to resolve username", "error", err, "username", req.Username)
-		return nil, helper.NewInternalServerError("")
-	}
-
-	targetUserID := targetUser.ID
-
-	if userID == targetUserID {
+	if userID == req.TargetUserID {
 		return nil, helper.NewBadRequestError("Cannot chat with yourself")
 	}
 
-	creator, err := s.client.User.Query().Where(user.ID(userID)).WithAvatar().Only(ctx)
+	users, err := s.client.User.Query().Where(user.IDIn(userID, req.TargetUserID)).WithAvatar().All(ctx)
 	if err != nil {
-		slog.Error("Failed to query creator", "error", err)
+		slog.Error("Failed to query users for private chat", "error", err)
 		return nil, helper.NewInternalServerError("")
+	}
+	if len(users) != 2 {
+		return nil, helper.NewNotFoundError("One or both users not found")
+	}
+
+	var creator, targetUser *ent.User
+	for _, u := range users {
+		if u.ID == userID {
+			creator = u
+		} else {
+			targetUser = u
+		}
 	}
 
 	isBlocked, err := s.client.UserBlock.Query().
@@ -69,10 +67,10 @@ func (s *PrivateChatService) CreatePrivateChat(ctx context.Context, userID int, 
 			userblock.Or(
 				userblock.And(
 					userblock.BlockerID(userID),
-					userblock.BlockedID(targetUserID),
+					userblock.BlockedID(req.TargetUserID),
 				),
 				userblock.And(
-					userblock.BlockerID(targetUserID),
+					userblock.BlockerID(req.TargetUserID),
 					userblock.BlockedID(userID),
 				),
 			),
@@ -91,10 +89,10 @@ func (s *PrivateChatService) CreatePrivateChat(ctx context.Context, userID int, 
 			privatechat.Or(
 				privatechat.And(
 					privatechat.User1ID(userID),
-					privatechat.User2ID(targetUserID),
+					privatechat.User2ID(req.TargetUserID),
 				),
 				privatechat.And(
-					privatechat.User1ID(targetUserID),
+					privatechat.User1ID(req.TargetUserID),
 					privatechat.User2ID(userID),
 				),
 			),
@@ -137,7 +135,7 @@ func (s *PrivateChatService) CreatePrivateChat(ctx context.Context, userID int, 
 	_, err = tx.PrivateChat.Create().
 		SetChat(newChat).
 		SetUser1ID(userID).
-		SetUser2ID(targetUserID).
+		SetUser2ID(req.TargetUserID).
 		Save(ctx)
 	if err != nil {
 		slog.Error("Failed to create private chat", "error", err)
@@ -164,7 +162,6 @@ func (s *PrivateChatService) CreatePrivateChat(ctx context.Context, userID int, 
 				UnreadCount:   0,
 				IsOnline:      creator.IsOnline,
 				OtherUserID:   &creator.ID,
-				OtherUsername: &creator.Username,
 			}
 			s.wsHub.BroadcastToUser(targetUser.ID, websocket.Event{
 				Type:    websocket.EventChatNew,
@@ -185,7 +182,6 @@ func (s *PrivateChatService) CreatePrivateChat(ctx context.Context, userID int, 
 				UnreadCount:   0,
 				IsOnline:      targetUser.IsOnline,
 				OtherUserID:   &targetUser.ID,
-				OtherUsername: &targetUser.Username,
 			}
 			s.wsHub.BroadcastToUser(creator.ID, websocket.Event{
 				Type:    websocket.EventChatNew,

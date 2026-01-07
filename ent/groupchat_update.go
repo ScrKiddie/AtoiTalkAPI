@@ -16,6 +16,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/google/uuid"
 )
 
 // GroupChatUpdate is the builder for updating GroupChat entities.
@@ -33,13 +34,13 @@ func (_u *GroupChatUpdate) Where(ps ...predicate.GroupChat) *GroupChatUpdate {
 }
 
 // SetChatID sets the "chat_id" field.
-func (_u *GroupChatUpdate) SetChatID(v int) *GroupChatUpdate {
+func (_u *GroupChatUpdate) SetChatID(v uuid.UUID) *GroupChatUpdate {
 	_u.mutation.SetChatID(v)
 	return _u
 }
 
 // SetNillableChatID sets the "chat_id" field if the given value is not nil.
-func (_u *GroupChatUpdate) SetNillableChatID(v *int) *GroupChatUpdate {
+func (_u *GroupChatUpdate) SetNillableChatID(v *uuid.UUID) *GroupChatUpdate {
 	if v != nil {
 		_u.SetChatID(*v)
 	}
@@ -47,13 +48,13 @@ func (_u *GroupChatUpdate) SetNillableChatID(v *int) *GroupChatUpdate {
 }
 
 // SetCreatedBy sets the "created_by" field.
-func (_u *GroupChatUpdate) SetCreatedBy(v int) *GroupChatUpdate {
+func (_u *GroupChatUpdate) SetCreatedBy(v uuid.UUID) *GroupChatUpdate {
 	_u.mutation.SetCreatedBy(v)
 	return _u
 }
 
 // SetNillableCreatedBy sets the "created_by" field if the given value is not nil.
-func (_u *GroupChatUpdate) SetNillableCreatedBy(v *int) *GroupChatUpdate {
+func (_u *GroupChatUpdate) SetNillableCreatedBy(v *uuid.UUID) *GroupChatUpdate {
 	if v != nil {
 		_u.SetCreatedBy(*v)
 	}
@@ -101,13 +102,13 @@ func (_u *GroupChatUpdate) ClearDescription() *GroupChatUpdate {
 }
 
 // SetAvatarID sets the "avatar_id" field.
-func (_u *GroupChatUpdate) SetAvatarID(v int) *GroupChatUpdate {
+func (_u *GroupChatUpdate) SetAvatarID(v uuid.UUID) *GroupChatUpdate {
 	_u.mutation.SetAvatarID(v)
 	return _u
 }
 
 // SetNillableAvatarID sets the "avatar_id" field if the given value is not nil.
-func (_u *GroupChatUpdate) SetNillableAvatarID(v *int) *GroupChatUpdate {
+func (_u *GroupChatUpdate) SetNillableAvatarID(v *uuid.UUID) *GroupChatUpdate {
 	if v != nil {
 		_u.SetAvatarID(*v)
 	}
@@ -131,13 +132,13 @@ func (_u *GroupChatUpdate) SetChat(v *Chat) *GroupChatUpdate {
 }
 
 // SetCreatorID sets the "creator" edge to the User entity by ID.
-func (_u *GroupChatUpdate) SetCreatorID(id int) *GroupChatUpdate {
+func (_u *GroupChatUpdate) SetCreatorID(id uuid.UUID) *GroupChatUpdate {
 	_u.mutation.SetCreatorID(id)
 	return _u
 }
 
 // SetNillableCreatorID sets the "creator" edge to the User entity by ID if the given value is not nil.
-func (_u *GroupChatUpdate) SetNillableCreatorID(id *int) *GroupChatUpdate {
+func (_u *GroupChatUpdate) SetNillableCreatorID(id *uuid.UUID) *GroupChatUpdate {
 	if id != nil {
 		_u = _u.SetCreatorID(*id)
 	}
@@ -150,14 +151,14 @@ func (_u *GroupChatUpdate) SetCreator(v *User) *GroupChatUpdate {
 }
 
 // AddMemberIDs adds the "members" edge to the GroupMember entity by IDs.
-func (_u *GroupChatUpdate) AddMemberIDs(ids ...int) *GroupChatUpdate {
+func (_u *GroupChatUpdate) AddMemberIDs(ids ...uuid.UUID) *GroupChatUpdate {
 	_u.mutation.AddMemberIDs(ids...)
 	return _u
 }
 
 // AddMembers adds the "members" edges to the GroupMember entity.
 func (_u *GroupChatUpdate) AddMembers(v ...*GroupMember) *GroupChatUpdate {
-	ids := make([]int, len(v))
+	ids := make([]uuid.UUID, len(v))
 	for i := range v {
 		ids[i] = v[i].ID
 	}
@@ -194,14 +195,14 @@ func (_u *GroupChatUpdate) ClearMembers() *GroupChatUpdate {
 }
 
 // RemoveMemberIDs removes the "members" edge to GroupMember entities by IDs.
-func (_u *GroupChatUpdate) RemoveMemberIDs(ids ...int) *GroupChatUpdate {
+func (_u *GroupChatUpdate) RemoveMemberIDs(ids ...uuid.UUID) *GroupChatUpdate {
 	_u.mutation.RemoveMemberIDs(ids...)
 	return _u
 }
 
 // RemoveMembers removes "members" edges to GroupMember entities.
 func (_u *GroupChatUpdate) RemoveMembers(v ...*GroupMember) *GroupChatUpdate {
-	ids := make([]int, len(v))
+	ids := make([]uuid.UUID, len(v))
 	for i := range v {
 		ids[i] = v[i].ID
 	}
@@ -258,7 +259,7 @@ func (_u *GroupChatUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	if err := _u.check(); err != nil {
 		return _node, err
 	}
-	_spec := sqlgraph.NewUpdateSpec(groupchat.Table, groupchat.Columns, sqlgraph.NewFieldSpec(groupchat.FieldID, field.TypeInt))
+	_spec := sqlgraph.NewUpdateSpec(groupchat.Table, groupchat.Columns, sqlgraph.NewFieldSpec(groupchat.FieldID, field.TypeUUID))
 	if ps := _u.mutation.predicates; len(ps) > 0 {
 		_spec.Predicate = func(selector *sql.Selector) {
 			for i := range ps {
@@ -283,7 +284,7 @@ func (_u *GroupChatUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 			Columns: []string{groupchat.AvatarColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(media.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(media.FieldID, field.TypeUUID),
 			},
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
@@ -296,7 +297,7 @@ func (_u *GroupChatUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 			Columns: []string{groupchat.AvatarColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(media.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(media.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {
@@ -312,7 +313,7 @@ func (_u *GroupChatUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 			Columns: []string{groupchat.ChatColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(chat.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(chat.FieldID, field.TypeUUID),
 			},
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
@@ -325,7 +326,7 @@ func (_u *GroupChatUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 			Columns: []string{groupchat.ChatColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(chat.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(chat.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {
@@ -341,7 +342,7 @@ func (_u *GroupChatUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 			Columns: []string{groupchat.CreatorColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeUUID),
 			},
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
@@ -354,7 +355,7 @@ func (_u *GroupChatUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 			Columns: []string{groupchat.CreatorColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {
@@ -370,7 +371,7 @@ func (_u *GroupChatUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 			Columns: []string{groupchat.MembersColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(groupmember.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(groupmember.FieldID, field.TypeUUID),
 			},
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
@@ -383,7 +384,7 @@ func (_u *GroupChatUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 			Columns: []string{groupchat.MembersColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(groupmember.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(groupmember.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {
@@ -399,7 +400,7 @@ func (_u *GroupChatUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 			Columns: []string{groupchat.MembersColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(groupmember.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(groupmember.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {
@@ -430,13 +431,13 @@ type GroupChatUpdateOne struct {
 }
 
 // SetChatID sets the "chat_id" field.
-func (_u *GroupChatUpdateOne) SetChatID(v int) *GroupChatUpdateOne {
+func (_u *GroupChatUpdateOne) SetChatID(v uuid.UUID) *GroupChatUpdateOne {
 	_u.mutation.SetChatID(v)
 	return _u
 }
 
 // SetNillableChatID sets the "chat_id" field if the given value is not nil.
-func (_u *GroupChatUpdateOne) SetNillableChatID(v *int) *GroupChatUpdateOne {
+func (_u *GroupChatUpdateOne) SetNillableChatID(v *uuid.UUID) *GroupChatUpdateOne {
 	if v != nil {
 		_u.SetChatID(*v)
 	}
@@ -444,13 +445,13 @@ func (_u *GroupChatUpdateOne) SetNillableChatID(v *int) *GroupChatUpdateOne {
 }
 
 // SetCreatedBy sets the "created_by" field.
-func (_u *GroupChatUpdateOne) SetCreatedBy(v int) *GroupChatUpdateOne {
+func (_u *GroupChatUpdateOne) SetCreatedBy(v uuid.UUID) *GroupChatUpdateOne {
 	_u.mutation.SetCreatedBy(v)
 	return _u
 }
 
 // SetNillableCreatedBy sets the "created_by" field if the given value is not nil.
-func (_u *GroupChatUpdateOne) SetNillableCreatedBy(v *int) *GroupChatUpdateOne {
+func (_u *GroupChatUpdateOne) SetNillableCreatedBy(v *uuid.UUID) *GroupChatUpdateOne {
 	if v != nil {
 		_u.SetCreatedBy(*v)
 	}
@@ -498,13 +499,13 @@ func (_u *GroupChatUpdateOne) ClearDescription() *GroupChatUpdateOne {
 }
 
 // SetAvatarID sets the "avatar_id" field.
-func (_u *GroupChatUpdateOne) SetAvatarID(v int) *GroupChatUpdateOne {
+func (_u *GroupChatUpdateOne) SetAvatarID(v uuid.UUID) *GroupChatUpdateOne {
 	_u.mutation.SetAvatarID(v)
 	return _u
 }
 
 // SetNillableAvatarID sets the "avatar_id" field if the given value is not nil.
-func (_u *GroupChatUpdateOne) SetNillableAvatarID(v *int) *GroupChatUpdateOne {
+func (_u *GroupChatUpdateOne) SetNillableAvatarID(v *uuid.UUID) *GroupChatUpdateOne {
 	if v != nil {
 		_u.SetAvatarID(*v)
 	}
@@ -528,13 +529,13 @@ func (_u *GroupChatUpdateOne) SetChat(v *Chat) *GroupChatUpdateOne {
 }
 
 // SetCreatorID sets the "creator" edge to the User entity by ID.
-func (_u *GroupChatUpdateOne) SetCreatorID(id int) *GroupChatUpdateOne {
+func (_u *GroupChatUpdateOne) SetCreatorID(id uuid.UUID) *GroupChatUpdateOne {
 	_u.mutation.SetCreatorID(id)
 	return _u
 }
 
 // SetNillableCreatorID sets the "creator" edge to the User entity by ID if the given value is not nil.
-func (_u *GroupChatUpdateOne) SetNillableCreatorID(id *int) *GroupChatUpdateOne {
+func (_u *GroupChatUpdateOne) SetNillableCreatorID(id *uuid.UUID) *GroupChatUpdateOne {
 	if id != nil {
 		_u = _u.SetCreatorID(*id)
 	}
@@ -547,14 +548,14 @@ func (_u *GroupChatUpdateOne) SetCreator(v *User) *GroupChatUpdateOne {
 }
 
 // AddMemberIDs adds the "members" edge to the GroupMember entity by IDs.
-func (_u *GroupChatUpdateOne) AddMemberIDs(ids ...int) *GroupChatUpdateOne {
+func (_u *GroupChatUpdateOne) AddMemberIDs(ids ...uuid.UUID) *GroupChatUpdateOne {
 	_u.mutation.AddMemberIDs(ids...)
 	return _u
 }
 
 // AddMembers adds the "members" edges to the GroupMember entity.
 func (_u *GroupChatUpdateOne) AddMembers(v ...*GroupMember) *GroupChatUpdateOne {
-	ids := make([]int, len(v))
+	ids := make([]uuid.UUID, len(v))
 	for i := range v {
 		ids[i] = v[i].ID
 	}
@@ -591,14 +592,14 @@ func (_u *GroupChatUpdateOne) ClearMembers() *GroupChatUpdateOne {
 }
 
 // RemoveMemberIDs removes the "members" edge to GroupMember entities by IDs.
-func (_u *GroupChatUpdateOne) RemoveMemberIDs(ids ...int) *GroupChatUpdateOne {
+func (_u *GroupChatUpdateOne) RemoveMemberIDs(ids ...uuid.UUID) *GroupChatUpdateOne {
 	_u.mutation.RemoveMemberIDs(ids...)
 	return _u
 }
 
 // RemoveMembers removes "members" edges to GroupMember entities.
 func (_u *GroupChatUpdateOne) RemoveMembers(v ...*GroupMember) *GroupChatUpdateOne {
-	ids := make([]int, len(v))
+	ids := make([]uuid.UUID, len(v))
 	for i := range v {
 		ids[i] = v[i].ID
 	}
@@ -668,7 +669,7 @@ func (_u *GroupChatUpdateOne) sqlSave(ctx context.Context) (_node *GroupChat, er
 	if err := _u.check(); err != nil {
 		return _node, err
 	}
-	_spec := sqlgraph.NewUpdateSpec(groupchat.Table, groupchat.Columns, sqlgraph.NewFieldSpec(groupchat.FieldID, field.TypeInt))
+	_spec := sqlgraph.NewUpdateSpec(groupchat.Table, groupchat.Columns, sqlgraph.NewFieldSpec(groupchat.FieldID, field.TypeUUID))
 	id, ok := _u.mutation.ID()
 	if !ok {
 		return nil, &ValidationError{Name: "id", err: errors.New(`ent: missing "GroupChat.id" for update`)}
@@ -710,7 +711,7 @@ func (_u *GroupChatUpdateOne) sqlSave(ctx context.Context) (_node *GroupChat, er
 			Columns: []string{groupchat.AvatarColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(media.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(media.FieldID, field.TypeUUID),
 			},
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
@@ -723,7 +724,7 @@ func (_u *GroupChatUpdateOne) sqlSave(ctx context.Context) (_node *GroupChat, er
 			Columns: []string{groupchat.AvatarColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(media.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(media.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {
@@ -739,7 +740,7 @@ func (_u *GroupChatUpdateOne) sqlSave(ctx context.Context) (_node *GroupChat, er
 			Columns: []string{groupchat.ChatColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(chat.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(chat.FieldID, field.TypeUUID),
 			},
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
@@ -752,7 +753,7 @@ func (_u *GroupChatUpdateOne) sqlSave(ctx context.Context) (_node *GroupChat, er
 			Columns: []string{groupchat.ChatColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(chat.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(chat.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {
@@ -768,7 +769,7 @@ func (_u *GroupChatUpdateOne) sqlSave(ctx context.Context) (_node *GroupChat, er
 			Columns: []string{groupchat.CreatorColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeUUID),
 			},
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
@@ -781,7 +782,7 @@ func (_u *GroupChatUpdateOne) sqlSave(ctx context.Context) (_node *GroupChat, er
 			Columns: []string{groupchat.CreatorColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {
@@ -797,7 +798,7 @@ func (_u *GroupChatUpdateOne) sqlSave(ctx context.Context) (_node *GroupChat, er
 			Columns: []string{groupchat.MembersColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(groupmember.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(groupmember.FieldID, field.TypeUUID),
 			},
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
@@ -810,7 +811,7 @@ func (_u *GroupChatUpdateOne) sqlSave(ctx context.Context) (_node *GroupChat, er
 			Columns: []string{groupchat.MembersColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(groupmember.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(groupmember.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {
@@ -826,7 +827,7 @@ func (_u *GroupChatUpdateOne) sqlSave(ctx context.Context) (_node *GroupChat, er
 			Columns: []string{groupchat.MembersColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(groupmember.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(groupmember.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {

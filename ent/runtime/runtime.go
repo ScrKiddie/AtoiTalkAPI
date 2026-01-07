@@ -15,6 +15,8 @@ import (
 	"AtoiTalkAPI/ent/userblock"
 	"AtoiTalkAPI/ent/useridentity"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 // The init function reads all schema descriptors with runtime code
@@ -36,10 +38,14 @@ func init() {
 	chat.DefaultUpdatedAt = chatDescUpdatedAt.Default.(func() time.Time)
 	// chat.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
 	chat.UpdateDefaultUpdatedAt = chatDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// chatDescID is the schema descriptor for id field.
+	chatDescID := chatFields[0].Descriptor()
+	// chat.DefaultID holds the default value on creation for the id field.
+	chat.DefaultID = chatDescID.Default.(func() uuid.UUID)
 	groupchatFields := schema.GroupChat{}.Fields()
 	_ = groupchatFields
 	// groupchatDescName is the schema descriptor for name field.
-	groupchatDescName := groupchatFields[2].Descriptor()
+	groupchatDescName := groupchatFields[3].Descriptor()
 	// groupchat.NameValidator is a validator for the "name" field. It is called by the builders before save.
 	groupchat.NameValidator = func() func(string) error {
 		validators := groupchatDescName.Validators
@@ -56,16 +62,24 @@ func init() {
 			return nil
 		}
 	}()
+	// groupchatDescID is the schema descriptor for id field.
+	groupchatDescID := groupchatFields[0].Descriptor()
+	// groupchat.DefaultID holds the default value on creation for the id field.
+	groupchat.DefaultID = groupchatDescID.Default.(func() uuid.UUID)
 	groupmemberFields := schema.GroupMember{}.Fields()
 	_ = groupmemberFields
 	// groupmemberDescJoinedAt is the schema descriptor for joined_at field.
-	groupmemberDescJoinedAt := groupmemberFields[4].Descriptor()
+	groupmemberDescJoinedAt := groupmemberFields[5].Descriptor()
 	// groupmember.DefaultJoinedAt holds the default value on creation for the joined_at field.
 	groupmember.DefaultJoinedAt = groupmemberDescJoinedAt.Default.(func() time.Time)
 	// groupmemberDescUnreadCount is the schema descriptor for unread_count field.
-	groupmemberDescUnreadCount := groupmemberFields[5].Descriptor()
+	groupmemberDescUnreadCount := groupmemberFields[6].Descriptor()
 	// groupmember.DefaultUnreadCount holds the default value on creation for the unread_count field.
 	groupmember.DefaultUnreadCount = groupmemberDescUnreadCount.Default.(int)
+	// groupmemberDescID is the schema descriptor for id field.
+	groupmemberDescID := groupmemberFields[0].Descriptor()
+	// groupmember.DefaultID holds the default value on creation for the id field.
+	groupmember.DefaultID = groupmemberDescID.Default.(func() uuid.UUID)
 	mediaMixin := schema.Media{}.Mixin()
 	mediaMixinFields0 := mediaMixin[0].Fields()
 	_ = mediaMixinFields0
@@ -82,7 +96,7 @@ func init() {
 	// media.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
 	media.UpdateDefaultUpdatedAt = mediaDescUpdatedAt.UpdateDefault.(func() time.Time)
 	// mediaDescFileName is the schema descriptor for file_name field.
-	mediaDescFileName := mediaFields[0].Descriptor()
+	mediaDescFileName := mediaFields[1].Descriptor()
 	// media.FileNameValidator is a validator for the "file_name" field. It is called by the builders before save.
 	media.FileNameValidator = func() func(string) error {
 		validators := mediaDescFileName.Validators
@@ -100,7 +114,7 @@ func init() {
 		}
 	}()
 	// mediaDescOriginalName is the schema descriptor for original_name field.
-	mediaDescOriginalName := mediaFields[1].Descriptor()
+	mediaDescOriginalName := mediaFields[2].Descriptor()
 	// media.OriginalNameValidator is a validator for the "original_name" field. It is called by the builders before save.
 	media.OriginalNameValidator = func() func(string) error {
 		validators := mediaDescOriginalName.Validators
@@ -118,11 +132,11 @@ func init() {
 		}
 	}()
 	// mediaDescFileSize is the schema descriptor for file_size field.
-	mediaDescFileSize := mediaFields[2].Descriptor()
+	mediaDescFileSize := mediaFields[3].Descriptor()
 	// media.FileSizeValidator is a validator for the "file_size" field. It is called by the builders before save.
 	media.FileSizeValidator = mediaDescFileSize.Validators[0].(func(int64) error)
 	// mediaDescMimeType is the schema descriptor for mime_type field.
-	mediaDescMimeType := mediaFields[3].Descriptor()
+	mediaDescMimeType := mediaFields[4].Descriptor()
 	// media.MimeTypeValidator is a validator for the "mime_type" field. It is called by the builders before save.
 	media.MimeTypeValidator = func() func(string) error {
 		validators := mediaDescMimeType.Validators
@@ -139,6 +153,10 @@ func init() {
 			return nil
 		}
 	}()
+	// mediaDescID is the schema descriptor for id field.
+	mediaDescID := mediaFields[0].Descriptor()
+	// media.DefaultID holds the default value on creation for the id field.
+	media.DefaultID = mediaDescID.Default.(func() uuid.UUID)
 	messageMixin := schema.Message{}.Mixin()
 	messageMixinFields0 := messageMixin[0].Fields()
 	_ = messageMixinFields0
@@ -154,6 +172,10 @@ func init() {
 	message.DefaultUpdatedAt = messageDescUpdatedAt.Default.(func() time.Time)
 	// message.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
 	message.UpdateDefaultUpdatedAt = messageDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// messageDescID is the schema descriptor for id field.
+	messageDescID := messageFields[0].Descriptor()
+	// message.DefaultID holds the default value on creation for the id field.
+	message.DefaultID = messageDescID.Default.(func() uuid.UUID)
 	otpMixin := schema.OTP{}.Mixin()
 	otpMixinFields0 := otpMixin[0].Fields()
 	_ = otpMixinFields0
@@ -170,7 +192,7 @@ func init() {
 	// otp.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
 	otp.UpdateDefaultUpdatedAt = otpDescUpdatedAt.UpdateDefault.(func() time.Time)
 	// otpDescEmail is the schema descriptor for email field.
-	otpDescEmail := otpFields[0].Descriptor()
+	otpDescEmail := otpFields[1].Descriptor()
 	// otp.EmailValidator is a validator for the "email" field. It is called by the builders before save.
 	otp.EmailValidator = func() func(string) error {
 		validators := otpDescEmail.Validators
@@ -188,7 +210,7 @@ func init() {
 		}
 	}()
 	// otpDescCode is the schema descriptor for code field.
-	otpDescCode := otpFields[1].Descriptor()
+	otpDescCode := otpFields[2].Descriptor()
 	// otp.CodeValidator is a validator for the "code" field. It is called by the builders before save.
 	otp.CodeValidator = func() func(string) error {
 		validators := otpDescCode.Validators
@@ -205,18 +227,26 @@ func init() {
 			return nil
 		}
 	}()
+	// otpDescID is the schema descriptor for id field.
+	otpDescID := otpFields[0].Descriptor()
+	// otp.DefaultID holds the default value on creation for the id field.
+	otp.DefaultID = otpDescID.Default.(func() uuid.UUID)
 	privatechatHooks := schema.PrivateChat{}.Hooks()
 	privatechat.Hooks[0] = privatechatHooks[0]
 	privatechatFields := schema.PrivateChat{}.Fields()
 	_ = privatechatFields
 	// privatechatDescUser1UnreadCount is the schema descriptor for user1_unread_count field.
-	privatechatDescUser1UnreadCount := privatechatFields[7].Descriptor()
+	privatechatDescUser1UnreadCount := privatechatFields[8].Descriptor()
 	// privatechat.DefaultUser1UnreadCount holds the default value on creation for the user1_unread_count field.
 	privatechat.DefaultUser1UnreadCount = privatechatDescUser1UnreadCount.Default.(int)
 	// privatechatDescUser2UnreadCount is the schema descriptor for user2_unread_count field.
-	privatechatDescUser2UnreadCount := privatechatFields[8].Descriptor()
+	privatechatDescUser2UnreadCount := privatechatFields[9].Descriptor()
 	// privatechat.DefaultUser2UnreadCount holds the default value on creation for the user2_unread_count field.
 	privatechat.DefaultUser2UnreadCount = privatechatDescUser2UnreadCount.Default.(int)
+	// privatechatDescID is the schema descriptor for id field.
+	privatechatDescID := privatechatFields[0].Descriptor()
+	// privatechat.DefaultID holds the default value on creation for the id field.
+	privatechat.DefaultID = privatechatDescID.Default.(func() uuid.UUID)
 	userMixin := schema.User{}.Mixin()
 	userMixinFields0 := userMixin[0].Fields()
 	_ = userMixinFields0
@@ -233,7 +263,7 @@ func init() {
 	// user.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
 	user.UpdateDefaultUpdatedAt = userDescUpdatedAt.UpdateDefault.(func() time.Time)
 	// userDescEmail is the schema descriptor for email field.
-	userDescEmail := userFields[0].Descriptor()
+	userDescEmail := userFields[1].Descriptor()
 	// user.EmailValidator is a validator for the "email" field. It is called by the builders before save.
 	user.EmailValidator = func() func(string) error {
 		validators := userDescEmail.Validators
@@ -251,7 +281,7 @@ func init() {
 		}
 	}()
 	// userDescUsername is the schema descriptor for username field.
-	userDescUsername := userFields[1].Descriptor()
+	userDescUsername := userFields[2].Descriptor()
 	// user.UsernameValidator is a validator for the "username" field. It is called by the builders before save.
 	user.UsernameValidator = func() func(string) error {
 		validators := userDescUsername.Validators
@@ -269,11 +299,11 @@ func init() {
 		}
 	}()
 	// userDescPasswordHash is the schema descriptor for password_hash field.
-	userDescPasswordHash := userFields[2].Descriptor()
+	userDescPasswordHash := userFields[3].Descriptor()
 	// user.PasswordHashValidator is a validator for the "password_hash" field. It is called by the builders before save.
 	user.PasswordHashValidator = userDescPasswordHash.Validators[0].(func(string) error)
 	// userDescFullName is the schema descriptor for full_name field.
-	userDescFullName := userFields[3].Descriptor()
+	userDescFullName := userFields[4].Descriptor()
 	// user.FullNameValidator is a validator for the "full_name" field. It is called by the builders before save.
 	user.FullNameValidator = func() func(string) error {
 		validators := userDescFullName.Validators
@@ -291,13 +321,17 @@ func init() {
 		}
 	}()
 	// userDescBio is the schema descriptor for bio field.
-	userDescBio := userFields[4].Descriptor()
+	userDescBio := userFields[5].Descriptor()
 	// user.BioValidator is a validator for the "bio" field. It is called by the builders before save.
 	user.BioValidator = userDescBio.Validators[0].(func(string) error)
 	// userDescIsOnline is the schema descriptor for is_online field.
-	userDescIsOnline := userFields[6].Descriptor()
+	userDescIsOnline := userFields[7].Descriptor()
 	// user.DefaultIsOnline holds the default value on creation for the is_online field.
 	user.DefaultIsOnline = userDescIsOnline.Default.(bool)
+	// userDescID is the schema descriptor for id field.
+	userDescID := userFields[0].Descriptor()
+	// user.DefaultID holds the default value on creation for the id field.
+	user.DefaultID = userDescID.Default.(func() uuid.UUID)
 	userblockMixin := schema.UserBlock{}.Mixin()
 	userblockMixinFields0 := userblockMixin[0].Fields()
 	_ = userblockMixinFields0
@@ -313,6 +347,10 @@ func init() {
 	userblock.DefaultUpdatedAt = userblockDescUpdatedAt.Default.(func() time.Time)
 	// userblock.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
 	userblock.UpdateDefaultUpdatedAt = userblockDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// userblockDescID is the schema descriptor for id field.
+	userblockDescID := userblockFields[0].Descriptor()
+	// userblock.DefaultID holds the default value on creation for the id field.
+	userblock.DefaultID = userblockDescID.Default.(func() uuid.UUID)
 	useridentityMixin := schema.UserIdentity{}.Mixin()
 	useridentityMixinFields0 := useridentityMixin[0].Fields()
 	_ = useridentityMixinFields0
@@ -329,7 +367,7 @@ func init() {
 	// useridentity.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
 	useridentity.UpdateDefaultUpdatedAt = useridentityDescUpdatedAt.UpdateDefault.(func() time.Time)
 	// useridentityDescProviderID is the schema descriptor for provider_id field.
-	useridentityDescProviderID := useridentityFields[2].Descriptor()
+	useridentityDescProviderID := useridentityFields[3].Descriptor()
 	// useridentity.ProviderIDValidator is a validator for the "provider_id" field. It is called by the builders before save.
 	useridentity.ProviderIDValidator = func() func(string) error {
 		validators := useridentityDescProviderID.Validators
@@ -347,9 +385,13 @@ func init() {
 		}
 	}()
 	// useridentityDescProviderEmail is the schema descriptor for provider_email field.
-	useridentityDescProviderEmail := useridentityFields[3].Descriptor()
+	useridentityDescProviderEmail := useridentityFields[4].Descriptor()
 	// useridentity.ProviderEmailValidator is a validator for the "provider_email" field. It is called by the builders before save.
 	useridentity.ProviderEmailValidator = useridentityDescProviderEmail.Validators[0].(func(string) error)
+	// useridentityDescID is the schema descriptor for id field.
+	useridentityDescID := useridentityFields[0].Descriptor()
+	// useridentity.DefaultID holds the default value on creation for the id field.
+	useridentity.DefaultID = useridentityDescID.Default.(func() uuid.UUID)
 }
 
 const (

@@ -11,21 +11,22 @@ import (
 
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
+	"github.com/google/uuid"
 )
 
 // UserBlock is the model entity for the UserBlock schema.
 type UserBlock struct {
 	config `json:"-"`
 	// ID of the ent.
-	ID int `json:"id,omitempty"`
+	ID uuid.UUID `json:"id,omitempty"`
 	// CreatedAt holds the value of the "created_at" field.
 	CreatedAt time.Time `json:"created_at,omitempty"`
 	// UpdatedAt holds the value of the "updated_at" field.
 	UpdatedAt time.Time `json:"updated_at,omitempty"`
 	// BlockerID holds the value of the "blocker_id" field.
-	BlockerID int `json:"blocker_id,omitempty"`
+	BlockerID uuid.UUID `json:"blocker_id,omitempty"`
 	// BlockedID holds the value of the "blocked_id" field.
-	BlockedID int `json:"blocked_id,omitempty"`
+	BlockedID uuid.UUID `json:"blocked_id,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the UserBlockQuery when eager-loading is set.
 	Edges        UserBlockEdges `json:"edges"`
@@ -70,10 +71,10 @@ func (*UserBlock) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case userblock.FieldID, userblock.FieldBlockerID, userblock.FieldBlockedID:
-			values[i] = new(sql.NullInt64)
 		case userblock.FieldCreatedAt, userblock.FieldUpdatedAt:
 			values[i] = new(sql.NullTime)
+		case userblock.FieldID, userblock.FieldBlockerID, userblock.FieldBlockedID:
+			values[i] = new(uuid.UUID)
 		default:
 			values[i] = new(sql.UnknownType)
 		}
@@ -90,11 +91,11 @@ func (_m *UserBlock) assignValues(columns []string, values []any) error {
 	for i := range columns {
 		switch columns[i] {
 		case userblock.FieldID:
-			value, ok := values[i].(*sql.NullInt64)
-			if !ok {
-				return fmt.Errorf("unexpected type %T for field id", value)
+			if value, ok := values[i].(*uuid.UUID); !ok {
+				return fmt.Errorf("unexpected type %T for field id", values[i])
+			} else if value != nil {
+				_m.ID = *value
 			}
-			_m.ID = int(value.Int64)
 		case userblock.FieldCreatedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field created_at", values[i])
@@ -108,16 +109,16 @@ func (_m *UserBlock) assignValues(columns []string, values []any) error {
 				_m.UpdatedAt = value.Time
 			}
 		case userblock.FieldBlockerID:
-			if value, ok := values[i].(*sql.NullInt64); !ok {
+			if value, ok := values[i].(*uuid.UUID); !ok {
 				return fmt.Errorf("unexpected type %T for field blocker_id", values[i])
-			} else if value.Valid {
-				_m.BlockerID = int(value.Int64)
+			} else if value != nil {
+				_m.BlockerID = *value
 			}
 		case userblock.FieldBlockedID:
-			if value, ok := values[i].(*sql.NullInt64); !ok {
+			if value, ok := values[i].(*uuid.UUID); !ok {
 				return fmt.Errorf("unexpected type %T for field blocked_id", values[i])
-			} else if value.Valid {
-				_m.BlockedID = int(value.Int64)
+			} else if value != nil {
+				_m.BlockedID = *value
 			}
 		default:
 			_m.selectValues.Set(columns[i], values[i])

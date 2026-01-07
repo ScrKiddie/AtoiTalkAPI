@@ -4,6 +4,7 @@ import (
 	"entgo.io/ent"
 	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
+	"github.com/google/uuid"
 )
 
 type Media struct {
@@ -14,13 +15,14 @@ func (Media) Mixin() []ent.Mixin { return []ent.Mixin{TimeMixin{}} }
 
 func (Media) Fields() []ent.Field {
 	return []ent.Field{
+		field.UUID("id", uuid.UUID{}).Default(newUUIDv7),
 		field.String("file_name").Unique().MaxLen(255).NotEmpty(),
 		field.String("original_name").MaxLen(255).NotEmpty(),
 		field.Int64("file_size").Positive(),
 		field.String("mime_type").MaxLen(100).NotEmpty(),
 		field.Enum("status").Values("pending", "active", "failed").Default("pending"),
-		field.Int("message_id").Optional().Nillable(),
-		field.Int("uploaded_by_id"),
+		field.UUID("message_id", uuid.UUID{}).Optional().Nillable(),
+		field.UUID("uploaded_by_id", uuid.UUID{}),
 	}
 }
 func (Media) Edges() []ent.Edge {

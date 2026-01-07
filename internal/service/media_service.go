@@ -12,6 +12,7 @@ import (
 	"path/filepath"
 
 	"github.com/go-playground/validator/v10"
+	"github.com/google/uuid"
 )
 
 type MediaService struct {
@@ -30,7 +31,7 @@ func NewMediaService(client *ent.Client, cfg *config.AppConfig, validator *valid
 	}
 }
 
-func (s *MediaService) UploadMedia(ctx context.Context, userID int, req model.UploadMediaRequest) (*model.MediaDTO, error) {
+func (s *MediaService) UploadMedia(ctx context.Context, userID uuid.UUID, req model.UploadMediaRequest) (*model.MediaDTO, error) {
 	if err := s.validator.Struct(req); err != nil {
 		slog.Warn("Validation failed", "error", err)
 		return nil, helper.NewBadRequestError("")

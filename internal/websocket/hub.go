@@ -10,11 +10,13 @@ import (
 	"log/slog"
 	"sync"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 type Hub struct {
 	clients     map[*Client]bool
-	userClients map[int]map[*Client]bool
+	userClients map[uuid.UUID]map[*Client]bool
 	Register    chan *Client
 	Unregister  chan *Client
 	broadcast   chan []byte
@@ -29,7 +31,7 @@ func NewHub(db *ent.Client) *Hub {
 		Register:    make(chan *Client),
 		Unregister:  make(chan *Client),
 		clients:     make(map[*Client]bool),
-		userClients: make(map[int]map[*Client]bool),
+		userClients: make(map[uuid.UUID]map[*Client]bool),
 		db:          db,
 	}
 }
@@ -68,7 +70,7 @@ func (h *Hub) Run() {
 	}
 }
 
-func (h *Hub) BroadcastToUser(userID int, event Event) {
+func (h *Hub) BroadcastToUser(userID uuid.UUID, event Event) {
 	h.mu.RLock()
 	defer h.mu.RUnlock()
 
@@ -91,7 +93,7 @@ func (h *Hub) BroadcastToUser(userID int, event Event) {
 	}
 }
 
-func (h *Hub) BroadcastToChat(chatID int, event Event) {
+func (h *Hub) BroadcastToChat(chatID uuid.UUID, event Event) {
 	ctx := context.Background()
 
 	c, err := h.db.Chat.Query().
@@ -107,7 +109,7 @@ func (h *Hub) BroadcastToChat(chatID int, event Event) {
 		return
 	}
 
-	memberUnreadMap := make(map[int]int)
+	memberUnreadMap := make(map[uuid.UUID]int)
 
 	if c.Type == chat.TypePrivate && c.Edges.PrivateChat != nil {
 		pc := c.Edges.PrivateChat
@@ -119,8 +121,8 @@ func (h *Hub) BroadcastToChat(chatID int, event Event) {
 		}
 	}
 
-	blockedUserIDs := make(map[int]bool)
-	if event.Type == EventTyping && event.Meta != nil && event.Meta.SenderID != 0 {
+	blockedUserIDs := make(map[uuid.UUID]bool)
+	if event.Type == EventTyping && event.Meta != nil && event.Meta.SenderID != uuid.Nil {
 		senderID := event.Meta.SenderID
 
 		blocks, err := h.db.UserBlock.Query().
@@ -167,7 +169,7 @@ func (h *Hub) BroadcastToChat(chatID int, event Event) {
 	}
 }
 
-func (h *Hub) BroadcastToContacts(userID int, event Event) {
+func (h *Hub) BroadcastToContacts(userID uuid.UUID, event Event) {
 	ctx := context.Background()
 
 	chats, err := h.db.PrivateChat.Query().
@@ -184,7 +186,7 @@ func (h *Hub) BroadcastToContacts(userID int, event Event) {
 		return
 	}
 
-	targetUserIDs := make([]int, 0, len(chats))
+	targetUserIDs := make([]uuid.UUID, 0, len(chats))
 	for _, pc := range chats {
 		if pc.User1ID == userID {
 			targetUserIDs = append(targetUserIDs, pc.User2ID)
@@ -193,7 +195,7 @@ func (h *Hub) BroadcastToContacts(userID int, event Event) {
 		}
 	}
 
-	blockedUserIDs := make(map[int]bool)
+	blockedUserIDs := make(map[uuid.UUID]bool)
 
 	if event.Type == EventUserOnline || event.Type == EventUserOffline {
 		blocks, err := h.db.UserBlock.Query().
@@ -225,7 +227,7 @@ func (h *Hub) BroadcastToContacts(userID int, event Event) {
 	}
 }
 
-func (h *Hub) broadcastUserStatus(userID int, isOnline bool) {
+func (h *Hub) broadcastUserStatus(userID uuid.UUID, isOnline bool) {
 	ctx := context.Background()
 	update := h.db.User.UpdateOneID(userID).SetIsOnline(isOnline)
 	if !isOnline {

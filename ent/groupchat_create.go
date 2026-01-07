@@ -12,9 +12,11 @@ import (
 	"errors"
 	"fmt"
 
+	"entgo.io/ent/dialect"
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/google/uuid"
 )
 
 // GroupChatCreate is the builder for creating a GroupChat entity.
@@ -26,19 +28,19 @@ type GroupChatCreate struct {
 }
 
 // SetChatID sets the "chat_id" field.
-func (_c *GroupChatCreate) SetChatID(v int) *GroupChatCreate {
+func (_c *GroupChatCreate) SetChatID(v uuid.UUID) *GroupChatCreate {
 	_c.mutation.SetChatID(v)
 	return _c
 }
 
 // SetCreatedBy sets the "created_by" field.
-func (_c *GroupChatCreate) SetCreatedBy(v int) *GroupChatCreate {
+func (_c *GroupChatCreate) SetCreatedBy(v uuid.UUID) *GroupChatCreate {
 	_c.mutation.SetCreatedBy(v)
 	return _c
 }
 
 // SetNillableCreatedBy sets the "created_by" field if the given value is not nil.
-func (_c *GroupChatCreate) SetNillableCreatedBy(v *int) *GroupChatCreate {
+func (_c *GroupChatCreate) SetNillableCreatedBy(v *uuid.UUID) *GroupChatCreate {
 	if v != nil {
 		_c.SetCreatedBy(*v)
 	}
@@ -66,15 +68,29 @@ func (_c *GroupChatCreate) SetNillableDescription(v *string) *GroupChatCreate {
 }
 
 // SetAvatarID sets the "avatar_id" field.
-func (_c *GroupChatCreate) SetAvatarID(v int) *GroupChatCreate {
+func (_c *GroupChatCreate) SetAvatarID(v uuid.UUID) *GroupChatCreate {
 	_c.mutation.SetAvatarID(v)
 	return _c
 }
 
 // SetNillableAvatarID sets the "avatar_id" field if the given value is not nil.
-func (_c *GroupChatCreate) SetNillableAvatarID(v *int) *GroupChatCreate {
+func (_c *GroupChatCreate) SetNillableAvatarID(v *uuid.UUID) *GroupChatCreate {
 	if v != nil {
 		_c.SetAvatarID(*v)
+	}
+	return _c
+}
+
+// SetID sets the "id" field.
+func (_c *GroupChatCreate) SetID(v uuid.UUID) *GroupChatCreate {
+	_c.mutation.SetID(v)
+	return _c
+}
+
+// SetNillableID sets the "id" field if the given value is not nil.
+func (_c *GroupChatCreate) SetNillableID(v *uuid.UUID) *GroupChatCreate {
+	if v != nil {
+		_c.SetID(*v)
 	}
 	return _c
 }
@@ -90,13 +106,13 @@ func (_c *GroupChatCreate) SetChat(v *Chat) *GroupChatCreate {
 }
 
 // SetCreatorID sets the "creator" edge to the User entity by ID.
-func (_c *GroupChatCreate) SetCreatorID(id int) *GroupChatCreate {
+func (_c *GroupChatCreate) SetCreatorID(id uuid.UUID) *GroupChatCreate {
 	_c.mutation.SetCreatorID(id)
 	return _c
 }
 
 // SetNillableCreatorID sets the "creator" edge to the User entity by ID if the given value is not nil.
-func (_c *GroupChatCreate) SetNillableCreatorID(id *int) *GroupChatCreate {
+func (_c *GroupChatCreate) SetNillableCreatorID(id *uuid.UUID) *GroupChatCreate {
 	if id != nil {
 		_c = _c.SetCreatorID(*id)
 	}
@@ -109,14 +125,14 @@ func (_c *GroupChatCreate) SetCreator(v *User) *GroupChatCreate {
 }
 
 // AddMemberIDs adds the "members" edge to the GroupMember entity by IDs.
-func (_c *GroupChatCreate) AddMemberIDs(ids ...int) *GroupChatCreate {
+func (_c *GroupChatCreate) AddMemberIDs(ids ...uuid.UUID) *GroupChatCreate {
 	_c.mutation.AddMemberIDs(ids...)
 	return _c
 }
 
 // AddMembers adds the "members" edges to the GroupMember entity.
 func (_c *GroupChatCreate) AddMembers(v ...*GroupMember) *GroupChatCreate {
-	ids := make([]int, len(v))
+	ids := make([]uuid.UUID, len(v))
 	for i := range v {
 		ids[i] = v[i].ID
 	}
@@ -130,6 +146,7 @@ func (_c *GroupChatCreate) Mutation() *GroupChatMutation {
 
 // Save creates the GroupChat in the database.
 func (_c *GroupChatCreate) Save(ctx context.Context) (*GroupChat, error) {
+	_c.defaults()
 	return withHooks(ctx, _c.sqlSave, _c.mutation, _c.hooks)
 }
 
@@ -152,6 +169,14 @@ func (_c *GroupChatCreate) Exec(ctx context.Context) error {
 func (_c *GroupChatCreate) ExecX(ctx context.Context) {
 	if err := _c.Exec(ctx); err != nil {
 		panic(err)
+	}
+}
+
+// defaults sets the default values of the builder before save.
+func (_c *GroupChatCreate) defaults() {
+	if _, ok := _c.mutation.ID(); !ok {
+		v := groupchat.DefaultID()
+		_c.mutation.SetID(v)
 	}
 }
 
@@ -185,8 +210,13 @@ func (_c *GroupChatCreate) sqlSave(ctx context.Context) (*GroupChat, error) {
 		}
 		return nil, err
 	}
-	id := _spec.ID.Value.(int64)
-	_node.ID = int(id)
+	if _spec.ID.Value != nil {
+		if id, ok := _spec.ID.Value.(*uuid.UUID); ok {
+			_node.ID = *id
+		} else if err := _node.ID.Scan(_spec.ID.Value); err != nil {
+			return nil, err
+		}
+	}
 	_c.mutation.id = &_node.ID
 	_c.mutation.done = true
 	return _node, nil
@@ -195,9 +225,13 @@ func (_c *GroupChatCreate) sqlSave(ctx context.Context) (*GroupChat, error) {
 func (_c *GroupChatCreate) createSpec() (*GroupChat, *sqlgraph.CreateSpec) {
 	var (
 		_node = &GroupChat{config: _c.config}
-		_spec = sqlgraph.NewCreateSpec(groupchat.Table, sqlgraph.NewFieldSpec(groupchat.FieldID, field.TypeInt))
+		_spec = sqlgraph.NewCreateSpec(groupchat.Table, sqlgraph.NewFieldSpec(groupchat.FieldID, field.TypeUUID))
 	)
 	_spec.OnConflict = _c.conflict
+	if id, ok := _c.mutation.ID(); ok {
+		_node.ID = id
+		_spec.ID.Value = &id
+	}
 	if value, ok := _c.mutation.Name(); ok {
 		_spec.SetField(groupchat.FieldName, field.TypeString, value)
 		_node.Name = value
@@ -214,7 +248,7 @@ func (_c *GroupChatCreate) createSpec() (*GroupChat, *sqlgraph.CreateSpec) {
 			Columns: []string{groupchat.AvatarColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(media.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(media.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {
@@ -231,7 +265,7 @@ func (_c *GroupChatCreate) createSpec() (*GroupChat, *sqlgraph.CreateSpec) {
 			Columns: []string{groupchat.ChatColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(chat.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(chat.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {
@@ -248,7 +282,7 @@ func (_c *GroupChatCreate) createSpec() (*GroupChat, *sqlgraph.CreateSpec) {
 			Columns: []string{groupchat.CreatorColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {
@@ -265,7 +299,7 @@ func (_c *GroupChatCreate) createSpec() (*GroupChat, *sqlgraph.CreateSpec) {
 			Columns: []string{groupchat.MembersColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(groupmember.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(groupmember.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {
@@ -326,7 +360,7 @@ type (
 )
 
 // SetChatID sets the "chat_id" field.
-func (u *GroupChatUpsert) SetChatID(v int) *GroupChatUpsert {
+func (u *GroupChatUpsert) SetChatID(v uuid.UUID) *GroupChatUpsert {
 	u.Set(groupchat.FieldChatID, v)
 	return u
 }
@@ -338,7 +372,7 @@ func (u *GroupChatUpsert) UpdateChatID() *GroupChatUpsert {
 }
 
 // SetCreatedBy sets the "created_by" field.
-func (u *GroupChatUpsert) SetCreatedBy(v int) *GroupChatUpsert {
+func (u *GroupChatUpsert) SetCreatedBy(v uuid.UUID) *GroupChatUpsert {
 	u.Set(groupchat.FieldCreatedBy, v)
 	return u
 }
@@ -386,7 +420,7 @@ func (u *GroupChatUpsert) ClearDescription() *GroupChatUpsert {
 }
 
 // SetAvatarID sets the "avatar_id" field.
-func (u *GroupChatUpsert) SetAvatarID(v int) *GroupChatUpsert {
+func (u *GroupChatUpsert) SetAvatarID(v uuid.UUID) *GroupChatUpsert {
 	u.Set(groupchat.FieldAvatarID, v)
 	return u
 }
@@ -403,16 +437,24 @@ func (u *GroupChatUpsert) ClearAvatarID() *GroupChatUpsert {
 	return u
 }
 
-// UpdateNewValues updates the mutable fields using the new values that were set on create.
+// UpdateNewValues updates the mutable fields using the new values that were set on create except the ID field.
 // Using this option is equivalent to using:
 //
 //	client.GroupChat.Create().
 //		OnConflict(
 //			sql.ResolveWithNewValues(),
+//			sql.ResolveWith(func(u *sql.UpdateSet) {
+//				u.SetIgnore(groupchat.FieldID)
+//			}),
 //		).
 //		Exec(ctx)
 func (u *GroupChatUpsertOne) UpdateNewValues() *GroupChatUpsertOne {
 	u.create.conflict = append(u.create.conflict, sql.ResolveWithNewValues())
+	u.create.conflict = append(u.create.conflict, sql.ResolveWith(func(s *sql.UpdateSet) {
+		if _, exists := u.create.mutation.ID(); exists {
+			s.SetIgnore(groupchat.FieldID)
+		}
+	}))
 	return u
 }
 
@@ -444,7 +486,7 @@ func (u *GroupChatUpsertOne) Update(set func(*GroupChatUpsert)) *GroupChatUpsert
 }
 
 // SetChatID sets the "chat_id" field.
-func (u *GroupChatUpsertOne) SetChatID(v int) *GroupChatUpsertOne {
+func (u *GroupChatUpsertOne) SetChatID(v uuid.UUID) *GroupChatUpsertOne {
 	return u.Update(func(s *GroupChatUpsert) {
 		s.SetChatID(v)
 	})
@@ -458,7 +500,7 @@ func (u *GroupChatUpsertOne) UpdateChatID() *GroupChatUpsertOne {
 }
 
 // SetCreatedBy sets the "created_by" field.
-func (u *GroupChatUpsertOne) SetCreatedBy(v int) *GroupChatUpsertOne {
+func (u *GroupChatUpsertOne) SetCreatedBy(v uuid.UUID) *GroupChatUpsertOne {
 	return u.Update(func(s *GroupChatUpsert) {
 		s.SetCreatedBy(v)
 	})
@@ -514,7 +556,7 @@ func (u *GroupChatUpsertOne) ClearDescription() *GroupChatUpsertOne {
 }
 
 // SetAvatarID sets the "avatar_id" field.
-func (u *GroupChatUpsertOne) SetAvatarID(v int) *GroupChatUpsertOne {
+func (u *GroupChatUpsertOne) SetAvatarID(v uuid.UUID) *GroupChatUpsertOne {
 	return u.Update(func(s *GroupChatUpsert) {
 		s.SetAvatarID(v)
 	})
@@ -550,7 +592,12 @@ func (u *GroupChatUpsertOne) ExecX(ctx context.Context) {
 }
 
 // Exec executes the UPSERT query and returns the inserted/updated ID.
-func (u *GroupChatUpsertOne) ID(ctx context.Context) (id int, err error) {
+func (u *GroupChatUpsertOne) ID(ctx context.Context) (id uuid.UUID, err error) {
+	if u.create.driver.Dialect() == dialect.MySQL {
+		// In case of "ON CONFLICT", there is no way to get back non-numeric ID
+		// fields from the database since MySQL does not support the RETURNING clause.
+		return id, errors.New("ent: GroupChatUpsertOne.ID is not supported by MySQL driver. Use GroupChatUpsertOne.Exec instead")
+	}
 	node, err := u.create.Save(ctx)
 	if err != nil {
 		return id, err
@@ -559,7 +606,7 @@ func (u *GroupChatUpsertOne) ID(ctx context.Context) (id int, err error) {
 }
 
 // IDX is like ID, but panics if an error occurs.
-func (u *GroupChatUpsertOne) IDX(ctx context.Context) int {
+func (u *GroupChatUpsertOne) IDX(ctx context.Context) uuid.UUID {
 	id, err := u.ID(ctx)
 	if err != nil {
 		panic(err)
@@ -586,6 +633,7 @@ func (_c *GroupChatCreateBulk) Save(ctx context.Context) ([]*GroupChat, error) {
 	for i := range _c.builders {
 		func(i int, root context.Context) {
 			builder := _c.builders[i]
+			builder.defaults()
 			var mut Mutator = MutateFunc(func(ctx context.Context, m Mutation) (Value, error) {
 				mutation, ok := m.(*GroupChatMutation)
 				if !ok {
@@ -613,10 +661,6 @@ func (_c *GroupChatCreateBulk) Save(ctx context.Context) ([]*GroupChat, error) {
 					return nil, err
 				}
 				mutation.id = &nodes[i].ID
-				if specs[i].ID.Value != nil {
-					id := specs[i].ID.Value.(int64)
-					nodes[i].ID = int(id)
-				}
 				mutation.done = true
 				return nodes[i], nil
 			})
@@ -703,10 +747,20 @@ type GroupChatUpsertBulk struct {
 //	client.GroupChat.Create().
 //		OnConflict(
 //			sql.ResolveWithNewValues(),
+//			sql.ResolveWith(func(u *sql.UpdateSet) {
+//				u.SetIgnore(groupchat.FieldID)
+//			}),
 //		).
 //		Exec(ctx)
 func (u *GroupChatUpsertBulk) UpdateNewValues() *GroupChatUpsertBulk {
 	u.create.conflict = append(u.create.conflict, sql.ResolveWithNewValues())
+	u.create.conflict = append(u.create.conflict, sql.ResolveWith(func(s *sql.UpdateSet) {
+		for _, b := range u.create.builders {
+			if _, exists := b.mutation.ID(); exists {
+				s.SetIgnore(groupchat.FieldID)
+			}
+		}
+	}))
 	return u
 }
 
@@ -738,7 +792,7 @@ func (u *GroupChatUpsertBulk) Update(set func(*GroupChatUpsert)) *GroupChatUpser
 }
 
 // SetChatID sets the "chat_id" field.
-func (u *GroupChatUpsertBulk) SetChatID(v int) *GroupChatUpsertBulk {
+func (u *GroupChatUpsertBulk) SetChatID(v uuid.UUID) *GroupChatUpsertBulk {
 	return u.Update(func(s *GroupChatUpsert) {
 		s.SetChatID(v)
 	})
@@ -752,7 +806,7 @@ func (u *GroupChatUpsertBulk) UpdateChatID() *GroupChatUpsertBulk {
 }
 
 // SetCreatedBy sets the "created_by" field.
-func (u *GroupChatUpsertBulk) SetCreatedBy(v int) *GroupChatUpsertBulk {
+func (u *GroupChatUpsertBulk) SetCreatedBy(v uuid.UUID) *GroupChatUpsertBulk {
 	return u.Update(func(s *GroupChatUpsert) {
 		s.SetCreatedBy(v)
 	})
@@ -808,7 +862,7 @@ func (u *GroupChatUpsertBulk) ClearDescription() *GroupChatUpsertBulk {
 }
 
 // SetAvatarID sets the "avatar_id" field.
-func (u *GroupChatUpsertBulk) SetAvatarID(v int) *GroupChatUpsertBulk {
+func (u *GroupChatUpsertBulk) SetAvatarID(v uuid.UUID) *GroupChatUpsertBulk {
 	return u.Update(func(s *GroupChatUpsert) {
 		s.SetAvatarID(v)
 	})

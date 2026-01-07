@@ -10,6 +10,7 @@ import (
 	"strconv"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/google/uuid"
 )
 
 type UserController struct {
@@ -51,18 +52,18 @@ func (c *UserController) GetCurrentUser(w http.ResponseWriter, r *http.Request) 
 
 // GetUserProfile godoc
 // @Summary      Get User Profile
-// @Description  Get another user's profile by Username.
+// @Description  Get another user's profile by ID.
 // @Tags         user
 // @Accept       json
 // @Produce      json
-// @Param        username path string true "Username"
+// @Param        id path string true "User ID (UUID)"
 // @Success      200  {object}  helper.ResponseSuccess{data=model.UserDTO}
 // @Failure      400  {object}  helper.ResponseError
 // @Failure      401  {object}  helper.ResponseError
 // @Failure      404  {object}  helper.ResponseError
 // @Failure      500  {object}  helper.ResponseError
 // @Security     BearerAuth
-// @Router       /api/users/{username} [get]
+// @Router       /api/users/{id} [get]
 func (c *UserController) GetUserProfile(w http.ResponseWriter, r *http.Request) {
 	userContext, ok := r.Context().Value(middleware.UserContextKey).(*model.UserDTO)
 	if !ok {
@@ -70,13 +71,14 @@ func (c *UserController) GetUserProfile(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	username := chi.URLParam(r, "username")
-	if username == "" {
-		helper.WriteError(w, helper.NewBadRequestError("Username is required"))
+	idStr := chi.URLParam(r, "id")
+	targetUserID, err := uuid.Parse(idStr)
+	if err != nil {
+		helper.WriteError(w, helper.NewBadRequestError("Invalid User ID"))
 		return
 	}
 
-	resp, err := c.userService.GetUserProfile(r.Context(), userContext.ID, username)
+	resp, err := c.userService.GetUserProfile(r.Context(), userContext.ID, targetUserID)
 	if err != nil {
 		helper.WriteError(w, err)
 		return
@@ -243,18 +245,18 @@ func (c *UserController) GetBlockedUsers(w http.ResponseWriter, r *http.Request)
 
 // BlockUser godoc
 // @Summary      Block a User
-// @Description  Block a user by their Username.
+// @Description  Block a user by their ID.
 // @Tags         user
 // @Accept       json
 // @Produce      json
-// @Param        username path string true "Username to block"
+// @Param        id path string true "User ID to block (UUID)"
 // @Success      200  {object}  helper.ResponseSuccess
 // @Failure      400  {object}  helper.ResponseError
 // @Failure      401  {object}  helper.ResponseError
 // @Failure      404  {object}  helper.ResponseError
 // @Failure      500  {object}  helper.ResponseError
 // @Security     BearerAuth
-// @Router       /api/users/{username}/block [post]
+// @Router       /api/users/{id}/block [post]
 func (c *UserController) BlockUser(w http.ResponseWriter, r *http.Request) {
 	userContext, ok := r.Context().Value(middleware.UserContextKey).(*model.UserDTO)
 	if !ok {
@@ -262,13 +264,14 @@ func (c *UserController) BlockUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	username := chi.URLParam(r, "username")
-	if username == "" {
-		helper.WriteError(w, helper.NewBadRequestError("Username is required"))
+	idStr := chi.URLParam(r, "id")
+	blockedID, err := uuid.Parse(idStr)
+	if err != nil {
+		helper.WriteError(w, helper.NewBadRequestError("Invalid User ID"))
 		return
 	}
 
-	if err := c.userService.BlockUser(r.Context(), userContext.ID, username); err != nil {
+	if err := c.userService.BlockUser(r.Context(), userContext.ID, blockedID); err != nil {
 		helper.WriteError(w, err)
 		return
 	}
@@ -278,17 +281,17 @@ func (c *UserController) BlockUser(w http.ResponseWriter, r *http.Request) {
 
 // UnblockUser godoc
 // @Summary      Unblock a User
-// @Description  Unblock a user by their Username.
+// @Description  Unblock a user by their ID.
 // @Tags         user
 // @Accept       json
 // @Produce      json
-// @Param        username path string true "Username to unblock"
+// @Param        id path string true "User ID to unblock (UUID)"
 // @Success      200  {object}  helper.ResponseSuccess
 // @Failure      400  {object}  helper.ResponseError
 // @Failure      401  {object}  helper.ResponseError
 // @Failure      500  {object}  helper.ResponseError
 // @Security     BearerAuth
-// @Router       /api/users/{username}/unblock [post]
+// @Router       /api/users/{id}/unblock [post]
 func (c *UserController) UnblockUser(w http.ResponseWriter, r *http.Request) {
 	userContext, ok := r.Context().Value(middleware.UserContextKey).(*model.UserDTO)
 	if !ok {
@@ -296,13 +299,14 @@ func (c *UserController) UnblockUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	username := chi.URLParam(r, "username")
-	if username == "" {
-		helper.WriteError(w, helper.NewBadRequestError("Username is required"))
+	idStr := chi.URLParam(r, "id")
+	blockedID, err := uuid.Parse(idStr)
+	if err != nil {
+		helper.WriteError(w, helper.NewBadRequestError("Invalid User ID"))
 		return
 	}
 
-	if err := c.userService.UnblockUser(r.Context(), userContext.ID, username); err != nil {
+	if err := c.userService.UnblockUser(r.Context(), userContext.ID, blockedID); err != nil {
 		helper.WriteError(w, err)
 		return
 	}

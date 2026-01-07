@@ -11,6 +11,7 @@ import (
 	"strconv"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/google/uuid"
 )
 
 type MessageController struct {
@@ -66,7 +67,7 @@ func (c *MessageController) SendMessage(w http.ResponseWriter, r *http.Request) 
 // @Tags         message
 // @Accept       json
 // @Produce      json
-// @Param        messageID path int true "Message ID"
+// @Param        messageID path string true "Message ID (UUID)"
 // @Param        request body model.EditMessageRequest true "Edit Message Request"
 // @Success      200  {object}  helper.ResponseSuccess{data=model.MessageResponse}
 // @Failure      400  {object}  helper.ResponseError
@@ -83,9 +84,10 @@ func (c *MessageController) EditMessage(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	messageID, err := strconv.Atoi(chi.URLParam(r, "messageID"))
+	messageIDStr := chi.URLParam(r, "messageID")
+	messageID, err := uuid.Parse(messageIDStr)
 	if err != nil {
-		helper.WriteError(w, helper.NewBadRequestError(""))
+		helper.WriteError(w, helper.NewBadRequestError("Invalid Message ID"))
 		return
 	}
 
@@ -111,7 +113,7 @@ func (c *MessageController) EditMessage(w http.ResponseWriter, r *http.Request) 
 // @Tags         message
 // @Accept       json
 // @Produce      json
-// @Param        chatID path int true "Chat ID"
+// @Param        chatID path string true "Chat ID (UUID)"
 // @Param        cursor query string false "Pagination cursor (Base64 encoded message ID)"
 // @Param        limit query int false "Number of messages to fetch (default 20, max 50)"
 // @Success      200  {object}  helper.ResponseWithPagination{data=[]model.MessageResponse}
@@ -128,9 +130,10 @@ func (c *MessageController) GetMessages(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	chatID, err := strconv.Atoi(chi.URLParam(r, "chatID"))
+	chatIDStr := chi.URLParam(r, "chatID")
+	chatID, err := uuid.Parse(chatIDStr)
 	if err != nil {
-		helper.WriteError(w, helper.NewBadRequestError(""))
+		helper.WriteError(w, helper.NewBadRequestError("Invalid Chat ID"))
 		return
 	}
 
@@ -158,7 +161,7 @@ func (c *MessageController) GetMessages(w http.ResponseWriter, r *http.Request) 
 // @Tags         message
 // @Accept       json
 // @Produce      json
-// @Param        messageID path int true "Message ID"
+// @Param        messageID path string true "Message ID (UUID)"
 // @Success      200  {object}  helper.ResponseSuccess
 // @Failure      400  {object}  helper.ResponseError
 // @Failure      401  {object}  helper.ResponseError
@@ -174,9 +177,10 @@ func (c *MessageController) DeleteMessage(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	messageID, err := strconv.Atoi(chi.URLParam(r, "messageID"))
+	messageIDStr := chi.URLParam(r, "messageID")
+	messageID, err := uuid.Parse(messageIDStr)
 	if err != nil {
-		helper.WriteError(w, helper.NewBadRequestError(""))
+		helper.WriteError(w, helper.NewBadRequestError("Invalid Message ID"))
 		return
 	}
 

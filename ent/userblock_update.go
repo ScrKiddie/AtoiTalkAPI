@@ -14,6 +14,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/google/uuid"
 )
 
 // UserBlockUpdate is the builder for updating UserBlock entities.
@@ -37,13 +38,13 @@ func (_u *UserBlockUpdate) SetUpdatedAt(v time.Time) *UserBlockUpdate {
 }
 
 // SetBlockerID sets the "blocker_id" field.
-func (_u *UserBlockUpdate) SetBlockerID(v int) *UserBlockUpdate {
+func (_u *UserBlockUpdate) SetBlockerID(v uuid.UUID) *UserBlockUpdate {
 	_u.mutation.SetBlockerID(v)
 	return _u
 }
 
 // SetNillableBlockerID sets the "blocker_id" field if the given value is not nil.
-func (_u *UserBlockUpdate) SetNillableBlockerID(v *int) *UserBlockUpdate {
+func (_u *UserBlockUpdate) SetNillableBlockerID(v *uuid.UUID) *UserBlockUpdate {
 	if v != nil {
 		_u.SetBlockerID(*v)
 	}
@@ -51,13 +52,13 @@ func (_u *UserBlockUpdate) SetNillableBlockerID(v *int) *UserBlockUpdate {
 }
 
 // SetBlockedID sets the "blocked_id" field.
-func (_u *UserBlockUpdate) SetBlockedID(v int) *UserBlockUpdate {
+func (_u *UserBlockUpdate) SetBlockedID(v uuid.UUID) *UserBlockUpdate {
 	_u.mutation.SetBlockedID(v)
 	return _u
 }
 
 // SetNillableBlockedID sets the "blocked_id" field if the given value is not nil.
-func (_u *UserBlockUpdate) SetNillableBlockedID(v *int) *UserBlockUpdate {
+func (_u *UserBlockUpdate) SetNillableBlockedID(v *uuid.UUID) *UserBlockUpdate {
 	if v != nil {
 		_u.SetBlockedID(*v)
 	}
@@ -148,7 +149,7 @@ func (_u *UserBlockUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	if err := _u.check(); err != nil {
 		return _node, err
 	}
-	_spec := sqlgraph.NewUpdateSpec(userblock.Table, userblock.Columns, sqlgraph.NewFieldSpec(userblock.FieldID, field.TypeInt))
+	_spec := sqlgraph.NewUpdateSpec(userblock.Table, userblock.Columns, sqlgraph.NewFieldSpec(userblock.FieldID, field.TypeUUID))
 	if ps := _u.mutation.predicates; len(ps) > 0 {
 		_spec.Predicate = func(selector *sql.Selector) {
 			for i := range ps {
@@ -167,7 +168,7 @@ func (_u *UserBlockUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 			Columns: []string{userblock.BlockerColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeUUID),
 			},
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
@@ -180,7 +181,7 @@ func (_u *UserBlockUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 			Columns: []string{userblock.BlockerColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {
@@ -196,7 +197,7 @@ func (_u *UserBlockUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 			Columns: []string{userblock.BlockedColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeUUID),
 			},
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
@@ -209,7 +210,7 @@ func (_u *UserBlockUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 			Columns: []string{userblock.BlockedColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {
@@ -246,13 +247,13 @@ func (_u *UserBlockUpdateOne) SetUpdatedAt(v time.Time) *UserBlockUpdateOne {
 }
 
 // SetBlockerID sets the "blocker_id" field.
-func (_u *UserBlockUpdateOne) SetBlockerID(v int) *UserBlockUpdateOne {
+func (_u *UserBlockUpdateOne) SetBlockerID(v uuid.UUID) *UserBlockUpdateOne {
 	_u.mutation.SetBlockerID(v)
 	return _u
 }
 
 // SetNillableBlockerID sets the "blocker_id" field if the given value is not nil.
-func (_u *UserBlockUpdateOne) SetNillableBlockerID(v *int) *UserBlockUpdateOne {
+func (_u *UserBlockUpdateOne) SetNillableBlockerID(v *uuid.UUID) *UserBlockUpdateOne {
 	if v != nil {
 		_u.SetBlockerID(*v)
 	}
@@ -260,13 +261,13 @@ func (_u *UserBlockUpdateOne) SetNillableBlockerID(v *int) *UserBlockUpdateOne {
 }
 
 // SetBlockedID sets the "blocked_id" field.
-func (_u *UserBlockUpdateOne) SetBlockedID(v int) *UserBlockUpdateOne {
+func (_u *UserBlockUpdateOne) SetBlockedID(v uuid.UUID) *UserBlockUpdateOne {
 	_u.mutation.SetBlockedID(v)
 	return _u
 }
 
 // SetNillableBlockedID sets the "blocked_id" field if the given value is not nil.
-func (_u *UserBlockUpdateOne) SetNillableBlockedID(v *int) *UserBlockUpdateOne {
+func (_u *UserBlockUpdateOne) SetNillableBlockedID(v *uuid.UUID) *UserBlockUpdateOne {
 	if v != nil {
 		_u.SetBlockedID(*v)
 	}
@@ -370,7 +371,7 @@ func (_u *UserBlockUpdateOne) sqlSave(ctx context.Context) (_node *UserBlock, er
 	if err := _u.check(); err != nil {
 		return _node, err
 	}
-	_spec := sqlgraph.NewUpdateSpec(userblock.Table, userblock.Columns, sqlgraph.NewFieldSpec(userblock.FieldID, field.TypeInt))
+	_spec := sqlgraph.NewUpdateSpec(userblock.Table, userblock.Columns, sqlgraph.NewFieldSpec(userblock.FieldID, field.TypeUUID))
 	id, ok := _u.mutation.ID()
 	if !ok {
 		return nil, &ValidationError{Name: "id", err: errors.New(`ent: missing "UserBlock.id" for update`)}
@@ -406,7 +407,7 @@ func (_u *UserBlockUpdateOne) sqlSave(ctx context.Context) (_node *UserBlock, er
 			Columns: []string{userblock.BlockerColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeUUID),
 			},
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
@@ -419,7 +420,7 @@ func (_u *UserBlockUpdateOne) sqlSave(ctx context.Context) (_node *UserBlock, er
 			Columns: []string{userblock.BlockerColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {
@@ -435,7 +436,7 @@ func (_u *UserBlockUpdateOne) sqlSave(ctx context.Context) (_node *UserBlock, er
 			Columns: []string{userblock.BlockedColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeUUID),
 			},
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
@@ -448,7 +449,7 @@ func (_u *UserBlockUpdateOne) sqlSave(ctx context.Context) (_node *UserBlock, er
 			Columns: []string{userblock.BlockedColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {

@@ -14,10 +14,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"strconv"
 	"testing"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -58,8 +58,8 @@ func TestSendMessage(t *testing.T) {
 		json.Unmarshal(rr.Body.Bytes(), &resp)
 		dataMap := resp.Data.(map[string]interface{})
 
-		assert.Equal(t, float64(chatEntity.ID), dataMap["chat_id"])
-		assert.Equal(t, float64(u1.ID), dataMap["sender_id"])
+		assert.Equal(t, chatEntity.ID.String(), dataMap["chat_id"])
+		assert.Equal(t, u1.ID.String(), dataMap["sender_id"])
 		assert.Equal(t, "Hello User 2!", dataMap["content"])
 		assert.Equal(t, "regular", dataMap["type"])
 		assert.Nil(t, dataMap["attachments"])
@@ -117,12 +117,13 @@ func TestSendMessage(t *testing.T) {
 
 		replyToMap, ok := dataMap["reply_to"].(map[string]interface{})
 		assert.True(t, ok)
-		assert.Equal(t, float64(msg1.ID), replyToMap["id"])
+		assert.Equal(t, msg1.ID.String(), replyToMap["id"])
 		assert.Equal(t, "User 2", replyToMap["sender_name"])
 		assert.Equal(t, "Original Message", replyToMap["content"])
 		assert.Equal(t, "regular", replyToMap["type"])
 
-		msg2ID := int(dataMap["id"].(float64))
+		msg2IDStr := dataMap["id"].(string)
+		msg2ID, _ := uuid.Parse(msg2IDStr)
 		msg2, _ := testClient.Message.Get(context.Background(), msg2ID)
 		assert.Equal(t, msg1.ID, *msg2.ReplyToID)
 	})
@@ -151,7 +152,7 @@ func TestSendMessage(t *testing.T) {
 	})
 
 	t.Run("Fail - Reply to Non-Existent Message", func(t *testing.T) {
-		replyToID := 99999
+		replyToID := uuid.New()
 		reqBody := model.SendMessageRequest{
 			ChatID:    chatEntity.ID,
 			Content:   "Reply to ghost",
@@ -200,7 +201,7 @@ func TestSendMessage(t *testing.T) {
 
 		reqBody := model.SendMessageRequest{
 			ChatID:        chatEntity.ID,
-			AttachmentIDs: []int{m.ID},
+			AttachmentIDs: []uuid.UUID{m.ID},
 		}
 		body, _ := json.Marshal(reqBody)
 		req, _ := http.NewRequest("POST", "/api/messages", bytes.NewBuffer(body))
@@ -220,9 +221,10 @@ func TestSendMessage(t *testing.T) {
 		attachments := dataMap["attachments"].([]interface{})
 		assert.Len(t, attachments, 1)
 		att := attachments[0].(map[string]interface{})
-		assert.Equal(t, float64(m.ID), att["id"])
+		assert.Equal(t, m.ID.String(), att["id"])
 
-		msgID := int(dataMap["id"].(float64))
+		msgIDStr := dataMap["id"].(string)
+		msgID, _ := uuid.Parse(msgIDStr)
 		msg, _ := testClient.Message.Get(context.Background(), msgID)
 		attachedMedia, _ := msg.QueryAttachments().Only(context.Background())
 		assert.Equal(t, m.ID, attachedMedia.ID)
@@ -245,7 +247,7 @@ func TestSendMessage(t *testing.T) {
 
 		reqBody := model.SendMessageRequest{
 			ChatID:        chatEntity.ID,
-			AttachmentIDs: []int{m.ID},
+			AttachmentIDs: []uuid.UUID{m.ID},
 		}
 		body, _ := json.Marshal(reqBody)
 		req, _ := http.NewRequest("POST", "/api/messages", bytes.NewBuffer(body))
@@ -274,7 +276,7 @@ func TestSendMessage(t *testing.T) {
 
 		reqBody := model.SendMessageRequest{
 			ChatID:        chatEntity.ID,
-			AttachmentIDs: []int{m.ID},
+			AttachmentIDs: []uuid.UUID{m.ID},
 		}
 		body, _ := json.Marshal(reqBody)
 		req, _ := http.NewRequest("POST", "/api/messages", bytes.NewBuffer(body))
@@ -297,7 +299,7 @@ func TestSendMessage(t *testing.T) {
 
 		reqBody := model.SendMessageRequest{
 			ChatID:        chatEntity.ID,
-			AttachmentIDs: []int{m.ID},
+			AttachmentIDs: []uuid.UUID{m.ID},
 		}
 		body, _ := json.Marshal(reqBody)
 		req, _ := http.NewRequest("POST", "/api/messages", bytes.NewBuffer(body))
@@ -384,7 +386,7 @@ func TestSendMessage(t *testing.T) {
 	t.Run("Fail - Attachment Not Found", func(t *testing.T) {
 		reqBody := model.SendMessageRequest{
 			ChatID:        chatEntity.ID,
-			AttachmentIDs: []int{99999},
+			AttachmentIDs: []uuid.UUID{uuid.New()},
 		}
 		body, _ := json.Marshal(reqBody)
 		req, _ := http.NewRequest("POST", "/api/messages", bytes.NewBuffer(body))
@@ -397,7 +399,7 @@ func TestSendMessage(t *testing.T) {
 
 	t.Run("Fail - Chat Not Found", func(t *testing.T) {
 		reqBody := model.SendMessageRequest{
-			ChatID:  99999,
+			ChatID:  uuid.New(),
 			Content: "Hello?",
 		}
 		body, _ := json.Marshal(reqBody)
@@ -462,7 +464,7 @@ func TestGetMessages(t *testing.T) {
 	chatEntity, _ := testClient.Chat.Create().SetType(chat.TypePrivate).Save(context.Background())
 	testClient.PrivateChat.Create().SetChat(chatEntity).SetUser1(u1).SetUser2(u2).Save(context.Background())
 
-	var msgIDs []int
+	var msgIDs []uuid.UUID
 	for i := 1; i <= 5; i++ {
 		msg, _ := testClient.Message.Create().
 			SetChatID(chatEntity.ID).
@@ -475,7 +477,7 @@ func TestGetMessages(t *testing.T) {
 	}
 
 	t.Run("Success - Get Messages (First Page)", func(t *testing.T) {
-		req, _ := http.NewRequest("GET", fmt.Sprintf("/api/chats/%d/messages?limit=2", chatEntity.ID), nil)
+		req, _ := http.NewRequest("GET", fmt.Sprintf("/api/chats/%s/messages?limit=2", chatEntity.ID), nil)
 		req.Header.Set("Authorization", "Bearer "+token1)
 
 		rr := executeRequest(req)
@@ -490,8 +492,8 @@ func TestGetMessages(t *testing.T) {
 		m1 := dataList[0].(map[string]interface{})
 		m2 := dataList[1].(map[string]interface{})
 
-		assert.Equal(t, float64(msgIDs[3]), m1["id"])
-		assert.Equal(t, float64(msgIDs[4]), m2["id"])
+		assert.Equal(t, msgIDs[3].String(), m1["id"])
+		assert.Equal(t, msgIDs[4].String(), m2["id"])
 
 		assert.True(t, resp.Meta.HasNext)
 		assert.NotEmpty(t, resp.Meta.NextCursor)
@@ -499,9 +501,9 @@ func TestGetMessages(t *testing.T) {
 
 	t.Run("Success - Get Messages (Next Page)", func(t *testing.T) {
 
-		cursor := base64.URLEncoding.EncodeToString([]byte(strconv.Itoa(msgIDs[3])))
+		cursor := base64.URLEncoding.EncodeToString([]byte(msgIDs[3].String()))
 
-		req, _ := http.NewRequest("GET", fmt.Sprintf("/api/chats/%d/messages?limit=2&cursor=%s", chatEntity.ID, cursor), nil)
+		req, _ := http.NewRequest("GET", fmt.Sprintf("/api/chats/%s/messages?limit=2&cursor=%s", chatEntity.ID, cursor), nil)
 		req.Header.Set("Authorization", "Bearer "+token1)
 
 		rr := executeRequest(req)
@@ -516,8 +518,8 @@ func TestGetMessages(t *testing.T) {
 		m1 := dataList[0].(map[string]interface{})
 		m2 := dataList[1].(map[string]interface{})
 
-		assert.Equal(t, float64(msgIDs[1]), m1["id"])
-		assert.Equal(t, float64(msgIDs[2]), m2["id"])
+		assert.Equal(t, msgIDs[1].String(), m1["id"])
+		assert.Equal(t, msgIDs[2].String(), m2["id"])
 	})
 
 	t.Run("Success - Empty Chat", func(t *testing.T) {
@@ -525,7 +527,7 @@ func TestGetMessages(t *testing.T) {
 
 		testClient.PrivateChat.Create().SetChat(emptyChat).SetUser1(u1).SetUser2(u3).Save(context.Background())
 
-		req, _ := http.NewRequest("GET", fmt.Sprintf("/api/chats/%d/messages", emptyChat.ID), nil)
+		req, _ := http.NewRequest("GET", fmt.Sprintf("/api/chats/%s/messages", emptyChat.ID), nil)
 		req.Header.Set("Authorization", "Bearer "+token1)
 
 		rr := executeRequest(req)
@@ -537,7 +539,7 @@ func TestGetMessages(t *testing.T) {
 	})
 
 	t.Run("Fail - Not Member (Forbidden)", func(t *testing.T) {
-		req, _ := http.NewRequest("GET", fmt.Sprintf("/api/chats/%d/messages", chatEntity.ID), nil)
+		req, _ := http.NewRequest("GET", fmt.Sprintf("/api/chats/%s/messages", chatEntity.ID), nil)
 		req.Header.Set("Authorization", "Bearer "+token3)
 
 		rr := executeRequest(req)
@@ -548,7 +550,7 @@ func TestGetMessages(t *testing.T) {
 		req, _ := http.NewRequest("GET", "/api/chats/99999/messages", nil)
 		req.Header.Set("Authorization", "Bearer "+token1)
 		rr := executeRequest(req)
-		assert.Equal(t, http.StatusNotFound, rr.Code)
+		assert.Equal(t, http.StatusBadRequest, rr.Code)
 	})
 
 	t.Run("Success - Soft Deleted Message Shows Placeholder", func(t *testing.T) {
@@ -561,7 +563,7 @@ func TestGetMessages(t *testing.T) {
 			SetDeletedAt(time.Now().UTC()).
 			Save(context.Background())
 
-		req, _ := http.NewRequest("GET", fmt.Sprintf("/api/chats/%d/messages", chatEntity.ID), nil)
+		req, _ := http.NewRequest("GET", fmt.Sprintf("/api/chats/%s/messages", chatEntity.ID), nil)
 		req.Header.Set("Authorization", "Bearer "+token1)
 
 		rr := executeRequest(req)
@@ -574,7 +576,7 @@ func TestGetMessages(t *testing.T) {
 		found := false
 		for _, item := range dataList {
 			m := item.(map[string]interface{})
-			if m["id"].(float64) == float64(delMsg.ID) {
+			if m["id"].(string) == delMsg.ID.String() {
 				assert.Nil(t, m["content"])
 				assert.NotNil(t, m["deleted_at"])
 				found = true
@@ -602,7 +604,7 @@ func TestGetMessages(t *testing.T) {
 
 		testClient.Message.UpdateOne(originalMsg).SetDeletedAt(time.Now().UTC()).Exec(context.Background())
 
-		req, _ := http.NewRequest("GET", fmt.Sprintf("/api/chats/%d/messages", chatEntity.ID), nil)
+		req, _ := http.NewRequest("GET", fmt.Sprintf("/api/chats/%s/messages", chatEntity.ID), nil)
 		req.Header.Set("Authorization", "Bearer "+token1)
 
 		rr := executeRequest(req)
@@ -615,7 +617,7 @@ func TestGetMessages(t *testing.T) {
 		var targetReply map[string]interface{}
 		for _, item := range dataList {
 			m := item.(map[string]interface{})
-			if m["id"].(float64) == float64(replyMsg.ID) {
+			if m["id"].(string) == replyMsg.ID.String() {
 				targetReply = m
 				break
 			}
@@ -647,7 +649,7 @@ func TestGetMessages(t *testing.T) {
 			AddAttachmentIDs(media.ID).
 			Save(context.Background())
 
-		req, _ := http.NewRequest("GET", fmt.Sprintf("/api/chats/%d/messages", chatEntity.ID), nil)
+		req, _ := http.NewRequest("GET", fmt.Sprintf("/api/chats/%s/messages", chatEntity.ID), nil)
 		req.Header.Set("Authorization", "Bearer "+token1)
 
 		rr := executeRequest(req)
@@ -660,7 +662,7 @@ func TestGetMessages(t *testing.T) {
 		var targetMsg map[string]interface{}
 		for _, item := range dataList {
 			m := item.(map[string]interface{})
-			if m["id"].(float64) == float64(msgWithMedia.ID) {
+			if m["id"].(string) == msgWithMedia.ID.String() {
 				targetMsg = m
 				break
 			}
@@ -690,7 +692,7 @@ func TestGetMessages(t *testing.T) {
 
 		msg3, _ := testClient.Message.Create().SetChatID(chatEntity.ID).SetSenderID(u2.ID).SetType(message.TypeRegular).SetContent("New Message 3").Save(context.Background())
 
-		req, _ := http.NewRequest("GET", fmt.Sprintf("/api/chats/%d/messages", chatEntity.ID), nil)
+		req, _ := http.NewRequest("GET", fmt.Sprintf("/api/chats/%s/messages", chatEntity.ID), nil)
 		req.Header.Set("Authorization", "Bearer "+token1)
 		rr := executeRequest(req)
 		assert.Equal(t, http.StatusOK, rr.Code)
@@ -701,8 +703,51 @@ func TestGetMessages(t *testing.T) {
 
 		assert.Len(t, dataList, 1, "Should only get messages after hidden_at")
 		msgData := dataList[0].(map[string]interface{})
-		assert.Equal(t, float64(msg3.ID), msgData["id"])
+		assert.Equal(t, msg3.ID.String(), msgData["id"])
 		assert.Equal(t, "New Message 3", msgData["content"])
+	})
+
+	t.Run("Success - Dynamic Target Name Resolution", func(t *testing.T) {
+
+		clearDatabase(context.Background())
+		u1, _ := testClient.User.Create().SetEmail("u1@test.com").SetUsername("u1").SetFullName("User 1").Save(context.Background())
+		u2, _ := testClient.User.Create().SetEmail("u2@test.com").SetUsername("u2").SetFullName("User 2").Save(context.Background())
+		token1, _ := helper.GenerateJWT(testConfig.JWTSecret, testConfig.JWTExp, u1.ID)
+
+		newChat, _ := testClient.Chat.Create().SetType(chat.TypePrivate).Save(context.Background())
+		testClient.PrivateChat.Create().SetChat(newChat).SetUser1(u1).SetUser2(u2).Save(context.Background())
+
+		sysMsg := testClient.Message.Create().
+			SetChatID(newChat.ID).
+			SetSenderID(u1.ID).
+			SetType(message.TypeSystemAdd).
+			SetActionData(map[string]interface{}{
+				"target_id": u2.ID.String(),
+				"actor_id":  u1.ID.String(),
+			}).
+			SaveX(context.Background())
+
+		req, _ := http.NewRequest("GET", fmt.Sprintf("/api/chats/%s/messages", newChat.ID), nil)
+		req.Header.Set("Authorization", "Bearer "+token1)
+		rr := executeRequest(req)
+		assert.Equal(t, http.StatusOK, rr.Code)
+
+		var resp helper.ResponseWithPagination
+		json.Unmarshal(rr.Body.Bytes(), &resp)
+		dataList := resp.Data.([]interface{})
+
+		var targetMsg map[string]interface{}
+		for _, item := range dataList {
+			m := item.(map[string]interface{})
+			if m["id"].(string) == sysMsg.ID.String() {
+				targetMsg = m
+				break
+			}
+		}
+
+		assert.NotNil(t, targetMsg)
+		actionData := targetMsg["action_data"].(map[string]interface{})
+		assert.Equal(t, "User 2", actionData["target_name"])
 	})
 }
 
@@ -728,7 +773,7 @@ func TestDeleteMessage(t *testing.T) {
 			SetContent("To be deleted").
 			Save(context.Background())
 
-		req, _ := http.NewRequest("DELETE", fmt.Sprintf("/api/messages/%d", msg.ID), nil)
+		req, _ := http.NewRequest("DELETE", fmt.Sprintf("/api/messages/%s", msg.ID), nil)
 		req.Header.Set("Authorization", "Bearer "+token1)
 
 		rr := executeRequest(req)
@@ -746,7 +791,7 @@ func TestDeleteMessage(t *testing.T) {
 			SetContent("User 1 Message").
 			Save(context.Background())
 
-		req, _ := http.NewRequest("DELETE", fmt.Sprintf("/api/messages/%d", msg.ID), nil)
+		req, _ := http.NewRequest("DELETE", fmt.Sprintf("/api/messages/%s", msg.ID), nil)
 		req.Header.Set("Authorization", "Bearer "+token2)
 
 		rr := executeRequest(req)
@@ -761,7 +806,7 @@ func TestDeleteMessage(t *testing.T) {
 		req.Header.Set("Authorization", "Bearer "+token1)
 
 		rr := executeRequest(req)
-		assert.Equal(t, http.StatusNotFound, rr.Code)
+		assert.Equal(t, http.StatusBadRequest, rr.Code)
 	})
 
 	t.Run("Fail - Already Deleted", func(t *testing.T) {
@@ -773,7 +818,7 @@ func TestDeleteMessage(t *testing.T) {
 			SetDeletedAt(time.Now().UTC()).
 			Save(context.Background())
 
-		req, _ := http.NewRequest("DELETE", fmt.Sprintf("/api/messages/%d", msg.ID), nil)
+		req, _ := http.NewRequest("DELETE", fmt.Sprintf("/api/messages/%s", msg.ID), nil)
 		req.Header.Set("Authorization", "Bearer "+token1)
 
 		rr := executeRequest(req)
@@ -788,7 +833,7 @@ func TestDeleteMessage(t *testing.T) {
 			SetActionData(map[string]interface{}{"foo": "bar"}).
 			Save(context.Background())
 
-		req, _ := http.NewRequest("DELETE", fmt.Sprintf("/api/messages/%d", sysMsg.ID), nil)
+		req, _ := http.NewRequest("DELETE", fmt.Sprintf("/api/messages/%s", sysMsg.ID), nil)
 		req.Header.Set("Authorization", "Bearer "+token1)
 
 		rr := executeRequest(req)
@@ -822,7 +867,7 @@ func TestEditMessage(t *testing.T) {
 			Content: "Edited Content",
 		}
 		body, _ := json.Marshal(reqBody)
-		req, _ := http.NewRequest("PUT", fmt.Sprintf("/api/messages/%d", msg.ID), bytes.NewBuffer(body))
+		req, _ := http.NewRequest("PUT", fmt.Sprintf("/api/messages/%s", msg.ID), bytes.NewBuffer(body))
 		req.Header.Set("Content-Type", "application/json")
 		req.Header.Set("Authorization", "Bearer "+token1)
 
@@ -861,10 +906,10 @@ func TestEditMessage(t *testing.T) {
 
 		reqBody := model.EditMessageRequest{
 			Content:       "Updated Attachments",
-			AttachmentIDs: []int{att2.ID},
+			AttachmentIDs: []uuid.UUID{att2.ID},
 		}
 		body, _ := json.Marshal(reqBody)
-		req, _ := http.NewRequest("PUT", fmt.Sprintf("/api/messages/%d", msg.ID), bytes.NewBuffer(body))
+		req, _ := http.NewRequest("PUT", fmt.Sprintf("/api/messages/%s", msg.ID), bytes.NewBuffer(body))
 		req.Header.Set("Content-Type", "application/json")
 		req.Header.Set("Authorization", "Bearer "+token1)
 
@@ -877,7 +922,7 @@ func TestEditMessage(t *testing.T) {
 		attachments := dataMap["attachments"].([]interface{})
 
 		assert.Len(t, attachments, 1)
-		assert.Equal(t, float64(att2.ID), attachments[0].(map[string]interface{})["id"])
+		assert.Equal(t, att2.ID.String(), attachments[0].(map[string]interface{})["id"])
 
 		updatedMsg, _ := testClient.Message.Query().Where(message.ID(msg.ID)).WithAttachments().Only(context.Background())
 
@@ -899,7 +944,7 @@ func TestEditMessage(t *testing.T) {
 
 		reqBody := model.EditMessageRequest{Content: "Hacked"}
 		body, _ := json.Marshal(reqBody)
-		req, _ := http.NewRequest("PUT", fmt.Sprintf("/api/messages/%d", msg.ID), bytes.NewBuffer(body))
+		req, _ := http.NewRequest("PUT", fmt.Sprintf("/api/messages/%s", msg.ID), bytes.NewBuffer(body))
 		req.Header.Set("Content-Type", "application/json")
 		req.Header.Set("Authorization", "Bearer "+token2)
 
@@ -918,7 +963,7 @@ func TestEditMessage(t *testing.T) {
 
 		reqBody := model.EditMessageRequest{Content: "Resurrect"}
 		body, _ := json.Marshal(reqBody)
-		req, _ := http.NewRequest("PUT", fmt.Sprintf("/api/messages/%d", msg.ID), bytes.NewBuffer(body))
+		req, _ := http.NewRequest("PUT", fmt.Sprintf("/api/messages/%s", msg.ID), bytes.NewBuffer(body))
 		req.Header.Set("Content-Type", "application/json")
 		req.Header.Set("Authorization", "Bearer "+token1)
 
@@ -936,7 +981,7 @@ func TestEditMessage(t *testing.T) {
 
 		reqBody := model.EditMessageRequest{Content: "Hacked System"}
 		body, _ := json.Marshal(reqBody)
-		req, _ := http.NewRequest("PUT", fmt.Sprintf("/api/messages/%d", sysMsg.ID), bytes.NewBuffer(body))
+		req, _ := http.NewRequest("PUT", fmt.Sprintf("/api/messages/%s", sysMsg.ID), bytes.NewBuffer(body))
 		req.Header.Set("Content-Type", "application/json")
 		req.Header.Set("Authorization", "Bearer "+token1)
 
@@ -958,10 +1003,10 @@ func TestEditMessage(t *testing.T) {
 
 		reqBody := model.EditMessageRequest{
 			Content:       "Steal Attachment",
-			AttachmentIDs: []int{attOther.ID},
+			AttachmentIDs: []uuid.UUID{attOther.ID},
 		}
 		body, _ := json.Marshal(reqBody)
-		req, _ := http.NewRequest("PUT", fmt.Sprintf("/api/messages/%d", msg.ID), bytes.NewBuffer(body))
+		req, _ := http.NewRequest("PUT", fmt.Sprintf("/api/messages/%s", msg.ID), bytes.NewBuffer(body))
 		req.Header.Set("Content-Type", "application/json")
 		req.Header.Set("Authorization", "Bearer "+token1)
 
@@ -980,7 +1025,7 @@ func TestEditMessage(t *testing.T) {
 
 		reqBody := model.EditMessageRequest{Content: "Too Late"}
 		body, _ := json.Marshal(reqBody)
-		req, _ := http.NewRequest("PUT", fmt.Sprintf("/api/messages/%d", msg.ID), bytes.NewBuffer(body))
+		req, _ := http.NewRequest("PUT", fmt.Sprintf("/api/messages/%s", msg.ID), bytes.NewBuffer(body))
 		req.Header.Set("Content-Type", "application/json")
 		req.Header.Set("Authorization", "Bearer "+token1)
 

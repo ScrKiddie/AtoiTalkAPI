@@ -6,6 +6,7 @@ import (
 	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/index"
+	"github.com/google/uuid"
 )
 
 type GroupMember struct {
@@ -14,8 +15,9 @@ type GroupMember struct {
 
 func (GroupMember) Fields() []ent.Field {
 	return []ent.Field{
-		field.Int("group_chat_id"),
-		field.Int("user_id"),
+		field.UUID("id", uuid.UUID{}).Default(newUUIDv7),
+		field.UUID("group_chat_id", uuid.UUID{}),
+		field.UUID("user_id", uuid.UUID{}),
 		field.Enum("role").Values("owner", "admin", "member").Default("member"),
 		field.Time("last_read_at").Optional().Nillable(),
 		field.Time("joined_at").Default(nowUTC).Immutable(),
@@ -35,5 +37,6 @@ func (GroupMember) Edges() []ent.Edge {
 func (GroupMember) Indexes() []ent.Index {
 	return []ent.Index{
 		index.Fields("group_chat_id", "user_id").Unique().StorageKey("pk_group_member"),
+		index.Fields("user_id"),
 	}
 }

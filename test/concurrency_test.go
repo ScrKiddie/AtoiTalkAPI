@@ -56,7 +56,7 @@ func TestConcurrency_UnreadCount(t *testing.T) {
 			defer wg.Done()
 
 			time.Sleep(time.Millisecond * 10)
-			req, _ := http.NewRequest("POST", fmt.Sprintf("/api/chats/%d/read", chatEntity.ID), nil)
+			req, _ := http.NewRequest("POST", fmt.Sprintf("/api/chats/%s/read", chatEntity.ID), nil)
 			req.Header.Set("Authorization", "Bearer "+token2)
 			executeRequest(req)
 		}()

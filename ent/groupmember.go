@@ -12,17 +12,18 @@ import (
 
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
+	"github.com/google/uuid"
 )
 
 // GroupMember is the model entity for the GroupMember schema.
 type GroupMember struct {
 	config `json:"-"`
 	// ID of the ent.
-	ID int `json:"id,omitempty"`
+	ID uuid.UUID `json:"id,omitempty"`
 	// GroupChatID holds the value of the "group_chat_id" field.
-	GroupChatID int `json:"group_chat_id,omitempty"`
+	GroupChatID uuid.UUID `json:"group_chat_id,omitempty"`
 	// UserID holds the value of the "user_id" field.
-	UserID int `json:"user_id,omitempty"`
+	UserID uuid.UUID `json:"user_id,omitempty"`
 	// Role holds the value of the "role" field.
 	Role groupmember.Role `json:"role,omitempty"`
 	// LastReadAt holds the value of the "last_read_at" field.
@@ -75,12 +76,14 @@ func (*GroupMember) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case groupmember.FieldID, groupmember.FieldGroupChatID, groupmember.FieldUserID, groupmember.FieldUnreadCount:
+		case groupmember.FieldUnreadCount:
 			values[i] = new(sql.NullInt64)
 		case groupmember.FieldRole:
 			values[i] = new(sql.NullString)
 		case groupmember.FieldLastReadAt, groupmember.FieldJoinedAt:
 			values[i] = new(sql.NullTime)
+		case groupmember.FieldID, groupmember.FieldGroupChatID, groupmember.FieldUserID:
+			values[i] = new(uuid.UUID)
 		default:
 			values[i] = new(sql.UnknownType)
 		}
@@ -97,22 +100,22 @@ func (_m *GroupMember) assignValues(columns []string, values []any) error {
 	for i := range columns {
 		switch columns[i] {
 		case groupmember.FieldID:
-			value, ok := values[i].(*sql.NullInt64)
-			if !ok {
-				return fmt.Errorf("unexpected type %T for field id", value)
+			if value, ok := values[i].(*uuid.UUID); !ok {
+				return fmt.Errorf("unexpected type %T for field id", values[i])
+			} else if value != nil {
+				_m.ID = *value
 			}
-			_m.ID = int(value.Int64)
 		case groupmember.FieldGroupChatID:
-			if value, ok := values[i].(*sql.NullInt64); !ok {
+			if value, ok := values[i].(*uuid.UUID); !ok {
 				return fmt.Errorf("unexpected type %T for field group_chat_id", values[i])
-			} else if value.Valid {
-				_m.GroupChatID = int(value.Int64)
+			} else if value != nil {
+				_m.GroupChatID = *value
 			}
 		case groupmember.FieldUserID:
-			if value, ok := values[i].(*sql.NullInt64); !ok {
+			if value, ok := values[i].(*uuid.UUID); !ok {
 				return fmt.Errorf("unexpected type %T for field user_id", values[i])
-			} else if value.Valid {
-				_m.UserID = int(value.Int64)
+			} else if value != nil {
+				_m.UserID = *value
 			}
 		case groupmember.FieldRole:
 			if value, ok := values[i].(*sql.NullString); !ok {

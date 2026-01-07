@@ -40,7 +40,7 @@ func (_d *PrivateChatDelete) ExecX(ctx context.Context) int {
 }
 
 func (_d *PrivateChatDelete) sqlExec(ctx context.Context) (int, error) {
-	_spec := sqlgraph.NewDeleteSpec(privatechat.Table, sqlgraph.NewFieldSpec(privatechat.FieldID, field.TypeInt))
+	_spec := sqlgraph.NewDeleteSpec(privatechat.Table, sqlgraph.NewFieldSpec(privatechat.FieldID, field.TypeUUID))
 	if ps := _d.mutation.predicates; len(ps) > 0 {
 		_spec.Predicate = func(selector *sql.Selector) {
 			for i := range ps {

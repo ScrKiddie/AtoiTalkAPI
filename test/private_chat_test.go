@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"testing"
 
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -39,7 +40,7 @@ func TestCreatePrivateChat(t *testing.T) {
 		token, _ := helper.GenerateJWT(testConfig.JWTSecret, testConfig.JWTExp, u1.ID)
 
 		reqBody := model.CreatePrivateChatRequest{
-			Username: u2.Username,
+			TargetUserID: u2.ID,
 		}
 		body, _ := json.Marshal(reqBody)
 		req, _ := http.NewRequest("POST", "/api/chats/private", bytes.NewBuffer(body))
@@ -71,7 +72,7 @@ func TestCreatePrivateChat(t *testing.T) {
 
 		token, _ := helper.GenerateJWT(testConfig.JWTSecret, testConfig.JWTExp, u1.ID)
 
-		reqBody := model.CreatePrivateChatRequest{Username: u2.Username}
+		reqBody := model.CreatePrivateChatRequest{TargetUserID: u2.ID}
 		body, _ := json.Marshal(reqBody)
 		req, _ := http.NewRequest("POST", "/api/chats/private", bytes.NewBuffer(body))
 		req.Header.Set("Content-Type", "application/json")
@@ -102,7 +103,7 @@ func TestCreatePrivateChat(t *testing.T) {
 
 		token, _ := helper.GenerateJWT(testConfig.JWTSecret, testConfig.JWTExp, u1.ID)
 
-		reqBody := model.CreatePrivateChatRequest{Username: u2.Username}
+		reqBody := model.CreatePrivateChatRequest{TargetUserID: u2.ID}
 		body, _ := json.Marshal(reqBody)
 		req1, _ := http.NewRequest("POST", "/api/chats/private", bytes.NewBuffer(body))
 		req1.Header.Set("Content-Type", "application/json")
@@ -147,7 +148,7 @@ func TestCreatePrivateChat(t *testing.T) {
 		token, _ := helper.GenerateJWT(testConfig.JWTSecret, testConfig.JWTExp, u1.ID)
 
 		reqBody := model.CreatePrivateChatRequest{
-			Username: "nonexistentuser",
+			TargetUserID: uuid.New(),
 		}
 		body, _ := json.Marshal(reqBody)
 		req, _ := http.NewRequest("POST", "/api/chats/private", bytes.NewBuffer(body))
@@ -175,7 +176,7 @@ func TestCreatePrivateChat(t *testing.T) {
 		token, _ := helper.GenerateJWT(testConfig.JWTSecret, testConfig.JWTExp, u1.ID)
 
 		reqBody := model.CreatePrivateChatRequest{
-			Username: u1.Username,
+			TargetUserID: u1.ID,
 		}
 		body, _ := json.Marshal(reqBody)
 		req, _ := http.NewRequest("POST", "/api/chats/private", bytes.NewBuffer(body))
@@ -190,7 +191,7 @@ func TestCreatePrivateChat(t *testing.T) {
 	})
 
 	t.Run("Unauthorized", func(t *testing.T) {
-		reqBody := model.CreatePrivateChatRequest{Username: "someone"}
+		reqBody := model.CreatePrivateChatRequest{TargetUserID: uuid.New()}
 		body, _ := json.Marshal(reqBody)
 		req, _ := http.NewRequest("POST", "/api/chats/private", bytes.NewBuffer(body))
 		req.Header.Set("Content-Type", "application/json")
@@ -210,13 +211,13 @@ func TestCreatePrivateChat_ReverseOrder(t *testing.T) {
 	password := "Password123!"
 	hashedPassword, _ := helper.HashPassword(password)
 
-	u1 := testClient.User.Create().SetEmail("u1@test.com").SetUsername("user1").SetFullName("U1").SetPasswordHash(hashedPassword).SaveX(context.Background())
-	u2 := testClient.User.Create().SetEmail("u2@test.com").SetUsername("user2").SetFullName("U2").SetPasswordHash(hashedPassword).SaveX(context.Background())
+	u1 := testClient.User.Create().SetEmail("u1@test.com").SetUsername("u1").SetFullName("U1").SetPasswordHash(hashedPassword).SaveX(context.Background())
+	u2 := testClient.User.Create().SetEmail("u2@test.com").SetUsername("u2").SetFullName("U2").SetPasswordHash(hashedPassword).SaveX(context.Background())
 
 	token1, _ := helper.GenerateJWT(testConfig.JWTSecret, testConfig.JWTExp, u1.ID)
 	token2, _ := helper.GenerateJWT(testConfig.JWTSecret, testConfig.JWTExp, u2.ID)
 
-	reqBody1 := model.CreatePrivateChatRequest{Username: u2.Username}
+	reqBody1 := model.CreatePrivateChatRequest{TargetUserID: u2.ID}
 	body1, _ := json.Marshal(reqBody1)
 	req1, _ := http.NewRequest("POST", "/api/chats/private", bytes.NewBuffer(body1))
 	req1.Header.Set("Content-Type", "application/json")
@@ -231,7 +232,7 @@ func TestCreatePrivateChat_ReverseOrder(t *testing.T) {
 	json.Unmarshal(rr1.Body.Bytes(), &resp1)
 	chatID1 := resp1.Data.(map[string]interface{})["id"]
 
-	reqBody2 := model.CreatePrivateChatRequest{Username: u1.Username}
+	reqBody2 := model.CreatePrivateChatRequest{TargetUserID: u1.ID}
 	body2, _ := json.Marshal(reqBody2)
 	req2, _ := http.NewRequest("POST", "/api/chats/private", bytes.NewBuffer(body2))
 	req2.Header.Set("Content-Type", "application/json")
@@ -254,10 +255,10 @@ func TestCreatePrivateChat_Validation(t *testing.T) {
 	clearDatabase(context.Background())
 	password := "Password123!"
 	hashedPassword, _ := helper.HashPassword(password)
-	u1 := testClient.User.Create().SetEmail("u1@test.com").SetUsername("user1").SetFullName("U1").SetPasswordHash(hashedPassword).SaveX(context.Background())
+	u1 := testClient.User.Create().SetEmail("u1@test.com").SetUsername("u1").SetFullName("U1").SetPasswordHash(hashedPassword).SaveX(context.Background())
 	token, _ := helper.GenerateJWT(testConfig.JWTSecret, testConfig.JWTExp, u1.ID)
 
-	t.Run("Missing Username", func(t *testing.T) {
+	t.Run("Missing TargetUserID", func(t *testing.T) {
 
 		reqBody := map[string]interface{}{}
 		body, _ := json.Marshal(reqBody)

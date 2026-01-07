@@ -10,9 +10,11 @@ import (
 	"fmt"
 	"time"
 
+	"entgo.io/ent/dialect"
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/google/uuid"
 )
 
 // UserIdentityCreate is the builder for creating a UserIdentity entity.
@@ -52,7 +54,7 @@ func (_c *UserIdentityCreate) SetNillableUpdatedAt(v *time.Time) *UserIdentityCr
 }
 
 // SetUserID sets the "user_id" field.
-func (_c *UserIdentityCreate) SetUserID(v int) *UserIdentityCreate {
+func (_c *UserIdentityCreate) SetUserID(v uuid.UUID) *UserIdentityCreate {
 	_c.mutation.SetUserID(v)
 	return _c
 }
@@ -87,6 +89,20 @@ func (_c *UserIdentityCreate) SetProviderEmail(v string) *UserIdentityCreate {
 func (_c *UserIdentityCreate) SetNillableProviderEmail(v *string) *UserIdentityCreate {
 	if v != nil {
 		_c.SetProviderEmail(*v)
+	}
+	return _c
+}
+
+// SetID sets the "id" field.
+func (_c *UserIdentityCreate) SetID(v uuid.UUID) *UserIdentityCreate {
+	_c.mutation.SetID(v)
+	return _c
+}
+
+// SetNillableID sets the "id" field if the given value is not nil.
+func (_c *UserIdentityCreate) SetNillableID(v *uuid.UUID) *UserIdentityCreate {
+	if v != nil {
+		_c.SetID(*v)
 	}
 	return _c
 }
@@ -143,6 +159,10 @@ func (_c *UserIdentityCreate) defaults() {
 		v := useridentity.DefaultProvider
 		_c.mutation.SetProvider(v)
 	}
+	if _, ok := _c.mutation.ID(); !ok {
+		v := useridentity.DefaultID()
+		_c.mutation.SetID(v)
+	}
 }
 
 // check runs all checks and user-defined validators on the builder.
@@ -194,8 +214,13 @@ func (_c *UserIdentityCreate) sqlSave(ctx context.Context) (*UserIdentity, error
 		}
 		return nil, err
 	}
-	id := _spec.ID.Value.(int64)
-	_node.ID = int(id)
+	if _spec.ID.Value != nil {
+		if id, ok := _spec.ID.Value.(*uuid.UUID); ok {
+			_node.ID = *id
+		} else if err := _node.ID.Scan(_spec.ID.Value); err != nil {
+			return nil, err
+		}
+	}
 	_c.mutation.id = &_node.ID
 	_c.mutation.done = true
 	return _node, nil
@@ -204,9 +229,13 @@ func (_c *UserIdentityCreate) sqlSave(ctx context.Context) (*UserIdentity, error
 func (_c *UserIdentityCreate) createSpec() (*UserIdentity, *sqlgraph.CreateSpec) {
 	var (
 		_node = &UserIdentity{config: _c.config}
-		_spec = sqlgraph.NewCreateSpec(useridentity.Table, sqlgraph.NewFieldSpec(useridentity.FieldID, field.TypeInt))
+		_spec = sqlgraph.NewCreateSpec(useridentity.Table, sqlgraph.NewFieldSpec(useridentity.FieldID, field.TypeUUID))
 	)
 	_spec.OnConflict = _c.conflict
+	if id, ok := _c.mutation.ID(); ok {
+		_node.ID = id
+		_spec.ID.Value = &id
+	}
 	if value, ok := _c.mutation.CreatedAt(); ok {
 		_spec.SetField(useridentity.FieldCreatedAt, field.TypeTime, value)
 		_node.CreatedAt = value
@@ -235,7 +264,7 @@ func (_c *UserIdentityCreate) createSpec() (*UserIdentity, *sqlgraph.CreateSpec)
 			Columns: []string{useridentity.UserColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {
@@ -309,7 +338,7 @@ func (u *UserIdentityUpsert) UpdateUpdatedAt() *UserIdentityUpsert {
 }
 
 // SetUserID sets the "user_id" field.
-func (u *UserIdentityUpsert) SetUserID(v int) *UserIdentityUpsert {
+func (u *UserIdentityUpsert) SetUserID(v uuid.UUID) *UserIdentityUpsert {
 	u.Set(useridentity.FieldUserID, v)
 	return u
 }
@@ -362,17 +391,23 @@ func (u *UserIdentityUpsert) ClearProviderEmail() *UserIdentityUpsert {
 	return u
 }
 
-// UpdateNewValues updates the mutable fields using the new values that were set on create.
+// UpdateNewValues updates the mutable fields using the new values that were set on create except the ID field.
 // Using this option is equivalent to using:
 //
 //	client.UserIdentity.Create().
 //		OnConflict(
 //			sql.ResolveWithNewValues(),
+//			sql.ResolveWith(func(u *sql.UpdateSet) {
+//				u.SetIgnore(useridentity.FieldID)
+//			}),
 //		).
 //		Exec(ctx)
 func (u *UserIdentityUpsertOne) UpdateNewValues() *UserIdentityUpsertOne {
 	u.create.conflict = append(u.create.conflict, sql.ResolveWithNewValues())
 	u.create.conflict = append(u.create.conflict, sql.ResolveWith(func(s *sql.UpdateSet) {
+		if _, exists := u.create.mutation.ID(); exists {
+			s.SetIgnore(useridentity.FieldID)
+		}
 		if _, exists := u.create.mutation.CreatedAt(); exists {
 			s.SetIgnore(useridentity.FieldCreatedAt)
 		}
@@ -422,7 +457,7 @@ func (u *UserIdentityUpsertOne) UpdateUpdatedAt() *UserIdentityUpsertOne {
 }
 
 // SetUserID sets the "user_id" field.
-func (u *UserIdentityUpsertOne) SetUserID(v int) *UserIdentityUpsertOne {
+func (u *UserIdentityUpsertOne) SetUserID(v uuid.UUID) *UserIdentityUpsertOne {
 	return u.Update(func(s *UserIdentityUpsert) {
 		s.SetUserID(v)
 	})
@@ -500,7 +535,12 @@ func (u *UserIdentityUpsertOne) ExecX(ctx context.Context) {
 }
 
 // Exec executes the UPSERT query and returns the inserted/updated ID.
-func (u *UserIdentityUpsertOne) ID(ctx context.Context) (id int, err error) {
+func (u *UserIdentityUpsertOne) ID(ctx context.Context) (id uuid.UUID, err error) {
+	if u.create.driver.Dialect() == dialect.MySQL {
+		// In case of "ON CONFLICT", there is no way to get back non-numeric ID
+		// fields from the database since MySQL does not support the RETURNING clause.
+		return id, errors.New("ent: UserIdentityUpsertOne.ID is not supported by MySQL driver. Use UserIdentityUpsertOne.Exec instead")
+	}
 	node, err := u.create.Save(ctx)
 	if err != nil {
 		return id, err
@@ -509,7 +549,7 @@ func (u *UserIdentityUpsertOne) ID(ctx context.Context) (id int, err error) {
 }
 
 // IDX is like ID, but panics if an error occurs.
-func (u *UserIdentityUpsertOne) IDX(ctx context.Context) int {
+func (u *UserIdentityUpsertOne) IDX(ctx context.Context) uuid.UUID {
 	id, err := u.ID(ctx)
 	if err != nil {
 		panic(err)
@@ -564,10 +604,6 @@ func (_c *UserIdentityCreateBulk) Save(ctx context.Context) ([]*UserIdentity, er
 					return nil, err
 				}
 				mutation.id = &nodes[i].ID
-				if specs[i].ID.Value != nil {
-					id := specs[i].ID.Value.(int64)
-					nodes[i].ID = int(id)
-				}
 				mutation.done = true
 				return nodes[i], nil
 			})
@@ -654,12 +690,18 @@ type UserIdentityUpsertBulk struct {
 //	client.UserIdentity.Create().
 //		OnConflict(
 //			sql.ResolveWithNewValues(),
+//			sql.ResolveWith(func(u *sql.UpdateSet) {
+//				u.SetIgnore(useridentity.FieldID)
+//			}),
 //		).
 //		Exec(ctx)
 func (u *UserIdentityUpsertBulk) UpdateNewValues() *UserIdentityUpsertBulk {
 	u.create.conflict = append(u.create.conflict, sql.ResolveWithNewValues())
 	u.create.conflict = append(u.create.conflict, sql.ResolveWith(func(s *sql.UpdateSet) {
 		for _, b := range u.create.builders {
+			if _, exists := b.mutation.ID(); exists {
+				s.SetIgnore(useridentity.FieldID)
+			}
 			if _, exists := b.mutation.CreatedAt(); exists {
 				s.SetIgnore(useridentity.FieldCreatedAt)
 			}
@@ -710,7 +752,7 @@ func (u *UserIdentityUpsertBulk) UpdateUpdatedAt() *UserIdentityUpsertBulk {
 }
 
 // SetUserID sets the "user_id" field.
-func (u *UserIdentityUpsertBulk) SetUserID(v int) *UserIdentityUpsertBulk {
+func (u *UserIdentityUpsertBulk) SetUserID(v uuid.UUID) *UserIdentityUpsertBulk {
 	return u.Update(func(s *UserIdentityUpsert) {
 		s.SetUserID(v)
 	})

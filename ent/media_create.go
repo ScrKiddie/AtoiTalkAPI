@@ -12,9 +12,11 @@ import (
 	"fmt"
 	"time"
 
+	"entgo.io/ent/dialect"
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/google/uuid"
 )
 
 // MediaCreate is the builder for creating a Media entity.
@@ -92,13 +94,13 @@ func (_c *MediaCreate) SetNillableStatus(v *media.Status) *MediaCreate {
 }
 
 // SetMessageID sets the "message_id" field.
-func (_c *MediaCreate) SetMessageID(v int) *MediaCreate {
+func (_c *MediaCreate) SetMessageID(v uuid.UUID) *MediaCreate {
 	_c.mutation.SetMessageID(v)
 	return _c
 }
 
 // SetNillableMessageID sets the "message_id" field if the given value is not nil.
-func (_c *MediaCreate) SetNillableMessageID(v *int) *MediaCreate {
+func (_c *MediaCreate) SetNillableMessageID(v *uuid.UUID) *MediaCreate {
 	if v != nil {
 		_c.SetMessageID(*v)
 	}
@@ -106,8 +108,22 @@ func (_c *MediaCreate) SetNillableMessageID(v *int) *MediaCreate {
 }
 
 // SetUploadedByID sets the "uploaded_by_id" field.
-func (_c *MediaCreate) SetUploadedByID(v int) *MediaCreate {
+func (_c *MediaCreate) SetUploadedByID(v uuid.UUID) *MediaCreate {
 	_c.mutation.SetUploadedByID(v)
+	return _c
+}
+
+// SetID sets the "id" field.
+func (_c *MediaCreate) SetID(v uuid.UUID) *MediaCreate {
+	_c.mutation.SetID(v)
+	return _c
+}
+
+// SetNillableID sets the "id" field if the given value is not nil.
+func (_c *MediaCreate) SetNillableID(v *uuid.UUID) *MediaCreate {
+	if v != nil {
+		_c.SetID(*v)
+	}
 	return _c
 }
 
@@ -117,13 +133,13 @@ func (_c *MediaCreate) SetMessage(v *Message) *MediaCreate {
 }
 
 // SetUserAvatarID sets the "user_avatar" edge to the User entity by ID.
-func (_c *MediaCreate) SetUserAvatarID(id int) *MediaCreate {
+func (_c *MediaCreate) SetUserAvatarID(id uuid.UUID) *MediaCreate {
 	_c.mutation.SetUserAvatarID(id)
 	return _c
 }
 
 // SetNillableUserAvatarID sets the "user_avatar" edge to the User entity by ID if the given value is not nil.
-func (_c *MediaCreate) SetNillableUserAvatarID(id *int) *MediaCreate {
+func (_c *MediaCreate) SetNillableUserAvatarID(id *uuid.UUID) *MediaCreate {
 	if id != nil {
 		_c = _c.SetUserAvatarID(*id)
 	}
@@ -136,13 +152,13 @@ func (_c *MediaCreate) SetUserAvatar(v *User) *MediaCreate {
 }
 
 // SetGroupAvatarID sets the "group_avatar" edge to the GroupChat entity by ID.
-func (_c *MediaCreate) SetGroupAvatarID(id int) *MediaCreate {
+func (_c *MediaCreate) SetGroupAvatarID(id uuid.UUID) *MediaCreate {
 	_c.mutation.SetGroupAvatarID(id)
 	return _c
 }
 
 // SetNillableGroupAvatarID sets the "group_avatar" edge to the GroupChat entity by ID if the given value is not nil.
-func (_c *MediaCreate) SetNillableGroupAvatarID(id *int) *MediaCreate {
+func (_c *MediaCreate) SetNillableGroupAvatarID(id *uuid.UUID) *MediaCreate {
 	if id != nil {
 		_c = _c.SetGroupAvatarID(*id)
 	}
@@ -155,7 +171,7 @@ func (_c *MediaCreate) SetGroupAvatar(v *GroupChat) *MediaCreate {
 }
 
 // SetUploaderID sets the "uploader" edge to the User entity by ID.
-func (_c *MediaCreate) SetUploaderID(id int) *MediaCreate {
+func (_c *MediaCreate) SetUploaderID(id uuid.UUID) *MediaCreate {
 	_c.mutation.SetUploaderID(id)
 	return _c
 }
@@ -211,6 +227,10 @@ func (_c *MediaCreate) defaults() {
 	if _, ok := _c.mutation.Status(); !ok {
 		v := media.DefaultStatus
 		_c.mutation.SetStatus(v)
+	}
+	if _, ok := _c.mutation.ID(); !ok {
+		v := media.DefaultID()
+		_c.mutation.SetID(v)
 	}
 }
 
@@ -282,8 +302,13 @@ func (_c *MediaCreate) sqlSave(ctx context.Context) (*Media, error) {
 		}
 		return nil, err
 	}
-	id := _spec.ID.Value.(int64)
-	_node.ID = int(id)
+	if _spec.ID.Value != nil {
+		if id, ok := _spec.ID.Value.(*uuid.UUID); ok {
+			_node.ID = *id
+		} else if err := _node.ID.Scan(_spec.ID.Value); err != nil {
+			return nil, err
+		}
+	}
 	_c.mutation.id = &_node.ID
 	_c.mutation.done = true
 	return _node, nil
@@ -292,9 +317,13 @@ func (_c *MediaCreate) sqlSave(ctx context.Context) (*Media, error) {
 func (_c *MediaCreate) createSpec() (*Media, *sqlgraph.CreateSpec) {
 	var (
 		_node = &Media{config: _c.config}
-		_spec = sqlgraph.NewCreateSpec(media.Table, sqlgraph.NewFieldSpec(media.FieldID, field.TypeInt))
+		_spec = sqlgraph.NewCreateSpec(media.Table, sqlgraph.NewFieldSpec(media.FieldID, field.TypeUUID))
 	)
 	_spec.OnConflict = _c.conflict
+	if id, ok := _c.mutation.ID(); ok {
+		_node.ID = id
+		_spec.ID.Value = &id
+	}
 	if value, ok := _c.mutation.CreatedAt(); ok {
 		_spec.SetField(media.FieldCreatedAt, field.TypeTime, value)
 		_node.CreatedAt = value
@@ -331,7 +360,7 @@ func (_c *MediaCreate) createSpec() (*Media, *sqlgraph.CreateSpec) {
 			Columns: []string{media.MessageColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(message.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(message.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {
@@ -348,7 +377,7 @@ func (_c *MediaCreate) createSpec() (*Media, *sqlgraph.CreateSpec) {
 			Columns: []string{media.UserAvatarColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {
@@ -364,7 +393,7 @@ func (_c *MediaCreate) createSpec() (*Media, *sqlgraph.CreateSpec) {
 			Columns: []string{media.GroupAvatarColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(groupchat.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(groupchat.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {
@@ -380,7 +409,7 @@ func (_c *MediaCreate) createSpec() (*Media, *sqlgraph.CreateSpec) {
 			Columns: []string{media.UploaderColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {
@@ -520,7 +549,7 @@ func (u *MediaUpsert) UpdateStatus() *MediaUpsert {
 }
 
 // SetMessageID sets the "message_id" field.
-func (u *MediaUpsert) SetMessageID(v int) *MediaUpsert {
+func (u *MediaUpsert) SetMessageID(v uuid.UUID) *MediaUpsert {
 	u.Set(media.FieldMessageID, v)
 	return u
 }
@@ -538,7 +567,7 @@ func (u *MediaUpsert) ClearMessageID() *MediaUpsert {
 }
 
 // SetUploadedByID sets the "uploaded_by_id" field.
-func (u *MediaUpsert) SetUploadedByID(v int) *MediaUpsert {
+func (u *MediaUpsert) SetUploadedByID(v uuid.UUID) *MediaUpsert {
 	u.Set(media.FieldUploadedByID, v)
 	return u
 }
@@ -549,17 +578,23 @@ func (u *MediaUpsert) UpdateUploadedByID() *MediaUpsert {
 	return u
 }
 
-// UpdateNewValues updates the mutable fields using the new values that were set on create.
+// UpdateNewValues updates the mutable fields using the new values that were set on create except the ID field.
 // Using this option is equivalent to using:
 //
 //	client.Media.Create().
 //		OnConflict(
 //			sql.ResolveWithNewValues(),
+//			sql.ResolveWith(func(u *sql.UpdateSet) {
+//				u.SetIgnore(media.FieldID)
+//			}),
 //		).
 //		Exec(ctx)
 func (u *MediaUpsertOne) UpdateNewValues() *MediaUpsertOne {
 	u.create.conflict = append(u.create.conflict, sql.ResolveWithNewValues())
 	u.create.conflict = append(u.create.conflict, sql.ResolveWith(func(s *sql.UpdateSet) {
+		if _, exists := u.create.mutation.ID(); exists {
+			s.SetIgnore(media.FieldID)
+		}
 		if _, exists := u.create.mutation.CreatedAt(); exists {
 			s.SetIgnore(media.FieldCreatedAt)
 		}
@@ -686,7 +721,7 @@ func (u *MediaUpsertOne) UpdateStatus() *MediaUpsertOne {
 }
 
 // SetMessageID sets the "message_id" field.
-func (u *MediaUpsertOne) SetMessageID(v int) *MediaUpsertOne {
+func (u *MediaUpsertOne) SetMessageID(v uuid.UUID) *MediaUpsertOne {
 	return u.Update(func(s *MediaUpsert) {
 		s.SetMessageID(v)
 	})
@@ -707,7 +742,7 @@ func (u *MediaUpsertOne) ClearMessageID() *MediaUpsertOne {
 }
 
 // SetUploadedByID sets the "uploaded_by_id" field.
-func (u *MediaUpsertOne) SetUploadedByID(v int) *MediaUpsertOne {
+func (u *MediaUpsertOne) SetUploadedByID(v uuid.UUID) *MediaUpsertOne {
 	return u.Update(func(s *MediaUpsert) {
 		s.SetUploadedByID(v)
 	})
@@ -736,7 +771,12 @@ func (u *MediaUpsertOne) ExecX(ctx context.Context) {
 }
 
 // Exec executes the UPSERT query and returns the inserted/updated ID.
-func (u *MediaUpsertOne) ID(ctx context.Context) (id int, err error) {
+func (u *MediaUpsertOne) ID(ctx context.Context) (id uuid.UUID, err error) {
+	if u.create.driver.Dialect() == dialect.MySQL {
+		// In case of "ON CONFLICT", there is no way to get back non-numeric ID
+		// fields from the database since MySQL does not support the RETURNING clause.
+		return id, errors.New("ent: MediaUpsertOne.ID is not supported by MySQL driver. Use MediaUpsertOne.Exec instead")
+	}
 	node, err := u.create.Save(ctx)
 	if err != nil {
 		return id, err
@@ -745,7 +785,7 @@ func (u *MediaUpsertOne) ID(ctx context.Context) (id int, err error) {
 }
 
 // IDX is like ID, but panics if an error occurs.
-func (u *MediaUpsertOne) IDX(ctx context.Context) int {
+func (u *MediaUpsertOne) IDX(ctx context.Context) uuid.UUID {
 	id, err := u.ID(ctx)
 	if err != nil {
 		panic(err)
@@ -800,10 +840,6 @@ func (_c *MediaCreateBulk) Save(ctx context.Context) ([]*Media, error) {
 					return nil, err
 				}
 				mutation.id = &nodes[i].ID
-				if specs[i].ID.Value != nil {
-					id := specs[i].ID.Value.(int64)
-					nodes[i].ID = int(id)
-				}
 				mutation.done = true
 				return nodes[i], nil
 			})
@@ -890,12 +926,18 @@ type MediaUpsertBulk struct {
 //	client.Media.Create().
 //		OnConflict(
 //			sql.ResolveWithNewValues(),
+//			sql.ResolveWith(func(u *sql.UpdateSet) {
+//				u.SetIgnore(media.FieldID)
+//			}),
 //		).
 //		Exec(ctx)
 func (u *MediaUpsertBulk) UpdateNewValues() *MediaUpsertBulk {
 	u.create.conflict = append(u.create.conflict, sql.ResolveWithNewValues())
 	u.create.conflict = append(u.create.conflict, sql.ResolveWith(func(s *sql.UpdateSet) {
 		for _, b := range u.create.builders {
+			if _, exists := b.mutation.ID(); exists {
+				s.SetIgnore(media.FieldID)
+			}
 			if _, exists := b.mutation.CreatedAt(); exists {
 				s.SetIgnore(media.FieldCreatedAt)
 			}
@@ -1023,7 +1065,7 @@ func (u *MediaUpsertBulk) UpdateStatus() *MediaUpsertBulk {
 }
 
 // SetMessageID sets the "message_id" field.
-func (u *MediaUpsertBulk) SetMessageID(v int) *MediaUpsertBulk {
+func (u *MediaUpsertBulk) SetMessageID(v uuid.UUID) *MediaUpsertBulk {
 	return u.Update(func(s *MediaUpsert) {
 		s.SetMessageID(v)
 	})
@@ -1044,7 +1086,7 @@ func (u *MediaUpsertBulk) ClearMessageID() *MediaUpsertBulk {
 }
 
 // SetUploadedByID sets the "uploaded_by_id" field.
-func (u *MediaUpsertBulk) SetUploadedByID(v int) *MediaUpsertBulk {
+func (u *MediaUpsertBulk) SetUploadedByID(v uuid.UUID) *MediaUpsertBulk {
 	return u.Update(func(s *MediaUpsert) {
 		s.SetUploadedByID(v)
 	})

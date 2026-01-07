@@ -1,5 +1,7 @@
 package websocket
 
+import "github.com/google/uuid"
+
 type EventType string
 
 const (
@@ -26,8 +28,8 @@ type Event struct {
 }
 
 type EventMeta struct {
-	Timestamp   int64 `json:"timestamp"`
-	ChatID      int   `json:"chat_id,omitempty"`
-	SenderID    int   `json:"sender_id,omitempty"`
-	UnreadCount int   `json:"unread_count"`
+	Timestamp   int64     `json:"timestamp"`
+	ChatID      uuid.UUID `json:"chat_id,omitempty"`
+	SenderID    uuid.UUID `json:"sender_id,omitempty"`
+	UnreadCount int       `json:"unread_count"`
 }

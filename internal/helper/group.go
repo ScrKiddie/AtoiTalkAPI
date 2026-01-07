@@ -19,7 +19,6 @@ func ToGroupMemberDTO(m *ent.GroupMember, storageMode, appURL, cdnURL, storagePr
 	return model.GroupMemberDTO{
 		ID:       m.ID,
 		UserID:   user.ID,
-		Username: user.Username,
 		FullName: user.FullName,
 		Avatar:   avatarURL,
 		Role:     string(m.Role),

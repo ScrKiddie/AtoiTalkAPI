@@ -9,6 +9,7 @@ import (
 	"strconv"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/google/uuid"
 )
 
 type ChatController struct {
@@ -75,7 +76,7 @@ func (c *ChatController) GetChats(w http.ResponseWriter, r *http.Request) {
 // @Tags         chat
 // @Accept       json
 // @Produce      json
-// @Param        id path int true "Chat ID"
+// @Param        id path string true "Chat ID (UUID)"
 // @Success      200  {object}  helper.ResponseSuccess{data=model.ChatListResponse}
 // @Failure      400  {object}  helper.ResponseError
 // @Failure      401  {object}  helper.ResponseError
@@ -91,9 +92,9 @@ func (c *ChatController) GetChat(w http.ResponseWriter, r *http.Request) {
 	}
 
 	chatIDStr := chi.URLParam(r, "id")
-	chatID, err := strconv.Atoi(chatIDStr)
+	chatID, err := uuid.Parse(chatIDStr)
 	if err != nil {
-		helper.WriteError(w, helper.NewBadRequestError(""))
+		helper.WriteError(w, helper.NewBadRequestError("Invalid Chat ID"))
 		return
 	}
 
@@ -112,7 +113,7 @@ func (c *ChatController) GetChat(w http.ResponseWriter, r *http.Request) {
 // @Tags         chat
 // @Accept       json
 // @Produce      json
-// @Param        id path int true "Chat ID"
+// @Param        id path string true "Chat ID (UUID)"
 // @Success      200  {object}  helper.ResponseSuccess
 // @Failure      400  {object}  helper.ResponseError
 // @Failure      401  {object}  helper.ResponseError
@@ -128,9 +129,9 @@ func (c *ChatController) MarkAsRead(w http.ResponseWriter, r *http.Request) {
 	}
 
 	chatIDStr := chi.URLParam(r, "id")
-	chatID, err := strconv.Atoi(chatIDStr)
+	chatID, err := uuid.Parse(chatIDStr)
 	if err != nil {
-		helper.WriteError(w, helper.NewBadRequestError(""))
+		helper.WriteError(w, helper.NewBadRequestError("Invalid Chat ID"))
 		return
 	}
 
@@ -149,7 +150,7 @@ func (c *ChatController) MarkAsRead(w http.ResponseWriter, r *http.Request) {
 // @Tags         chat
 // @Accept       json
 // @Produce      json
-// @Param        id path int true "Chat ID"
+// @Param        id path string true "Chat ID (UUID)"
 // @Success      200  {object}  helper.ResponseSuccess
 // @Failure      400  {object}  helper.ResponseError
 // @Failure      401  {object}  helper.ResponseError
@@ -165,9 +166,9 @@ func (c *ChatController) HideChat(w http.ResponseWriter, r *http.Request) {
 	}
 
 	chatIDStr := chi.URLParam(r, "id")
-	chatID, err := strconv.Atoi(chatIDStr)
+	chatID, err := uuid.Parse(chatIDStr)
 	if err != nil {
-		helper.WriteError(w, helper.NewBadRequestError(""))
+		helper.WriteError(w, helper.NewBadRequestError("Invalid Chat ID"))
 		return
 	}
 

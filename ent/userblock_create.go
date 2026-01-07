@@ -10,9 +10,11 @@ import (
 	"fmt"
 	"time"
 
+	"entgo.io/ent/dialect"
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/google/uuid"
 )
 
 // UserBlockCreate is the builder for creating a UserBlock entity.
@@ -52,14 +54,28 @@ func (_c *UserBlockCreate) SetNillableUpdatedAt(v *time.Time) *UserBlockCreate {
 }
 
 // SetBlockerID sets the "blocker_id" field.
-func (_c *UserBlockCreate) SetBlockerID(v int) *UserBlockCreate {
+func (_c *UserBlockCreate) SetBlockerID(v uuid.UUID) *UserBlockCreate {
 	_c.mutation.SetBlockerID(v)
 	return _c
 }
 
 // SetBlockedID sets the "blocked_id" field.
-func (_c *UserBlockCreate) SetBlockedID(v int) *UserBlockCreate {
+func (_c *UserBlockCreate) SetBlockedID(v uuid.UUID) *UserBlockCreate {
 	_c.mutation.SetBlockedID(v)
+	return _c
+}
+
+// SetID sets the "id" field.
+func (_c *UserBlockCreate) SetID(v uuid.UUID) *UserBlockCreate {
+	_c.mutation.SetID(v)
+	return _c
+}
+
+// SetNillableID sets the "id" field if the given value is not nil.
+func (_c *UserBlockCreate) SetNillableID(v *uuid.UUID) *UserBlockCreate {
+	if v != nil {
+		_c.SetID(*v)
+	}
 	return _c
 }
 
@@ -116,6 +132,10 @@ func (_c *UserBlockCreate) defaults() {
 		v := userblock.DefaultUpdatedAt()
 		_c.mutation.SetUpdatedAt(v)
 	}
+	if _, ok := _c.mutation.ID(); !ok {
+		v := userblock.DefaultID()
+		_c.mutation.SetID(v)
+	}
 }
 
 // check runs all checks and user-defined validators on the builder.
@@ -152,8 +172,13 @@ func (_c *UserBlockCreate) sqlSave(ctx context.Context) (*UserBlock, error) {
 		}
 		return nil, err
 	}
-	id := _spec.ID.Value.(int64)
-	_node.ID = int(id)
+	if _spec.ID.Value != nil {
+		if id, ok := _spec.ID.Value.(*uuid.UUID); ok {
+			_node.ID = *id
+		} else if err := _node.ID.Scan(_spec.ID.Value); err != nil {
+			return nil, err
+		}
+	}
 	_c.mutation.id = &_node.ID
 	_c.mutation.done = true
 	return _node, nil
@@ -162,9 +187,13 @@ func (_c *UserBlockCreate) sqlSave(ctx context.Context) (*UserBlock, error) {
 func (_c *UserBlockCreate) createSpec() (*UserBlock, *sqlgraph.CreateSpec) {
 	var (
 		_node = &UserBlock{config: _c.config}
-		_spec = sqlgraph.NewCreateSpec(userblock.Table, sqlgraph.NewFieldSpec(userblock.FieldID, field.TypeInt))
+		_spec = sqlgraph.NewCreateSpec(userblock.Table, sqlgraph.NewFieldSpec(userblock.FieldID, field.TypeUUID))
 	)
 	_spec.OnConflict = _c.conflict
+	if id, ok := _c.mutation.ID(); ok {
+		_node.ID = id
+		_spec.ID.Value = &id
+	}
 	if value, ok := _c.mutation.CreatedAt(); ok {
 		_spec.SetField(userblock.FieldCreatedAt, field.TypeTime, value)
 		_node.CreatedAt = value
@@ -181,7 +210,7 @@ func (_c *UserBlockCreate) createSpec() (*UserBlock, *sqlgraph.CreateSpec) {
 			Columns: []string{userblock.BlockerColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {
@@ -198,7 +227,7 @@ func (_c *UserBlockCreate) createSpec() (*UserBlock, *sqlgraph.CreateSpec) {
 			Columns: []string{userblock.BlockedColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {
@@ -272,7 +301,7 @@ func (u *UserBlockUpsert) UpdateUpdatedAt() *UserBlockUpsert {
 }
 
 // SetBlockerID sets the "blocker_id" field.
-func (u *UserBlockUpsert) SetBlockerID(v int) *UserBlockUpsert {
+func (u *UserBlockUpsert) SetBlockerID(v uuid.UUID) *UserBlockUpsert {
 	u.Set(userblock.FieldBlockerID, v)
 	return u
 }
@@ -284,7 +313,7 @@ func (u *UserBlockUpsert) UpdateBlockerID() *UserBlockUpsert {
 }
 
 // SetBlockedID sets the "blocked_id" field.
-func (u *UserBlockUpsert) SetBlockedID(v int) *UserBlockUpsert {
+func (u *UserBlockUpsert) SetBlockedID(v uuid.UUID) *UserBlockUpsert {
 	u.Set(userblock.FieldBlockedID, v)
 	return u
 }
@@ -295,17 +324,23 @@ func (u *UserBlockUpsert) UpdateBlockedID() *UserBlockUpsert {
 	return u
 }
 
-// UpdateNewValues updates the mutable fields using the new values that were set on create.
+// UpdateNewValues updates the mutable fields using the new values that were set on create except the ID field.
 // Using this option is equivalent to using:
 //
 //	client.UserBlock.Create().
 //		OnConflict(
 //			sql.ResolveWithNewValues(),
+//			sql.ResolveWith(func(u *sql.UpdateSet) {
+//				u.SetIgnore(userblock.FieldID)
+//			}),
 //		).
 //		Exec(ctx)
 func (u *UserBlockUpsertOne) UpdateNewValues() *UserBlockUpsertOne {
 	u.create.conflict = append(u.create.conflict, sql.ResolveWithNewValues())
 	u.create.conflict = append(u.create.conflict, sql.ResolveWith(func(s *sql.UpdateSet) {
+		if _, exists := u.create.mutation.ID(); exists {
+			s.SetIgnore(userblock.FieldID)
+		}
 		if _, exists := u.create.mutation.CreatedAt(); exists {
 			s.SetIgnore(userblock.FieldCreatedAt)
 		}
@@ -355,7 +390,7 @@ func (u *UserBlockUpsertOne) UpdateUpdatedAt() *UserBlockUpsertOne {
 }
 
 // SetBlockerID sets the "blocker_id" field.
-func (u *UserBlockUpsertOne) SetBlockerID(v int) *UserBlockUpsertOne {
+func (u *UserBlockUpsertOne) SetBlockerID(v uuid.UUID) *UserBlockUpsertOne {
 	return u.Update(func(s *UserBlockUpsert) {
 		s.SetBlockerID(v)
 	})
@@ -369,7 +404,7 @@ func (u *UserBlockUpsertOne) UpdateBlockerID() *UserBlockUpsertOne {
 }
 
 // SetBlockedID sets the "blocked_id" field.
-func (u *UserBlockUpsertOne) SetBlockedID(v int) *UserBlockUpsertOne {
+func (u *UserBlockUpsertOne) SetBlockedID(v uuid.UUID) *UserBlockUpsertOne {
 	return u.Update(func(s *UserBlockUpsert) {
 		s.SetBlockedID(v)
 	})
@@ -398,7 +433,12 @@ func (u *UserBlockUpsertOne) ExecX(ctx context.Context) {
 }
 
 // Exec executes the UPSERT query and returns the inserted/updated ID.
-func (u *UserBlockUpsertOne) ID(ctx context.Context) (id int, err error) {
+func (u *UserBlockUpsertOne) ID(ctx context.Context) (id uuid.UUID, err error) {
+	if u.create.driver.Dialect() == dialect.MySQL {
+		// In case of "ON CONFLICT", there is no way to get back non-numeric ID
+		// fields from the database since MySQL does not support the RETURNING clause.
+		return id, errors.New("ent: UserBlockUpsertOne.ID is not supported by MySQL driver. Use UserBlockUpsertOne.Exec instead")
+	}
 	node, err := u.create.Save(ctx)
 	if err != nil {
 		return id, err
@@ -407,7 +447,7 @@ func (u *UserBlockUpsertOne) ID(ctx context.Context) (id int, err error) {
 }
 
 // IDX is like ID, but panics if an error occurs.
-func (u *UserBlockUpsertOne) IDX(ctx context.Context) int {
+func (u *UserBlockUpsertOne) IDX(ctx context.Context) uuid.UUID {
 	id, err := u.ID(ctx)
 	if err != nil {
 		panic(err)
@@ -462,10 +502,6 @@ func (_c *UserBlockCreateBulk) Save(ctx context.Context) ([]*UserBlock, error) {
 					return nil, err
 				}
 				mutation.id = &nodes[i].ID
-				if specs[i].ID.Value != nil {
-					id := specs[i].ID.Value.(int64)
-					nodes[i].ID = int(id)
-				}
 				mutation.done = true
 				return nodes[i], nil
 			})
@@ -552,12 +588,18 @@ type UserBlockUpsertBulk struct {
 //	client.UserBlock.Create().
 //		OnConflict(
 //			sql.ResolveWithNewValues(),
+//			sql.ResolveWith(func(u *sql.UpdateSet) {
+//				u.SetIgnore(userblock.FieldID)
+//			}),
 //		).
 //		Exec(ctx)
 func (u *UserBlockUpsertBulk) UpdateNewValues() *UserBlockUpsertBulk {
 	u.create.conflict = append(u.create.conflict, sql.ResolveWithNewValues())
 	u.create.conflict = append(u.create.conflict, sql.ResolveWith(func(s *sql.UpdateSet) {
 		for _, b := range u.create.builders {
+			if _, exists := b.mutation.ID(); exists {
+				s.SetIgnore(userblock.FieldID)
+			}
 			if _, exists := b.mutation.CreatedAt(); exists {
 				s.SetIgnore(userblock.FieldCreatedAt)
 			}
@@ -608,7 +650,7 @@ func (u *UserBlockUpsertBulk) UpdateUpdatedAt() *UserBlockUpsertBulk {
 }
 
 // SetBlockerID sets the "blocker_id" field.
-func (u *UserBlockUpsertBulk) SetBlockerID(v int) *UserBlockUpsertBulk {
+func (u *UserBlockUpsertBulk) SetBlockerID(v uuid.UUID) *UserBlockUpsertBulk {
 	return u.Update(func(s *UserBlockUpsert) {
 		s.SetBlockerID(v)
 	})
@@ -622,7 +664,7 @@ func (u *UserBlockUpsertBulk) UpdateBlockerID() *UserBlockUpsertBulk {
 }
 
 // SetBlockedID sets the "blocked_id" field.
-func (u *UserBlockUpsertBulk) SetBlockedID(v int) *UserBlockUpsertBulk {
+func (u *UserBlockUpsertBulk) SetBlockedID(v uuid.UUID) *UserBlockUpsertBulk {
 	return u.Update(func(s *UserBlockUpsert) {
 		s.SetBlockedID(v)
 	})

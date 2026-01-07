@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/google/uuid"
 )
 
 type GroupChatController struct {
@@ -31,7 +32,7 @@ func NewGroupChatController(groupChatService *service.GroupChatService) *GroupCh
 // @Produce      json
 // @Param        name formData string true "Group Name"
 // @Param        description formData string false "Group Description"
-// @Param        member_usernames formData string true "JSON Array of Member Usernames (e.g. [\"user1\", \"user2\"])"
+// @Param        member_ids formData string true "JSON Array of Member IDs (UUIDs)"
 // @Param        avatar formData file false "Group Avatar Image"
 // @Success      200  {object}  helper.ResponseSuccess{data=model.ChatResponse}
 // @Failure      400  {object}  helper.ResponseError
@@ -49,16 +50,23 @@ func (c *GroupChatController) CreateGroupChat(w http.ResponseWriter, r *http.Req
 
 	name := r.FormValue("name")
 	description := r.FormValue("description")
-	memberUsernamesStr := r.FormValue("member_usernames")
+	memberIDsStr := r.FormValue("member_ids")
 
-	var memberUsernames []string
-	if memberUsernamesStr != "" {
-		if err := json.Unmarshal([]byte(memberUsernamesStr), &memberUsernames); err != nil {
-			parts := strings.Split(memberUsernamesStr, ",")
+	var memberIDs []uuid.UUID
+	if memberIDsStr != "" {
+		var idStrings []string
+		if err := json.Unmarshal([]byte(memberIDsStr), &idStrings); err == nil {
+			for _, s := range idStrings {
+				if id, err := uuid.Parse(s); err == nil {
+					memberIDs = append(memberIDs, id)
+				}
+			}
+		} else {
+			parts := strings.Split(memberIDsStr, ",")
 			for _, p := range parts {
-				username := strings.TrimSpace(p)
-				if username != "" {
-					memberUsernames = append(memberUsernames, username)
+				id, err := uuid.Parse(strings.TrimSpace(p))
+				if err == nil {
+					memberIDs = append(memberIDs, id)
 				}
 			}
 		}
@@ -71,10 +79,10 @@ func (c *GroupChatController) CreateGroupChat(w http.ResponseWriter, r *http.Req
 	}
 
 	req := model.CreateGroupChatRequest{
-		Name:            name,
-		Description:     description,
-		MemberUsernames: memberUsernames,
-		Avatar:          header,
+		Name:        name,
+		Description: description,
+		MemberIDs:   memberIDs,
+		Avatar:      header,
 	}
 
 	resp, err := c.groupChatService.CreateGroupChat(r.Context(), userContext.ID, req)
@@ -92,7 +100,7 @@ func (c *GroupChatController) CreateGroupChat(w http.ResponseWriter, r *http.Req
 // @Tags         chat
 // @Accept       multipart/form-data
 // @Produce      json
-// @Param        groupID path int true "Group Chat ID"
+// @Param        groupID path string true "Group Chat ID (UUID)"
 // @Param        name formData string false "Group Name"
 // @Param        description formData string false "Group Description"
 // @Param        avatar formData file false "Group Avatar Image"
@@ -111,9 +119,10 @@ func (c *GroupChatController) UpdateGroupChat(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	groupID, err := strconv.Atoi(chi.URLParam(r, "groupID"))
+	groupIDStr := chi.URLParam(r, "groupID")
+	groupID, err := uuid.Parse(groupIDStr)
 	if err != nil {
-		helper.WriteError(w, helper.NewBadRequestError(""))
+		helper.WriteError(w, helper.NewBadRequestError("Invalid Group ID"))
 		return
 	}
 
@@ -156,7 +165,7 @@ func (c *GroupChatController) UpdateGroupChat(w http.ResponseWriter, r *http.Req
 // @Tags         chat
 // @Accept       json
 // @Produce      json
-// @Param        groupID path int true "Group Chat ID"
+// @Param        groupID path string true "Group Chat ID (UUID)"
 // @Param        query query string false "Search query"
 // @Param        cursor query string false "Pagination cursor"
 // @Param        limit query int false "Number of items per page (default 20, max 50)"
@@ -175,9 +184,10 @@ func (c *GroupChatController) SearchGroupMembers(w http.ResponseWriter, r *http.
 		return
 	}
 
-	groupID, err := strconv.Atoi(chi.URLParam(r, "groupID"))
+	groupIDStr := chi.URLParam(r, "groupID")
+	groupID, err := uuid.Parse(groupIDStr)
 	if err != nil {
-		helper.WriteError(w, helper.NewBadRequestError(""))
+		helper.WriteError(w, helper.NewBadRequestError("Invalid Group ID"))
 		return
 	}
 
@@ -214,7 +224,7 @@ func (c *GroupChatController) SearchGroupMembers(w http.ResponseWriter, r *http.
 // @Tags         chat
 // @Accept       json
 // @Produce      json
-// @Param        groupID path int true "Group Chat ID"
+// @Param        groupID path string true "Group Chat ID (UUID)"
 // @Param        request body model.AddGroupMemberRequest true "Add Member Request"
 // @Success      200  {object}  helper.ResponseSuccess
 // @Failure      400  {object}  helper.ResponseError
@@ -232,9 +242,10 @@ func (c *GroupChatController) AddMember(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	groupID, err := strconv.Atoi(chi.URLParam(r, "groupID"))
+	groupIDStr := chi.URLParam(r, "groupID")
+	groupID, err := uuid.Parse(groupIDStr)
 	if err != nil {
-		helper.WriteError(w, helper.NewBadRequestError(""))
+		helper.WriteError(w, helper.NewBadRequestError("Invalid Group ID"))
 		return
 	}
 
@@ -259,7 +270,7 @@ func (c *GroupChatController) AddMember(w http.ResponseWriter, r *http.Request) 
 // @Tags         chat
 // @Accept       json
 // @Produce      json
-// @Param        groupID path int true "Group Chat ID"
+// @Param        groupID path string true "Group Chat ID (UUID)"
 // @Success      200  {object}  helper.ResponseSuccess
 // @Failure      400  {object}  helper.ResponseError
 // @Failure      401  {object}  helper.ResponseError
@@ -274,9 +285,10 @@ func (c *GroupChatController) LeaveGroup(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	groupID, err := strconv.Atoi(chi.URLParam(r, "groupID"))
+	groupIDStr := chi.URLParam(r, "groupID")
+	groupID, err := uuid.Parse(groupIDStr)
 	if err != nil {
-		helper.WriteError(w, helper.NewBadRequestError(""))
+		helper.WriteError(w, helper.NewBadRequestError("Invalid Group ID"))
 		return
 	}
 
@@ -295,8 +307,8 @@ func (c *GroupChatController) LeaveGroup(w http.ResponseWriter, r *http.Request)
 // @Tags         chat
 // @Accept       json
 // @Produce      json
-// @Param        groupID path int true "Group Chat ID"
-// @Param        userID path int true "Target User ID"
+// @Param        groupID path string true "Group Chat ID (UUID)"
+// @Param        userID path string true "Target User ID (UUID)"
 // @Success      200  {object}  helper.ResponseSuccess
 // @Failure      400  {object}  helper.ResponseError
 // @Failure      401  {object}  helper.ResponseError
@@ -312,15 +324,17 @@ func (c *GroupChatController) KickMember(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	groupID, err := strconv.Atoi(chi.URLParam(r, "groupID"))
+	groupIDStr := chi.URLParam(r, "groupID")
+	groupID, err := uuid.Parse(groupIDStr)
 	if err != nil {
-		helper.WriteError(w, helper.NewBadRequestError(""))
+		helper.WriteError(w, helper.NewBadRequestError("Invalid Group ID"))
 		return
 	}
 
-	targetUserID, err := strconv.Atoi(chi.URLParam(r, "userID"))
+	targetUserIDStr := chi.URLParam(r, "userID")
+	targetUserID, err := uuid.Parse(targetUserIDStr)
 	if err != nil {
-		helper.WriteError(w, helper.NewBadRequestError(""))
+		helper.WriteError(w, helper.NewBadRequestError("Invalid User ID"))
 		return
 	}
 
@@ -339,8 +353,8 @@ func (c *GroupChatController) KickMember(w http.ResponseWriter, r *http.Request)
 // @Tags         chat
 // @Accept       json
 // @Produce      json
-// @Param        groupID path int true "Group Chat ID"
-// @Param        userID path int true "Target User ID"
+// @Param        groupID path string true "Group Chat ID (UUID)"
+// @Param        userID path string true "Target User ID (UUID)"
 // @Param        request body model.UpdateGroupMemberRoleRequest true "Update Role Request"
 // @Success      200  {object}  helper.ResponseSuccess
 // @Failure      400  {object}  helper.ResponseError
@@ -357,15 +371,17 @@ func (c *GroupChatController) UpdateMemberRole(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	groupID, err := strconv.Atoi(chi.URLParam(r, "groupID"))
+	groupIDStr := chi.URLParam(r, "groupID")
+	groupID, err := uuid.Parse(groupIDStr)
 	if err != nil {
-		helper.WriteError(w, helper.NewBadRequestError(""))
+		helper.WriteError(w, helper.NewBadRequestError("Invalid Group ID"))
 		return
 	}
 
-	targetUserID, err := strconv.Atoi(chi.URLParam(r, "userID"))
+	targetUserIDStr := chi.URLParam(r, "userID")
+	targetUserID, err := uuid.Parse(targetUserIDStr)
 	if err != nil {
-		helper.WriteError(w, helper.NewBadRequestError(""))
+		helper.WriteError(w, helper.NewBadRequestError("Invalid User ID"))
 		return
 	}
 
@@ -390,7 +406,7 @@ func (c *GroupChatController) UpdateMemberRole(w http.ResponseWriter, r *http.Re
 // @Tags         chat
 // @Accept       json
 // @Produce      json
-// @Param        groupID path int true "Group Chat ID"
+// @Param        groupID path string true "Group Chat ID (UUID)"
 // @Param        request body model.TransferGroupOwnershipRequest true "Transfer Ownership Request"
 // @Success      200  {object}  helper.ResponseSuccess
 // @Failure      400  {object}  helper.ResponseError
@@ -407,9 +423,10 @@ func (c *GroupChatController) TransferOwnership(w http.ResponseWriter, r *http.R
 		return
 	}
 
-	groupID, err := strconv.Atoi(chi.URLParam(r, "groupID"))
+	groupIDStr := chi.URLParam(r, "groupID")
+	groupID, err := uuid.Parse(groupIDStr)
 	if err != nil {
-		helper.WriteError(w, helper.NewBadRequestError(""))
+		helper.WriteError(w, helper.NewBadRequestError("Invalid Group ID"))
 		return
 	}
 

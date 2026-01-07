@@ -8,50 +8,51 @@ import (
 
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
+	"github.com/google/uuid"
 )
 
 // ID filters vertices based on their ID field.
-func ID(id int) predicate.Message {
+func ID(id uuid.UUID) predicate.Message {
 	return predicate.Message(sql.FieldEQ(FieldID, id))
 }
 
 // IDEQ applies the EQ predicate on the ID field.
-func IDEQ(id int) predicate.Message {
+func IDEQ(id uuid.UUID) predicate.Message {
 	return predicate.Message(sql.FieldEQ(FieldID, id))
 }
 
 // IDNEQ applies the NEQ predicate on the ID field.
-func IDNEQ(id int) predicate.Message {
+func IDNEQ(id uuid.UUID) predicate.Message {
 	return predicate.Message(sql.FieldNEQ(FieldID, id))
 }
 
 // IDIn applies the In predicate on the ID field.
-func IDIn(ids ...int) predicate.Message {
+func IDIn(ids ...uuid.UUID) predicate.Message {
 	return predicate.Message(sql.FieldIn(FieldID, ids...))
 }
 
 // IDNotIn applies the NotIn predicate on the ID field.
-func IDNotIn(ids ...int) predicate.Message {
+func IDNotIn(ids ...uuid.UUID) predicate.Message {
 	return predicate.Message(sql.FieldNotIn(FieldID, ids...))
 }
 
 // IDGT applies the GT predicate on the ID field.
-func IDGT(id int) predicate.Message {
+func IDGT(id uuid.UUID) predicate.Message {
 	return predicate.Message(sql.FieldGT(FieldID, id))
 }
 
 // IDGTE applies the GTE predicate on the ID field.
-func IDGTE(id int) predicate.Message {
+func IDGTE(id uuid.UUID) predicate.Message {
 	return predicate.Message(sql.FieldGTE(FieldID, id))
 }
 
 // IDLT applies the LT predicate on the ID field.
-func IDLT(id int) predicate.Message {
+func IDLT(id uuid.UUID) predicate.Message {
 	return predicate.Message(sql.FieldLT(FieldID, id))
 }
 
 // IDLTE applies the LTE predicate on the ID field.
-func IDLTE(id int) predicate.Message {
+func IDLTE(id uuid.UUID) predicate.Message {
 	return predicate.Message(sql.FieldLTE(FieldID, id))
 }
 
@@ -66,17 +67,17 @@ func UpdatedAt(v time.Time) predicate.Message {
 }
 
 // ChatID applies equality check predicate on the "chat_id" field. It's identical to ChatIDEQ.
-func ChatID(v int) predicate.Message {
+func ChatID(v uuid.UUID) predicate.Message {
 	return predicate.Message(sql.FieldEQ(FieldChatID, v))
 }
 
 // SenderID applies equality check predicate on the "sender_id" field. It's identical to SenderIDEQ.
-func SenderID(v int) predicate.Message {
+func SenderID(v uuid.UUID) predicate.Message {
 	return predicate.Message(sql.FieldEQ(FieldSenderID, v))
 }
 
 // ReplyToID applies equality check predicate on the "reply_to_id" field. It's identical to ReplyToIDEQ.
-func ReplyToID(v int) predicate.Message {
+func ReplyToID(v uuid.UUID) predicate.Message {
 	return predicate.Message(sql.FieldEQ(FieldReplyToID, v))
 }
 
@@ -176,42 +177,42 @@ func UpdatedAtLTE(v time.Time) predicate.Message {
 }
 
 // ChatIDEQ applies the EQ predicate on the "chat_id" field.
-func ChatIDEQ(v int) predicate.Message {
+func ChatIDEQ(v uuid.UUID) predicate.Message {
 	return predicate.Message(sql.FieldEQ(FieldChatID, v))
 }
 
 // ChatIDNEQ applies the NEQ predicate on the "chat_id" field.
-func ChatIDNEQ(v int) predicate.Message {
+func ChatIDNEQ(v uuid.UUID) predicate.Message {
 	return predicate.Message(sql.FieldNEQ(FieldChatID, v))
 }
 
 // ChatIDIn applies the In predicate on the "chat_id" field.
-func ChatIDIn(vs ...int) predicate.Message {
+func ChatIDIn(vs ...uuid.UUID) predicate.Message {
 	return predicate.Message(sql.FieldIn(FieldChatID, vs...))
 }
 
 // ChatIDNotIn applies the NotIn predicate on the "chat_id" field.
-func ChatIDNotIn(vs ...int) predicate.Message {
+func ChatIDNotIn(vs ...uuid.UUID) predicate.Message {
 	return predicate.Message(sql.FieldNotIn(FieldChatID, vs...))
 }
 
 // SenderIDEQ applies the EQ predicate on the "sender_id" field.
-func SenderIDEQ(v int) predicate.Message {
+func SenderIDEQ(v uuid.UUID) predicate.Message {
 	return predicate.Message(sql.FieldEQ(FieldSenderID, v))
 }
 
 // SenderIDNEQ applies the NEQ predicate on the "sender_id" field.
-func SenderIDNEQ(v int) predicate.Message {
+func SenderIDNEQ(v uuid.UUID) predicate.Message {
 	return predicate.Message(sql.FieldNEQ(FieldSenderID, v))
 }
 
 // SenderIDIn applies the In predicate on the "sender_id" field.
-func SenderIDIn(vs ...int) predicate.Message {
+func SenderIDIn(vs ...uuid.UUID) predicate.Message {
 	return predicate.Message(sql.FieldIn(FieldSenderID, vs...))
 }
 
 // SenderIDNotIn applies the NotIn predicate on the "sender_id" field.
-func SenderIDNotIn(vs ...int) predicate.Message {
+func SenderIDNotIn(vs ...uuid.UUID) predicate.Message {
 	return predicate.Message(sql.FieldNotIn(FieldSenderID, vs...))
 }
 
@@ -226,22 +227,22 @@ func SenderIDNotNil() predicate.Message {
 }
 
 // ReplyToIDEQ applies the EQ predicate on the "reply_to_id" field.
-func ReplyToIDEQ(v int) predicate.Message {
+func ReplyToIDEQ(v uuid.UUID) predicate.Message {
 	return predicate.Message(sql.FieldEQ(FieldReplyToID, v))
 }
 
 // ReplyToIDNEQ applies the NEQ predicate on the "reply_to_id" field.
-func ReplyToIDNEQ(v int) predicate.Message {
+func ReplyToIDNEQ(v uuid.UUID) predicate.Message {
 	return predicate.Message(sql.FieldNEQ(FieldReplyToID, v))
 }
 
 // ReplyToIDIn applies the In predicate on the "reply_to_id" field.
-func ReplyToIDIn(vs ...int) predicate.Message {
+func ReplyToIDIn(vs ...uuid.UUID) predicate.Message {
 	return predicate.Message(sql.FieldIn(FieldReplyToID, vs...))
 }
 
 // ReplyToIDNotIn applies the NotIn predicate on the "reply_to_id" field.
-func ReplyToIDNotIn(vs ...int) predicate.Message {
+func ReplyToIDNotIn(vs ...uuid.UUID) predicate.Message {
 	return predicate.Message(sql.FieldNotIn(FieldReplyToID, vs...))
 }
 

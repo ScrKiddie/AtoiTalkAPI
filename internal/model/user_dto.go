@@ -1,29 +1,33 @@
 package model
 
-import "mime/multipart"
+import (
+	"mime/multipart"
+
+	"github.com/google/uuid"
+)
 
 type UserDTO struct {
-	ID               int     `json:"id"`
-	Email            string  `json:"email,omitempty"`
-	Username         string  `json:"username"`
-	FullName         string  `json:"full_name"`
-	Avatar           string  `json:"avatar"`
-	Bio              string  `json:"bio"`
-	HasPassword      bool    `json:"has_password,omitempty"`
-	PrivateChatID    *int    `json:"private_chat_id,omitempty"`
-	IsBlockedByMe    bool    `json:"is_blocked_by_me"`
-	IsBlockedByOther bool    `json:"is_blocked_by_other"`
-	IsOnline         bool    `json:"is_online"`
-	LastSeenAt       *string `json:"last_seen_at,omitempty"`
+	ID               uuid.UUID  `json:"id"`
+	Email            string     `json:"email,omitempty"`
+	Username         string     `json:"username"`
+	FullName         string     `json:"full_name"`
+	Avatar           string     `json:"avatar"`
+	Bio              string     `json:"bio"`
+	HasPassword      bool       `json:"has_password,omitempty"`
+	PrivateChatID    *uuid.UUID `json:"private_chat_id,omitempty"`
+	IsBlockedByMe    bool       `json:"is_blocked_by_me"`
+	IsBlockedByOther bool       `json:"is_blocked_by_other"`
+	IsOnline         bool       `json:"is_online"`
+	LastSeenAt       *string    `json:"last_seen_at,omitempty"`
 }
 
 type UserUpdateEventPayload struct {
-	ID         int     `json:"id"`
-	Username   string  `json:"username"`
-	FullName   string  `json:"full_name"`
-	Avatar     string  `json:"avatar"`
-	Bio        string  `json:"bio"`
-	LastSeenAt *string `json:"last_seen_at,omitempty"`
+	ID         uuid.UUID `json:"id"`
+	Username   string    `json:"username"`
+	FullName   string    `json:"full_name"`
+	Avatar     string    `json:"avatar"`
+	Bio        string    `json:"bio"`
+	LastSeenAt *string   `json:"last_seen_at,omitempty"`
 }
 
 type CreateUserDTO struct {

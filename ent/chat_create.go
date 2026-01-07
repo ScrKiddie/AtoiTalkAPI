@@ -12,9 +12,11 @@ import (
 	"fmt"
 	"time"
 
+	"entgo.io/ent/dialect"
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/google/uuid"
 )
 
 // ChatCreate is the builder for creating a Chat entity.
@@ -60,13 +62,13 @@ func (_c *ChatCreate) SetType(v chat.Type) *ChatCreate {
 }
 
 // SetLastMessageID sets the "last_message_id" field.
-func (_c *ChatCreate) SetLastMessageID(v int) *ChatCreate {
+func (_c *ChatCreate) SetLastMessageID(v uuid.UUID) *ChatCreate {
 	_c.mutation.SetLastMessageID(v)
 	return _c
 }
 
 // SetNillableLastMessageID sets the "last_message_id" field if the given value is not nil.
-func (_c *ChatCreate) SetNillableLastMessageID(v *int) *ChatCreate {
+func (_c *ChatCreate) SetNillableLastMessageID(v *uuid.UUID) *ChatCreate {
 	if v != nil {
 		_c.SetLastMessageID(*v)
 	}
@@ -87,15 +89,29 @@ func (_c *ChatCreate) SetNillableLastMessageAt(v *time.Time) *ChatCreate {
 	return _c
 }
 
+// SetID sets the "id" field.
+func (_c *ChatCreate) SetID(v uuid.UUID) *ChatCreate {
+	_c.mutation.SetID(v)
+	return _c
+}
+
+// SetNillableID sets the "id" field if the given value is not nil.
+func (_c *ChatCreate) SetNillableID(v *uuid.UUID) *ChatCreate {
+	if v != nil {
+		_c.SetID(*v)
+	}
+	return _c
+}
+
 // AddMessageIDs adds the "messages" edge to the Message entity by IDs.
-func (_c *ChatCreate) AddMessageIDs(ids ...int) *ChatCreate {
+func (_c *ChatCreate) AddMessageIDs(ids ...uuid.UUID) *ChatCreate {
 	_c.mutation.AddMessageIDs(ids...)
 	return _c
 }
 
 // AddMessages adds the "messages" edges to the Message entity.
 func (_c *ChatCreate) AddMessages(v ...*Message) *ChatCreate {
-	ids := make([]int, len(v))
+	ids := make([]uuid.UUID, len(v))
 	for i := range v {
 		ids[i] = v[i].ID
 	}
@@ -103,13 +119,13 @@ func (_c *ChatCreate) AddMessages(v ...*Message) *ChatCreate {
 }
 
 // SetPrivateChatID sets the "private_chat" edge to the PrivateChat entity by ID.
-func (_c *ChatCreate) SetPrivateChatID(id int) *ChatCreate {
+func (_c *ChatCreate) SetPrivateChatID(id uuid.UUID) *ChatCreate {
 	_c.mutation.SetPrivateChatID(id)
 	return _c
 }
 
 // SetNillablePrivateChatID sets the "private_chat" edge to the PrivateChat entity by ID if the given value is not nil.
-func (_c *ChatCreate) SetNillablePrivateChatID(id *int) *ChatCreate {
+func (_c *ChatCreate) SetNillablePrivateChatID(id *uuid.UUID) *ChatCreate {
 	if id != nil {
 		_c = _c.SetPrivateChatID(*id)
 	}
@@ -122,13 +138,13 @@ func (_c *ChatCreate) SetPrivateChat(v *PrivateChat) *ChatCreate {
 }
 
 // SetGroupChatID sets the "group_chat" edge to the GroupChat entity by ID.
-func (_c *ChatCreate) SetGroupChatID(id int) *ChatCreate {
+func (_c *ChatCreate) SetGroupChatID(id uuid.UUID) *ChatCreate {
 	_c.mutation.SetGroupChatID(id)
 	return _c
 }
 
 // SetNillableGroupChatID sets the "group_chat" edge to the GroupChat entity by ID if the given value is not nil.
-func (_c *ChatCreate) SetNillableGroupChatID(id *int) *ChatCreate {
+func (_c *ChatCreate) SetNillableGroupChatID(id *uuid.UUID) *ChatCreate {
 	if id != nil {
 		_c = _c.SetGroupChatID(*id)
 	}
@@ -188,6 +204,10 @@ func (_c *ChatCreate) defaults() {
 		v := chat.DefaultUpdatedAt()
 		_c.mutation.SetUpdatedAt(v)
 	}
+	if _, ok := _c.mutation.ID(); !ok {
+		v := chat.DefaultID()
+		_c.mutation.SetID(v)
+	}
 }
 
 // check runs all checks and user-defined validators on the builder.
@@ -220,8 +240,13 @@ func (_c *ChatCreate) sqlSave(ctx context.Context) (*Chat, error) {
 		}
 		return nil, err
 	}
-	id := _spec.ID.Value.(int64)
-	_node.ID = int(id)
+	if _spec.ID.Value != nil {
+		if id, ok := _spec.ID.Value.(*uuid.UUID); ok {
+			_node.ID = *id
+		} else if err := _node.ID.Scan(_spec.ID.Value); err != nil {
+			return nil, err
+		}
+	}
 	_c.mutation.id = &_node.ID
 	_c.mutation.done = true
 	return _node, nil
@@ -230,9 +255,13 @@ func (_c *ChatCreate) sqlSave(ctx context.Context) (*Chat, error) {
 func (_c *ChatCreate) createSpec() (*Chat, *sqlgraph.CreateSpec) {
 	var (
 		_node = &Chat{config: _c.config}
-		_spec = sqlgraph.NewCreateSpec(chat.Table, sqlgraph.NewFieldSpec(chat.FieldID, field.TypeInt))
+		_spec = sqlgraph.NewCreateSpec(chat.Table, sqlgraph.NewFieldSpec(chat.FieldID, field.TypeUUID))
 	)
 	_spec.OnConflict = _c.conflict
+	if id, ok := _c.mutation.ID(); ok {
+		_node.ID = id
+		_spec.ID.Value = &id
+	}
 	if value, ok := _c.mutation.CreatedAt(); ok {
 		_spec.SetField(chat.FieldCreatedAt, field.TypeTime, value)
 		_node.CreatedAt = value
@@ -257,7 +286,7 @@ func (_c *ChatCreate) createSpec() (*Chat, *sqlgraph.CreateSpec) {
 			Columns: []string{chat.MessagesColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(message.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(message.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {
@@ -273,7 +302,7 @@ func (_c *ChatCreate) createSpec() (*Chat, *sqlgraph.CreateSpec) {
 			Columns: []string{chat.PrivateChatColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(privatechat.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(privatechat.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {
@@ -289,7 +318,7 @@ func (_c *ChatCreate) createSpec() (*Chat, *sqlgraph.CreateSpec) {
 			Columns: []string{chat.GroupChatColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(groupchat.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(groupchat.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {
@@ -305,7 +334,7 @@ func (_c *ChatCreate) createSpec() (*Chat, *sqlgraph.CreateSpec) {
 			Columns: []string{chat.LastMessageColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(message.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(message.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {
@@ -379,7 +408,7 @@ func (u *ChatUpsert) UpdateUpdatedAt() *ChatUpsert {
 }
 
 // SetLastMessageID sets the "last_message_id" field.
-func (u *ChatUpsert) SetLastMessageID(v int) *ChatUpsert {
+func (u *ChatUpsert) SetLastMessageID(v uuid.UUID) *ChatUpsert {
 	u.Set(chat.FieldLastMessageID, v)
 	return u
 }
@@ -414,17 +443,23 @@ func (u *ChatUpsert) ClearLastMessageAt() *ChatUpsert {
 	return u
 }
 
-// UpdateNewValues updates the mutable fields using the new values that were set on create.
+// UpdateNewValues updates the mutable fields using the new values that were set on create except the ID field.
 // Using this option is equivalent to using:
 //
 //	client.Chat.Create().
 //		OnConflict(
 //			sql.ResolveWithNewValues(),
+//			sql.ResolveWith(func(u *sql.UpdateSet) {
+//				u.SetIgnore(chat.FieldID)
+//			}),
 //		).
 //		Exec(ctx)
 func (u *ChatUpsertOne) UpdateNewValues() *ChatUpsertOne {
 	u.create.conflict = append(u.create.conflict, sql.ResolveWithNewValues())
 	u.create.conflict = append(u.create.conflict, sql.ResolveWith(func(s *sql.UpdateSet) {
+		if _, exists := u.create.mutation.ID(); exists {
+			s.SetIgnore(chat.FieldID)
+		}
 		if _, exists := u.create.mutation.CreatedAt(); exists {
 			s.SetIgnore(chat.FieldCreatedAt)
 		}
@@ -477,7 +512,7 @@ func (u *ChatUpsertOne) UpdateUpdatedAt() *ChatUpsertOne {
 }
 
 // SetLastMessageID sets the "last_message_id" field.
-func (u *ChatUpsertOne) SetLastMessageID(v int) *ChatUpsertOne {
+func (u *ChatUpsertOne) SetLastMessageID(v uuid.UUID) *ChatUpsertOne {
 	return u.Update(func(s *ChatUpsert) {
 		s.SetLastMessageID(v)
 	})
@@ -534,7 +569,12 @@ func (u *ChatUpsertOne) ExecX(ctx context.Context) {
 }
 
 // Exec executes the UPSERT query and returns the inserted/updated ID.
-func (u *ChatUpsertOne) ID(ctx context.Context) (id int, err error) {
+func (u *ChatUpsertOne) ID(ctx context.Context) (id uuid.UUID, err error) {
+	if u.create.driver.Dialect() == dialect.MySQL {
+		// In case of "ON CONFLICT", there is no way to get back non-numeric ID
+		// fields from the database since MySQL does not support the RETURNING clause.
+		return id, errors.New("ent: ChatUpsertOne.ID is not supported by MySQL driver. Use ChatUpsertOne.Exec instead")
+	}
 	node, err := u.create.Save(ctx)
 	if err != nil {
 		return id, err
@@ -543,7 +583,7 @@ func (u *ChatUpsertOne) ID(ctx context.Context) (id int, err error) {
 }
 
 // IDX is like ID, but panics if an error occurs.
-func (u *ChatUpsertOne) IDX(ctx context.Context) int {
+func (u *ChatUpsertOne) IDX(ctx context.Context) uuid.UUID {
 	id, err := u.ID(ctx)
 	if err != nil {
 		panic(err)
@@ -598,10 +638,6 @@ func (_c *ChatCreateBulk) Save(ctx context.Context) ([]*Chat, error) {
 					return nil, err
 				}
 				mutation.id = &nodes[i].ID
-				if specs[i].ID.Value != nil {
-					id := specs[i].ID.Value.(int64)
-					nodes[i].ID = int(id)
-				}
 				mutation.done = true
 				return nodes[i], nil
 			})
@@ -688,12 +724,18 @@ type ChatUpsertBulk struct {
 //	client.Chat.Create().
 //		OnConflict(
 //			sql.ResolveWithNewValues(),
+//			sql.ResolveWith(func(u *sql.UpdateSet) {
+//				u.SetIgnore(chat.FieldID)
+//			}),
 //		).
 //		Exec(ctx)
 func (u *ChatUpsertBulk) UpdateNewValues() *ChatUpsertBulk {
 	u.create.conflict = append(u.create.conflict, sql.ResolveWithNewValues())
 	u.create.conflict = append(u.create.conflict, sql.ResolveWith(func(s *sql.UpdateSet) {
 		for _, b := range u.create.builders {
+			if _, exists := b.mutation.ID(); exists {
+				s.SetIgnore(chat.FieldID)
+			}
 			if _, exists := b.mutation.CreatedAt(); exists {
 				s.SetIgnore(chat.FieldCreatedAt)
 			}
@@ -747,7 +789,7 @@ func (u *ChatUpsertBulk) UpdateUpdatedAt() *ChatUpsertBulk {
 }
 
 // SetLastMessageID sets the "last_message_id" field.
-func (u *ChatUpsertBulk) SetLastMessageID(v int) *ChatUpsertBulk {
+func (u *ChatUpsertBulk) SetLastMessageID(v uuid.UUID) *ChatUpsertBulk {
 	return u.Update(func(s *ChatUpsert) {
 		s.SetLastMessageID(v)
 	})

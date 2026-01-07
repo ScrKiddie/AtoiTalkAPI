@@ -12,23 +12,24 @@ import (
 
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
+	"github.com/google/uuid"
 )
 
 // GroupChat is the model entity for the GroupChat schema.
 type GroupChat struct {
 	config `json:"-"`
 	// ID of the ent.
-	ID int `json:"id,omitempty"`
+	ID uuid.UUID `json:"id,omitempty"`
 	// ChatID holds the value of the "chat_id" field.
-	ChatID int `json:"chat_id,omitempty"`
+	ChatID uuid.UUID `json:"chat_id,omitempty"`
 	// CreatedBy holds the value of the "created_by" field.
-	CreatedBy *int `json:"created_by,omitempty"`
+	CreatedBy *uuid.UUID `json:"created_by,omitempty"`
 	// Name holds the value of the "name" field.
 	Name string `json:"name,omitempty"`
 	// Description holds the value of the "description" field.
 	Description *string `json:"description,omitempty"`
 	// AvatarID holds the value of the "avatar_id" field.
-	AvatarID *int `json:"avatar_id,omitempty"`
+	AvatarID *uuid.UUID `json:"avatar_id,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the GroupChatQuery when eager-loading is set.
 	Edges        GroupChatEdges `json:"edges"`
@@ -97,10 +98,12 @@ func (*GroupChat) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case groupchat.FieldID, groupchat.FieldChatID, groupchat.FieldCreatedBy, groupchat.FieldAvatarID:
-			values[i] = new(sql.NullInt64)
+		case groupchat.FieldCreatedBy, groupchat.FieldAvatarID:
+			values[i] = &sql.NullScanner{S: new(uuid.UUID)}
 		case groupchat.FieldName, groupchat.FieldDescription:
 			values[i] = new(sql.NullString)
+		case groupchat.FieldID, groupchat.FieldChatID:
+			values[i] = new(uuid.UUID)
 		default:
 			values[i] = new(sql.UnknownType)
 		}
@@ -117,23 +120,23 @@ func (_m *GroupChat) assignValues(columns []string, values []any) error {
 	for i := range columns {
 		switch columns[i] {
 		case groupchat.FieldID:
-			value, ok := values[i].(*sql.NullInt64)
-			if !ok {
-				return fmt.Errorf("unexpected type %T for field id", value)
+			if value, ok := values[i].(*uuid.UUID); !ok {
+				return fmt.Errorf("unexpected type %T for field id", values[i])
+			} else if value != nil {
+				_m.ID = *value
 			}
-			_m.ID = int(value.Int64)
 		case groupchat.FieldChatID:
-			if value, ok := values[i].(*sql.NullInt64); !ok {
+			if value, ok := values[i].(*uuid.UUID); !ok {
 				return fmt.Errorf("unexpected type %T for field chat_id", values[i])
-			} else if value.Valid {
-				_m.ChatID = int(value.Int64)
+			} else if value != nil {
+				_m.ChatID = *value
 			}
 		case groupchat.FieldCreatedBy:
-			if value, ok := values[i].(*sql.NullInt64); !ok {
+			if value, ok := values[i].(*sql.NullScanner); !ok {
 				return fmt.Errorf("unexpected type %T for field created_by", values[i])
 			} else if value.Valid {
-				_m.CreatedBy = new(int)
-				*_m.CreatedBy = int(value.Int64)
+				_m.CreatedBy = new(uuid.UUID)
+				*_m.CreatedBy = *value.S.(*uuid.UUID)
 			}
 		case groupchat.FieldName:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -149,11 +152,11 @@ func (_m *GroupChat) assignValues(columns []string, values []any) error {
 				*_m.Description = value.String
 			}
 		case groupchat.FieldAvatarID:
-			if value, ok := values[i].(*sql.NullInt64); !ok {
+			if value, ok := values[i].(*sql.NullScanner); !ok {
 				return fmt.Errorf("unexpected type %T for field avatar_id", values[i])
 			} else if value.Valid {
-				_m.AvatarID = new(int)
-				*_m.AvatarID = int(value.Int64)
+				_m.AvatarID = new(uuid.UUID)
+				*_m.AvatarID = *value.S.(*uuid.UUID)
 			}
 		default:
 			_m.selectValues.Set(columns[i], values[i])

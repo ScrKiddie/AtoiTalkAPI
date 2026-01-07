@@ -8,60 +8,61 @@ import (
 
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
+	"github.com/google/uuid"
 )
 
 // ID filters vertices based on their ID field.
-func ID(id int) predicate.GroupMember {
+func ID(id uuid.UUID) predicate.GroupMember {
 	return predicate.GroupMember(sql.FieldEQ(FieldID, id))
 }
 
 // IDEQ applies the EQ predicate on the ID field.
-func IDEQ(id int) predicate.GroupMember {
+func IDEQ(id uuid.UUID) predicate.GroupMember {
 	return predicate.GroupMember(sql.FieldEQ(FieldID, id))
 }
 
 // IDNEQ applies the NEQ predicate on the ID field.
-func IDNEQ(id int) predicate.GroupMember {
+func IDNEQ(id uuid.UUID) predicate.GroupMember {
 	return predicate.GroupMember(sql.FieldNEQ(FieldID, id))
 }
 
 // IDIn applies the In predicate on the ID field.
-func IDIn(ids ...int) predicate.GroupMember {
+func IDIn(ids ...uuid.UUID) predicate.GroupMember {
 	return predicate.GroupMember(sql.FieldIn(FieldID, ids...))
 }
 
 // IDNotIn applies the NotIn predicate on the ID field.
-func IDNotIn(ids ...int) predicate.GroupMember {
+func IDNotIn(ids ...uuid.UUID) predicate.GroupMember {
 	return predicate.GroupMember(sql.FieldNotIn(FieldID, ids...))
 }
 
 // IDGT applies the GT predicate on the ID field.
-func IDGT(id int) predicate.GroupMember {
+func IDGT(id uuid.UUID) predicate.GroupMember {
 	return predicate.GroupMember(sql.FieldGT(FieldID, id))
 }
 
 // IDGTE applies the GTE predicate on the ID field.
-func IDGTE(id int) predicate.GroupMember {
+func IDGTE(id uuid.UUID) predicate.GroupMember {
 	return predicate.GroupMember(sql.FieldGTE(FieldID, id))
 }
 
 // IDLT applies the LT predicate on the ID field.
-func IDLT(id int) predicate.GroupMember {
+func IDLT(id uuid.UUID) predicate.GroupMember {
 	return predicate.GroupMember(sql.FieldLT(FieldID, id))
 }
 
 // IDLTE applies the LTE predicate on the ID field.
-func IDLTE(id int) predicate.GroupMember {
+func IDLTE(id uuid.UUID) predicate.GroupMember {
 	return predicate.GroupMember(sql.FieldLTE(FieldID, id))
 }
 
 // GroupChatID applies equality check predicate on the "group_chat_id" field. It's identical to GroupChatIDEQ.
-func GroupChatID(v int) predicate.GroupMember {
+func GroupChatID(v uuid.UUID) predicate.GroupMember {
 	return predicate.GroupMember(sql.FieldEQ(FieldGroupChatID, v))
 }
 
 // UserID applies equality check predicate on the "user_id" field. It's identical to UserIDEQ.
-func UserID(v int) predicate.GroupMember {
+func UserID(v uuid.UUID) predicate.GroupMember {
 	return predicate.GroupMember(sql.FieldEQ(FieldUserID, v))
 }
 
@@ -81,42 +82,42 @@ func UnreadCount(v int) predicate.GroupMember {
 }
 
 // GroupChatIDEQ applies the EQ predicate on the "group_chat_id" field.
-func GroupChatIDEQ(v int) predicate.GroupMember {
+func GroupChatIDEQ(v uuid.UUID) predicate.GroupMember {
 	return predicate.GroupMember(sql.FieldEQ(FieldGroupChatID, v))
 }
 
 // GroupChatIDNEQ applies the NEQ predicate on the "group_chat_id" field.
-func GroupChatIDNEQ(v int) predicate.GroupMember {
+func GroupChatIDNEQ(v uuid.UUID) predicate.GroupMember {
 	return predicate.GroupMember(sql.FieldNEQ(FieldGroupChatID, v))
 }
 
 // GroupChatIDIn applies the In predicate on the "group_chat_id" field.
-func GroupChatIDIn(vs ...int) predicate.GroupMember {
+func GroupChatIDIn(vs ...uuid.UUID) predicate.GroupMember {
 	return predicate.GroupMember(sql.FieldIn(FieldGroupChatID, vs...))
 }
 
 // GroupChatIDNotIn applies the NotIn predicate on the "group_chat_id" field.
-func GroupChatIDNotIn(vs ...int) predicate.GroupMember {
+func GroupChatIDNotIn(vs ...uuid.UUID) predicate.GroupMember {
 	return predicate.GroupMember(sql.FieldNotIn(FieldGroupChatID, vs...))
 }
 
 // UserIDEQ applies the EQ predicate on the "user_id" field.
-func UserIDEQ(v int) predicate.GroupMember {
+func UserIDEQ(v uuid.UUID) predicate.GroupMember {
 	return predicate.GroupMember(sql.FieldEQ(FieldUserID, v))
 }
 
 // UserIDNEQ applies the NEQ predicate on the "user_id" field.
-func UserIDNEQ(v int) predicate.GroupMember {
+func UserIDNEQ(v uuid.UUID) predicate.GroupMember {
 	return predicate.GroupMember(sql.FieldNEQ(FieldUserID, v))
 }
 
 // UserIDIn applies the In predicate on the "user_id" field.
-func UserIDIn(vs ...int) predicate.GroupMember {
+func UserIDIn(vs ...uuid.UUID) predicate.GroupMember {
 	return predicate.GroupMember(sql.FieldIn(FieldUserID, vs...))
 }
 
 // UserIDNotIn applies the NotIn predicate on the "user_id" field.
-func UserIDNotIn(vs ...int) predicate.GroupMember {
+func UserIDNotIn(vs ...uuid.UUID) predicate.GroupMember {
 	return predicate.GroupMember(sql.FieldNotIn(FieldUserID, vs...))
 }
 
