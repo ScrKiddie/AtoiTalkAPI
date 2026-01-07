@@ -109,6 +109,9 @@ func (route *Route) Register() {
 			r.With(middleware.MaxBodySize(3*1024*1024)).Put("/chats/group/{groupID}", route.groupChatController.UpdateGroupChat)
 			r.Get("/chats/group/{groupID}/members", route.groupChatController.SearchGroupMembers)
 			r.Post("/chats/group/{groupID}/members", route.groupChatController.AddMember)
+			r.Post("/chats/group/{groupID}/leave", route.groupChatController.LeaveGroup)
+			r.Put("/chats/group/{groupID}/members/{userID}/role", route.groupChatController.UpdateMemberRole)
+			r.Post("/chats/group/{groupID}/transfer", route.groupChatController.TransferOwnership)
 
 			r.Post("/messages", route.messageController.SendMessage)
 			r.Put("/messages/{messageID}", route.messageController.EditMessage)

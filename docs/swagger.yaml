@@ -76,6 +76,8 @@ definitions:
         $ref: '#/definitions/model.MessageResponse'
       last_read_at:
         type: string
+      my_role:
+        type: string
       name:
         type: string
       other_last_read_at:
@@ -296,6 +298,23 @@ definitions:
     - captcha_token
     - email
     - mode
+    type: object
+  model.TransferGroupOwnershipRequest:
+    properties:
+      new_owner_id:
+        type: integer
+    required:
+    - new_owner_id
+    type: object
+  model.UpdateGroupMemberRoleRequest:
+    properties:
+      role:
+        enum:
+        - admin
+        - member
+        type: string
+    required:
+    - role
     type: object
   model.UserDTO:
     properties:
@@ -899,6 +918,46 @@ paths:
       summary: Update Group Chat Info
       tags:
       - chat
+  /api/chats/group/{groupID}/leave:
+    post:
+      consumes:
+      - application/json
+      description: Leave a group chat. Owner cannot leave without transferring ownership
+        first.
+      parameters:
+      - description: Group Chat ID
+        in: path
+        name: groupID
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/helper.ResponseSuccess'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
+      security:
+      - BearerAuth: []
+      summary: Leave Group
+      tags:
+      - chat
   /api/chats/group/{groupID}/members:
     get:
       consumes:
@@ -1012,6 +1071,110 @@ paths:
       security:
       - BearerAuth: []
       summary: Add Member to Group
+      tags:
+      - chat
+  /api/chats/group/{groupID}/members/{userID}/role:
+    put:
+      consumes:
+      - application/json
+      description: Promote or demote a group member. Only owner can perform this action.
+      parameters:
+      - description: Group Chat ID
+        in: path
+        name: groupID
+        required: true
+        type: integer
+      - description: Target User ID
+        in: path
+        name: userID
+        required: true
+        type: integer
+      - description: Update Role Request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.UpdateGroupMemberRoleRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/helper.ResponseSuccess'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
+      security:
+      - BearerAuth: []
+      summary: Update Member Role
+      tags:
+      - chat
+  /api/chats/group/{groupID}/transfer:
+    post:
+      consumes:
+      - application/json
+      description: Transfer group ownership to another member. Only owner can perform
+        this action.
+      parameters:
+      - description: Group Chat ID
+        in: path
+        name: groupID
+        required: true
+        type: integer
+      - description: Transfer Ownership Request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.TransferGroupOwnershipRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/helper.ResponseSuccess'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
+      security:
+      - BearerAuth: []
+      summary: Transfer Ownership
       tags:
       - chat
   /api/chats/private:

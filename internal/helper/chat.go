@@ -19,7 +19,9 @@ func MapChatToResponse(userID int, c *ent.Chat, blockedMap map[int]BlockStatus, 
 	var unreadCount int
 	var isOnline bool
 	var otherUserID *int
+	var otherUsername *string
 	var isBlockedByMe bool
+	var myRole *string
 
 	if c.Type == chat.TypePrivate && c.Edges.PrivateChat != nil {
 		pc := c.Edges.PrivateChat
@@ -41,6 +43,7 @@ func MapChatToResponse(userID int, c *ent.Chat, blockedMap map[int]BlockStatus, 
 
 		if otherUser != nil {
 			otherUserID = &otherUser.ID
+			otherUsername = &otherUser.Username
 			name = otherUser.FullName
 
 			status := blockedMap[otherUser.ID]
@@ -73,10 +76,14 @@ func MapChatToResponse(userID int, c *ent.Chat, blockedMap map[int]BlockStatus, 
 		if gc.Edges.Avatar != nil {
 			avatar = BuildImageURL(storageMode, appURL, cdnURL, storageProfile, gc.Edges.Avatar.FileName)
 		}
+
 		if len(gc.Edges.Members) > 0 {
-			unreadCount = gc.Edges.Members[0].UnreadCount
-			if gc.Edges.Members[0].LastReadAt != nil {
-				t := gc.Edges.Members[0].LastReadAt.Format(time.RFC3339)
+			member := gc.Edges.Members[0]
+			unreadCount = member.UnreadCount
+			roleStr := string(member.Role)
+			myRole = &roleStr
+			if member.LastReadAt != nil {
+				t := member.LastReadAt.Format(time.RFC3339)
 				lastReadAt = &t
 			}
 		}
@@ -98,6 +105,8 @@ func MapChatToResponse(userID int, c *ent.Chat, blockedMap map[int]BlockStatus, 
 		OtherLastReadAt: otherLastReadAt,
 		IsOnline:        isOnline,
 		OtherUserID:     otherUserID,
+		OtherUsername:   otherUsername,
 		IsBlockedByMe:   isBlockedByMe,
+		MyRole:          myRole,
 	}
 }

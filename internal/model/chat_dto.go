@@ -29,4 +29,5 @@ type ChatListResponse struct {
 	OtherUserID     *int             `json:"other_user_id,omitempty"`
 	OtherUsername   *string          `json:"other_username,omitempty"`
 	IsBlockedByMe   bool             `json:"is_blocked_by_me,omitempty"`
+	MyRole          *string          `json:"my_role,omitempty"`
 }

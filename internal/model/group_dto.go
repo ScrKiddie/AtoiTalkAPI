@@ -26,6 +26,14 @@ type AddGroupMemberRequest struct {
 	Usernames []string `json:"usernames" validate:"required,min=1,dive,min=3,max=50"`
 }
 
+type UpdateGroupMemberRoleRequest struct {
+	Role string `json:"role" validate:"required,oneof=admin member"`
+}
+
+type TransferGroupOwnershipRequest struct {
+	NewOwnerID int `json:"new_owner_id" validate:"required,gt=0"`
+}
+
 type GroupMemberDTO struct {
 	ID       int     `json:"id"`
 	UserID   int     `json:"user_id"`

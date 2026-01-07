@@ -120,7 +120,6 @@ func (c *GroupChatController) UpdateGroupChat(w http.ResponseWriter, r *http.Req
 	if err := r.ParseMultipartForm(32 << 20); err != nil {
 		helper.WriteError(w, helper.NewBadRequestError("Failed to parse form data"))
 		return
-
 	}
 
 	var req model.UpdateGroupChatRequest
@@ -246,6 +245,137 @@ func (c *GroupChatController) AddMember(w http.ResponseWriter, r *http.Request) 
 	}
 
 	err = c.groupChatService.AddMember(r.Context(), userContext.ID, groupID, req)
+	if err != nil {
+		helper.WriteError(w, err)
+		return
+	}
+
+	helper.WriteSuccess(w, nil)
+}
+
+// LeaveGroup godoc
+// @Summary      Leave Group
+// @Description  Leave a group chat. Owner cannot leave without transferring ownership first.
+// @Tags         chat
+// @Accept       json
+// @Produce      json
+// @Param        groupID path int true "Group Chat ID"
+// @Success      200  {object}  helper.ResponseSuccess
+// @Failure      400  {object}  helper.ResponseError
+// @Failure      401  {object}  helper.ResponseError
+// @Failure      404  {object}  helper.ResponseError
+// @Failure      500  {object}  helper.ResponseError
+// @Security     BearerAuth
+// @Router       /api/chats/group/{groupID}/leave [post]
+func (c *GroupChatController) LeaveGroup(w http.ResponseWriter, r *http.Request) {
+	userContext, ok := r.Context().Value(middleware.UserContextKey).(*model.UserDTO)
+	if !ok {
+		helper.WriteError(w, helper.NewUnauthorizedError(""))
+		return
+	}
+
+	groupID, err := strconv.Atoi(chi.URLParam(r, "groupID"))
+	if err != nil {
+		helper.WriteError(w, helper.NewBadRequestError(""))
+		return
+	}
+
+	err = c.groupChatService.LeaveGroup(r.Context(), userContext.ID, groupID)
+	if err != nil {
+		helper.WriteError(w, err)
+		return
+	}
+
+	helper.WriteSuccess(w, nil)
+}
+
+// UpdateMemberRole godoc
+// @Summary      Update Member Role
+// @Description  Promote or demote a group member. Only owner can perform this action.
+// @Tags         chat
+// @Accept       json
+// @Produce      json
+// @Param        groupID path int true "Group Chat ID"
+// @Param        userID path int true "Target User ID"
+// @Param        request body model.UpdateGroupMemberRoleRequest true "Update Role Request"
+// @Success      200  {object}  helper.ResponseSuccess
+// @Failure      400  {object}  helper.ResponseError
+// @Failure      401  {object}  helper.ResponseError
+// @Failure      403  {object}  helper.ResponseError
+// @Failure      404  {object}  helper.ResponseError
+// @Failure      500  {object}  helper.ResponseError
+// @Security     BearerAuth
+// @Router       /api/chats/group/{groupID}/members/{userID}/role [put]
+func (c *GroupChatController) UpdateMemberRole(w http.ResponseWriter, r *http.Request) {
+	userContext, ok := r.Context().Value(middleware.UserContextKey).(*model.UserDTO)
+	if !ok {
+		helper.WriteError(w, helper.NewUnauthorizedError(""))
+		return
+	}
+
+	groupID, err := strconv.Atoi(chi.URLParam(r, "groupID"))
+	if err != nil {
+		helper.WriteError(w, helper.NewBadRequestError(""))
+		return
+	}
+
+	targetUserID, err := strconv.Atoi(chi.URLParam(r, "userID"))
+	if err != nil {
+		helper.WriteError(w, helper.NewBadRequestError(""))
+		return
+	}
+
+	var req model.UpdateGroupMemberRoleRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		helper.WriteError(w, helper.NewBadRequestError(""))
+		return
+	}
+
+	err = c.groupChatService.UpdateMemberRole(r.Context(), userContext.ID, groupID, targetUserID, req)
+	if err != nil {
+		helper.WriteError(w, err)
+		return
+	}
+
+	helper.WriteSuccess(w, nil)
+}
+
+// TransferOwnership godoc
+// @Summary      Transfer Ownership
+// @Description  Transfer group ownership to another member. Only owner can perform this action.
+// @Tags         chat
+// @Accept       json
+// @Produce      json
+// @Param        groupID path int true "Group Chat ID"
+// @Param        request body model.TransferGroupOwnershipRequest true "Transfer Ownership Request"
+// @Success      200  {object}  helper.ResponseSuccess
+// @Failure      400  {object}  helper.ResponseError
+// @Failure      401  {object}  helper.ResponseError
+// @Failure      403  {object}  helper.ResponseError
+// @Failure      404  {object}  helper.ResponseError
+// @Failure      500  {object}  helper.ResponseError
+// @Security     BearerAuth
+// @Router       /api/chats/group/{groupID}/transfer [post]
+func (c *GroupChatController) TransferOwnership(w http.ResponseWriter, r *http.Request) {
+	userContext, ok := r.Context().Value(middleware.UserContextKey).(*model.UserDTO)
+	if !ok {
+		helper.WriteError(w, helper.NewUnauthorizedError(""))
+		return
+	}
+
+	groupID, err := strconv.Atoi(chi.URLParam(r, "groupID"))
+	if err != nil {
+		helper.WriteError(w, helper.NewBadRequestError(""))
+		return
+	}
+
+	var req model.TransferGroupOwnershipRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		helper.WriteError(w, helper.NewBadRequestError(""))
+		return
+	}
+
+	err = c.groupChatService.TransferOwnership(r.Context(), userContext.ID, groupID, req)
 	if err != nil {
 		helper.WriteError(w, err)
 		return
