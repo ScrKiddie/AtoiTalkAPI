@@ -86,6 +86,71 @@ func (c *GroupChatController) CreateGroupChat(w http.ResponseWriter, r *http.Req
 	helper.WriteSuccess(w, resp)
 }
 
+// UpdateGroupChat godoc
+// @Summary      Update Group Chat Info
+// @Description  Update group name, description, or avatar. Only owners or admins can perform this action.
+// @Tags         chat
+// @Accept       multipart/form-data
+// @Produce      json
+// @Param        groupID path int true "Group Chat ID"
+// @Param        name formData string false "Group Name"
+// @Param        description formData string false "Group Description"
+// @Param        avatar formData file false "Group Avatar Image"
+// @Success      200  {object}  helper.ResponseSuccess{data=model.ChatListResponse}
+// @Failure      400  {object}  helper.ResponseError
+// @Failure      401  {object}  helper.ResponseError
+// @Failure      403  {object}  helper.ResponseError
+// @Failure      404  {object}  helper.ResponseError
+// @Failure      500  {object}  helper.ResponseError
+// @Security     BearerAuth
+// @Router       /api/chats/group/{groupID} [put]
+func (c *GroupChatController) UpdateGroupChat(w http.ResponseWriter, r *http.Request) {
+	userContext, ok := r.Context().Value(middleware.UserContextKey).(*model.UserDTO)
+	if !ok {
+		helper.WriteError(w, helper.NewUnauthorizedError(""))
+		return
+	}
+
+	groupID, err := strconv.Atoi(chi.URLParam(r, "groupID"))
+	if err != nil {
+		helper.WriteError(w, helper.NewBadRequestError(""))
+		return
+	}
+
+	if err := r.ParseMultipartForm(32 << 20); err != nil {
+		helper.WriteError(w, helper.NewBadRequestError("Failed to parse form data"))
+		return
+
+	}
+
+	var req model.UpdateGroupChatRequest
+
+	if _, ok := r.MultipartForm.Value["name"]; ok {
+		name := r.FormValue("name")
+		req.Name = &name
+	}
+	if _, ok := r.MultipartForm.Value["description"]; ok {
+		desc := r.FormValue("description")
+		req.Description = &desc
+	}
+
+	_, header, err := r.FormFile("avatar")
+	if err == nil {
+		req.Avatar = header
+	} else if err != http.ErrMissingFile {
+		helper.WriteError(w, helper.NewBadRequestError("Failed to process avatar file"))
+		return
+	}
+
+	resp, err := c.groupChatService.UpdateGroupChat(r.Context(), userContext.ID, groupID, req)
+	if err != nil {
+		helper.WriteError(w, err)
+		return
+	}
+
+	helper.WriteSuccess(w, resp)
+}
+
 // SearchGroupMembers godoc
 // @Summary      Search Group Members
 // @Description  Search for members in a group chat by username or full name.

@@ -404,7 +404,7 @@ func TestWebSocketBlockUnblockSync(t *testing.T) {
 
 	time.Sleep(100 * time.Millisecond)
 
-	req, _ := http.NewRequest("POST", fmt.Sprintf("/api/users/@%s/block", user2.Username), nil)
+	req, _ := http.NewRequest("POST", fmt.Sprintf("/api/users/%s/block", user2.Username), nil)
 	req.Header.Set("Authorization", "Bearer "+token1)
 	executeRequest(req)
 
@@ -412,7 +412,7 @@ func TestWebSocketBlockUnblockSync(t *testing.T) {
 	verifyEvent(t, conn1B, websocket.EventUserBlock, user1.ID, user2.ID)
 	verifyEvent(t, conn2, websocket.EventUserBlock, user1.ID, user2.ID)
 
-	reqUnblock, _ := http.NewRequest("POST", fmt.Sprintf("/api/users/@%s/unblock", user2.Username), nil)
+	reqUnblock, _ := http.NewRequest("POST", fmt.Sprintf("/api/users/%s/unblock", user2.Username), nil)
 	reqUnblock.Header.Set("Authorization", "Bearer "+token1)
 	executeRequest(reqUnblock)
 
@@ -695,6 +695,63 @@ func TestWebSocketAddGroupMember(t *testing.T) {
 	verifyEvent(t, conn1, websocket.EventMessageNew, u1.ID, 0)
 	verifyEvent(t, conn2, websocket.EventMessageNew, u1.ID, 0)
 	verifyEvent(t, conn3, websocket.EventMessageNew, u1.ID, 0)
+}
+
+func TestWebSocketUpdateGroupChat(t *testing.T) {
+	clearDatabase(context.Background())
+	u1 := createWSUser(t, "u1", "u1@test.com")
+	u2 := createWSUser(t, "u2", "u2@test.com")
+	token1, _ := helper.GenerateJWT(testConfig.JWTSecret, testConfig.JWTExp, u1.ID)
+	token2, _ := helper.GenerateJWT(testConfig.JWTSecret, testConfig.JWTExp, u2.ID)
+
+	body := &bytes.Buffer{}
+	writer := multipart.NewWriter(body)
+	_ = writer.WriteField("name", "Update WS Test")
+	usernamesJSON, _ := json.Marshal([]string{u2.Username})
+	_ = writer.WriteField("member_usernames", string(usernamesJSON))
+	writer.Close()
+	req, _ := http.NewRequest("POST", "/api/chats/group", body)
+	req.Header.Set("Content-Type", writer.FormDataContentType())
+	req.Header.Set("Authorization", "Bearer "+token1)
+	rr := executeRequest(req)
+	var chatResp helper.ResponseSuccess
+	json.Unmarshal(rr.Body.Bytes(), &chatResp)
+	chatID := int(chatResp.Data.(map[string]interface{})["id"].(float64))
+
+	server := httptest.NewServer(testRouter)
+	defer server.Close()
+	wsURL1 := "ws" + strings.TrimPrefix(server.URL, "http") + "/ws?token=" + token1
+	wsURL2 := "ws" + strings.TrimPrefix(server.URL, "http") + "/ws?token=" + token2
+
+	conn1, _, _ := ws.DefaultDialer.Dial(wsURL1, nil)
+	defer conn1.Close()
+	conn2, _, _ := ws.DefaultDialer.Dial(wsURL2, nil)
+	defer conn2.Close()
+
+	time.Sleep(100 * time.Millisecond)
+
+	updateBody := &bytes.Buffer{}
+	updateWriter := multipart.NewWriter(updateBody)
+	_ = updateWriter.WriteField("name", "New Group Name")
+	updateWriter.Close()
+
+	updateReq, _ := http.NewRequest("PUT", fmt.Sprintf("/api/chats/group/%d", chatID), updateBody)
+	updateReq.Header.Set("Content-Type", updateWriter.FormDataContentType())
+	updateReq.Header.Set("Authorization", "Bearer "+token1)
+	executeRequest(updateReq)
+
+	conn2.SetReadDeadline(time.Now().UTC().Add(2 * time.Second))
+	eventsReceived := make(map[websocket.EventType]bool)
+	for i := 0; i < 2; i++ {
+		_, msg, err := conn2.ReadMessage()
+		if err == nil {
+			var event websocket.Event
+			json.Unmarshal(msg, &event)
+			eventsReceived[event.Type] = true
+		}
+	}
+	assert.True(t, eventsReceived[websocket.EventChatNew], "User 2 should receive chat.new")
+	assert.True(t, eventsReceived[websocket.EventMessageNew], "User 2 should receive message.new")
 }
 
 func createWSUser(t *testing.T, username, email string) *ent.User {

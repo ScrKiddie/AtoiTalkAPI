@@ -62,7 +62,7 @@ func (c *UserController) GetCurrentUser(w http.ResponseWriter, r *http.Request) 
 // @Failure      404  {object}  helper.ResponseError
 // @Failure      500  {object}  helper.ResponseError
 // @Security     BearerAuth
-// @Router       /api/users/@{username} [get]
+// @Router       /api/users/{username} [get]
 func (c *UserController) GetUserProfile(w http.ResponseWriter, r *http.Request) {
 	userContext, ok := r.Context().Value(middleware.UserContextKey).(*model.UserDTO)
 	if !ok {
@@ -254,7 +254,7 @@ func (c *UserController) GetBlockedUsers(w http.ResponseWriter, r *http.Request)
 // @Failure      404  {object}  helper.ResponseError
 // @Failure      500  {object}  helper.ResponseError
 // @Security     BearerAuth
-// @Router       /api/users/@{username}/block [post]
+// @Router       /api/users/{username}/block [post]
 func (c *UserController) BlockUser(w http.ResponseWriter, r *http.Request) {
 	userContext, ok := r.Context().Value(middleware.UserContextKey).(*model.UserDTO)
 	if !ok {
@@ -288,7 +288,7 @@ func (c *UserController) BlockUser(w http.ResponseWriter, r *http.Request) {
 // @Failure      401  {object}  helper.ResponseError
 // @Failure      500  {object}  helper.ResponseError
 // @Security     BearerAuth
-// @Router       /api/users/@{username}/unblock [post]
+// @Router       /api/users/{username}/unblock [post]
 func (c *UserController) UnblockUser(w http.ResponseWriter, r *http.Request) {
 	userContext, ok := r.Context().Value(middleware.UserContextKey).(*model.UserDTO)
 	if !ok {

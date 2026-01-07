@@ -88,10 +88,10 @@ func (route *Route) Register() {
 			r.Use(route.authMiddleware.VerifyToken)
 			r.Get("/user/current", route.userController.GetCurrentUser)
 			r.Get("/users/blocked", route.userController.GetBlockedUsers)
-			r.Get("/users/@{username}", route.userController.GetUserProfile)
+			r.Get("/users/{username}", route.userController.GetUserProfile)
 			r.Get("/users", route.userController.SearchUsers)
-			r.Post("/users/@{username}/block", route.userController.BlockUser)
-			r.Post("/users/@{username}/unblock", route.userController.UnblockUser)
+			r.Post("/users/{username}/block", route.userController.BlockUser)
+			r.Post("/users/{username}/unblock", route.userController.UnblockUser)
 
 			r.With(middleware.MaxBodySize(3*1024*1024)).Put("/user/profile", route.userController.UpdateProfile)
 
@@ -106,6 +106,7 @@ func (route *Route) Register() {
 
 			r.Post("/chats/private", route.privateChatController.CreatePrivateChat)
 			r.With(middleware.MaxBodySize(3*1024*1024)).Post("/chats/group", route.groupChatController.CreateGroupChat)
+			r.With(middleware.MaxBodySize(3*1024*1024)).Put("/chats/group/{groupID}", route.groupChatController.UpdateGroupChat)
 			r.Get("/chats/group/{groupID}/members", route.groupChatController.SearchGroupMembers)
 			r.Post("/chats/group/{groupID}/members", route.groupChatController.AddMember)
 

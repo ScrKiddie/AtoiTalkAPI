@@ -494,8 +494,8 @@ const docTemplate = `{
                     },
                     {
                         "type": "string",
-                        "description": "JSON Array of Member IDs (e.g. [1, 2, 3])",
-                        "name": "member_ids",
+                        "description": "JSON Array of Member Usernames (e.g. [\\",
+                        "name": "member_usernames",
                         "in": "formData",
                         "required": true
                     },
@@ -539,6 +539,103 @@ const docTemplate = `{
                     },
                     "403": {
                         "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/chats/group/{groupID}": {
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Update group name, description, or avatar. Only owners or admins can perform this action.",
+                "consumes": [
+                    "multipart/form-data"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "chat"
+                ],
+                "summary": "Update Group Chat Info",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Group Chat ID",
+                        "name": "groupID",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Group Name",
+                        "name": "name",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Group Description",
+                        "name": "description",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "file",
+                        "description": "Group Avatar Image",
+                        "name": "avatar",
+                        "in": "formData"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/helper.ResponseSuccess"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/model.ChatListResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
                         "schema": {
                             "$ref": "#/definitions/helper.ResponseError"
                         }
@@ -657,7 +754,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Add a new member to a group chat. Only owners or admins can perform this action.",
+                "description": "Add new members to a group chat. Only owners or admins can perform this action.",
                 "consumes": [
                     "application/json"
                 ],
@@ -1766,14 +1863,14 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/users/{id}": {
+        "/api/users/{username}": {
             "get": {
                 "security": [
                     {
                         "BearerAuth": []
                     }
                 ],
-                "description": "Get another user's profile by ID.",
+                "description": "Get another user's profile by Username.",
                 "consumes": [
                     "application/json"
                 ],
@@ -1786,9 +1883,9 @@ const docTemplate = `{
                 "summary": "Get User Profile",
                 "parameters": [
                     {
-                        "type": "integer",
-                        "description": "User ID",
-                        "name": "id",
+                        "type": "string",
+                        "description": "Username",
+                        "name": "username",
                         "in": "path",
                         "required": true
                     }
@@ -1839,14 +1936,14 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/users/{id}/block": {
+        "/api/users/{username}/block": {
             "post": {
                 "security": [
                     {
                         "BearerAuth": []
                     }
                 ],
-                "description": "Block a user by their ID.",
+                "description": "Block a user by their Username.",
                 "consumes": [
                     "application/json"
                 ],
@@ -1859,9 +1956,9 @@ const docTemplate = `{
                 "summary": "Block a User",
                 "parameters": [
                     {
-                        "type": "integer",
-                        "description": "User ID to block",
-                        "name": "id",
+                        "type": "string",
+                        "description": "Username to block",
+                        "name": "username",
                         "in": "path",
                         "required": true
                     }
@@ -1900,14 +1997,14 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/users/{id}/unblock": {
+        "/api/users/{username}/unblock": {
             "post": {
                 "security": [
                     {
                         "BearerAuth": []
                     }
                 ],
-                "description": "Unblock a user by their ID.",
+                "description": "Unblock a user by their Username.",
                 "consumes": [
                     "application/json"
                 ],
@@ -1920,9 +2017,9 @@ const docTemplate = `{
                 "summary": "Unblock a User",
                 "parameters": [
                     {
-                        "type": "integer",
-                        "description": "User ID to unblock",
-                        "name": "id",
+                        "type": "string",
+                        "description": "Username to unblock",
+                        "name": "username",
                         "in": "path",
                         "required": true
                     }
@@ -2022,11 +2119,15 @@ const docTemplate = `{
         "model.AddGroupMemberRequest": {
             "type": "object",
             "required": [
-                "user_id"
+                "usernames"
             ],
             "properties": {
-                "user_id": {
-                    "type": "integer"
+                "usernames": {
+                    "type": "array",
+                    "minItems": 1,
+                    "items": {
+                        "type": "string"
+                    }
                 }
             }
         },
@@ -2106,6 +2207,9 @@ const docTemplate = `{
                 "other_user_id": {
                     "type": "integer"
                 },
+                "other_username": {
+                    "type": "string"
+                },
                 "type": {
                     "type": "string"
                 },
@@ -2131,11 +2235,13 @@ const docTemplate = `{
         "model.CreatePrivateChatRequest": {
             "type": "object",
             "required": [
-                "target_user_id"
+                "username"
             ],
             "properties": {
-                "target_user_id": {
-                    "type": "integer"
+                "username": {
+                    "type": "string",
+                    "maxLength": 50,
+                    "minLength": 3
                 }
             }
         },
@@ -2275,6 +2381,9 @@ const docTemplate = `{
                     "type": "integer"
                 },
                 "sender_name": {
+                    "type": "string"
+                },
+                "sender_username": {
                     "type": "string"
                 },
                 "type": {
