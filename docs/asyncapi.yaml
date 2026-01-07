@@ -233,7 +233,7 @@ components:
           description: Username of the sender
         type:
           type: string
-          description: Type of the message (regular, system_create, system_add, system_rename, system_description, system_avatar, system_leave, system_promote, system_demote, etc.)
+          description: Type of the message (regular, system_create, system_add, system_rename, system_description, system_avatar, system_leave, system_promote, system_demote, system_kick, etc.)
         content:
           type: string
         action_data:

@@ -289,6 +289,50 @@ func (c *GroupChatController) LeaveGroup(w http.ResponseWriter, r *http.Request)
 	helper.WriteSuccess(w, nil)
 }
 
+// KickMember godoc
+// @Summary      Kick Member from Group
+// @Description  Kick a member from a group chat. Only owners or admins can perform this action.
+// @Tags         chat
+// @Accept       json
+// @Produce      json
+// @Param        groupID path int true "Group Chat ID"
+// @Param        userID path int true "Target User ID"
+// @Success      200  {object}  helper.ResponseSuccess
+// @Failure      400  {object}  helper.ResponseError
+// @Failure      401  {object}  helper.ResponseError
+// @Failure      403  {object}  helper.ResponseError
+// @Failure      404  {object}  helper.ResponseError
+// @Failure      500  {object}  helper.ResponseError
+// @Security     BearerAuth
+// @Router       /api/chats/group/{groupID}/members/{userID}/kick [post]
+func (c *GroupChatController) KickMember(w http.ResponseWriter, r *http.Request) {
+	userContext, ok := r.Context().Value(middleware.UserContextKey).(*model.UserDTO)
+	if !ok {
+		helper.WriteError(w, helper.NewUnauthorizedError(""))
+		return
+	}
+
+	groupID, err := strconv.Atoi(chi.URLParam(r, "groupID"))
+	if err != nil {
+		helper.WriteError(w, helper.NewBadRequestError(""))
+		return
+	}
+
+	targetUserID, err := strconv.Atoi(chi.URLParam(r, "userID"))
+	if err != nil {
+		helper.WriteError(w, helper.NewBadRequestError(""))
+		return
+	}
+
+	err = c.groupChatService.KickMember(r.Context(), userContext.ID, groupID, targetUserID)
+	if err != nil {
+		helper.WriteError(w, err)
+		return
+	}
+
+	helper.WriteSuccess(w, nil)
+}
+
 // UpdateMemberRole godoc
 // @Summary      Update Member Role
 // @Description  Promote or demote a group member. Only owner can perform this action.

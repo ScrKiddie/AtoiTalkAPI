@@ -605,6 +605,98 @@ func TestLeaveGroup(t *testing.T) {
 	})
 }
 
+func TestKickMember(t *testing.T) {
+	clearDatabase(context.Background())
+	u1 := testClient.User.Create().SetEmail("u1@test.com").SetUsername("owner").SetFullName("Owner").SaveX(context.Background())
+	u2 := testClient.User.Create().SetEmail("u2@test.com").SetUsername("admin").SetFullName("Admin").SaveX(context.Background())
+	u3 := testClient.User.Create().SetEmail("u3@test.com").SetUsername("member").SetFullName("Member").SaveX(context.Background())
+	u4 := testClient.User.Create().SetEmail("u4@test.com").SetUsername("outsider").SetFullName("Outsider").SaveX(context.Background())
+
+	token1, _ := helper.GenerateJWT(testConfig.JWTSecret, testConfig.JWTExp, u1.ID)
+	token2, _ := helper.GenerateJWT(testConfig.JWTSecret, testConfig.JWTExp, u2.ID)
+	token3, _ := helper.GenerateJWT(testConfig.JWTSecret, testConfig.JWTExp, u3.ID)
+	token4, _ := helper.GenerateJWT(testConfig.JWTSecret, testConfig.JWTExp, u4.ID)
+
+	chatEntity := testClient.Chat.Create().SetType("group").SaveX(context.Background())
+	gc := testClient.GroupChat.Create().SetChat(chatEntity).SetCreator(u1).SetName("Kick Test").SaveX(context.Background())
+	testClient.GroupMember.Create().SetGroupChat(gc).SetUser(u1).SetRole(groupmember.RoleOwner).SaveX(context.Background())
+	testClient.GroupMember.Create().SetGroupChat(gc).SetUser(u2).SetRole(groupmember.RoleAdmin).SaveX(context.Background())
+	testClient.GroupMember.Create().SetGroupChat(gc).SetUser(u3).SetRole(groupmember.RoleMember).SaveX(context.Background())
+
+	t.Run("Success - Owner Kicks Member", func(t *testing.T) {
+		req, _ := http.NewRequest("POST", fmt.Sprintf("/api/chats/group/%d/members/%d/kick", gc.ChatID, u3.ID), nil)
+		req.Header.Set("Authorization", "Bearer "+token1)
+
+		rr := executeRequest(req)
+		assert.Equal(t, http.StatusOK, rr.Code)
+
+		exists, _ := testClient.GroupMember.Query().Where(groupmember.GroupChatID(gc.ID), groupmember.UserID(u3.ID)).Exist(context.Background())
+		assert.False(t, exists)
+	})
+
+	t.Run("Success - Admin Kicks Member", func(t *testing.T) {
+
+		testClient.GroupMember.Create().SetGroupChat(gc).SetUser(u3).SetRole(groupmember.RoleMember).SaveX(context.Background())
+
+		req, _ := http.NewRequest("POST", fmt.Sprintf("/api/chats/group/%d/members/%d/kick", gc.ChatID, u3.ID), nil)
+		req.Header.Set("Authorization", "Bearer "+token2)
+
+		rr := executeRequest(req)
+		assert.Equal(t, http.StatusOK, rr.Code)
+
+		exists, _ := testClient.GroupMember.Query().Where(groupmember.GroupChatID(gc.ID), groupmember.UserID(u3.ID)).Exist(context.Background())
+		assert.False(t, exists)
+	})
+
+	t.Run("Fail - Admin Kicks Admin", func(t *testing.T) {
+
+		testClient.GroupMember.Create().SetGroupChat(gc).SetUser(u3).SetRole(groupmember.RoleAdmin).SaveX(context.Background())
+
+		req, _ := http.NewRequest("POST", fmt.Sprintf("/api/chats/group/%d/members/%d/kick", gc.ChatID, u3.ID), nil)
+		req.Header.Set("Authorization", "Bearer "+token2)
+
+		rr := executeRequest(req)
+		assert.Equal(t, http.StatusForbidden, rr.Code)
+	})
+
+	t.Run("Fail - Admin Kicks Owner", func(t *testing.T) {
+		req, _ := http.NewRequest("POST", fmt.Sprintf("/api/chats/group/%d/members/%d/kick", gc.ChatID, u1.ID), nil)
+		req.Header.Set("Authorization", "Bearer "+token2)
+
+		rr := executeRequest(req)
+		assert.Equal(t, http.StatusForbidden, rr.Code)
+	})
+
+	t.Run("Fail - Member Kicks Member", func(t *testing.T) {
+
+		testClient.GroupMember.Update().Where(groupmember.GroupChatID(gc.ID), groupmember.UserID(u3.ID)).SetRole(groupmember.RoleMember).ExecX(context.Background())
+
+		testClient.GroupMember.Create().SetGroupChat(gc).SetUser(u4).SetRole(groupmember.RoleMember).SaveX(context.Background())
+
+		req, _ := http.NewRequest("POST", fmt.Sprintf("/api/chats/group/%d/members/%d/kick", gc.ChatID, u4.ID), nil)
+		req.Header.Set("Authorization", "Bearer "+token3)
+
+		rr := executeRequest(req)
+		assert.Equal(t, http.StatusForbidden, rr.Code)
+	})
+
+	t.Run("Fail - Kick Self", func(t *testing.T) {
+		req, _ := http.NewRequest("POST", fmt.Sprintf("/api/chats/group/%d/members/%d/kick", gc.ChatID, u1.ID), nil)
+		req.Header.Set("Authorization", "Bearer "+token1)
+
+		rr := executeRequest(req)
+		assert.Equal(t, http.StatusBadRequest, rr.Code)
+	})
+
+	t.Run("Fail - Not Member", func(t *testing.T) {
+		req, _ := http.NewRequest("POST", fmt.Sprintf("/api/chats/group/%d/members/%d/kick", gc.ChatID, u2.ID), nil)
+		req.Header.Set("Authorization", "Bearer "+token4)
+
+		rr := executeRequest(req)
+		assert.Equal(t, http.StatusForbidden, rr.Code)
+	})
+}
+
 func TestUpdateMemberRole(t *testing.T) {
 	clearDatabase(context.Background())
 	u1 := testClient.User.Create().SetEmail("u1@test.com").SetUsername("owner").SetFullName("Owner").SaveX(context.Background())
