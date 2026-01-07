@@ -23,10 +23,12 @@ definitions:
     type: object
   model.AddGroupMemberRequest:
     properties:
-      user_id:
-        type: integer
+      usernames:
+        items:
+          type: string
+        type: array
     required:
-    - user_id
+    - usernames
     type: object
   model.AuthResponse:
     properties:
@@ -79,6 +81,8 @@ definitions:
         type: string
       other_user_id:
         type: integer
+      other_username:
+        type: string
       type:
         type: string
       unread_count:
@@ -93,12 +97,28 @@ definitions:
       type:
         type: string
     type: object
+  model.CreateGroupChatRequest:
+    properties:
+      avatar:
+        type: file
+      description:
+        type: string
+      member_usernames:
+        items:
+          type: string
+        type: array
+      name:
+        type: string
+    required:
+    - member_usernames
+    - name
+    type: object
   model.CreatePrivateChatRequest:
     properties:
-      target_user_id:
-        type: integer
+      username:
+        type: string
     required:
-    - target_user_id
+    - username
     type: object
   model.EditMessageRequest:
     properties:
@@ -191,6 +211,8 @@ definitions:
       sender_id:
         type: integer
       sender_name:
+        type: string
+      sender_username:
         type: string
       type:
         type: string
@@ -787,9 +809,9 @@ paths:
         in: formData
         name: description
         type: string
-      - description: JSON Array of Member IDs (e.g. [1, 2, 3])
+      - description: JSON Array of Member Usernames (e.g. ["user1", "user2"])
         in: formData
-        name: member_ids
+        name: member_usernames
         required: true
         type: string
       - description: Group Avatar Image
@@ -894,7 +916,7 @@ paths:
     post:
       consumes:
       - application/json
-      description: Add a new member to a group chat. Only owners or admins can perform
+      description: Add new members to a group chat. Only owners or admins can perform
         this action.
       parameters:
       - description: Group Chat ID
@@ -1358,17 +1380,17 @@ paths:
       summary: Search Users
       tags:
       - user
-  /api/users/{id}:
+  /api/users/@{username}:
     get:
       consumes:
       - application/json
-      description: Get another user's profile by ID.
+      description: Get another user's profile by Username.
       parameters:
-      - description: User ID
+      - description: Username
         in: path
-        name: id
+        name: username
         required: true
-        type: integer
+        type: string
       produces:
       - application/json
       responses:
@@ -1402,17 +1424,17 @@ paths:
       summary: Get User Profile
       tags:
       - user
-  /api/users/{id}/block:
+  /api/users/@{username}/block:
     post:
       consumes:
       - application/json
-      description: Block a user by their ID.
+      description: Block a user by their Username.
       parameters:
-      - description: User ID to block
+      - description: Username to block
         in: path
-        name: id
+        name: username
         required: true
-        type: integer
+        type: string
       produces:
       - application/json
       responses:
@@ -1441,17 +1463,17 @@ paths:
       summary: Block a User
       tags:
       - user
-  /api/users/{id}/unblock:
+  /api/users/@{username}/unblock:
     post:
       consumes:
       - application/json
-      description: Unblock a user by their ID.
+      description: Unblock a user by their Username.
       parameters:
-      - description: User ID to unblock
+      - description: Username to unblock
         in: path
-        name: id
+        name: username
         required: true
-        type: integer
+        type: string
       produces:
       - application/json
       responses:

@@ -19,18 +19,19 @@ type GetMessagesRequest struct {
 }
 
 type MessageResponse struct {
-	ID          int                    `json:"id"`
-	ChatID      int                    `json:"chat_id"`
-	SenderID    *int                   `json:"sender_id,omitempty"`
-	SenderName  string                 `json:"sender_name,omitempty"`
-	Type        string                 `json:"type"`
-	Content     string                 `json:"content,omitempty"`
-	ActionData  map[string]interface{} `json:"action_data,omitempty"`
-	Attachments []MediaDTO             `json:"attachments,omitempty"`
-	ReplyTo     *ReplyPreviewDTO       `json:"reply_to,omitempty"`
-	CreatedAt   string                 `json:"created_at"`
-	DeletedAt   *string                `json:"deleted_at,omitempty"`
-	EditedAt    *string                `json:"edited_at,omitempty"`
+	ID             int                    `json:"id"`
+	ChatID         int                    `json:"chat_id"`
+	SenderID       *int                   `json:"sender_id,omitempty"`
+	SenderUsername *string                `json:"sender_username,omitempty"`
+	SenderName     string                 `json:"sender_name,omitempty"`
+	Type           string                 `json:"type"`
+	Content        string                 `json:"content,omitempty"`
+	ActionData     map[string]interface{} `json:"action_data,omitempty"`
+	Attachments    []MediaDTO             `json:"attachments,omitempty"`
+	ReplyTo        *ReplyPreviewDTO       `json:"reply_to,omitempty"`
+	CreatedAt      string                 `json:"created_at"`
+	DeletedAt      *string                `json:"deleted_at,omitempty"`
+	EditedAt       *string                `json:"edited_at,omitempty"`
 }
 
 type ReplyPreviewDTO struct {

@@ -228,6 +228,9 @@ components:
           type: integer
         sender_name:
           type: string
+        sender_username:
+          type: string
+          description: Username of the sender
         type:
           type: string
           description: Type of the message (regular, system_create, system_add, etc.)
@@ -287,6 +290,9 @@ components:
         other_user_id:
           type: integer
           description: Omitted if not applicable (e.g. group chat)
+        other_username:
+          type: string
+          description: Username of the other user in private chat
         is_blocked_by_me:
           type: boolean
           description: Omitted if false

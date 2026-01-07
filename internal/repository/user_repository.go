@@ -51,9 +51,9 @@ func (r *UserRepository) SearchUsers(ctx context.Context, currentUserID int, que
 	if queryStr != "" {
 		query = query.Where(
 			user.Or(
-				user.FullNameContainsFold(queryStr),
-				user.EmailEQ(queryStr),
-				user.UsernameContainsFold(queryStr),
+				user.FullNameEqualFold(queryStr),
+				user.EmailEqualFold(queryStr),
+				user.UsernameEqualFold(queryStr),
 			),
 		)
 	}
