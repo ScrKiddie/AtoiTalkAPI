@@ -25,13 +25,13 @@ servers:
     protocol: wss
     pathname: /ws
     security:
-      - queryToken: []
+      - $ref: '#/components/securitySchemes/queryToken'
   local:
     host: localhost:8080
     protocol: ws
     pathname: /ws
     security:
-      - queryToken: []
+      - $ref: '#/components/securitySchemes/queryToken'
 
 channels:
   chat:
@@ -233,12 +233,12 @@ components:
           description: Username of the sender
         type:
           type: string
-          description: Type of the message (regular, system_create, system_add, system_rename, system_description, system_avatar, etc.)
+          description: Type of the message (regular, system_create, system_add, system_rename, system_description, system_avatar, system_leave, system_promote, system_demote, etc.)
         content:
           type: string
         action_data:
           type: object
-          description: Metadata for system messages (e.g. target_id, new_name, old_name, new_description)
+          description: Metadata for system messages (e.g. target_id, new_name, old_name, new_description, new_role, action)
         attachments:
           type: array
           items:
@@ -296,6 +296,10 @@ components:
         is_blocked_by_me:
           type: boolean
           description: Omitted if false
+        my_role:
+          type: string
+          enum: [owner, admin, member]
+          description: Current user's role in the group (Omitted for private chat)
 
     GroupMemberDTO:
       type: object

@@ -649,6 +649,67 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/chats/group/{groupID}/leave": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Leave a group chat. Owner cannot leave without transferring ownership first.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "chat"
+                ],
+                "summary": "Leave Group",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Group Chat ID",
+                        "name": "groupID",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseSuccess"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    }
+                }
+            }
+        },
         "/api/chats/group/{groupID}/members": {
             "get": {
                 "security": [
@@ -816,6 +877,165 @@ const docTemplate = `{
                     },
                     "409": {
                         "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/chats/group/{groupID}/members/{userID}/role": {
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Promote or demote a group member. Only owner can perform this action.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "chat"
+                ],
+                "summary": "Update Member Role",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Group Chat ID",
+                        "name": "groupID",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Target User ID",
+                        "name": "userID",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Update Role Request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.UpdateGroupMemberRoleRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseSuccess"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/chats/group/{groupID}/transfer": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Transfer group ownership to another member. Only owner can perform this action.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "chat"
+                ],
+                "summary": "Transfer Ownership",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Group Chat ID",
+                        "name": "groupID",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Transfer Ownership Request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.TransferGroupOwnershipRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseSuccess"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
                         "schema": {
                             "$ref": "#/definitions/helper.ResponseError"
                         }
@@ -2198,6 +2418,9 @@ const docTemplate = `{
                 "last_read_at": {
                     "type": "string"
                 },
+                "my_role": {
+                    "type": "string"
+                },
                 "name": {
                     "type": "string"
                 },
@@ -2520,6 +2743,32 @@ const docTemplate = `{
                 },
                 "mode": {
                     "type": "string"
+                }
+            }
+        },
+        "model.TransferGroupOwnershipRequest": {
+            "type": "object",
+            "required": [
+                "new_owner_id"
+            ],
+            "properties": {
+                "new_owner_id": {
+                    "type": "integer"
+                }
+            }
+        },
+        "model.UpdateGroupMemberRoleRequest": {
+            "type": "object",
+            "required": [
+                "role"
+            ],
+            "properties": {
+                "role": {
+                    "type": "string",
+                    "enum": [
+                        "admin",
+                        "member"
+                    ]
                 }
             }
         },

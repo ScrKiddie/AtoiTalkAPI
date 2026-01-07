@@ -274,10 +274,7 @@ func TestUpdateGroupChat(t *testing.T) {
 		req.Header.Set("Authorization", "Bearer "+token1)
 
 		rr := executeRequest(req)
-		if !assert.Equal(t, http.StatusOK, rr.Code) {
-			printBody(t, rr)
-			return
-		}
+		assert.Equal(t, http.StatusOK, rr.Code)
 
 		gcReload, _ := testClient.GroupChat.Query().Where(groupchat.ID(gc.ID)).Only(context.Background())
 		assert.Equal(t, "New Group Name", gcReload.Name)
@@ -287,6 +284,11 @@ func TestUpdateGroupChat(t *testing.T) {
 			assert.Equal(t, message.TypeSystemRename, lastMsg.Type)
 			assert.Equal(t, "New Group Name", lastMsg.ActionData["new_name"])
 		}
+
+		var resp helper.ResponseSuccess
+		json.Unmarshal(rr.Body.Bytes(), &resp)
+		dataMap := resp.Data.(map[string]interface{})
+		assert.Equal(t, "owner", dataMap["my_role"])
 	})
 
 	t.Run("Success - Update Description (Owner)", func(t *testing.T) {
@@ -553,5 +555,177 @@ func TestAddGroupMember(t *testing.T) {
 
 		rr := executeRequest(req)
 		assert.Equal(t, http.StatusNotFound, rr.Code)
+	})
+}
+
+func TestLeaveGroup(t *testing.T) {
+	clearDatabase(context.Background())
+	u1 := testClient.User.Create().SetEmail("u1@test.com").SetUsername("owner").SetFullName("Owner").SaveX(context.Background())
+	u2 := testClient.User.Create().SetEmail("u2@test.com").SetUsername("member").SetFullName("Member").SaveX(context.Background())
+	u3 := testClient.User.Create().SetEmail("u3@test.com").SetUsername("outsider").SetFullName("Outsider").SaveX(context.Background())
+
+	token1, _ := helper.GenerateJWT(testConfig.JWTSecret, testConfig.JWTExp, u1.ID)
+	token2, _ := helper.GenerateJWT(testConfig.JWTSecret, testConfig.JWTExp, u2.ID)
+	token3, _ := helper.GenerateJWT(testConfig.JWTSecret, testConfig.JWTExp, u3.ID)
+
+	chatEntity := testClient.Chat.Create().SetType("group").SaveX(context.Background())
+	gc := testClient.GroupChat.Create().SetChat(chatEntity).SetCreator(u1).SetName("Leave Test").SaveX(context.Background())
+	testClient.GroupMember.Create().SetGroupChat(gc).SetUser(u1).SetRole(groupmember.RoleOwner).SaveX(context.Background())
+	testClient.GroupMember.Create().SetGroupChat(gc).SetUser(u2).SetRole(groupmember.RoleMember).SaveX(context.Background())
+
+	t.Run("Success - Member Leaves", func(t *testing.T) {
+		req, _ := http.NewRequest("POST", fmt.Sprintf("/api/chats/group/%d/leave", gc.ChatID), nil)
+		req.Header.Set("Authorization", "Bearer "+token2)
+
+		rr := executeRequest(req)
+		assert.Equal(t, http.StatusOK, rr.Code)
+
+		exists, _ := testClient.GroupMember.Query().Where(groupmember.GroupChatID(gc.ID), groupmember.UserID(u2.ID)).Exist(context.Background())
+		assert.False(t, exists)
+
+		lastMsg, _ := testClient.Chat.Query().Where(chat.ID(gc.ChatID)).QueryLastMessage().Only(context.Background())
+		assert.Equal(t, message.TypeSystemLeave, lastMsg.Type)
+		assert.Equal(t, u2.ID, *lastMsg.SenderID)
+	})
+
+	t.Run("Fail - Owner Leaves", func(t *testing.T) {
+		req, _ := http.NewRequest("POST", fmt.Sprintf("/api/chats/group/%d/leave", gc.ChatID), nil)
+		req.Header.Set("Authorization", "Bearer "+token1)
+
+		rr := executeRequest(req)
+		assert.Equal(t, http.StatusBadRequest, rr.Code)
+	})
+
+	t.Run("Fail - Not Member", func(t *testing.T) {
+		req, _ := http.NewRequest("POST", fmt.Sprintf("/api/chats/group/%d/leave", gc.ChatID), nil)
+		req.Header.Set("Authorization", "Bearer "+token3)
+
+		rr := executeRequest(req)
+		assert.Equal(t, http.StatusBadRequest, rr.Code)
+	})
+}
+
+func TestUpdateMemberRole(t *testing.T) {
+	clearDatabase(context.Background())
+	u1 := testClient.User.Create().SetEmail("u1@test.com").SetUsername("owner").SetFullName("Owner").SaveX(context.Background())
+	u2 := testClient.User.Create().SetEmail("u2@test.com").SetUsername("member").SetFullName("Member").SaveX(context.Background())
+	u3 := testClient.User.Create().SetEmail("u3@test.com").SetUsername("admin").SetFullName("Admin").SaveX(context.Background())
+
+	token1, _ := helper.GenerateJWT(testConfig.JWTSecret, testConfig.JWTExp, u1.ID)
+	token2, _ := helper.GenerateJWT(testConfig.JWTSecret, testConfig.JWTExp, u2.ID)
+
+	chatEntity := testClient.Chat.Create().SetType("group").SaveX(context.Background())
+	gc := testClient.GroupChat.Create().SetChat(chatEntity).SetCreator(u1).SetName("Role Test").SaveX(context.Background())
+	testClient.GroupMember.Create().SetGroupChat(gc).SetUser(u1).SetRole(groupmember.RoleOwner).SaveX(context.Background())
+	testClient.GroupMember.Create().SetGroupChat(gc).SetUser(u2).SetRole(groupmember.RoleMember).SaveX(context.Background())
+	testClient.GroupMember.Create().SetGroupChat(gc).SetUser(u3).SetRole(groupmember.RoleAdmin).SaveX(context.Background())
+
+	t.Run("Success - Promote to Admin", func(t *testing.T) {
+		reqBody := model.UpdateGroupMemberRoleRequest{Role: "admin"}
+		body, _ := json.Marshal(reqBody)
+		req, _ := http.NewRequest("PUT", fmt.Sprintf("/api/chats/group/%d/members/%d/role", gc.ChatID, u2.ID), bytes.NewBuffer(body))
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Authorization", "Bearer "+token1)
+
+		rr := executeRequest(req)
+		assert.Equal(t, http.StatusOK, rr.Code)
+
+		member, _ := testClient.GroupMember.Query().Where(groupmember.GroupChatID(gc.ID), groupmember.UserID(u2.ID)).Only(context.Background())
+		assert.Equal(t, groupmember.RoleAdmin, member.Role)
+	})
+
+	t.Run("Success - Demote to Member", func(t *testing.T) {
+		reqBody := model.UpdateGroupMemberRoleRequest{Role: "member"}
+		body, _ := json.Marshal(reqBody)
+		req, _ := http.NewRequest("PUT", fmt.Sprintf("/api/chats/group/%d/members/%d/role", gc.ChatID, u3.ID), bytes.NewBuffer(body))
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Authorization", "Bearer "+token1)
+
+		rr := executeRequest(req)
+		assert.Equal(t, http.StatusOK, rr.Code)
+
+		member, _ := testClient.GroupMember.Query().Where(groupmember.GroupChatID(gc.ID), groupmember.UserID(u3.ID)).Only(context.Background())
+		assert.Equal(t, groupmember.RoleMember, member.Role)
+	})
+
+	t.Run("Fail - Admin Promotes", func(t *testing.T) {
+
+		reqBody := model.UpdateGroupMemberRoleRequest{Role: "admin"}
+		body, _ := json.Marshal(reqBody)
+		req, _ := http.NewRequest("PUT", fmt.Sprintf("/api/chats/group/%d/members/%d/role", gc.ChatID, u3.ID), bytes.NewBuffer(body))
+		req.Header.Set("Content-Type", "application/json")
+
+		req.Header.Set("Authorization", "Bearer "+token2)
+
+		rr := executeRequest(req)
+		assert.Equal(t, http.StatusForbidden, rr.Code)
+	})
+
+	t.Run("Fail - Promote Self", func(t *testing.T) {
+		reqBody := model.UpdateGroupMemberRoleRequest{Role: "member"}
+		body, _ := json.Marshal(reqBody)
+		req, _ := http.NewRequest("PUT", fmt.Sprintf("/api/chats/group/%d/members/%d/role", gc.ChatID, u1.ID), bytes.NewBuffer(body))
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Authorization", "Bearer "+token1)
+
+		rr := executeRequest(req)
+		assert.Equal(t, http.StatusBadRequest, rr.Code)
+	})
+}
+
+func TestTransferOwnership(t *testing.T) {
+	clearDatabase(context.Background())
+	u1 := testClient.User.Create().SetEmail("u1@test.com").SetUsername("owner").SetFullName("Owner").SaveX(context.Background())
+	u2 := testClient.User.Create().SetEmail("u2@test.com").SetUsername("admin").SetFullName("Admin").SaveX(context.Background())
+	u3 := testClient.User.Create().SetEmail("u3@test.com").SetUsername("member").SetFullName("Member").SaveX(context.Background())
+
+	token1, _ := helper.GenerateJWT(testConfig.JWTSecret, testConfig.JWTExp, u1.ID)
+	token2, _ := helper.GenerateJWT(testConfig.JWTSecret, testConfig.JWTExp, u2.ID)
+
+	chatEntity := testClient.Chat.Create().SetType("group").SaveX(context.Background())
+	gc := testClient.GroupChat.Create().SetChat(chatEntity).SetCreator(u1).SetName("Transfer Test").SaveX(context.Background())
+	testClient.GroupMember.Create().SetGroupChat(gc).SetUser(u1).SetRole(groupmember.RoleOwner).SaveX(context.Background())
+	testClient.GroupMember.Create().SetGroupChat(gc).SetUser(u2).SetRole(groupmember.RoleAdmin).SaveX(context.Background())
+	testClient.GroupMember.Create().SetGroupChat(gc).SetUser(u3).SetRole(groupmember.RoleMember).SaveX(context.Background())
+
+	t.Run("Success - Transfer to Admin", func(t *testing.T) {
+		reqBody := model.TransferGroupOwnershipRequest{NewOwnerID: u2.ID}
+		body, _ := json.Marshal(reqBody)
+		req, _ := http.NewRequest("POST", fmt.Sprintf("/api/chats/group/%d/transfer", gc.ChatID), bytes.NewBuffer(body))
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Authorization", "Bearer "+token1)
+
+		rr := executeRequest(req)
+		assert.Equal(t, http.StatusOK, rr.Code)
+
+		oldOwner, _ := testClient.GroupMember.Query().Where(groupmember.GroupChatID(gc.ID), groupmember.UserID(u1.ID)).Only(context.Background())
+		newOwner, _ := testClient.GroupMember.Query().Where(groupmember.GroupChatID(gc.ID), groupmember.UserID(u2.ID)).Only(context.Background())
+
+		assert.Equal(t, groupmember.RoleAdmin, oldOwner.Role)
+		assert.Equal(t, groupmember.RoleOwner, newOwner.Role)
+	})
+
+	t.Run("Fail - Not Owner", func(t *testing.T) {
+
+		reqBody := model.TransferGroupOwnershipRequest{NewOwnerID: u3.ID}
+		body, _ := json.Marshal(reqBody)
+		req, _ := http.NewRequest("POST", fmt.Sprintf("/api/chats/group/%d/transfer", gc.ChatID), bytes.NewBuffer(body))
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Authorization", "Bearer "+token1)
+
+		rr := executeRequest(req)
+		assert.Equal(t, http.StatusForbidden, rr.Code)
+	})
+
+	t.Run("Fail - Transfer to Self", func(t *testing.T) {
+
+		reqBody := model.TransferGroupOwnershipRequest{NewOwnerID: u2.ID}
+		body, _ := json.Marshal(reqBody)
+		req, _ := http.NewRequest("POST", fmt.Sprintf("/api/chats/group/%d/transfer", gc.ChatID), bytes.NewBuffer(body))
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Authorization", "Bearer "+token2)
+
+		rr := executeRequest(req)
+		assert.Equal(t, http.StatusBadRequest, rr.Code)
 	})
 }
