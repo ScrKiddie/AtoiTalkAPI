@@ -26,6 +26,7 @@ definitions:
       usernames:
         items:
           type: string
+        minItems: 1
         type: array
     required:
     - usernames
@@ -97,25 +98,11 @@ definitions:
       type:
         type: string
     type: object
-  model.CreateGroupChatRequest:
-    properties:
-      avatar:
-        type: file
-      description:
-        type: string
-      member_usernames:
-        items:
-          type: string
-        type: array
-      name:
-        type: string
-    required:
-    - member_usernames
-    - name
-    type: object
   model.CreatePrivateChatRequest:
     properties:
       username:
+        maxLength: 50
+        minLength: 3
         type: string
     required:
     - username
@@ -809,7 +796,7 @@ paths:
         in: formData
         name: description
         type: string
-      - description: JSON Array of Member Usernames (e.g. ["user1", "user2"])
+      - description: JSON Array of Member Usernames (e.g. [\
         in: formData
         name: member_usernames
         required: true
@@ -849,6 +836,67 @@ paths:
       security:
       - BearerAuth: []
       summary: Create Group Chat
+      tags:
+      - chat
+  /api/chats/group/{groupID}:
+    put:
+      consumes:
+      - multipart/form-data
+      description: Update group name, description, or avatar. Only owners or admins
+        can perform this action.
+      parameters:
+      - description: Group Chat ID
+        in: path
+        name: groupID
+        required: true
+        type: integer
+      - description: Group Name
+        in: formData
+        name: name
+        type: string
+      - description: Group Description
+        in: formData
+        name: description
+        type: string
+      - description: Group Avatar Image
+        in: formData
+        name: avatar
+        type: file
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/helper.ResponseSuccess'
+            - properties:
+                data:
+                  $ref: '#/definitions/model.ChatListResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
+      security:
+      - BearerAuth: []
+      summary: Update Group Chat Info
       tags:
       - chat
   /api/chats/group/{groupID}/members:
@@ -1380,7 +1428,7 @@ paths:
       summary: Search Users
       tags:
       - user
-  /api/users/@{username}:
+  /api/users/{username}:
     get:
       consumes:
       - application/json
@@ -1424,7 +1472,7 @@ paths:
       summary: Get User Profile
       tags:
       - user
-  /api/users/@{username}/block:
+  /api/users/{username}/block:
     post:
       consumes:
       - application/json
@@ -1463,7 +1511,7 @@ paths:
       summary: Block a User
       tags:
       - user
-  /api/users/@{username}/unblock:
+  /api/users/{username}/unblock:
     post:
       consumes:
       - application/json

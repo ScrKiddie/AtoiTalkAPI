@@ -256,6 +256,238 @@ func (s *GroupChatService) CreateGroupChat(ctx context.Context, creatorID int, r
 	}, nil
 }
 
+func (s *GroupChatService) UpdateGroupChat(ctx context.Context, requestorID int, groupID int, req model.UpdateGroupChatRequest) (*model.ChatListResponse, error) {
+	if err := s.validator.Struct(req); err != nil {
+		return nil, helper.NewBadRequestError("")
+	}
+
+	tx, err := s.client.Tx(ctx)
+	if err != nil {
+		slog.Error("Failed to start transaction", "error", err)
+		return nil, helper.NewInternalServerError("")
+	}
+	defer tx.Rollback()
+
+	gc, err := tx.GroupChat.Query().
+		Where(groupchat.ChatID(groupID)).
+		WithAvatar().
+		WithChat().
+		Only(ctx)
+	if err != nil {
+		if ent.IsNotFound(err) {
+			return nil, helper.NewNotFoundError("Group chat not found")
+		}
+		slog.Error("Failed to query group chat", "error", err)
+		return nil, helper.NewInternalServerError("")
+	}
+
+	requestorMember, err := tx.GroupMember.Query().
+		Where(
+			groupmember.GroupChatID(gc.ID),
+			groupmember.UserID(requestorID),
+		).
+		Only(ctx)
+	if err != nil {
+		if ent.IsNotFound(err) {
+			return nil, helper.NewForbiddenError("You are not a member of this group")
+		}
+		slog.Error("Failed to query requestor membership", "error", err)
+		return nil, helper.NewInternalServerError("")
+	}
+
+	if requestorMember.Role != groupmember.RoleOwner && requestorMember.Role != groupmember.RoleAdmin {
+		return nil, helper.NewForbiddenError("Only admins or owners can update group info")
+	}
+
+	update := tx.GroupChat.UpdateOne(gc)
+	var systemMessages []*ent.MessageCreate
+
+	if req.Name != nil && *req.Name != gc.Name {
+		update.SetName(*req.Name)
+		systemMessages = append(systemMessages, tx.Message.Create().
+			SetChatID(gc.ChatID).
+			SetSenderID(requestorID).
+			SetType(message.TypeSystemRename).
+			SetActionData(map[string]interface{}{
+				"old_name": gc.Name,
+				"new_name": *req.Name,
+			}))
+	}
+
+	if req.Description != nil {
+		oldDesc := ""
+		if gc.Description != nil {
+			oldDesc = *gc.Description
+		}
+		if *req.Description != oldDesc {
+			update.SetDescription(*req.Description)
+			systemMessages = append(systemMessages, tx.Message.Create().
+				SetChatID(gc.ChatID).
+				SetSenderID(requestorID).
+				SetType(message.TypeSystemDescription).
+				SetActionData(map[string]interface{}{
+					"old_description": oldDesc,
+					"new_description": *req.Description,
+				}))
+		}
+	}
+
+	var fileToUpload multipart.File
+	var fileUploadPath string
+	var fileContentType string
+
+	if req.Avatar != nil {
+		file, err := req.Avatar.Open()
+		if err != nil {
+			slog.Error("Failed to open avatar file", "error", err)
+			return nil, helper.NewInternalServerError("")
+		}
+		defer file.Close()
+		fileToUpload = file
+
+		contentType, err := helper.DetectFileContentType(file)
+		if err != nil {
+			slog.Error("Failed to detect file content type", "error", err)
+			return nil, helper.NewInternalServerError("")
+		}
+
+		fileName := helper.GenerateUniqueFileName(req.Avatar.Filename)
+		filePath := filepath.Join(s.cfg.StorageProfile, fileName)
+
+		fileUploadPath = filePath
+		fileContentType = contentType
+
+		media, err := tx.Media.Create().
+			SetFileName(fileName).
+			SetOriginalName(req.Avatar.Filename).
+			SetFileSize(req.Avatar.Size).
+			SetMimeType(contentType).
+			SetStatus(media.StatusActive).
+			SetUploaderID(requestorID).
+			Save(ctx)
+		if err != nil {
+			slog.Error("Failed to create media record for group avatar", "error", err)
+			return nil, helper.NewInternalServerError("")
+		}
+
+		update.SetAvatar(media)
+
+		systemMessages = append(systemMessages, tx.Message.Create().
+			SetChatID(gc.ChatID).
+			SetSenderID(requestorID).
+			SetType(message.TypeSystemAvatar).
+			SetActionData(map[string]interface{}{
+				"action": "updated",
+			}))
+	}
+
+	updatedGroup, err := update.Save(ctx)
+	if err != nil {
+		slog.Error("Failed to update group chat", "error", err)
+		return nil, helper.NewInternalServerError("")
+	}
+
+	var lastSystemMsg *ent.Message
+	if len(systemMessages) > 0 {
+		msgs, err := tx.Message.CreateBulk(systemMessages...).Save(ctx)
+		if err != nil {
+			slog.Error("Failed to create system messages", "error", err)
+			return nil, helper.NewInternalServerError("")
+		}
+		lastSystemMsg = msgs[len(msgs)-1]
+
+		err = tx.Chat.UpdateOne(gc.Edges.Chat).
+			SetLastMessage(lastSystemMsg).
+			SetLastMessageAt(lastSystemMsg.CreatedAt).
+			Exec(ctx)
+		if err != nil {
+			slog.Error("Failed to update chat last message", "error", err)
+			return nil, helper.NewInternalServerError("")
+		}
+	}
+
+	if err := tx.Commit(); err != nil {
+		slog.Error("Failed to commit transaction", "error", err)
+		return nil, helper.NewInternalServerError("")
+	}
+
+	if fileToUpload != nil {
+		if err := s.storageAdapter.StoreFromReader(fileToUpload, fileContentType, fileUploadPath); err != nil {
+			slog.Error("Failed to store group avatar after db commit", "error", err)
+
+		}
+	}
+
+	if s.wsHub != nil && lastSystemMsg != nil {
+		go func() {
+
+			fullMsg, _ := s.client.Message.Query().
+				Where(message.ID(lastSystemMsg.ID)).
+				WithSender().
+				Only(context.Background())
+
+			msgResponse := helper.ToMessageResponse(fullMsg, s.cfg.StorageMode, s.cfg.AppURL, s.cfg.StorageCDNURL, s.cfg.StorageAttachment)
+
+			s.wsHub.BroadcastToChat(gc.ChatID, websocket.Event{
+				Type:    websocket.EventMessageNew,
+				Payload: msgResponse,
+				Meta: &websocket.EventMeta{
+					Timestamp: time.Now().UTC().UnixMilli(),
+					ChatID:    gc.ChatID,
+					SenderID:  requestorID,
+				},
+			})
+
+			updatedGroupWithAvatar, _ := s.client.GroupChat.Query().
+				Where(groupchat.ID(updatedGroup.ID)).
+				WithAvatar().
+				Only(context.Background())
+
+			avatarURL := ""
+			if updatedGroupWithAvatar.Edges.Avatar != nil {
+				avatarURL = helper.BuildImageURL(s.cfg.StorageMode, s.cfg.AppURL, s.cfg.StorageCDNURL, s.cfg.StorageProfile, updatedGroupWithAvatar.Edges.Avatar.FileName)
+			}
+
+			chatPayload := model.ChatListResponse{
+				ID:          gc.Edges.Chat.ID,
+				Type:        string(chat.TypeGroup),
+				Name:        updatedGroup.Name,
+				Avatar:      avatarURL,
+				LastMessage: msgResponse,
+			}
+
+			s.wsHub.BroadcastToChat(gc.ChatID, websocket.Event{
+				Type:    websocket.EventChatNew,
+				Payload: chatPayload,
+				Meta: &websocket.EventMeta{
+					Timestamp: time.Now().UTC().UnixMilli(),
+					ChatID:    gc.ChatID,
+					SenderID:  requestorID,
+				},
+			})
+		}()
+	}
+
+	avatarURL := ""
+
+	if req.Avatar == nil && gc.Edges.Avatar != nil {
+		avatarURL = helper.BuildImageURL(s.cfg.StorageMode, s.cfg.AppURL, s.cfg.StorageCDNURL, s.cfg.StorageProfile, gc.Edges.Avatar.FileName)
+	} else if req.Avatar != nil {
+
+		updatedGroupWithAvatar, _ := s.client.GroupChat.Query().Where(groupchat.ID(updatedGroup.ID)).WithAvatar().Only(context.Background())
+		if updatedGroupWithAvatar.Edges.Avatar != nil {
+			avatarURL = helper.BuildImageURL(s.cfg.StorageMode, s.cfg.AppURL, s.cfg.StorageCDNURL, s.cfg.StorageProfile, updatedGroupWithAvatar.Edges.Avatar.FileName)
+		}
+	}
+
+	return &model.ChatListResponse{
+		ID:     gc.Edges.Chat.ID,
+		Type:   string(chat.TypeGroup),
+		Name:   updatedGroup.Name,
+		Avatar: avatarURL,
+	}, nil
+}
+
 func (s *GroupChatService) SearchGroupMembers(ctx context.Context, userID int, req model.SearchGroupMembersRequest) ([]model.GroupMemberDTO, string, bool, error) {
 	if err := s.validator.Struct(req); err != nil {
 		return nil, "", false, helper.NewBadRequestError("")

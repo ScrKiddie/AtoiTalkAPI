@@ -9,6 +9,12 @@ type CreateGroupChatRequest struct {
 	Avatar          *multipart.FileHeader `form:"avatar" validate:"omitempty"`
 }
 
+type UpdateGroupChatRequest struct {
+	Name        *string               `form:"name" validate:"omitempty,min=3,max=100"`
+	Description *string               `form:"description" validate:"omitempty,max=255"`
+	Avatar      *multipart.FileHeader `form:"avatar" validate:"omitempty"`
+}
+
 type SearchGroupMembersRequest struct {
 	GroupID int    `json:"group_id" validate:"required"`
 	Query   string `json:"query" validate:"omitempty,min=1"`

@@ -114,7 +114,7 @@ func TestGetUserProfile(t *testing.T) {
 
 		token, _ := helper.GenerateJWT(testConfig.JWTSecret, testConfig.JWTExp, requestingUser.ID)
 
-		req, _ := http.NewRequest("GET", fmt.Sprintf("/api/users/@%s", targetUser.Username), nil)
+		req, _ := http.NewRequest("GET", fmt.Sprintf("/api/users/%s", targetUser.Username), nil)
 		req.Header.Set("Authorization", "Bearer "+token)
 
 		rr := executeRequest(req)
@@ -147,7 +147,7 @@ func TestGetUserProfile(t *testing.T) {
 
 		token, _ := helper.GenerateJWT(testConfig.JWTSecret, testConfig.JWTExp, blockerUser.ID)
 
-		req, _ := http.NewRequest("GET", fmt.Sprintf("/api/users/@%s", targetUser.Username), nil)
+		req, _ := http.NewRequest("GET", fmt.Sprintf("/api/users/%s", targetUser.Username), nil)
 		req.Header.Set("Authorization", "Bearer "+token)
 
 		rr := executeRequest(req)
@@ -177,7 +177,7 @@ func TestGetUserProfile(t *testing.T) {
 
 		token, _ := helper.GenerateJWT(testConfig.JWTSecret, testConfig.JWTExp, blockerUser.ID)
 
-		req, _ := http.NewRequest("GET", fmt.Sprintf("/api/users/@%s", targetUser.Username), nil)
+		req, _ := http.NewRequest("GET", fmt.Sprintf("/api/users/%s", targetUser.Username), nil)
 		req.Header.Set("Authorization", "Bearer "+token)
 
 		rr := executeRequest(req)
@@ -209,7 +209,7 @@ func TestGetUserProfile(t *testing.T) {
 
 		token, _ := helper.GenerateJWT(testConfig.JWTSecret, testConfig.JWTExp, requestingUser.ID)
 
-		req, _ := http.NewRequest("GET", "/api/users/@nonexistent", nil)
+		req, _ := http.NewRequest("GET", "/api/users/nonexistent", nil)
 		req.Header.Set("Authorization", "Bearer "+token)
 
 		rr := executeRequest(req)
@@ -220,7 +220,7 @@ func TestGetUserProfile(t *testing.T) {
 	})
 
 	t.Run("Unauthorized", func(t *testing.T) {
-		req, _ := http.NewRequest("GET", "/api/users/@someone", nil)
+		req, _ := http.NewRequest("GET", "/api/users/someone", nil)
 
 		rr := executeRequest(req)
 
@@ -869,7 +869,7 @@ func TestBlockUser(t *testing.T) {
 
 	t.Run("Success Block", func(t *testing.T) {
 
-		req, _ := http.NewRequest("POST", fmt.Sprintf("/api/users/@%s/block", u2.Username), nil)
+		req, _ := http.NewRequest("POST", fmt.Sprintf("/api/users/%s/block", u2.Username), nil)
 		req.Header.Set("Authorization", "Bearer "+token)
 		rr := executeRequest(req)
 		assert.Equal(t, http.StatusOK, rr.Code)
@@ -880,7 +880,7 @@ func TestBlockUser(t *testing.T) {
 
 	t.Run("Success Unblock", func(t *testing.T) {
 
-		req, _ := http.NewRequest("POST", fmt.Sprintf("/api/users/@%s/unblock", u2.Username), nil)
+		req, _ := http.NewRequest("POST", fmt.Sprintf("/api/users/%s/unblock", u2.Username), nil)
 		req.Header.Set("Authorization", "Bearer "+token)
 		rr := executeRequest(req)
 		assert.Equal(t, http.StatusOK, rr.Code)
@@ -891,7 +891,7 @@ func TestBlockUser(t *testing.T) {
 
 	t.Run("Block Self", func(t *testing.T) {
 
-		req, _ := http.NewRequest("POST", fmt.Sprintf("/api/users/@%s/block", u1.Username), nil)
+		req, _ := http.NewRequest("POST", fmt.Sprintf("/api/users/%s/block", u1.Username), nil)
 		req.Header.Set("Authorization", "Bearer "+token)
 		rr := executeRequest(req)
 		assert.Equal(t, http.StatusBadRequest, rr.Code)
@@ -899,7 +899,7 @@ func TestBlockUser(t *testing.T) {
 
 	t.Run("Block Non-Existent User", func(t *testing.T) {
 
-		req, _ := http.NewRequest("POST", "/api/users/@nonexistent/block", nil)
+		req, _ := http.NewRequest("POST", "/api/users/nonexistent/block", nil)
 		req.Header.Set("Authorization", "Bearer "+token)
 		rr := executeRequest(req)
 		assert.Equal(t, http.StatusNotFound, rr.Code)

@@ -233,12 +233,12 @@ components:
           description: Username of the sender
         type:
           type: string
-          description: Type of the message (regular, system_create, system_add, etc.)
+          description: Type of the message (regular, system_create, system_add, system_rename, system_description, system_avatar, etc.)
         content:
           type: string
         action_data:
           type: object
-          description: Metadata for system messages (e.g. target_id, new_name)
+          description: Metadata for system messages (e.g. target_id, new_name, old_name, new_description)
         attachments:
           type: array
           items:
@@ -395,8 +395,8 @@ components:
 
     ServerChatNew:
       name: chat.new
-      title: New Chat
-      summary: Sent to target user when a new private chat is started OR when added to a group
+      title: New Chat / Chat Update
+      summary: Sent to target user when a new private chat is started, when added to a group, OR when group info (name/avatar) is updated.
       payload:
         allOf:
           - $ref: '#/components/schemas/BaseEvent'
