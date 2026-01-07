@@ -834,6 +834,130 @@ func (s *GroupChatService) LeaveGroup(ctx context.Context, userID int, groupID i
 	return nil
 }
 
+func (s *GroupChatService) KickMember(ctx context.Context, requestorID int, groupID int, targetUserID int) error {
+	tx, err := s.client.Tx(ctx)
+	if err != nil {
+		slog.Error("Failed to start transaction", "error", err)
+		return helper.NewInternalServerError("")
+	}
+	defer tx.Rollback()
+
+	gc, err := tx.GroupChat.Query().
+		Where(groupchat.ChatID(groupID)).
+		WithChat().
+		Only(ctx)
+	if err != nil {
+		if ent.IsNotFound(err) {
+			return helper.NewNotFoundError("Group chat not found")
+		}
+		slog.Error("Failed to query group chat", "error", err)
+		return helper.NewInternalServerError("")
+	}
+
+	requestorMember, err := tx.GroupMember.Query().
+		Where(
+			groupmember.GroupChatID(gc.ID),
+			groupmember.UserID(requestorID),
+		).
+		Only(ctx)
+	if err != nil {
+		return helper.NewForbiddenError("You are not a member of this group")
+	}
+
+	if requestorMember.Role == groupmember.RoleMember {
+		return helper.NewForbiddenError("Only admins or owners can kick members")
+	}
+
+	targetMember, err := tx.GroupMember.Query().
+		Where(
+			groupmember.GroupChatID(gc.ID),
+			groupmember.UserID(targetUserID),
+		).
+		WithUser().
+		Only(ctx)
+	if err != nil {
+		return helper.NewNotFoundError("Target user is not a member of this group")
+	}
+
+	if targetMember.UserID == requestorID {
+		return helper.NewBadRequestError("Cannot kick yourself")
+	}
+
+	if requestorMember.Role == groupmember.RoleAdmin {
+		if targetMember.Role == groupmember.RoleAdmin || targetMember.Role == groupmember.RoleOwner {
+			return helper.NewForbiddenError("Admins cannot kick other admins or the owner")
+		}
+	}
+
+	err = tx.GroupMember.DeleteOne(targetMember).Exec(ctx)
+	if err != nil {
+		slog.Error("Failed to delete group member", "error", err)
+		return helper.NewInternalServerError("")
+	}
+
+	systemMsg, err := tx.Message.Create().
+		SetChatID(gc.ChatID).
+		SetSenderID(requestorID).
+		SetType(message.TypeSystemKick).
+		SetActionData(map[string]interface{}{
+			"target_id":       targetMember.UserID,
+			"target_username": targetMember.Edges.User.Username,
+			"target_name":     targetMember.Edges.User.FullName,
+		}).
+		Save(ctx)
+	if err != nil {
+		slog.Error("Failed to create system message for kick", "error", err)
+		return helper.NewInternalServerError("")
+	}
+
+	err = tx.Chat.UpdateOne(gc.Edges.Chat).
+		SetLastMessage(systemMsg).
+		SetLastMessageAt(systemMsg.CreatedAt).
+		Exec(ctx)
+	if err != nil {
+		slog.Error("Failed to update chat with last message", "error", err)
+		return helper.NewInternalServerError("")
+	}
+
+	if err := tx.Commit(); err != nil {
+		slog.Error("Failed to commit transaction", "error", err)
+		return helper.NewInternalServerError("")
+	}
+
+	if s.wsHub != nil {
+		go func() {
+			fullMsg, _ := s.client.Message.Query().
+				Where(message.ID(systemMsg.ID)).
+				WithSender().
+				Only(context.Background())
+
+			msgResponse := helper.ToMessageResponse(fullMsg, s.cfg.StorageMode, s.cfg.AppURL, s.cfg.StorageCDNURL, s.cfg.StorageAttachment)
+
+			s.wsHub.BroadcastToChat(gc.ChatID, websocket.Event{
+				Type:    websocket.EventMessageNew,
+				Payload: msgResponse,
+				Meta: &websocket.EventMeta{
+					Timestamp: time.Now().UTC().UnixMilli(),
+					ChatID:    gc.ChatID,
+					SenderID:  requestorID,
+				},
+			})
+
+			s.wsHub.BroadcastToUser(targetUserID, websocket.Event{
+				Type:    websocket.EventMessageNew,
+				Payload: msgResponse,
+				Meta: &websocket.EventMeta{
+					Timestamp: time.Now().UTC().UnixMilli(),
+					ChatID:    gc.ChatID,
+					SenderID:  requestorID,
+				},
+			})
+		}()
+	}
+
+	return nil
+}
+
 func (s *GroupChatService) UpdateMemberRole(ctx context.Context, requestorID int, groupID int, targetUserID int, req model.UpdateGroupMemberRoleRequest) error {
 	if err := s.validator.Struct(req); err != nil {
 		return helper.NewBadRequestError("")
@@ -908,9 +1032,10 @@ func (s *GroupChatService) UpdateMemberRole(ctx context.Context, requestorID int
 		SetSenderID(requestorID).
 		SetType(msgType).
 		SetActionData(map[string]interface{}{
-			"target_id":   targetMember.UserID,
-			"target_name": targetMember.Edges.User.FullName,
-			"new_role":    newRole,
+			"target_id":       targetMember.UserID,
+			"target_username": targetMember.Edges.User.Username,
+			"target_name":     targetMember.Edges.User.FullName,
+			"new_role":        newRole,
 		}).
 		Save(ctx)
 	if err != nil {
@@ -1026,10 +1151,11 @@ func (s *GroupChatService) TransferOwnership(ctx context.Context, requestorID in
 		SetSenderID(requestorID).
 		SetType(message.TypeSystemPromote).
 		SetActionData(map[string]interface{}{
-			"target_id":   targetMember.UserID,
-			"target_name": targetMember.Edges.User.FullName,
-			"new_role":    "owner",
-			"action":      "ownership_transferred",
+			"target_id":       targetMember.UserID,
+			"target_username": targetMember.Edges.User.Username,
+			"target_name":     targetMember.Edges.User.FullName,
+			"new_role":        "owner",
+			"action":          "ownership_transferred",
 		}).
 		Save(ctx)
 	if err != nil {

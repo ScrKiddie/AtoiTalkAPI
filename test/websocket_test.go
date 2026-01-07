@@ -754,6 +754,136 @@ func TestWebSocketUpdateGroupChat(t *testing.T) {
 	assert.True(t, eventsReceived[websocket.EventMessageNew], "User 2 should receive message.new")
 }
 
+func TestWebSocketKickMember(t *testing.T) {
+	clearDatabase(context.Background())
+	u1 := createWSUser(t, "u1", "u1@test.com")
+	u2 := createWSUser(t, "u2", "u2@test.com")
+	token1, _ := helper.GenerateJWT(testConfig.JWTSecret, testConfig.JWTExp, u1.ID)
+	token2, _ := helper.GenerateJWT(testConfig.JWTSecret, testConfig.JWTExp, u2.ID)
+
+	body := &bytes.Buffer{}
+	writer := multipart.NewWriter(body)
+	_ = writer.WriteField("name", "Kick WS Test")
+	usernamesJSON, _ := json.Marshal([]string{u2.Username})
+	_ = writer.WriteField("member_usernames", string(usernamesJSON))
+	writer.Close()
+	req, _ := http.NewRequest("POST", "/api/chats/group", body)
+	req.Header.Set("Content-Type", writer.FormDataContentType())
+	req.Header.Set("Authorization", "Bearer "+token1)
+	rr := executeRequest(req)
+	var chatResp helper.ResponseSuccess
+	json.Unmarshal(rr.Body.Bytes(), &chatResp)
+	chatID := int(chatResp.Data.(map[string]interface{})["id"].(float64))
+
+	server := httptest.NewServer(testRouter)
+	defer server.Close()
+	wsURL1 := "ws" + strings.TrimPrefix(server.URL, "http") + "/ws?token=" + token1
+	wsURL2 := "ws" + strings.TrimPrefix(server.URL, "http") + "/ws?token=" + token2
+
+	conn1, _, _ := ws.DefaultDialer.Dial(wsURL1, nil)
+	defer conn1.Close()
+	conn2, _, _ := ws.DefaultDialer.Dial(wsURL2, nil)
+	defer conn2.Close()
+
+	time.Sleep(100 * time.Millisecond)
+
+	kickReq, _ := http.NewRequest("POST", fmt.Sprintf("/api/chats/group/%d/members/%d/kick", chatID, u2.ID), nil)
+	kickReq.Header.Set("Authorization", "Bearer "+token1)
+	executeRequest(kickReq)
+
+	verifyEvent(t, conn1, websocket.EventMessageNew, u1.ID, 0)
+
+	verifyEvent(t, conn2, websocket.EventMessageNew, u1.ID, 0)
+}
+
+func TestWebSocketUpdateRole(t *testing.T) {
+	clearDatabase(context.Background())
+	u1 := createWSUser(t, "u1", "u1@test.com")
+	u2 := createWSUser(t, "u2", "u2@test.com")
+	token1, _ := helper.GenerateJWT(testConfig.JWTSecret, testConfig.JWTExp, u1.ID)
+	token2, _ := helper.GenerateJWT(testConfig.JWTSecret, testConfig.JWTExp, u2.ID)
+
+	body := &bytes.Buffer{}
+	writer := multipart.NewWriter(body)
+	_ = writer.WriteField("name", "Role WS Test")
+	usernamesJSON, _ := json.Marshal([]string{u2.Username})
+	_ = writer.WriteField("member_usernames", string(usernamesJSON))
+	writer.Close()
+	req, _ := http.NewRequest("POST", "/api/chats/group", body)
+	req.Header.Set("Content-Type", writer.FormDataContentType())
+	req.Header.Set("Authorization", "Bearer "+token1)
+	rr := executeRequest(req)
+	var chatResp helper.ResponseSuccess
+	json.Unmarshal(rr.Body.Bytes(), &chatResp)
+	chatID := int(chatResp.Data.(map[string]interface{})["id"].(float64))
+
+	server := httptest.NewServer(testRouter)
+	defer server.Close()
+	wsURL1 := "ws" + strings.TrimPrefix(server.URL, "http") + "/ws?token=" + token1
+	wsURL2 := "ws" + strings.TrimPrefix(server.URL, "http") + "/ws?token=" + token2
+
+	conn1, _, _ := ws.DefaultDialer.Dial(wsURL1, nil)
+	defer conn1.Close()
+	conn2, _, _ := ws.DefaultDialer.Dial(wsURL2, nil)
+	defer conn2.Close()
+
+	time.Sleep(100 * time.Millisecond)
+
+	roleBody := model.UpdateGroupMemberRoleRequest{Role: "admin"}
+	jsonRole, _ := json.Marshal(roleBody)
+	roleReq, _ := http.NewRequest("PUT", fmt.Sprintf("/api/chats/group/%d/members/%d/role", chatID, u2.ID), bytes.NewBuffer(jsonRole))
+	roleReq.Header.Set("Content-Type", "application/json")
+	roleReq.Header.Set("Authorization", "Bearer "+token1)
+	executeRequest(roleReq)
+
+	verifyEvent(t, conn1, websocket.EventMessageNew, u1.ID, 0)
+	verifyEvent(t, conn2, websocket.EventMessageNew, u1.ID, 0)
+}
+
+func TestWebSocketTransferOwnership(t *testing.T) {
+	clearDatabase(context.Background())
+	u1 := createWSUser(t, "u1", "u1@test.com")
+	u2 := createWSUser(t, "u2", "u2@test.com")
+	token1, _ := helper.GenerateJWT(testConfig.JWTSecret, testConfig.JWTExp, u1.ID)
+	token2, _ := helper.GenerateJWT(testConfig.JWTSecret, testConfig.JWTExp, u2.ID)
+
+	body := &bytes.Buffer{}
+	writer := multipart.NewWriter(body)
+	_ = writer.WriteField("name", "Transfer WS Test")
+	usernamesJSON, _ := json.Marshal([]string{u2.Username})
+	_ = writer.WriteField("member_usernames", string(usernamesJSON))
+	writer.Close()
+	req, _ := http.NewRequest("POST", "/api/chats/group", body)
+	req.Header.Set("Content-Type", writer.FormDataContentType())
+	req.Header.Set("Authorization", "Bearer "+token1)
+	rr := executeRequest(req)
+	var chatResp helper.ResponseSuccess
+	json.Unmarshal(rr.Body.Bytes(), &chatResp)
+	chatID := int(chatResp.Data.(map[string]interface{})["id"].(float64))
+
+	server := httptest.NewServer(testRouter)
+	defer server.Close()
+	wsURL1 := "ws" + strings.TrimPrefix(server.URL, "http") + "/ws?token=" + token1
+	wsURL2 := "ws" + strings.TrimPrefix(server.URL, "http") + "/ws?token=" + token2
+
+	conn1, _, _ := ws.DefaultDialer.Dial(wsURL1, nil)
+	defer conn1.Close()
+	conn2, _, _ := ws.DefaultDialer.Dial(wsURL2, nil)
+	defer conn2.Close()
+
+	time.Sleep(100 * time.Millisecond)
+
+	transferBody := model.TransferGroupOwnershipRequest{NewOwnerID: u2.ID}
+	jsonTransfer, _ := json.Marshal(transferBody)
+	transferReq, _ := http.NewRequest("POST", fmt.Sprintf("/api/chats/group/%d/transfer", chatID), bytes.NewBuffer(jsonTransfer))
+	transferReq.Header.Set("Content-Type", "application/json")
+	transferReq.Header.Set("Authorization", "Bearer "+token1)
+	executeRequest(transferReq)
+
+	verifyEvent(t, conn1, websocket.EventMessageNew, u1.ID, 0)
+	verifyEvent(t, conn2, websocket.EventMessageNew, u1.ID, 0)
+}
+
 func createWSUser(t *testing.T, username, email string) *ent.User {
 	hashedPassword, _ := helper.HashPassword("password123")
 
