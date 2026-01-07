@@ -1,7 +1,7 @@
 package model
 
 type CreatePrivateChatRequest struct {
-	TargetUserID int `json:"target_user_id" validate:"required"`
+	Username string `json:"username" validate:"required,min=3,max=50"`
 }
 
 type GetChatsRequest struct {
@@ -27,5 +27,6 @@ type ChatListResponse struct {
 	OtherLastReadAt *string          `json:"other_last_read_at,omitempty"`
 	IsOnline        bool             `json:"is_online"`
 	OtherUserID     *int             `json:"other_user_id,omitempty"`
+	OtherUsername   *string          `json:"other_username,omitempty"`
 	IsBlockedByMe   bool             `json:"is_blocked_by_me,omitempty"`
 }

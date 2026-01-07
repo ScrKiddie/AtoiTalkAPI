@@ -12,7 +12,6 @@ import (
 	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
-	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -47,7 +46,7 @@ func TestWebSocketBroadcastMessage(t *testing.T) {
 	user2 := createWSUser(t, "user2", "user2@example.com")
 	token2, _ := helper.GenerateJWT(testConfig.JWTSecret, testConfig.JWTExp, user2.ID)
 
-	createWSPrivateChat(t, user2.ID, token1)
+	createWSPrivateChat(t, user2.Username, token1)
 
 	server := httptest.NewServer(testRouter)
 	defer server.Close()
@@ -102,7 +101,7 @@ func TestWebSocketTypingStatus(t *testing.T) {
 	user2 := createWSUser(t, "user2", "user2@example.com")
 	token2, _ := helper.GenerateJWT(testConfig.JWTSecret, testConfig.JWTExp, user2.ID)
 
-	createWSPrivateChat(t, user2.ID, token1)
+	createWSPrivateChat(t, user2.Username, token1)
 
 	chats, _ := testClient.Chat.Query().All(context.Background())
 	chatID := chats[0].ID
@@ -162,7 +161,7 @@ func TestWebSocketUserPresence(t *testing.T) {
 	user2 := createWSUser(t, "user2", "user2@example.com")
 	token2, _ := helper.GenerateJWT(testConfig.JWTSecret, testConfig.JWTExp, user2.ID)
 
-	createWSPrivateChat(t, user2.ID, token1)
+	createWSPrivateChat(t, user2.Username, token1)
 
 	server := httptest.NewServer(testRouter)
 	defer server.Close()
@@ -231,7 +230,7 @@ func TestWebSocketMultiDevice(t *testing.T) {
 	user2 := createWSUser(t, "user2", "user2@example.com")
 	token2, _ := helper.GenerateJWT(testConfig.JWTSecret, testConfig.JWTExp, user2.ID)
 
-	createWSPrivateChat(t, user2.ID, token1)
+	createWSPrivateChat(t, user2.Username, token1)
 	chats, _ := testClient.Chat.Query().All(context.Background())
 	chatID := chats[0].ID
 
@@ -286,7 +285,7 @@ func TestWebSocketReadStatusSync(t *testing.T) {
 	user2 := createWSUser(t, "user2", "user2@example.com")
 	token2, _ := helper.GenerateJWT(testConfig.JWTSecret, testConfig.JWTExp, user2.ID)
 
-	createWSPrivateChat(t, user2.ID, token1)
+	createWSPrivateChat(t, user2.Username, token1)
 	chats, _ := testClient.Chat.Query().All(context.Background())
 	chatID := chats[0].ID
 
@@ -335,7 +334,7 @@ func TestWebSocketSecurityLeak(t *testing.T) {
 	user3 := createWSUser(t, "user3", "user3@example.com")
 	token3, _ := helper.GenerateJWT(testConfig.JWTSecret, testConfig.JWTExp, user3.ID)
 
-	createWSPrivateChat(t, user2.ID, token1)
+	createWSPrivateChat(t, user2.Username, token1)
 	chats, _ := testClient.Chat.Query().All(context.Background())
 	chatID := chats[0].ID
 
@@ -405,7 +404,7 @@ func TestWebSocketBlockUnblockSync(t *testing.T) {
 
 	time.Sleep(100 * time.Millisecond)
 
-	req, _ := http.NewRequest("POST", fmt.Sprintf("/api/users/%d/block", user2.ID), nil)
+	req, _ := http.NewRequest("POST", fmt.Sprintf("/api/users/@%s/block", user2.Username), nil)
 	req.Header.Set("Authorization", "Bearer "+token1)
 	executeRequest(req)
 
@@ -413,7 +412,7 @@ func TestWebSocketBlockUnblockSync(t *testing.T) {
 	verifyEvent(t, conn1B, websocket.EventUserBlock, user1.ID, user2.ID)
 	verifyEvent(t, conn2, websocket.EventUserBlock, user1.ID, user2.ID)
 
-	reqUnblock, _ := http.NewRequest("POST", fmt.Sprintf("/api/users/%d/unblock", user2.ID), nil)
+	reqUnblock, _ := http.NewRequest("POST", fmt.Sprintf("/api/users/@%s/unblock", user2.Username), nil)
 	reqUnblock.Header.Set("Authorization", "Bearer "+token1)
 	executeRequest(reqUnblock)
 
@@ -431,7 +430,7 @@ func TestWebSocketProfileUpdate(t *testing.T) {
 	user2 := createWSUser(t, "user2", "user2@example.com")
 	token2, _ := helper.GenerateJWT(testConfig.JWTSecret, testConfig.JWTExp, user2.ID)
 
-	createWSPrivateChat(t, user2.ID, token1)
+	createWSPrivateChat(t, user2.Username, token1)
 
 	server := httptest.NewServer(testRouter)
 	defer server.Close()
@@ -475,7 +474,7 @@ func TestWebSocketMessageDelete(t *testing.T) {
 	user2 := createWSUser(t, "user2", "user2@example.com")
 	token2, _ := helper.GenerateJWT(testConfig.JWTSecret, testConfig.JWTExp, user2.ID)
 
-	createWSPrivateChat(t, user2.ID, token1)
+	createWSPrivateChat(t, user2.Username, token1)
 	chats, _ := testClient.Chat.Query().All(context.Background())
 	chatID := chats[0].ID
 
@@ -521,7 +520,7 @@ func TestWebSocketMessageUpdate(t *testing.T) {
 	user2 := createWSUser(t, "user2", "user2@example.com")
 	token2, _ := helper.GenerateJWT(testConfig.JWTSecret, testConfig.JWTExp, user2.ID)
 
-	createWSPrivateChat(t, user2.ID, token1)
+	createWSPrivateChat(t, user2.Username, token1)
 	chats, _ := testClient.Chat.Query().All(context.Background())
 	chatID := chats[0].ID
 
@@ -574,7 +573,7 @@ func TestWebSocketChatHide(t *testing.T) {
 
 	user2 := createWSUser(t, "user2", "user2@example.com")
 
-	createWSPrivateChat(t, user2.ID, token1)
+	createWSPrivateChat(t, user2.Username, token1)
 	chats, _ := testClient.Chat.Query().All(context.Background())
 	chatID := chats[0].ID
 
@@ -623,7 +622,10 @@ func TestWebSocketGroupChatCreation(t *testing.T) {
 	body := &bytes.Buffer{}
 	writer := multipart.NewWriter(body)
 	_ = writer.WriteField("name", "Test Group WS")
-	_ = writer.WriteField("member_ids", `[`+strconv.Itoa(u2.ID)+`,`+strconv.Itoa(u3.ID)+`]`)
+
+	usernamesJSON, _ := json.Marshal([]string{u2.Username, u3.Username})
+	_ = writer.WriteField("member_usernames", string(usernamesJSON))
+
 	writer.Close()
 
 	req, _ := http.NewRequest("POST", "/api/chats/group", body)
@@ -648,12 +650,20 @@ func TestWebSocketAddGroupMember(t *testing.T) {
 	body := &bytes.Buffer{}
 	writer := multipart.NewWriter(body)
 	_ = writer.WriteField("name", "Add Member WS Test")
-	_ = writer.WriteField("member_ids", `[`+strconv.Itoa(u2.ID)+`]`)
+
+	usernamesJSON, _ := json.Marshal([]string{u2.Username})
+	_ = writer.WriteField("member_usernames", string(usernamesJSON))
+
 	writer.Close()
 	req, _ := http.NewRequest("POST", "/api/chats/group", body)
 	req.Header.Set("Content-Type", writer.FormDataContentType())
 	req.Header.Set("Authorization", "Bearer "+token1)
 	rr := executeRequest(req)
+
+	if !assert.Equal(t, http.StatusOK, rr.Code) {
+		return
+	}
+
 	var chatResp helper.ResponseSuccess
 	json.Unmarshal(rr.Body.Bytes(), &chatResp)
 	chatID := int(chatResp.Data.(map[string]interface{})["id"].(float64))
@@ -673,7 +683,7 @@ func TestWebSocketAddGroupMember(t *testing.T) {
 
 	time.Sleep(100 * time.Millisecond)
 
-	addReqBody := model.AddGroupMemberRequest{UserID: u3.ID}
+	addReqBody := model.AddGroupMemberRequest{Usernames: []string{u3.Username}}
 	addBody, _ := json.Marshal(addReqBody)
 	addReq, _ := http.NewRequest("POST", fmt.Sprintf("/api/chats/group/%d/members", chatID), bytes.NewBuffer(addBody))
 	addReq.Header.Set("Content-Type", "application/json")
@@ -689,6 +699,10 @@ func TestWebSocketAddGroupMember(t *testing.T) {
 
 func createWSUser(t *testing.T, username, email string) *ent.User {
 	hashedPassword, _ := helper.HashPassword("password123")
+
+	if len(username) < 3 {
+		username = username + "user"
+	}
 	u, err := testClient.User.Create().
 		SetUsername(username).
 		SetEmail(email).
@@ -699,9 +713,9 @@ func createWSUser(t *testing.T, username, email string) *ent.User {
 	return u
 }
 
-func createWSPrivateChat(t *testing.T, user2ID int, token string) {
+func createWSPrivateChat(t *testing.T, username string, token string) {
 	reqBody := model.CreatePrivateChatRequest{
-		TargetUserID: user2ID,
+		Username: username,
 	}
 	jsonBody, _ := json.Marshal(reqBody)
 	req, _ := http.NewRequest("POST", "/api/chats/private", bytes.NewBuffer(jsonBody))

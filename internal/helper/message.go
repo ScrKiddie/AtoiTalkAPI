@@ -45,8 +45,10 @@ func ToMessageResponse(msg *ent.Message, storageMode, appURL, cdnURL, storageAtt
 	}
 
 	var senderName string
+	var senderUsername string
 	if msg.Edges.Sender != nil {
 		senderName = msg.Edges.Sender.FullName
+		senderUsername = msg.Edges.Sender.Username
 	}
 
 	var replyPreview *model.ReplyPreviewDTO
@@ -83,17 +85,18 @@ func ToMessageResponse(msg *ent.Message, storageMode, appURL, cdnURL, storageAtt
 	}
 
 	return &model.MessageResponse{
-		ID:          msg.ID,
-		ChatID:      msg.ChatID,
-		SenderID:    msg.SenderID,
-		SenderName:  senderName,
-		Type:        string(msg.Type),
-		Content:     content,
-		ActionData:  actionData,
-		Attachments: attachments,
-		ReplyTo:     replyPreview,
-		CreatedAt:   msg.CreatedAt.Format(time.RFC3339),
-		DeletedAt:   deletedAtStr,
-		EditedAt:    editedAtStr,
+		ID:             msg.ID,
+		ChatID:         msg.ChatID,
+		SenderID:       msg.SenderID,
+		SenderName:     senderName,
+		SenderUsername: &senderUsername,
+		Type:           string(msg.Type),
+		Content:        content,
+		ActionData:     actionData,
+		Attachments:    attachments,
+		ReplyTo:        replyPreview,
+		CreatedAt:      msg.CreatedAt.Format(time.RFC3339),
+		DeletedAt:      deletedAtStr,
+		EditedAt:       editedAtStr,
 	}
 }

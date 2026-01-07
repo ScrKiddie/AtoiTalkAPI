@@ -31,7 +31,7 @@ func NewGroupChatController(groupChatService *service.GroupChatService) *GroupCh
 // @Produce      json
 // @Param        name formData string true "Group Name"
 // @Param        description formData string false "Group Description"
-// @Param        member_ids formData string true "JSON Array of Member IDs (e.g. [1, 2, 3])"
+// @Param        member_usernames formData string true "JSON Array of Member Usernames (e.g. [\"user1\", \"user2\"])"
 // @Param        avatar formData file false "Group Avatar Image"
 // @Success      200  {object}  helper.ResponseSuccess{data=model.ChatResponse}
 // @Failure      400  {object}  helper.ResponseError
@@ -49,16 +49,16 @@ func (c *GroupChatController) CreateGroupChat(w http.ResponseWriter, r *http.Req
 
 	name := r.FormValue("name")
 	description := r.FormValue("description")
-	memberIDsStr := r.FormValue("member_ids")
+	memberUsernamesStr := r.FormValue("member_usernames")
 
-	var memberIDs []int
-	if memberIDsStr != "" {
-		if err := json.Unmarshal([]byte(memberIDsStr), &memberIDs); err != nil {
-			parts := strings.Split(memberIDsStr, ",")
+	var memberUsernames []string
+	if memberUsernamesStr != "" {
+		if err := json.Unmarshal([]byte(memberUsernamesStr), &memberUsernames); err != nil {
+			parts := strings.Split(memberUsernamesStr, ",")
 			for _, p := range parts {
-				id, err := strconv.Atoi(strings.TrimSpace(p))
-				if err == nil {
-					memberIDs = append(memberIDs, id)
+				username := strings.TrimSpace(p)
+				if username != "" {
+					memberUsernames = append(memberUsernames, username)
 				}
 			}
 		}
@@ -71,10 +71,10 @@ func (c *GroupChatController) CreateGroupChat(w http.ResponseWriter, r *http.Req
 	}
 
 	req := model.CreateGroupChatRequest{
-		Name:        name,
-		Description: description,
-		MemberIDs:   memberIDs,
-		Avatar:      header,
+		Name:            name,
+		Description:     description,
+		MemberUsernames: memberUsernames,
+		Avatar:          header,
 	}
 
 	resp, err := c.groupChatService.CreateGroupChat(r.Context(), userContext.ID, req)
@@ -146,7 +146,7 @@ func (c *GroupChatController) SearchGroupMembers(w http.ResponseWriter, r *http.
 
 // AddMember godoc
 // @Summary      Add Member to Group
-// @Description  Add a new member to a group chat. Only owners or admins can perform this action.
+// @Description  Add new members to a group chat. Only owners or admins can perform this action.
 // @Tags         chat
 // @Accept       json
 // @Produce      json

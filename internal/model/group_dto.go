@@ -3,10 +3,10 @@ package model
 import "mime/multipart"
 
 type CreateGroupChatRequest struct {
-	Name        string                `form:"name" validate:"required,min=3,max=100"`
-	Description string                `form:"description" validate:"max=255"`
-	MemberIDs   []int                 `form:"member_ids" validate:"required,min=1,dive,gt=0"`
-	Avatar      *multipart.FileHeader `form:"avatar" validate:"omitempty"`
+	Name            string                `form:"name" validate:"required,min=3,max=100"`
+	Description     string                `form:"description" validate:"max=255"`
+	MemberUsernames []string              `form:"member_usernames" validate:"required,min=1,dive,min=3,max=50"`
+	Avatar          *multipart.FileHeader `form:"avatar" validate:"omitempty"`
 }
 
 type SearchGroupMembersRequest struct {
@@ -17,7 +17,7 @@ type SearchGroupMembersRequest struct {
 }
 
 type AddGroupMemberRequest struct {
-	UserID int `json:"user_id" validate:"required,gt=0"`
+	Usernames []string `json:"usernames" validate:"required,min=1,dive,min=3,max=50"`
 }
 
 type GroupMemberDTO struct {

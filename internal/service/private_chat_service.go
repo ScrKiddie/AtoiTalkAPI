@@ -39,26 +39,29 @@ func (s *PrivateChatService) CreatePrivateChat(ctx context.Context, userID int, 
 		return nil, helper.NewBadRequestError("")
 	}
 
-	if userID == req.TargetUserID {
-		return nil, helper.NewBadRequestError("")
-	}
+	targetUser, err := s.client.User.Query().
+		Where(user.UsernameEQ(req.Username)).
+		WithAvatar().
+		Only(ctx)
 
-	users, err := s.client.User.Query().Where(user.IDIn(userID, req.TargetUserID)).WithAvatar().All(ctx)
 	if err != nil {
-		slog.Error("Failed to query users for private chat", "error", err)
+		if ent.IsNotFound(err) {
+			return nil, helper.NewNotFoundError("User not found")
+		}
+		slog.Error("Failed to resolve username", "error", err, "username", req.Username)
 		return nil, helper.NewInternalServerError("")
 	}
-	if len(users) != 2 {
-		return nil, helper.NewNotFoundError("")
+
+	targetUserID := targetUser.ID
+
+	if userID == targetUserID {
+		return nil, helper.NewBadRequestError("Cannot chat with yourself")
 	}
 
-	var creator, targetUser *ent.User
-	for _, u := range users {
-		if u.ID == userID {
-			creator = u
-		} else {
-			targetUser = u
-		}
+	creator, err := s.client.User.Query().Where(user.ID(userID)).WithAvatar().Only(ctx)
+	if err != nil {
+		slog.Error("Failed to query creator", "error", err)
+		return nil, helper.NewInternalServerError("")
 	}
 
 	isBlocked, err := s.client.UserBlock.Query().
@@ -66,10 +69,10 @@ func (s *PrivateChatService) CreatePrivateChat(ctx context.Context, userID int, 
 			userblock.Or(
 				userblock.And(
 					userblock.BlockerID(userID),
-					userblock.BlockedID(req.TargetUserID),
+					userblock.BlockedID(targetUserID),
 				),
 				userblock.And(
-					userblock.BlockerID(req.TargetUserID),
+					userblock.BlockerID(targetUserID),
 					userblock.BlockedID(userID),
 				),
 			),
@@ -80,7 +83,7 @@ func (s *PrivateChatService) CreatePrivateChat(ctx context.Context, userID int, 
 		return nil, helper.NewInternalServerError("")
 	}
 	if isBlocked {
-		return nil, helper.NewForbiddenError("")
+		return nil, helper.NewForbiddenError("Cannot create chat with blocked user")
 	}
 
 	existingChat, err := s.client.PrivateChat.Query().
@@ -88,10 +91,10 @@ func (s *PrivateChatService) CreatePrivateChat(ctx context.Context, userID int, 
 			privatechat.Or(
 				privatechat.And(
 					privatechat.User1ID(userID),
-					privatechat.User2ID(req.TargetUserID),
+					privatechat.User2ID(targetUserID),
 				),
 				privatechat.And(
-					privatechat.User1ID(req.TargetUserID),
+					privatechat.User1ID(targetUserID),
 					privatechat.User2ID(userID),
 				),
 			),
@@ -100,7 +103,6 @@ func (s *PrivateChatService) CreatePrivateChat(ctx context.Context, userID int, 
 		Only(ctx)
 
 	if err == nil {
-
 		return &model.ChatResponse{
 			ID:        existingChat.Edges.Chat.ID,
 			Type:      string(existingChat.Edges.Chat.Type),
@@ -135,7 +137,7 @@ func (s *PrivateChatService) CreatePrivateChat(ctx context.Context, userID int, 
 	_, err = tx.PrivateChat.Create().
 		SetChat(newChat).
 		SetUser1ID(userID).
-		SetUser2ID(req.TargetUserID).
+		SetUser2ID(targetUserID).
 		Save(ctx)
 	if err != nil {
 		slog.Error("Failed to create private chat", "error", err)
@@ -149,20 +151,20 @@ func (s *PrivateChatService) CreatePrivateChat(ctx context.Context, userID int, 
 
 	if s.wsHub != nil {
 		go func() {
-
 			creatorAvatarURL := ""
 			if creator.Edges.Avatar != nil {
 				creatorAvatarURL = helper.BuildImageURL(s.cfg.StorageMode, s.cfg.AppURL, s.cfg.StorageCDNURL, s.cfg.StorageProfile, creator.Edges.Avatar.FileName)
 			}
 			payloadForTarget := model.ChatListResponse{
-				ID:          newChat.ID,
-				Type:        string(newChat.Type),
-				Name:        creator.FullName,
-				Avatar:      creatorAvatarURL,
-				LastMessage: nil,
-				UnreadCount: 0,
-				IsOnline:    creator.IsOnline,
-				OtherUserID: &creator.ID,
+				ID:            newChat.ID,
+				Type:          string(newChat.Type),
+				Name:          creator.FullName,
+				Avatar:        creatorAvatarURL,
+				LastMessage:   nil,
+				UnreadCount:   0,
+				IsOnline:      creator.IsOnline,
+				OtherUserID:   &creator.ID,
+				OtherUsername: &creator.Username,
 			}
 			s.wsHub.BroadcastToUser(targetUser.ID, websocket.Event{
 				Type:    websocket.EventChatNew,
@@ -175,14 +177,15 @@ func (s *PrivateChatService) CreatePrivateChat(ctx context.Context, userID int, 
 				targetAvatarURL = helper.BuildImageURL(s.cfg.StorageMode, s.cfg.AppURL, s.cfg.StorageCDNURL, s.cfg.StorageProfile, targetUser.Edges.Avatar.FileName)
 			}
 			payloadForCreator := model.ChatListResponse{
-				ID:          newChat.ID,
-				Type:        string(newChat.Type),
-				Name:        targetUser.FullName,
-				Avatar:      targetAvatarURL,
-				LastMessage: nil,
-				UnreadCount: 0,
-				IsOnline:    targetUser.IsOnline,
-				OtherUserID: &targetUser.ID,
+				ID:            newChat.ID,
+				Type:          string(newChat.Type),
+				Name:          targetUser.FullName,
+				Avatar:        targetAvatarURL,
+				LastMessage:   nil,
+				UnreadCount:   0,
+				IsOnline:      targetUser.IsOnline,
+				OtherUserID:   &targetUser.ID,
+				OtherUsername: &targetUser.Username,
 			}
 			s.wsHub.BroadcastToUser(creator.ID, websocket.Event{
 				Type:    websocket.EventChatNew,

@@ -51,18 +51,18 @@ func (c *UserController) GetCurrentUser(w http.ResponseWriter, r *http.Request) 
 
 // GetUserProfile godoc
 // @Summary      Get User Profile
-// @Description  Get another user's profile by ID.
+// @Description  Get another user's profile by Username.
 // @Tags         user
 // @Accept       json
 // @Produce      json
-// @Param        id path int true "User ID"
+// @Param        username path string true "Username"
 // @Success      200  {object}  helper.ResponseSuccess{data=model.UserDTO}
 // @Failure      400  {object}  helper.ResponseError
 // @Failure      401  {object}  helper.ResponseError
 // @Failure      404  {object}  helper.ResponseError
 // @Failure      500  {object}  helper.ResponseError
 // @Security     BearerAuth
-// @Router       /api/users/{id} [get]
+// @Router       /api/users/@{username} [get]
 func (c *UserController) GetUserProfile(w http.ResponseWriter, r *http.Request) {
 	userContext, ok := r.Context().Value(middleware.UserContextKey).(*model.UserDTO)
 	if !ok {
@@ -70,14 +70,13 @@ func (c *UserController) GetUserProfile(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	idStr := chi.URLParam(r, "id")
-	targetUserID, err := strconv.Atoi(idStr)
-	if err != nil {
-		helper.WriteError(w, helper.NewBadRequestError(""))
+	username := chi.URLParam(r, "username")
+	if username == "" {
+		helper.WriteError(w, helper.NewBadRequestError("Username is required"))
 		return
 	}
 
-	resp, err := c.userService.GetUserProfile(r.Context(), userContext.ID, targetUserID)
+	resp, err := c.userService.GetUserProfile(r.Context(), userContext.ID, username)
 	if err != nil {
 		helper.WriteError(w, err)
 		return
@@ -244,18 +243,18 @@ func (c *UserController) GetBlockedUsers(w http.ResponseWriter, r *http.Request)
 
 // BlockUser godoc
 // @Summary      Block a User
-// @Description  Block a user by their ID.
+// @Description  Block a user by their Username.
 // @Tags         user
 // @Accept       json
 // @Produce      json
-// @Param        id path int true "User ID to block"
+// @Param        username path string true "Username to block"
 // @Success      200  {object}  helper.ResponseSuccess
 // @Failure      400  {object}  helper.ResponseError
 // @Failure      401  {object}  helper.ResponseError
 // @Failure      404  {object}  helper.ResponseError
 // @Failure      500  {object}  helper.ResponseError
 // @Security     BearerAuth
-// @Router       /api/users/{id}/block [post]
+// @Router       /api/users/@{username}/block [post]
 func (c *UserController) BlockUser(w http.ResponseWriter, r *http.Request) {
 	userContext, ok := r.Context().Value(middleware.UserContextKey).(*model.UserDTO)
 	if !ok {
@@ -263,14 +262,13 @@ func (c *UserController) BlockUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	idStr := chi.URLParam(r, "id")
-	blockedID, err := strconv.Atoi(idStr)
-	if err != nil {
-		helper.WriteError(w, helper.NewBadRequestError(""))
+	username := chi.URLParam(r, "username")
+	if username == "" {
+		helper.WriteError(w, helper.NewBadRequestError("Username is required"))
 		return
 	}
 
-	if err := c.userService.BlockUser(r.Context(), userContext.ID, blockedID); err != nil {
+	if err := c.userService.BlockUser(r.Context(), userContext.ID, username); err != nil {
 		helper.WriteError(w, err)
 		return
 	}
@@ -280,17 +278,17 @@ func (c *UserController) BlockUser(w http.ResponseWriter, r *http.Request) {
 
 // UnblockUser godoc
 // @Summary      Unblock a User
-// @Description  Unblock a user by their ID.
+// @Description  Unblock a user by their Username.
 // @Tags         user
 // @Accept       json
 // @Produce      json
-// @Param        id path int true "User ID to unblock"
+// @Param        username path string true "Username to unblock"
 // @Success      200  {object}  helper.ResponseSuccess
 // @Failure      400  {object}  helper.ResponseError
 // @Failure      401  {object}  helper.ResponseError
 // @Failure      500  {object}  helper.ResponseError
 // @Security     BearerAuth
-// @Router       /api/users/{id}/unblock [post]
+// @Router       /api/users/@{username}/unblock [post]
 func (c *UserController) UnblockUser(w http.ResponseWriter, r *http.Request) {
 	userContext, ok := r.Context().Value(middleware.UserContextKey).(*model.UserDTO)
 	if !ok {
@@ -298,14 +296,13 @@ func (c *UserController) UnblockUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	idStr := chi.URLParam(r, "id")
-	blockedID, err := strconv.Atoi(idStr)
-	if err != nil {
-		helper.WriteError(w, helper.NewBadRequestError(""))
+	username := chi.URLParam(r, "username")
+	if username == "" {
+		helper.WriteError(w, helper.NewBadRequestError("Username is required"))
 		return
 	}
 
-	if err := c.userService.UnblockUser(r.Context(), userContext.ID, blockedID); err != nil {
+	if err := c.userService.UnblockUser(r.Context(), userContext.ID, username); err != nil {
 		helper.WriteError(w, err)
 		return
 	}

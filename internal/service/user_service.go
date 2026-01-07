@@ -77,7 +77,21 @@ func (s *UserService) GetCurrentUser(ctx context.Context, userID int) (*model.Us
 	}, nil
 }
 
-func (s *UserService) GetUserProfile(ctx context.Context, currentUserID int, targetUserID int) (*model.UserDTO, error) {
+func (s *UserService) GetUserProfile(ctx context.Context, currentUserID int, username string) (*model.UserDTO, error) {
+
+	targetUser, err := s.client.User.Query().
+		Where(user.UsernameEQ(username)).
+		WithAvatar().
+		Only(ctx)
+
+	if err != nil {
+		if ent.IsNotFound(err) {
+			return nil, helper.NewNotFoundError("User not found")
+		}
+		slog.Error("Failed to resolve username", "error", err, "username", username)
+		return nil, helper.NewInternalServerError("")
+	}
+	targetUserID := targetUser.ID
 
 	blocks, err := s.client.UserBlock.Query().
 		Where(
@@ -111,49 +125,34 @@ func (s *UserService) GetUserProfile(ctx context.Context, currentUserID int, tar
 		}
 	}
 
-	u, err := s.client.User.Query().
-		Where(user.ID(targetUserID)).
-		Select(user.FieldID, user.FieldUsername, user.FieldFullName, user.FieldBio, user.FieldIsOnline, user.FieldLastSeenAt, user.FieldAvatarID).
-		WithAvatar().
-		Only(ctx)
-
-	if err != nil {
-		if ent.IsNotFound(err) {
-			return nil, helper.NewNotFoundError("User not found")
-		}
-		slog.Error("Failed to query user profile", "error", err, "targetUserID", targetUserID)
-		return nil, helper.NewInternalServerError("")
-	}
-
 	avatarURL := ""
-	if u.Edges.Avatar != nil {
-		avatarURL = helper.BuildImageURL(s.cfg.StorageMode, s.cfg.AppURL, s.cfg.StorageCDNURL, s.cfg.StorageProfile, u.Edges.Avatar.FileName)
+	if targetUser.Edges.Avatar != nil {
+		avatarURL = helper.BuildImageURL(s.cfg.StorageMode, s.cfg.AppURL, s.cfg.StorageCDNURL, s.cfg.StorageProfile, targetUser.Edges.Avatar.FileName)
 	}
 
 	bio := ""
-	if u.Bio != nil {
-		bio = *u.Bio
+	if targetUser.Bio != nil {
+		bio = *targetUser.Bio
 	}
 
 	var lastSeenAt *string
-	isOnline := u.IsOnline
-	username := u.Username
+	isOnline := targetUser.IsOnline
 
 	if isBlockedByMe || isBlockedByOther {
 		isOnline = false
 		lastSeenAt = nil
 
 	} else {
-		if u.LastSeenAt != nil {
-			t := u.LastSeenAt.Format(time.RFC3339)
+		if targetUser.LastSeenAt != nil {
+			t := targetUser.LastSeenAt.Format(time.RFC3339)
 			lastSeenAt = &t
 		}
 	}
 
 	return &model.UserDTO{
-		ID:               u.ID,
-		Username:         username,
-		FullName:         u.FullName,
+		ID:               targetUser.ID,
+		Username:         targetUser.Username,
+		FullName:         targetUser.FullName,
 		Avatar:           avatarURL,
 		Bio:              bio,
 		HasPassword:      false,
@@ -353,7 +352,7 @@ func (s *UserService) UpdateProfile(ctx context.Context, userID int, req model.U
 				Type:    websocket.EventUserUpdate,
 				Payload: wsPayload,
 				Meta: &websocket.EventMeta{
-					Timestamp: time.Now().UTC().UnixMilli(),
+					Timestamp: time.Now().UnixMilli(),
 					SenderID:  userID,
 				},
 			}
@@ -497,18 +496,22 @@ func (s *UserService) GetBlockedUsers(ctx context.Context, currentUserID int, re
 	return userDTOs, nextCursor, hasNext, nil
 }
 
-func (s *UserService) BlockUser(ctx context.Context, blockerID int, blockedID int) error {
-	if blockerID == blockedID {
-		return helper.NewBadRequestError("")
-	}
+func (s *UserService) BlockUser(ctx context.Context, blockerID int, username string) error {
 
-	exists, err := s.client.User.Query().Where(user.ID(blockedID)).Exist(ctx)
+	blockedUser, err := s.client.User.Query().
+		Where(user.UsernameEQ(username)).
+		Only(ctx)
 	if err != nil {
-		slog.Error("Failed to check user existence", "error", err)
+		if ent.IsNotFound(err) {
+			return helper.NewNotFoundError("User not found")
+		}
+		slog.Error("Failed to resolve username", "error", err, "username", username)
 		return helper.NewInternalServerError("")
 	}
-	if !exists {
-		return helper.NewNotFoundError("")
+	blockedID := blockedUser.ID
+
+	if blockerID == blockedID {
+		return helper.NewBadRequestError("Cannot block yourself")
 	}
 
 	_, err = s.client.UserBlock.Create().
@@ -533,7 +536,7 @@ func (s *UserService) BlockUser(ctx context.Context, blockerID int, blockedID in
 					"blocked_id": blockedID,
 				},
 				Meta: &websocket.EventMeta{
-					Timestamp: time.Now().UTC().UnixMilli(),
+					Timestamp: time.Now().UnixMilli(),
 					SenderID:  blockerID,
 				},
 			}
@@ -547,8 +550,21 @@ func (s *UserService) BlockUser(ctx context.Context, blockerID int, blockedID in
 	return nil
 }
 
-func (s *UserService) UnblockUser(ctx context.Context, blockerID int, blockedID int) error {
-	_, err := s.client.UserBlock.Delete().
+func (s *UserService) UnblockUser(ctx context.Context, blockerID int, username string) error {
+
+	blockedUser, err := s.client.User.Query().
+		Where(user.UsernameEQ(username)).
+		Only(ctx)
+	if err != nil {
+		if ent.IsNotFound(err) {
+			return helper.NewNotFoundError("User not found")
+		}
+		slog.Error("Failed to resolve username", "error", err, "username", username)
+		return helper.NewInternalServerError("")
+	}
+	blockedID := blockedUser.ID
+
+	_, err = s.client.UserBlock.Delete().
 		Where(
 			userblock.BlockerID(blockerID),
 			userblock.BlockedID(blockedID),
@@ -569,7 +585,7 @@ func (s *UserService) UnblockUser(ctx context.Context, blockerID int, blockedID 
 					"blocked_id": blockedID,
 				},
 				Meta: &websocket.EventMeta{
-					Timestamp: time.Now().UTC().UnixMilli(),
+					Timestamp: time.Now().UnixMilli(),
 					SenderID:  blockerID,
 				},
 			}
