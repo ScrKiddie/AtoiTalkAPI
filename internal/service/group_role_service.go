@@ -1,0 +1,264 @@
+package service
+
+import (
+	"AtoiTalkAPI/ent"
+	"AtoiTalkAPI/ent/chat"
+	"AtoiTalkAPI/ent/groupchat"
+	"AtoiTalkAPI/ent/groupmember"
+	"AtoiTalkAPI/ent/message"
+	"AtoiTalkAPI/internal/helper"
+	"AtoiTalkAPI/internal/model"
+	"AtoiTalkAPI/internal/websocket"
+	"context"
+	"log/slog"
+	"time"
+
+	"github.com/google/uuid"
+)
+
+func (s *GroupChatService) UpdateMemberRole(ctx context.Context, requestorID uuid.UUID, groupID uuid.UUID, targetUserID uuid.UUID, req model.UpdateGroupMemberRoleRequest) error {
+	if err := s.validator.Struct(req); err != nil {
+		return helper.NewBadRequestError("")
+	}
+
+	tx, err := s.client.Tx(ctx)
+	if err != nil {
+		slog.Error("Failed to start transaction", "error", err)
+		return helper.NewInternalServerError("")
+	}
+	defer tx.Rollback()
+
+	gc, err := tx.GroupChat.Query().
+		Where(
+			groupchat.ChatID(groupID),
+			groupchat.HasChatWith(chat.DeletedAtIsNil()),
+		).
+		WithChat().
+		Only(ctx)
+	if err != nil {
+		if ent.IsNotFound(err) {
+			return helper.NewNotFoundError("Group chat not found")
+		}
+		slog.Error("Failed to query group chat", "error", err)
+		return helper.NewInternalServerError("")
+	}
+
+	requestorMember, err := tx.GroupMember.Query().
+		Where(
+			groupmember.GroupChatID(gc.ID),
+			groupmember.UserID(requestorID),
+		).
+		Only(ctx)
+	if err != nil {
+		return helper.NewForbiddenError("You are not a member of this group")
+	}
+
+	if requestorMember.Role != groupmember.RoleOwner {
+		return helper.NewForbiddenError("Only owner can change member roles")
+	}
+
+	targetMember, err := tx.GroupMember.Query().
+		Where(
+			groupmember.GroupChatID(gc.ID),
+			groupmember.UserID(targetUserID),
+		).
+		WithUser().
+		Only(ctx)
+	if err != nil {
+		return helper.NewNotFoundError("Target user is not a member of this group")
+	}
+
+	if targetMember.UserID == requestorID {
+		return helper.NewBadRequestError("Cannot change your own role")
+	}
+
+	newRole := groupmember.Role(req.Role)
+	if targetMember.Role == newRole {
+		return nil
+	}
+
+	err = tx.GroupMember.UpdateOne(targetMember).SetRole(newRole).Exec(ctx)
+	if err != nil {
+		slog.Error("Failed to update member role", "error", err)
+		return helper.NewInternalServerError("")
+	}
+
+	msgType := message.TypeSystemPromote
+	if newRole == groupmember.RoleMember {
+		msgType = message.TypeSystemDemote
+	}
+
+	systemMsg, err := tx.Message.Create().
+		SetChatID(gc.ChatID).
+		SetSenderID(requestorID).
+		SetType(msgType).
+		SetActionData(map[string]interface{}{
+			"target_id": targetMember.UserID,
+			"actor_id":  requestorID,
+			"new_role":  newRole,
+		}).
+		Save(ctx)
+	if err != nil {
+		slog.Error("Failed to create system message for role update", "error", err)
+		return helper.NewInternalServerError("")
+	}
+
+	err = tx.Chat.UpdateOne(gc.Edges.Chat).
+		SetLastMessage(systemMsg).
+		SetLastMessageAt(systemMsg.CreatedAt).
+		Exec(ctx)
+	if err != nil {
+		slog.Error("Failed to update chat with last message", "error", err)
+		return helper.NewInternalServerError("")
+	}
+
+	if err := tx.Commit(); err != nil {
+		slog.Error("Failed to commit transaction", "error", err)
+		return helper.NewInternalServerError("")
+	}
+
+	if s.wsHub != nil {
+		go func() {
+			fullMsg, _ := s.client.Message.Query().
+				Where(message.ID(systemMsg.ID)).
+				WithSender().
+				Only(context.Background())
+
+			msgResponse := helper.ToMessageResponse(fullMsg, s.cfg.StorageMode, s.cfg.AppURL, s.cfg.StorageCDNURL, s.cfg.StorageAttachment)
+
+			s.wsHub.BroadcastToChat(gc.ChatID, websocket.Event{
+				Type:    websocket.EventMessageNew,
+				Payload: msgResponse,
+				Meta: &websocket.EventMeta{
+					Timestamp: time.Now().UTC().UnixMilli(),
+					ChatID:    gc.ChatID,
+					SenderID:  requestorID,
+				},
+			})
+		}()
+	}
+
+	return nil
+}
+
+func (s *GroupChatService) TransferOwnership(ctx context.Context, requestorID uuid.UUID, groupID uuid.UUID, req model.TransferGroupOwnershipRequest) error {
+	if err := s.validator.Struct(req); err != nil {
+		return helper.NewBadRequestError("")
+	}
+
+	if requestorID == req.NewOwnerID {
+		return helper.NewBadRequestError("Cannot transfer ownership to yourself")
+	}
+
+	tx, err := s.client.Tx(ctx)
+	if err != nil {
+		slog.Error("Failed to start transaction", "error", err)
+		return helper.NewInternalServerError("")
+	}
+	defer tx.Rollback()
+
+	gc, err := tx.GroupChat.Query().
+		Where(
+			groupchat.ChatID(groupID),
+			groupchat.HasChatWith(chat.DeletedAtIsNil()),
+		).
+		WithChat().
+		Only(ctx)
+	if err != nil {
+		if ent.IsNotFound(err) {
+			return helper.NewNotFoundError("Group chat not found")
+		}
+		slog.Error("Failed to query group chat", "error", err)
+		return helper.NewInternalServerError("")
+	}
+
+	requestorMember, err := tx.GroupMember.Query().
+		Where(
+			groupmember.GroupChatID(gc.ID),
+			groupmember.UserID(requestorID),
+		).
+		Only(ctx)
+	if err != nil {
+		return helper.NewForbiddenError("You are not a member of this group")
+	}
+
+	if requestorMember.Role != groupmember.RoleOwner {
+		return helper.NewForbiddenError("Only owner can transfer ownership")
+	}
+
+	targetMember, err := tx.GroupMember.Query().
+		Where(
+			groupmember.GroupChatID(gc.ID),
+			groupmember.UserID(req.NewOwnerID),
+		).
+		WithUser().
+		Only(ctx)
+	if err != nil {
+		return helper.NewNotFoundError("Target user is not a member of this group")
+	}
+
+	err = tx.GroupMember.UpdateOne(requestorMember).SetRole(groupmember.RoleAdmin).Exec(ctx)
+	if err != nil {
+		slog.Error("Failed to demote old owner", "error", err)
+		return helper.NewInternalServerError("")
+	}
+
+	err = tx.GroupMember.UpdateOne(targetMember).SetRole(groupmember.RoleOwner).Exec(ctx)
+	if err != nil {
+		slog.Error("Failed to promote new owner", "error", err)
+		return helper.NewInternalServerError("")
+	}
+
+	systemMsg, err := tx.Message.Create().
+		SetChatID(gc.ChatID).
+		SetSenderID(requestorID).
+		SetType(message.TypeSystemPromote).
+		SetActionData(map[string]interface{}{
+			"target_id": targetMember.UserID,
+			"actor_id":  requestorID,
+			"new_role":  "owner",
+			"action":    "ownership_transferred",
+		}).
+		Save(ctx)
+	if err != nil {
+		slog.Error("Failed to create system message for ownership transfer", "error", err)
+		return helper.NewInternalServerError("")
+	}
+
+	err = tx.Chat.UpdateOne(gc.Edges.Chat).
+		SetLastMessage(systemMsg).
+		SetLastMessageAt(systemMsg.CreatedAt).
+		Exec(ctx)
+	if err != nil {
+		slog.Error("Failed to update chat with last message", "error", err)
+		return helper.NewInternalServerError("")
+	}
+
+	if err := tx.Commit(); err != nil {
+		slog.Error("Failed to commit transaction", "error", err)
+		return helper.NewInternalServerError("")
+	}
+
+	if s.wsHub != nil {
+		go func() {
+			fullMsg, _ := s.client.Message.Query().
+				Where(message.ID(systemMsg.ID)).
+				WithSender().
+				Only(context.Background())
+
+			msgResponse := helper.ToMessageResponse(fullMsg, s.cfg.StorageMode, s.cfg.AppURL, s.cfg.StorageCDNURL, s.cfg.StorageAttachment)
+
+			s.wsHub.BroadcastToChat(gc.ChatID, websocket.Event{
+				Type:    websocket.EventMessageNew,
+				Payload: msgResponse,
+				Meta: &websocket.EventMeta{
+					Timestamp: time.Now().UTC().UnixMilli(),
+					ChatID:    gc.ChatID,
+					SenderID:  requestorID,
+				},
+			})
+		}()
+	}
+
+	return nil
+}
