@@ -208,7 +208,10 @@ func (s *ChatService) MarkAsRead(ctx context.Context, userID uuid.UUID, chatID u
 	defer tx.Rollback()
 
 	c, err := tx.Chat.Query().
-		Where(chat.ID(chatID)).
+		Where(
+			chat.ID(chatID),
+			chat.DeletedAtIsNil(),
+		).
 		ForUpdate().
 		WithPrivateChat().
 		WithGroupChat().
@@ -307,7 +310,10 @@ func (s *ChatService) MarkAsRead(ctx context.Context, userID uuid.UUID, chatID u
 
 func (s *ChatService) HideChat(ctx context.Context, userID uuid.UUID, chatID uuid.UUID) error {
 	c, err := s.client.Chat.Query().
-		Where(chat.ID(chatID)).
+		Where(
+			chat.ID(chatID),
+			chat.DeletedAtIsNil(),
+		).
 		WithPrivateChat().
 		Only(ctx)
 

@@ -79,6 +79,26 @@ func (_u *ChatUpdate) ClearLastMessageAt() *ChatUpdate {
 	return _u
 }
 
+// SetDeletedAt sets the "deleted_at" field.
+func (_u *ChatUpdate) SetDeletedAt(v time.Time) *ChatUpdate {
+	_u.mutation.SetDeletedAt(v)
+	return _u
+}
+
+// SetNillableDeletedAt sets the "deleted_at" field if the given value is not nil.
+func (_u *ChatUpdate) SetNillableDeletedAt(v *time.Time) *ChatUpdate {
+	if v != nil {
+		_u.SetDeletedAt(*v)
+	}
+	return _u
+}
+
+// ClearDeletedAt clears the value of the "deleted_at" field.
+func (_u *ChatUpdate) ClearDeletedAt() *ChatUpdate {
+	_u.mutation.ClearDeletedAt()
+	return _u
+}
+
 // AddMessageIDs adds the "messages" edge to the Message entity by IDs.
 func (_u *ChatUpdate) AddMessageIDs(ids ...uuid.UUID) *ChatUpdate {
 	_u.mutation.AddMessageIDs(ids...)
@@ -240,6 +260,12 @@ func (_u *ChatUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	}
 	if _u.mutation.LastMessageAtCleared() {
 		_spec.ClearField(chat.FieldLastMessageAt, field.TypeTime)
+	}
+	if value, ok := _u.mutation.DeletedAt(); ok {
+		_spec.SetField(chat.FieldDeletedAt, field.TypeTime, value)
+	}
+	if _u.mutation.DeletedAtCleared() {
+		_spec.ClearField(chat.FieldDeletedAt, field.TypeTime)
 	}
 	if _u.mutation.MessagesCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -441,6 +467,26 @@ func (_u *ChatUpdateOne) ClearLastMessageAt() *ChatUpdateOne {
 	return _u
 }
 
+// SetDeletedAt sets the "deleted_at" field.
+func (_u *ChatUpdateOne) SetDeletedAt(v time.Time) *ChatUpdateOne {
+	_u.mutation.SetDeletedAt(v)
+	return _u
+}
+
+// SetNillableDeletedAt sets the "deleted_at" field if the given value is not nil.
+func (_u *ChatUpdateOne) SetNillableDeletedAt(v *time.Time) *ChatUpdateOne {
+	if v != nil {
+		_u.SetDeletedAt(*v)
+	}
+	return _u
+}
+
+// ClearDeletedAt clears the value of the "deleted_at" field.
+func (_u *ChatUpdateOne) ClearDeletedAt() *ChatUpdateOne {
+	_u.mutation.ClearDeletedAt()
+	return _u
+}
+
 // AddMessageIDs adds the "messages" edge to the Message entity by IDs.
 func (_u *ChatUpdateOne) AddMessageIDs(ids ...uuid.UUID) *ChatUpdateOne {
 	_u.mutation.AddMessageIDs(ids...)
@@ -632,6 +678,12 @@ func (_u *ChatUpdateOne) sqlSave(ctx context.Context) (_node *Chat, err error) {
 	}
 	if _u.mutation.LastMessageAtCleared() {
 		_spec.ClearField(chat.FieldLastMessageAt, field.TypeTime)
+	}
+	if value, ok := _u.mutation.DeletedAt(); ok {
+		_spec.SetField(chat.FieldDeletedAt, field.TypeTime, value)
+	}
+	if _u.mutation.DeletedAtCleared() {
+		_spec.ClearField(chat.FieldDeletedAt, field.TypeTime)
 	}
 	if _u.mutation.MessagesCleared() {
 		edge := &sqlgraph.EdgeSpec{

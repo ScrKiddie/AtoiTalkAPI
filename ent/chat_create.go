@@ -89,6 +89,20 @@ func (_c *ChatCreate) SetNillableLastMessageAt(v *time.Time) *ChatCreate {
 	return _c
 }
 
+// SetDeletedAt sets the "deleted_at" field.
+func (_c *ChatCreate) SetDeletedAt(v time.Time) *ChatCreate {
+	_c.mutation.SetDeletedAt(v)
+	return _c
+}
+
+// SetNillableDeletedAt sets the "deleted_at" field if the given value is not nil.
+func (_c *ChatCreate) SetNillableDeletedAt(v *time.Time) *ChatCreate {
+	if v != nil {
+		_c.SetDeletedAt(*v)
+	}
+	return _c
+}
+
 // SetID sets the "id" field.
 func (_c *ChatCreate) SetID(v uuid.UUID) *ChatCreate {
 	_c.mutation.SetID(v)
@@ -278,6 +292,10 @@ func (_c *ChatCreate) createSpec() (*Chat, *sqlgraph.CreateSpec) {
 		_spec.SetField(chat.FieldLastMessageAt, field.TypeTime, value)
 		_node.LastMessageAt = &value
 	}
+	if value, ok := _c.mutation.DeletedAt(); ok {
+		_spec.SetField(chat.FieldDeletedAt, field.TypeTime, value)
+		_node.DeletedAt = &value
+	}
 	if nodes := _c.mutation.MessagesIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
@@ -443,6 +461,24 @@ func (u *ChatUpsert) ClearLastMessageAt() *ChatUpsert {
 	return u
 }
 
+// SetDeletedAt sets the "deleted_at" field.
+func (u *ChatUpsert) SetDeletedAt(v time.Time) *ChatUpsert {
+	u.Set(chat.FieldDeletedAt, v)
+	return u
+}
+
+// UpdateDeletedAt sets the "deleted_at" field to the value that was provided on create.
+func (u *ChatUpsert) UpdateDeletedAt() *ChatUpsert {
+	u.SetExcluded(chat.FieldDeletedAt)
+	return u
+}
+
+// ClearDeletedAt clears the value of the "deleted_at" field.
+func (u *ChatUpsert) ClearDeletedAt() *ChatUpsert {
+	u.SetNull(chat.FieldDeletedAt)
+	return u
+}
+
 // UpdateNewValues updates the mutable fields using the new values that were set on create except the ID field.
 // Using this option is equivalent to using:
 //
@@ -550,6 +586,27 @@ func (u *ChatUpsertOne) UpdateLastMessageAt() *ChatUpsertOne {
 func (u *ChatUpsertOne) ClearLastMessageAt() *ChatUpsertOne {
 	return u.Update(func(s *ChatUpsert) {
 		s.ClearLastMessageAt()
+	})
+}
+
+// SetDeletedAt sets the "deleted_at" field.
+func (u *ChatUpsertOne) SetDeletedAt(v time.Time) *ChatUpsertOne {
+	return u.Update(func(s *ChatUpsert) {
+		s.SetDeletedAt(v)
+	})
+}
+
+// UpdateDeletedAt sets the "deleted_at" field to the value that was provided on create.
+func (u *ChatUpsertOne) UpdateDeletedAt() *ChatUpsertOne {
+	return u.Update(func(s *ChatUpsert) {
+		s.UpdateDeletedAt()
+	})
+}
+
+// ClearDeletedAt clears the value of the "deleted_at" field.
+func (u *ChatUpsertOne) ClearDeletedAt() *ChatUpsertOne {
+	return u.Update(func(s *ChatUpsert) {
+		s.ClearDeletedAt()
 	})
 }
 
@@ -827,6 +884,27 @@ func (u *ChatUpsertBulk) UpdateLastMessageAt() *ChatUpsertBulk {
 func (u *ChatUpsertBulk) ClearLastMessageAt() *ChatUpsertBulk {
 	return u.Update(func(s *ChatUpsert) {
 		s.ClearLastMessageAt()
+	})
+}
+
+// SetDeletedAt sets the "deleted_at" field.
+func (u *ChatUpsertBulk) SetDeletedAt(v time.Time) *ChatUpsertBulk {
+	return u.Update(func(s *ChatUpsert) {
+		s.SetDeletedAt(v)
+	})
+}
+
+// UpdateDeletedAt sets the "deleted_at" field to the value that was provided on create.
+func (u *ChatUpsertBulk) UpdateDeletedAt() *ChatUpsertBulk {
+	return u.Update(func(s *ChatUpsert) {
+		s.UpdateDeletedAt()
+	})
+}
+
+// ClearDeletedAt clears the value of the "deleted_at" field.
+func (u *ChatUpsertBulk) ClearDeletedAt() *ChatUpsertBulk {
+	return u.Update(func(s *ChatUpsert) {
+		s.ClearDeletedAt()
 	})
 }
 

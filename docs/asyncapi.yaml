@@ -51,6 +51,8 @@ channels:
         $ref: '#/components/messages/ServerChatRead'
       serverChatHide:
         $ref: '#/components/messages/ServerChatHide'
+      serverChatDelete:
+        $ref: '#/components/messages/ServerChatDelete'
       serverUserOnline:
         $ref: '#/components/messages/ServerUserOnline'
       serverUserOffline:
@@ -83,6 +85,7 @@ operations:
       - $ref: '#/channels/chat/messages/serverChatNew'
       - $ref: '#/channels/chat/messages/serverChatRead'
       - $ref: '#/channels/chat/messages/serverChatHide'
+      - $ref: '#/channels/chat/messages/serverChatDelete'
       - $ref: '#/channels/chat/messages/serverUserOnline'
       - $ref: '#/channels/chat/messages/serverUserOffline'
       - $ref: '#/channels/chat/messages/serverUserUpdate'
@@ -460,6 +463,24 @@ components:
             properties:
               type:
                 const: chat.hide
+              payload:
+                type: object
+                properties:
+                  chat_id:
+                    type: string
+                    format: uuid
+
+    ServerChatDelete:
+      name: chat.delete
+      title: Chat Deleted
+      summary: Sent to all members when a group chat is deleted by the owner.
+      payload:
+        allOf:
+          - $ref: '#/components/schemas/BaseEvent'
+          - type: object
+            properties:
+              type:
+                const: chat.delete
               payload:
                 type: object
                 properties:

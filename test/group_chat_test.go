@@ -8,6 +8,7 @@ import (
 	"AtoiTalkAPI/ent/message"
 	"AtoiTalkAPI/internal/helper"
 	"AtoiTalkAPI/internal/model"
+	"AtoiTalkAPI/internal/websocket"
 	"bytes"
 	"context"
 	"encoding/json"
@@ -15,10 +16,14 @@ import (
 	"io"
 	"mime/multipart"
 	"net/http"
+	"net/http/httptest"
 	"path/filepath"
+	"strings"
 	"testing"
+	"time"
 
 	"github.com/google/uuid"
+	ws "github.com/gorilla/websocket"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -373,6 +378,23 @@ func TestUpdateGroupChat(t *testing.T) {
 		rr := executeRequest(req)
 		assert.Equal(t, http.StatusBadRequest, rr.Code)
 	})
+
+	t.Run("Fail - Update Deleted Group", func(t *testing.T) {
+
+		chatEntity.Update().SetDeletedAt(time.Now().UTC()).ExecX(context.Background())
+
+		body := &bytes.Buffer{}
+		writer := multipart.NewWriter(body)
+		_ = writer.WriteField("name", "Zombie Group")
+		writer.Close()
+
+		req, _ := http.NewRequest("PUT", fmt.Sprintf("/api/chats/group/%s", gc.ChatID), body)
+		req.Header.Set("Content-Type", writer.FormDataContentType())
+		req.Header.Set("Authorization", "Bearer "+token1)
+
+		rr := executeRequest(req)
+		assert.Equal(t, http.StatusNotFound, rr.Code)
+	})
 }
 
 func TestSearchGroupMembers(t *testing.T) {
@@ -480,6 +502,17 @@ func TestSearchGroupMembers(t *testing.T) {
 		rr := executeRequest(req)
 		assert.Equal(t, http.StatusBadRequest, rr.Code)
 	})
+
+	t.Run("Fail - Search Members in Deleted Group", func(t *testing.T) {
+
+		chatEntity.Update().SetDeletedAt(time.Now().UTC()).ExecX(context.Background())
+
+		req, _ := http.NewRequest("GET", fmt.Sprintf("/api/chats/group/%s/members", chatEntity.ID), nil)
+		req.Header.Set("Authorization", "Bearer "+token1)
+
+		rr := executeRequest(req)
+		assert.Equal(t, http.StatusNotFound, rr.Code)
+	})
 }
 
 func TestAddGroupMember(t *testing.T) {
@@ -524,6 +557,8 @@ func TestAddGroupMember(t *testing.T) {
 
 		assert.Equal(t, u5.ID.String(), sysMsg.ActionData["target_id"])
 		assert.Equal(t, u1.ID.String(), sysMsg.ActionData["actor_id"])
+		assert.Nil(t, sysMsg.ActionData["target_username_snapshot"])
+		assert.Nil(t, sysMsg.ActionData["target_name_snapshot"])
 	})
 
 	t.Run("Fail - Member Tries to Add Member", func(t *testing.T) {
@@ -551,6 +586,21 @@ func TestAddGroupMember(t *testing.T) {
 
 	t.Run("Fail - Add Non-Existent User", func(t *testing.T) {
 		reqBody := model.AddGroupMemberRequest{UserIDs: []uuid.UUID{uuid.New()}}
+		body, _ := json.Marshal(reqBody)
+		req, _ := http.NewRequest("POST", fmt.Sprintf("/api/chats/group/%s/members", chatEntity.ID), bytes.NewBuffer(body))
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Authorization", "Bearer "+token1)
+
+		rr := executeRequest(req)
+		assert.Equal(t, http.StatusNotFound, rr.Code)
+	})
+
+	t.Run("Fail - Add Member to Deleted Group", func(t *testing.T) {
+
+		chatEntity.Update().SetDeletedAt(time.Now().UTC()).ExecX(context.Background())
+
+		u7 := testClient.User.Create().SetEmail("u7@test.com").SetUsername("another7").SetFullName("Another User 7").SaveX(context.Background())
+		reqBody := model.AddGroupMemberRequest{UserIDs: []uuid.UUID{u7.ID}}
 		body, _ := json.Marshal(reqBody)
 		req, _ := http.NewRequest("POST", fmt.Sprintf("/api/chats/group/%s/members", chatEntity.ID), bytes.NewBuffer(body))
 		req.Header.Set("Content-Type", "application/json")
@@ -640,6 +690,8 @@ func TestKickMember(t *testing.T) {
 		assert.Equal(t, message.TypeSystemKick, lastMsg.Type)
 		assert.Equal(t, u3.ID.String(), lastMsg.ActionData["target_id"])
 		assert.Equal(t, u1.ID.String(), lastMsg.ActionData["actor_id"])
+		assert.Nil(t, lastMsg.ActionData["target_username_snapshot"])
+		assert.Nil(t, lastMsg.ActionData["target_name_snapshot"])
 	})
 
 	t.Run("Success - Admin Kicks Member", func(t *testing.T) {
@@ -737,6 +789,8 @@ func TestUpdateMemberRole(t *testing.T) {
 		assert.Equal(t, message.TypeSystemPromote, lastMsg.Type)
 		assert.Equal(t, u2.ID.String(), lastMsg.ActionData["target_id"])
 		assert.Equal(t, u1.ID.String(), lastMsg.ActionData["actor_id"])
+		assert.Nil(t, lastMsg.ActionData["target_username_snapshot"])
+		assert.Nil(t, lastMsg.ActionData["target_name_snapshot"])
 		assert.Equal(t, "admin", lastMsg.ActionData["new_role"])
 	})
 
@@ -814,6 +868,8 @@ func TestTransferOwnership(t *testing.T) {
 		assert.Equal(t, message.TypeSystemPromote, lastMsg.Type)
 		assert.Equal(t, u2.ID.String(), lastMsg.ActionData["target_id"])
 		assert.Equal(t, u1.ID.String(), lastMsg.ActionData["actor_id"])
+		assert.Nil(t, lastMsg.ActionData["target_username_snapshot"])
+		assert.Nil(t, lastMsg.ActionData["target_name_snapshot"])
 		assert.Equal(t, "owner", lastMsg.ActionData["new_role"])
 		assert.Equal(t, "ownership_transferred", lastMsg.ActionData["action"])
 	})
@@ -840,5 +896,72 @@ func TestTransferOwnership(t *testing.T) {
 
 		rr := executeRequest(req)
 		assert.Equal(t, http.StatusBadRequest, rr.Code)
+	})
+}
+
+func TestDeleteGroup(t *testing.T) {
+	clearDatabase(context.Background())
+	u1 := testClient.User.Create().SetEmail("u1@test.com").SetUsername("owner").SetFullName("Owner").SaveX(context.Background())
+	u2 := testClient.User.Create().SetEmail("u2@test.com").SetUsername("member").SetFullName("Member").SaveX(context.Background())
+
+	token1, _ := helper.GenerateJWT(testConfig.JWTSecret, testConfig.JWTExp, u1.ID)
+	token2, _ := helper.GenerateJWT(testConfig.JWTSecret, testConfig.JWTExp, u2.ID)
+
+	chatEntity := testClient.Chat.Create().SetType("group").SaveX(context.Background())
+	gc := testClient.GroupChat.Create().SetChat(chatEntity).SetCreator(u1).SetName("Delete Test").SaveX(context.Background())
+	testClient.GroupMember.Create().SetGroupChat(gc).SetUser(u1).SetRole(groupmember.RoleOwner).SaveX(context.Background())
+	testClient.GroupMember.Create().SetGroupChat(gc).SetUser(u2).SetRole(groupmember.RoleMember).SaveX(context.Background())
+
+	t.Run("Success - Owner Deletes Group", func(t *testing.T) {
+
+		server := httptest.NewServer(testRouter)
+		defer server.Close()
+		wsURL := "ws" + strings.TrimPrefix(server.URL, "http") + "/ws?token=" + token2
+		conn, _, _ := ws.DefaultDialer.Dial(wsURL, nil)
+		defer conn.Close()
+		time.Sleep(100 * time.Millisecond)
+
+		req, _ := http.NewRequest("DELETE", fmt.Sprintf("/api/chats/group/%s", gc.ChatID), nil)
+		req.Header.Set("Authorization", "Bearer "+token1)
+
+		rr := executeRequest(req)
+		assert.Equal(t, http.StatusOK, rr.Code)
+
+		c, _ := testClient.Chat.Query().Where(chat.ID(gc.ChatID)).Only(context.Background())
+		assert.NotNil(t, c.DeletedAt)
+
+		conn.SetReadDeadline(time.Now().UTC().Add(2 * time.Second))
+		_, msg, err := conn.ReadMessage()
+		assert.NoError(t, err)
+		var event websocket.Event
+		json.Unmarshal(msg, &event)
+		assert.Equal(t, websocket.EventChatDelete, event.Type)
+		assert.Equal(t, gc.ChatID, event.Meta.ChatID)
+	})
+
+	t.Run("Fail - Member Deletes Group", func(t *testing.T) {
+
+		chatEntity2 := testClient.Chat.Create().SetType("group").SaveX(context.Background())
+		gc2 := testClient.GroupChat.Create().SetChat(chatEntity2).SetCreator(u1).SetName("Delete Test 2").SaveX(context.Background())
+		testClient.GroupMember.Create().SetGroupChat(gc2).SetUser(u1).SetRole(groupmember.RoleOwner).SaveX(context.Background())
+		testClient.GroupMember.Create().SetGroupChat(gc2).SetUser(u2).SetRole(groupmember.RoleMember).SaveX(context.Background())
+
+		req, _ := http.NewRequest("DELETE", fmt.Sprintf("/api/chats/group/%s", gc2.ChatID), nil)
+		req.Header.Set("Authorization", "Bearer "+token2)
+
+		rr := executeRequest(req)
+		assert.Equal(t, http.StatusForbidden, rr.Code)
+
+		c, _ := testClient.Chat.Query().Where(chat.ID(gc2.ChatID)).Only(context.Background())
+		assert.Nil(t, c.DeletedAt)
+	})
+
+	t.Run("Fail - Already Deleted", func(t *testing.T) {
+
+		req, _ := http.NewRequest("DELETE", fmt.Sprintf("/api/chats/group/%s", gc.ChatID), nil)
+		req.Header.Set("Authorization", "Bearer "+token1)
+
+		rr := executeRequest(req)
+		assert.Equal(t, http.StatusNotFound, rr.Code)
 	})
 }

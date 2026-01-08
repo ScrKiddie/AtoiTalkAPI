@@ -270,7 +270,10 @@ func (s *GroupChatService) UpdateGroupChat(ctx context.Context, requestorID uuid
 	defer tx.Rollback()
 
 	gc, err := tx.GroupChat.Query().
-		Where(groupchat.ChatID(groupID)).
+		Where(
+			groupchat.ChatID(groupID),
+			groupchat.HasChatWith(chat.DeletedAtIsNil()),
+		).
 		WithAvatar().
 		WithChat().
 		Only(ctx)
@@ -502,7 +505,10 @@ func (s *GroupChatService) SearchGroupMembers(ctx context.Context, userID uuid.U
 	}
 
 	gc, err := s.client.GroupChat.Query().
-		Where(groupchat.ChatID(req.GroupID)).
+		Where(
+			groupchat.ChatID(req.GroupID),
+			groupchat.HasChatWith(chat.DeletedAtIsNil()),
+		).
 		Only(ctx)
 	if err != nil {
 		if ent.IsNotFound(err) {
@@ -553,7 +559,10 @@ func (s *GroupChatService) AddMember(ctx context.Context, requestorID uuid.UUID,
 	defer tx.Rollback()
 
 	gc, err := tx.GroupChat.Query().
-		Where(groupchat.ChatID(groupID)).
+		Where(
+			groupchat.ChatID(groupID),
+			groupchat.HasChatWith(chat.DeletedAtIsNil()),
+		).
 		WithAvatar().
 		WithChat().
 		Only(ctx)
@@ -751,7 +760,10 @@ func (s *GroupChatService) LeaveGroup(ctx context.Context, userID uuid.UUID, gro
 	defer tx.Rollback()
 
 	gc, err := tx.GroupChat.Query().
-		Where(groupchat.ChatID(groupID)).
+		Where(
+			groupchat.ChatID(groupID),
+			groupchat.HasChatWith(chat.DeletedAtIsNil()),
+		).
 		WithChat().
 		Only(ctx)
 	if err != nil {
@@ -843,7 +855,10 @@ func (s *GroupChatService) KickMember(ctx context.Context, requestorID uuid.UUID
 	defer tx.Rollback()
 
 	gc, err := tx.GroupChat.Query().
-		Where(groupchat.ChatID(groupID)).
+		Where(
+			groupchat.ChatID(groupID),
+			groupchat.HasChatWith(chat.DeletedAtIsNil()),
+		).
 		WithChat().
 		Only(ctx)
 	if err != nil {
@@ -970,7 +985,10 @@ func (s *GroupChatService) UpdateMemberRole(ctx context.Context, requestorID uui
 	defer tx.Rollback()
 
 	gc, err := tx.GroupChat.Query().
-		Where(groupchat.ChatID(groupID)).
+		Where(
+			groupchat.ChatID(groupID),
+			groupchat.HasChatWith(chat.DeletedAtIsNil()),
+		).
 		WithChat().
 		Only(ctx)
 	if err != nil {
@@ -1096,7 +1114,10 @@ func (s *GroupChatService) TransferOwnership(ctx context.Context, requestorID uu
 	defer tx.Rollback()
 
 	gc, err := tx.GroupChat.Query().
-		Where(groupchat.ChatID(groupID)).
+		Where(
+			groupchat.ChatID(groupID),
+			groupchat.HasChatWith(chat.DeletedAtIsNil()),
+		).
 		WithChat().
 		Only(ctx)
 	if err != nil {
@@ -1193,6 +1214,81 @@ func (s *GroupChatService) TransferOwnership(ctx context.Context, requestorID uu
 				},
 			})
 		}()
+	}
+
+	return nil
+}
+
+func (s *GroupChatService) DeleteGroup(ctx context.Context, userID, groupID uuid.UUID) error {
+	tx, err := s.client.Tx(ctx)
+	if err != nil {
+		slog.Error("Failed to start transaction", "error", err)
+		return helper.NewInternalServerError("")
+	}
+	defer tx.Rollback()
+
+	gc, err := tx.GroupChat.Query().
+		Where(
+			groupchat.ChatID(groupID),
+			groupchat.HasChatWith(chat.DeletedAtIsNil()),
+		).
+		WithChat().
+		Only(ctx)
+	if err != nil {
+		if ent.IsNotFound(err) {
+			return helper.NewNotFoundError("Group chat not found")
+		}
+		slog.Error("Failed to query group chat", "error", err)
+		return helper.NewInternalServerError("")
+	}
+
+	member, err := tx.GroupMember.Query().
+		Where(
+			groupmember.GroupChatID(gc.ID),
+			groupmember.UserID(userID),
+		).
+		Only(ctx)
+	if err != nil {
+		if ent.IsNotFound(err) {
+			return helper.NewForbiddenError("You are not a member of this group")
+		}
+		slog.Error("Failed to query requestor membership", "error", err)
+		return helper.NewInternalServerError("")
+	}
+
+	if member.Role != groupmember.RoleOwner {
+		return helper.NewForbiddenError("Only owner can delete the group")
+	}
+
+	err = tx.Chat.UpdateOneID(groupID).SetDeletedAt(time.Now().UTC()).Exec(ctx)
+	if err != nil {
+		slog.Error("Failed to soft delete chat", "error", err)
+		return helper.NewInternalServerError("")
+	}
+
+	if err := tx.Commit(); err != nil {
+		slog.Error("Failed to commit transaction", "error", err)
+		return helper.NewInternalServerError("")
+	}
+
+	members, _ := s.client.GroupMember.Query().
+		Where(groupmember.GroupChatID(gc.ID)).
+		All(context.Background())
+
+	for _, m := range members {
+		if s.wsHub != nil {
+			s.wsHub.BroadcastToUser(m.UserID, websocket.Event{
+				Type: websocket.EventChatDelete,
+				Payload: map[string]interface{}{
+					"chat_id": groupID,
+				},
+				Meta: &websocket.EventMeta{
+					Timestamp: time.Now().UTC().UnixMilli(),
+					ChatID:    groupID,
+					SenderID:  userID,
+				},
+			})
+		}
 	}
 
 	return nil

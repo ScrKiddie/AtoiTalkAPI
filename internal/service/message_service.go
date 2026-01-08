@@ -65,7 +65,10 @@ func (s *MessageService) SendMessage(ctx context.Context, userID uuid.UUID, req 
 	}()
 
 	chatInfo, err := tx.Chat.Query().
-		Where(chat.ID(req.ChatID)).
+		Where(
+			chat.ID(req.ChatID),
+			chat.DeletedAtIsNil(),
+		).
 		ForUpdate().
 		WithPrivateChat().
 		WithGroupChat(func(q *ent.GroupChatQuery) {
@@ -77,7 +80,7 @@ func (s *MessageService) SendMessage(ctx context.Context, userID uuid.UUID, req 
 
 	if err != nil {
 		if ent.IsNotFound(err) {
-			return nil, helper.NewNotFoundError("")
+			return nil, helper.NewNotFoundError("Chat not found or deleted")
 		}
 		slog.Error("Failed to query chat info with lock", "error", err, "chatID", req.ChatID)
 		return nil, helper.NewInternalServerError("")
@@ -304,6 +307,7 @@ func (s *MessageService) EditMessage(ctx context.Context, userID uuid.UUID, mess
 
 	msg, err := tx.Message.Query().
 		Where(message.ID(messageID)).
+		WithChat().
 		WithAttachments().
 		Only(ctx)
 
@@ -313,6 +317,10 @@ func (s *MessageService) EditMessage(ctx context.Context, userID uuid.UUID, mess
 		}
 		slog.Error("Failed to query message", "error", err, "messageID", messageID)
 		return nil, helper.NewInternalServerError("")
+	}
+
+	if msg.Edges.Chat != nil && msg.Edges.Chat.DeletedAt != nil {
+		return nil, helper.NewBadRequestError("Chat is deleted")
 	}
 
 	if msg.SenderID == nil || *msg.SenderID != userID {
@@ -447,7 +455,10 @@ func (s *MessageService) GetMessages(ctx context.Context, userID uuid.UUID, req 
 	}
 
 	chatInfo, err := s.client.Chat.Query().
-		Where(chat.ID(req.ChatID)).
+		Where(
+			chat.ID(req.ChatID),
+			chat.DeletedAtIsNil(),
+		).
 		WithPrivateChat().
 		WithGroupChat(func(q *ent.GroupChatQuery) {
 			q.WithMembers(func(mq *ent.GroupMemberQuery) {
@@ -458,7 +469,7 @@ func (s *MessageService) GetMessages(ctx context.Context, userID uuid.UUID, req 
 
 	if err != nil {
 		if ent.IsNotFound(err) {
-			return nil, "", false, helper.NewNotFoundError("")
+			return nil, "", false, helper.NewNotFoundError("Chat not found or deleted")
 		}
 		slog.Error("Failed to query chat info", "error", err, "chatID", req.ChatID)
 		return nil, "", false, helper.NewInternalServerError("")
@@ -574,6 +585,7 @@ func (s *MessageService) GetMessages(ctx context.Context, userID uuid.UUID, req 
 func (s *MessageService) DeleteMessage(ctx context.Context, userID uuid.UUID, messageID uuid.UUID) error {
 	msg, err := s.client.Message.Query().
 		Where(message.ID(messageID)).
+		WithChat().
 		Only(ctx)
 
 	if err != nil {
@@ -582,6 +594,10 @@ func (s *MessageService) DeleteMessage(ctx context.Context, userID uuid.UUID, me
 		}
 		slog.Error("Failed to query message", "error", err, "messageID", messageID)
 		return helper.NewInternalServerError("")
+	}
+
+	if msg.Edges.Chat != nil && msg.Edges.Chat.DeletedAt != nil {
+		return helper.NewBadRequestError("Chat is deleted")
 	}
 
 	if msg.SenderID == nil || *msg.SenderID != userID {
