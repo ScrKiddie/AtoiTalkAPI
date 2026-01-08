@@ -88,3 +88,41 @@ func (c *AccountController) ChangeEmail(w http.ResponseWriter, r *http.Request) 
 
 	helper.WriteSuccess(w, nil)
 }
+
+// DeleteAccount godoc
+// @Summary      Delete Account
+// @Description  Soft delete user account. Requires password confirmation if set. User must transfer ownership of groups first.
+// @Tags         account
+// @Accept       json
+// @Produce      json
+// @Param        request body model.DeleteAccountRequest true "Delete Account Request"
+// @Success      200  {object}  helper.ResponseSuccess
+// @Failure      400  {object}  helper.ResponseError
+// @Failure      401  {object}  helper.ResponseError
+// @Failure      403  {object}  helper.ResponseError
+// @Failure      500  {object}  helper.ResponseError
+// @Security     BearerAuth
+// @Router       /api/account [delete]
+func (c *AccountController) DeleteAccount(w http.ResponseWriter, r *http.Request) {
+	userContext, ok := r.Context().Value(middleware.UserContextKey).(*model.UserDTO)
+	if !ok {
+		helper.WriteError(w, helper.NewUnauthorizedError(""))
+		return
+	}
+
+	var req model.DeleteAccountRequest
+
+	if r.ContentLength > 0 {
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			helper.WriteError(w, helper.NewBadRequestError(""))
+			return
+		}
+	}
+
+	if err := c.accountService.DeleteAccount(r.Context(), userContext.ID, req); err != nil {
+		helper.WriteError(w, err)
+		return
+	}
+
+	helper.WriteSuccess(w, nil)
+}

@@ -35,7 +35,7 @@ func Init(appConfig *config.AppConfig, client *ent.Client, validator *validator.
 	userService := service.NewUserService(client, repo, appConfig, validator, storageAdapter, wsHub)
 	userController := controller.NewUserController(userService)
 
-	accountService := service.NewAccountService(client, appConfig, validator)
+	accountService := service.NewAccountService(client, appConfig, validator, wsHub)
 	accountController := controller.NewAccountController(accountService)
 
 	chatService := service.NewChatService(client, repo, appConfig, validator, wsHub, storageAdapter)

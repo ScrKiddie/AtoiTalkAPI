@@ -24,13 +24,13 @@ type User struct {
 	// UpdatedAt holds the value of the "updated_at" field.
 	UpdatedAt time.Time `json:"updated_at,omitempty"`
 	// Email holds the value of the "email" field.
-	Email string `json:"email,omitempty"`
+	Email *string `json:"email,omitempty"`
 	// Username holds the value of the "username" field.
-	Username string `json:"username,omitempty"`
+	Username *string `json:"username,omitempty"`
 	// PasswordHash holds the value of the "password_hash" field.
 	PasswordHash *string `json:"-"`
 	// FullName holds the value of the "full_name" field.
-	FullName string `json:"full_name,omitempty"`
+	FullName *string `json:"full_name,omitempty"`
 	// Bio holds the value of the "bio" field.
 	Bio *string `json:"bio,omitempty"`
 	// AvatarID holds the value of the "avatar_id" field.
@@ -39,6 +39,8 @@ type User struct {
 	IsOnline bool `json:"is_online,omitempty"`
 	// LastSeenAt holds the value of the "last_seen_at" field.
 	LastSeenAt *time.Time `json:"last_seen_at,omitempty"`
+	// DeletedAt holds the value of the "deleted_at" field.
+	DeletedAt *time.Time `json:"deleted_at,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the UserQuery when eager-loading is set.
 	Edges        UserEdges `json:"edges"`
@@ -175,7 +177,7 @@ func (*User) scanValues(columns []string) ([]any, error) {
 			values[i] = new(sql.NullBool)
 		case user.FieldEmail, user.FieldUsername, user.FieldPasswordHash, user.FieldFullName, user.FieldBio:
 			values[i] = new(sql.NullString)
-		case user.FieldCreatedAt, user.FieldUpdatedAt, user.FieldLastSeenAt:
+		case user.FieldCreatedAt, user.FieldUpdatedAt, user.FieldLastSeenAt, user.FieldDeletedAt:
 			values[i] = new(sql.NullTime)
 		case user.FieldID:
 			values[i] = new(uuid.UUID)
@@ -216,13 +218,15 @@ func (_m *User) assignValues(columns []string, values []any) error {
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field email", values[i])
 			} else if value.Valid {
-				_m.Email = value.String
+				_m.Email = new(string)
+				*_m.Email = value.String
 			}
 		case user.FieldUsername:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field username", values[i])
 			} else if value.Valid {
-				_m.Username = value.String
+				_m.Username = new(string)
+				*_m.Username = value.String
 			}
 		case user.FieldPasswordHash:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -235,7 +239,8 @@ func (_m *User) assignValues(columns []string, values []any) error {
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field full_name", values[i])
 			} else if value.Valid {
-				_m.FullName = value.String
+				_m.FullName = new(string)
+				*_m.FullName = value.String
 			}
 		case user.FieldBio:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -263,6 +268,13 @@ func (_m *User) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				_m.LastSeenAt = new(time.Time)
 				*_m.LastSeenAt = value.Time
+			}
+		case user.FieldDeletedAt:
+			if value, ok := values[i].(*sql.NullTime); !ok {
+				return fmt.Errorf("unexpected type %T for field deleted_at", values[i])
+			} else if value.Valid {
+				_m.DeletedAt = new(time.Time)
+				*_m.DeletedAt = value.Time
 			}
 		default:
 			_m.selectValues.Set(columns[i], values[i])
@@ -356,16 +368,22 @@ func (_m *User) String() string {
 	builder.WriteString("updated_at=")
 	builder.WriteString(_m.UpdatedAt.Format(time.ANSIC))
 	builder.WriteString(", ")
-	builder.WriteString("email=")
-	builder.WriteString(_m.Email)
+	if v := _m.Email; v != nil {
+		builder.WriteString("email=")
+		builder.WriteString(*v)
+	}
 	builder.WriteString(", ")
-	builder.WriteString("username=")
-	builder.WriteString(_m.Username)
+	if v := _m.Username; v != nil {
+		builder.WriteString("username=")
+		builder.WriteString(*v)
+	}
 	builder.WriteString(", ")
 	builder.WriteString("password_hash=<sensitive>")
 	builder.WriteString(", ")
-	builder.WriteString("full_name=")
-	builder.WriteString(_m.FullName)
+	if v := _m.FullName; v != nil {
+		builder.WriteString("full_name=")
+		builder.WriteString(*v)
+	}
 	builder.WriteString(", ")
 	if v := _m.Bio; v != nil {
 		builder.WriteString("bio=")
@@ -382,6 +400,11 @@ func (_m *User) String() string {
 	builder.WriteString(", ")
 	if v := _m.LastSeenAt; v != nil {
 		builder.WriteString("last_seen_at=")
+		builder.WriteString(v.Format(time.ANSIC))
+	}
+	builder.WriteString(", ")
+	if v := _m.DeletedAt; v != nil {
+		builder.WriteString("deleted_at=")
 		builder.WriteString(v.Format(time.ANSIC))
 	}
 	builder.WriteByte(')')

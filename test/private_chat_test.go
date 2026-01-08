@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"testing"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
@@ -201,6 +202,29 @@ func TestCreatePrivateChat(t *testing.T) {
 		if !assert.Equal(t, http.StatusUnauthorized, rr.Code) {
 			printBody(t, rr)
 		}
+	})
+
+	t.Run("Fail - Create Chat with Deleted User", func(t *testing.T) {
+		clearDatabase(context.Background())
+
+		u1 := testClient.User.Create().SetEmail("u1@test.com").SetUsername("u1").SetFullName("User 1").SaveX(context.Background())
+		deletedUser := testClient.User.Create().
+			SetEmail("deleted@test.com").
+			SetUsername("deleted").
+			SetFullName("Deleted User").
+			SetDeletedAt(time.Now().UTC()).
+			SaveX(context.Background())
+
+		token, _ := helper.GenerateJWT(testConfig.JWTSecret, testConfig.JWTExp, u1.ID)
+
+		reqBody := model.CreatePrivateChatRequest{TargetUserID: deletedUser.ID}
+		body, _ := json.Marshal(reqBody)
+		req, _ := http.NewRequest("POST", "/api/chats/private", bytes.NewBuffer(body))
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Authorization", "Bearer "+token)
+
+		rr := executeRequest(req)
+		assert.Equal(t, http.StatusNotFound, rr.Code)
 	})
 }
 

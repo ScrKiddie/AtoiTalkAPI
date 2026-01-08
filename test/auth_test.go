@@ -147,6 +147,34 @@ func TestLogin(t *testing.T) {
 			printBody(t, rr)
 		}
 	})
+
+	t.Run("Fail - Login Deleted User", func(t *testing.T) {
+		clearDatabase(context.Background())
+		originalSecret := testConfig.TurnstileSecretKey
+		testConfig.TurnstileSecretKey = cfTurnstileAlwaysPasses
+		defer func() { testConfig.TurnstileSecretKey = originalSecret }()
+
+		hashedPassword, _ := helper.HashPassword(validPassword)
+		testClient.User.Create().
+			SetEmail(validEmail).
+			SetUsername(validUsername).
+			SetFullName("Deleted User").
+			SetPasswordHash(hashedPassword).
+			SetDeletedAt(time.Now().UTC()).
+			Save(context.Background())
+
+		reqBody := model.LoginRequest{
+			Email:        validEmail,
+			Password:     validPassword,
+			CaptchaToken: dummyTurnstileToken,
+		}
+		body, _ := json.Marshal(reqBody)
+		req, _ := http.NewRequest("POST", "/api/auth/login", bytes.NewBuffer(body))
+		req.Header.Set("Content-Type", "application/json")
+
+		rr := executeRequest(req)
+		assert.Equal(t, http.StatusUnauthorized, rr.Code)
+	})
 }
 
 func TestGoogleExchange(t *testing.T) {

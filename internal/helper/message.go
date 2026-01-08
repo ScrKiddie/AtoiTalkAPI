@@ -45,8 +45,8 @@ func ToMessageResponse(msg *ent.Message, storageMode, appURL, cdnURL, storageAtt
 	}
 
 	var senderName string
-	if msg.Edges.Sender != nil {
-		senderName = msg.Edges.Sender.FullName
+	if msg.Edges.Sender != nil && msg.Edges.Sender.FullName != nil {
+		senderName = *msg.Edges.Sender.FullName
 	}
 
 	var replyPreview *model.ReplyPreviewDTO
@@ -56,8 +56,8 @@ func ToMessageResponse(msg *ent.Message, storageMode, appURL, cdnURL, storageAtt
 		var replyActionData map[string]interface{}
 		replySenderName := ""
 
-		if reply.Edges.Sender != nil {
-			replySenderName = reply.Edges.Sender.FullName
+		if reply.Edges.Sender != nil && reply.Edges.Sender.FullName != nil {
+			replySenderName = *reply.Edges.Sender.FullName
 		}
 
 		if reply.DeletedAt != nil {

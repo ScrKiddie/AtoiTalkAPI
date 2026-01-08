@@ -63,6 +63,10 @@ func (s *GroupChatService) SearchGroupMembers(ctx context.Context, userID uuid.U
 
 	var memberDTOs []model.GroupMemberDTO
 	for _, m := range members {
+
+		if m.Edges.User != nil && m.Edges.User.DeletedAt != nil {
+			continue
+		}
 		memberDTOs = append(memberDTOs, helper.ToGroupMemberDTO(m, s.cfg.StorageMode, s.cfg.AppURL, s.cfg.StorageCDNURL, s.cfg.StorageProfile))
 	}
 
@@ -116,14 +120,17 @@ func (s *GroupChatService) AddMember(ctx context.Context, requestorID uuid.UUID,
 	}
 
 	targetUsers, err := tx.User.Query().
-		Where(user.IDIn(req.UserIDs...)).
+		Where(
+			user.IDIn(req.UserIDs...),
+			user.DeletedAtIsNil(),
+		).
 		All(ctx)
 	if err != nil {
 		slog.Error("Failed to query target users", "error", err)
 		return helper.NewInternalServerError("")
 	}
 	if len(targetUsers) != len(req.UserIDs) {
-		return helper.NewNotFoundError("One or more users not found")
+		return helper.NewNotFoundError("One or more users not found or deleted")
 	}
 
 	var targetUserIDs []uuid.UUID

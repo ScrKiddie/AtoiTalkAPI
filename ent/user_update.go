@@ -57,6 +57,12 @@ func (_u *UserUpdate) SetNillableEmail(v *string) *UserUpdate {
 	return _u
 }
 
+// ClearEmail clears the value of the "email" field.
+func (_u *UserUpdate) ClearEmail() *UserUpdate {
+	_u.mutation.ClearEmail()
+	return _u
+}
+
 // SetUsername sets the "username" field.
 func (_u *UserUpdate) SetUsername(v string) *UserUpdate {
 	_u.mutation.SetUsername(v)
@@ -68,6 +74,12 @@ func (_u *UserUpdate) SetNillableUsername(v *string) *UserUpdate {
 	if v != nil {
 		_u.SetUsername(*v)
 	}
+	return _u
+}
+
+// ClearUsername clears the value of the "username" field.
+func (_u *UserUpdate) ClearUsername() *UserUpdate {
+	_u.mutation.ClearUsername()
 	return _u
 }
 
@@ -102,6 +114,12 @@ func (_u *UserUpdate) SetNillableFullName(v *string) *UserUpdate {
 	if v != nil {
 		_u.SetFullName(*v)
 	}
+	return _u
+}
+
+// ClearFullName clears the value of the "full_name" field.
+func (_u *UserUpdate) ClearFullName() *UserUpdate {
+	_u.mutation.ClearFullName()
 	return _u
 }
 
@@ -176,6 +194,26 @@ func (_u *UserUpdate) SetNillableLastSeenAt(v *time.Time) *UserUpdate {
 // ClearLastSeenAt clears the value of the "last_seen_at" field.
 func (_u *UserUpdate) ClearLastSeenAt() *UserUpdate {
 	_u.mutation.ClearLastSeenAt()
+	return _u
+}
+
+// SetDeletedAt sets the "deleted_at" field.
+func (_u *UserUpdate) SetDeletedAt(v time.Time) *UserUpdate {
+	_u.mutation.SetDeletedAt(v)
+	return _u
+}
+
+// SetNillableDeletedAt sets the "deleted_at" field if the given value is not nil.
+func (_u *UserUpdate) SetNillableDeletedAt(v *time.Time) *UserUpdate {
+	if v != nil {
+		_u.SetDeletedAt(*v)
+	}
+	return _u
+}
+
+// ClearDeletedAt clears the value of the "deleted_at" field.
+func (_u *UserUpdate) ClearDeletedAt() *UserUpdate {
+	_u.mutation.ClearDeletedAt()
 	return _u
 }
 
@@ -609,8 +647,14 @@ func (_u *UserUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	if value, ok := _u.mutation.Email(); ok {
 		_spec.SetField(user.FieldEmail, field.TypeString, value)
 	}
+	if _u.mutation.EmailCleared() {
+		_spec.ClearField(user.FieldEmail, field.TypeString)
+	}
 	if value, ok := _u.mutation.Username(); ok {
 		_spec.SetField(user.FieldUsername, field.TypeString, value)
+	}
+	if _u.mutation.UsernameCleared() {
+		_spec.ClearField(user.FieldUsername, field.TypeString)
 	}
 	if value, ok := _u.mutation.PasswordHash(); ok {
 		_spec.SetField(user.FieldPasswordHash, field.TypeString, value)
@@ -620,6 +664,9 @@ func (_u *UserUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	}
 	if value, ok := _u.mutation.FullName(); ok {
 		_spec.SetField(user.FieldFullName, field.TypeString, value)
+	}
+	if _u.mutation.FullNameCleared() {
+		_spec.ClearField(user.FieldFullName, field.TypeString)
 	}
 	if value, ok := _u.mutation.Bio(); ok {
 		_spec.SetField(user.FieldBio, field.TypeString, value)
@@ -635,6 +682,12 @@ func (_u *UserUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	}
 	if _u.mutation.LastSeenAtCleared() {
 		_spec.ClearField(user.FieldLastSeenAt, field.TypeTime)
+	}
+	if value, ok := _u.mutation.DeletedAt(); ok {
+		_spec.SetField(user.FieldDeletedAt, field.TypeTime, value)
+	}
+	if _u.mutation.DeletedAtCleared() {
+		_spec.ClearField(user.FieldDeletedAt, field.TypeTime)
 	}
 	if _u.mutation.AvatarCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -1112,6 +1165,12 @@ func (_u *UserUpdateOne) SetNillableEmail(v *string) *UserUpdateOne {
 	return _u
 }
 
+// ClearEmail clears the value of the "email" field.
+func (_u *UserUpdateOne) ClearEmail() *UserUpdateOne {
+	_u.mutation.ClearEmail()
+	return _u
+}
+
 // SetUsername sets the "username" field.
 func (_u *UserUpdateOne) SetUsername(v string) *UserUpdateOne {
 	_u.mutation.SetUsername(v)
@@ -1123,6 +1182,12 @@ func (_u *UserUpdateOne) SetNillableUsername(v *string) *UserUpdateOne {
 	if v != nil {
 		_u.SetUsername(*v)
 	}
+	return _u
+}
+
+// ClearUsername clears the value of the "username" field.
+func (_u *UserUpdateOne) ClearUsername() *UserUpdateOne {
+	_u.mutation.ClearUsername()
 	return _u
 }
 
@@ -1157,6 +1222,12 @@ func (_u *UserUpdateOne) SetNillableFullName(v *string) *UserUpdateOne {
 	if v != nil {
 		_u.SetFullName(*v)
 	}
+	return _u
+}
+
+// ClearFullName clears the value of the "full_name" field.
+func (_u *UserUpdateOne) ClearFullName() *UserUpdateOne {
+	_u.mutation.ClearFullName()
 	return _u
 }
 
@@ -1231,6 +1302,26 @@ func (_u *UserUpdateOne) SetNillableLastSeenAt(v *time.Time) *UserUpdateOne {
 // ClearLastSeenAt clears the value of the "last_seen_at" field.
 func (_u *UserUpdateOne) ClearLastSeenAt() *UserUpdateOne {
 	_u.mutation.ClearLastSeenAt()
+	return _u
+}
+
+// SetDeletedAt sets the "deleted_at" field.
+func (_u *UserUpdateOne) SetDeletedAt(v time.Time) *UserUpdateOne {
+	_u.mutation.SetDeletedAt(v)
+	return _u
+}
+
+// SetNillableDeletedAt sets the "deleted_at" field if the given value is not nil.
+func (_u *UserUpdateOne) SetNillableDeletedAt(v *time.Time) *UserUpdateOne {
+	if v != nil {
+		_u.SetDeletedAt(*v)
+	}
+	return _u
+}
+
+// ClearDeletedAt clears the value of the "deleted_at" field.
+func (_u *UserUpdateOne) ClearDeletedAt() *UserUpdateOne {
+	_u.mutation.ClearDeletedAt()
 	return _u
 }
 
@@ -1694,8 +1785,14 @@ func (_u *UserUpdateOne) sqlSave(ctx context.Context) (_node *User, err error) {
 	if value, ok := _u.mutation.Email(); ok {
 		_spec.SetField(user.FieldEmail, field.TypeString, value)
 	}
+	if _u.mutation.EmailCleared() {
+		_spec.ClearField(user.FieldEmail, field.TypeString)
+	}
 	if value, ok := _u.mutation.Username(); ok {
 		_spec.SetField(user.FieldUsername, field.TypeString, value)
+	}
+	if _u.mutation.UsernameCleared() {
+		_spec.ClearField(user.FieldUsername, field.TypeString)
 	}
 	if value, ok := _u.mutation.PasswordHash(); ok {
 		_spec.SetField(user.FieldPasswordHash, field.TypeString, value)
@@ -1705,6 +1802,9 @@ func (_u *UserUpdateOne) sqlSave(ctx context.Context) (_node *User, err error) {
 	}
 	if value, ok := _u.mutation.FullName(); ok {
 		_spec.SetField(user.FieldFullName, field.TypeString, value)
+	}
+	if _u.mutation.FullNameCleared() {
+		_spec.ClearField(user.FieldFullName, field.TypeString)
 	}
 	if value, ok := _u.mutation.Bio(); ok {
 		_spec.SetField(user.FieldBio, field.TypeString, value)
@@ -1720,6 +1820,12 @@ func (_u *UserUpdateOne) sqlSave(ctx context.Context) (_node *User, err error) {
 	}
 	if _u.mutation.LastSeenAtCleared() {
 		_spec.ClearField(user.FieldLastSeenAt, field.TypeTime)
+	}
+	if value, ok := _u.mutation.DeletedAt(); ok {
+		_spec.SetField(user.FieldDeletedAt, field.TypeTime, value)
+	}
+	if _u.mutation.DeletedAtCleared() {
+		_spec.ClearField(user.FieldDeletedAt, field.TypeTime)
 	}
 	if _u.mutation.AvatarCleared() {
 		edge := &sqlgraph.EdgeSpec{

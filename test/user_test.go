@@ -21,6 +21,7 @@ import (
 	"runtime"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -219,6 +220,31 @@ func TestGetUserProfile(t *testing.T) {
 		}
 	})
 
+	t.Run("Fail - Get Deleted User Profile", func(t *testing.T) {
+		clearDatabase(context.Background())
+
+		deletedUser, _ := testClient.User.Create().
+			SetEmail("deleted@test.com").
+			SetUsername("deleted").
+			SetFullName("Deleted User").
+			SetDeletedAt(time.Now().UTC()).
+			Save(context.Background())
+
+		requestingUser, _ := testClient.User.Create().
+			SetEmail("requester@test.com").
+			SetUsername("requester").
+			SetFullName("Requester").
+			Save(context.Background())
+
+		token, _ := helper.GenerateJWT(testConfig.JWTSecret, testConfig.JWTExp, requestingUser.ID)
+
+		req, _ := http.NewRequest("GET", fmt.Sprintf("/api/users/%s", deletedUser.ID), nil)
+		req.Header.Set("Authorization", "Bearer "+token)
+
+		rr := executeRequest(req)
+		assert.Equal(t, http.StatusNotFound, rr.Code)
+	})
+
 	t.Run("Invalid ID Format", func(t *testing.T) {
 		clearDatabase(context.Background())
 
@@ -302,9 +328,9 @@ func TestUpdateProfile(t *testing.T) {
 
 		updatedUser, err := testClient.User.Query().Where(user.ID(u.ID)).Only(context.Background())
 		assert.NoError(t, err)
-		assert.Equal(t, "New Name", updatedUser.FullName)
+		assert.Equal(t, "New Name", *updatedUser.FullName)
 		assert.Equal(t, "New Bio", *updatedUser.Bio)
-		assert.Equal(t, "newusername", updatedUser.Username)
+		assert.Equal(t, "newusername", *updatedUser.Username)
 	})
 
 	t.Run("Fail Update Username Taken", func(t *testing.T) {
@@ -782,6 +808,20 @@ func TestSearchUsers(t *testing.T) {
 		assert.Len(t, dataList, 0, "Mutually blocked user should not appear in search")
 	})
 
+	t.Run("Success - Exclude Deleted Users", func(t *testing.T) {
+
+		testClient.User.UpdateOne(users["Charlie"]).SetDeletedAt(time.Now().UTC()).ExecX(context.Background())
+
+		req, _ := http.NewRequest("GET", "/api/users?query=Charlie", nil)
+		req.Header.Set("Authorization", "Bearer "+token)
+		rr := executeRequest(req)
+
+		var resp helper.ResponseWithPagination
+		json.Unmarshal(rr.Body.Bytes(), &resp)
+		dataList := resp.Data.([]interface{})
+		assert.Len(t, dataList, 0, "Deleted user should not appear in search")
+	})
+
 	t.Run("Empty Result", func(t *testing.T) {
 		req, _ := http.NewRequest("GET", "/api/users?query=zoro", nil)
 		req.Header.Set("Authorization", "Bearer "+token)
@@ -890,7 +930,6 @@ func TestBlockUser(t *testing.T) {
 	token, _ := helper.GenerateJWT(testConfig.JWTSecret, testConfig.JWTExp, u1.ID)
 
 	t.Run("Success Block", func(t *testing.T) {
-
 		req, _ := http.NewRequest("POST", fmt.Sprintf("/api/users/%s/block", u2.ID), nil)
 		req.Header.Set("Authorization", "Bearer "+token)
 		rr := executeRequest(req)
@@ -901,7 +940,6 @@ func TestBlockUser(t *testing.T) {
 	})
 
 	t.Run("Success Unblock", func(t *testing.T) {
-
 		req, _ := http.NewRequest("POST", fmt.Sprintf("/api/users/%s/unblock", u2.ID), nil)
 		req.Header.Set("Authorization", "Bearer "+token)
 		rr := executeRequest(req)
@@ -912,7 +950,6 @@ func TestBlockUser(t *testing.T) {
 	})
 
 	t.Run("Block Self", func(t *testing.T) {
-
 		req, _ := http.NewRequest("POST", fmt.Sprintf("/api/users/%s/block", u1.ID), nil)
 		req.Header.Set("Authorization", "Bearer "+token)
 		rr := executeRequest(req)
@@ -920,8 +957,21 @@ func TestBlockUser(t *testing.T) {
 	})
 
 	t.Run("Block Non-Existent User", func(t *testing.T) {
-
 		req, _ := http.NewRequest("POST", fmt.Sprintf("/api/users/%s/block", "00000000-0000-0000-0000-000000000000"), nil)
+		req.Header.Set("Authorization", "Bearer "+token)
+		rr := executeRequest(req)
+		assert.Equal(t, http.StatusNotFound, rr.Code)
+	})
+
+	t.Run("Fail - Block Deleted User", func(t *testing.T) {
+		deletedUser, _ := testClient.User.Create().
+			SetEmail("deleted@test.com").
+			SetUsername("deleted").
+			SetFullName("Deleted User").
+			SetDeletedAt(time.Now().UTC()).
+			Save(context.Background())
+
+		req, _ := http.NewRequest("POST", fmt.Sprintf("/api/users/%s/block", deletedUser.ID), nil)
 		req.Header.Set("Authorization", "Bearer "+token)
 		rr := executeRequest(req)
 		assert.Equal(t, http.StatusNotFound, rr.Code)

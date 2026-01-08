@@ -308,13 +308,14 @@ var (
 		{Name: "id", Type: field.TypeUUID},
 		{Name: "created_at", Type: field.TypeTime, Default: "CURRENT_TIMESTAMP"},
 		{Name: "updated_at", Type: field.TypeTime, Default: "CURRENT_TIMESTAMP"},
-		{Name: "email", Type: field.TypeString, Unique: true, Size: 255},
-		{Name: "username", Type: field.TypeString, Unique: true, Size: 50},
+		{Name: "email", Type: field.TypeString, Unique: true, Nullable: true, Size: 255},
+		{Name: "username", Type: field.TypeString, Unique: true, Nullable: true, Size: 50},
 		{Name: "password_hash", Type: field.TypeString, Nullable: true, Size: 255},
-		{Name: "full_name", Type: field.TypeString, Size: 100},
+		{Name: "full_name", Type: field.TypeString, Nullable: true, Size: 100},
 		{Name: "bio", Type: field.TypeString, Nullable: true, Size: 255},
 		{Name: "is_online", Type: field.TypeBool, Default: false},
 		{Name: "last_seen_at", Type: field.TypeTime, Nullable: true},
+		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
 		{Name: "avatar_id", Type: field.TypeUUID, Unique: true, Nullable: true},
 	}
 	// UsersTable holds the schema information for the "users" table.
@@ -325,7 +326,7 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "users_media_user_avatar",
-				Columns:    []*schema.Column{UsersColumns[10]},
+				Columns:    []*schema.Column{UsersColumns[11]},
 				RefColumns: []*schema.Column{MediaColumns[0]},
 				OnDelete:   schema.SetNull,
 			},

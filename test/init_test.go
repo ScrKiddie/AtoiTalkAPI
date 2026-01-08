@@ -113,7 +113,7 @@ func TestMain(m *testing.M) {
 	userService := service.NewUserService(testClient, repo, testConfig, validator, storageAdapter, testHub)
 	userController := controller.NewUserController(userService)
 
-	accountService := service.NewAccountService(testClient, testConfig, validator)
+	accountService := service.NewAccountService(testClient, testConfig, validator, testHub)
 	accountController := controller.NewAccountController(accountService)
 
 	chatService := service.NewChatService(testClient, repo, testConfig, validator, testHub, storageAdapter)

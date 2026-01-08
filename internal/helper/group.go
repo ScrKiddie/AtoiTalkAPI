@@ -16,10 +16,15 @@ func ToGroupMemberDTO(m *ent.GroupMember, storageMode, appURL, cdnURL, storagePr
 		avatarURL = BuildImageURL(storageMode, appURL, cdnURL, storageProfile, user.Edges.Avatar.FileName)
 	}
 
+	fullName := ""
+	if user.FullName != nil {
+		fullName = *user.FullName
+	}
+
 	return model.GroupMemberDTO{
 		ID:       m.ID,
 		UserID:   user.ID,
-		FullName: user.FullName,
+		FullName: fullName,
 		Avatar:   avatarURL,
 		Role:     string(m.Role),
 		JoinedAt: m.JoinedAt.String(),

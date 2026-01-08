@@ -65,9 +65,25 @@ func (_c *UserCreate) SetEmail(v string) *UserCreate {
 	return _c
 }
 
+// SetNillableEmail sets the "email" field if the given value is not nil.
+func (_c *UserCreate) SetNillableEmail(v *string) *UserCreate {
+	if v != nil {
+		_c.SetEmail(*v)
+	}
+	return _c
+}
+
 // SetUsername sets the "username" field.
 func (_c *UserCreate) SetUsername(v string) *UserCreate {
 	_c.mutation.SetUsername(v)
+	return _c
+}
+
+// SetNillableUsername sets the "username" field if the given value is not nil.
+func (_c *UserCreate) SetNillableUsername(v *string) *UserCreate {
+	if v != nil {
+		_c.SetUsername(*v)
+	}
 	return _c
 }
 
@@ -88,6 +104,14 @@ func (_c *UserCreate) SetNillablePasswordHash(v *string) *UserCreate {
 // SetFullName sets the "full_name" field.
 func (_c *UserCreate) SetFullName(v string) *UserCreate {
 	_c.mutation.SetFullName(v)
+	return _c
+}
+
+// SetNillableFullName sets the "full_name" field if the given value is not nil.
+func (_c *UserCreate) SetNillableFullName(v *string) *UserCreate {
+	if v != nil {
+		_c.SetFullName(*v)
+	}
 	return _c
 }
 
@@ -143,6 +167,20 @@ func (_c *UserCreate) SetLastSeenAt(v time.Time) *UserCreate {
 func (_c *UserCreate) SetNillableLastSeenAt(v *time.Time) *UserCreate {
 	if v != nil {
 		_c.SetLastSeenAt(*v)
+	}
+	return _c
+}
+
+// SetDeletedAt sets the "deleted_at" field.
+func (_c *UserCreate) SetDeletedAt(v time.Time) *UserCreate {
+	_c.mutation.SetDeletedAt(v)
+	return _c
+}
+
+// SetNillableDeletedAt sets the "deleted_at" field if the given value is not nil.
+func (_c *UserCreate) SetNillableDeletedAt(v *time.Time) *UserCreate {
+	if v != nil {
+		_c.SetDeletedAt(*v)
 	}
 	return _c
 }
@@ -362,16 +400,10 @@ func (_c *UserCreate) check() error {
 	if _, ok := _c.mutation.UpdatedAt(); !ok {
 		return &ValidationError{Name: "updated_at", err: errors.New(`ent: missing required field "User.updated_at"`)}
 	}
-	if _, ok := _c.mutation.Email(); !ok {
-		return &ValidationError{Name: "email", err: errors.New(`ent: missing required field "User.email"`)}
-	}
 	if v, ok := _c.mutation.Email(); ok {
 		if err := user.EmailValidator(v); err != nil {
 			return &ValidationError{Name: "email", err: fmt.Errorf(`ent: validator failed for field "User.email": %w`, err)}
 		}
-	}
-	if _, ok := _c.mutation.Username(); !ok {
-		return &ValidationError{Name: "username", err: errors.New(`ent: missing required field "User.username"`)}
 	}
 	if v, ok := _c.mutation.Username(); ok {
 		if err := user.UsernameValidator(v); err != nil {
@@ -382,9 +414,6 @@ func (_c *UserCreate) check() error {
 		if err := user.PasswordHashValidator(v); err != nil {
 			return &ValidationError{Name: "password_hash", err: fmt.Errorf(`ent: validator failed for field "User.password_hash": %w`, err)}
 		}
-	}
-	if _, ok := _c.mutation.FullName(); !ok {
-		return &ValidationError{Name: "full_name", err: errors.New(`ent: missing required field "User.full_name"`)}
 	}
 	if v, ok := _c.mutation.FullName(); ok {
 		if err := user.FullNameValidator(v); err != nil {
@@ -445,11 +474,11 @@ func (_c *UserCreate) createSpec() (*User, *sqlgraph.CreateSpec) {
 	}
 	if value, ok := _c.mutation.Email(); ok {
 		_spec.SetField(user.FieldEmail, field.TypeString, value)
-		_node.Email = value
+		_node.Email = &value
 	}
 	if value, ok := _c.mutation.Username(); ok {
 		_spec.SetField(user.FieldUsername, field.TypeString, value)
-		_node.Username = value
+		_node.Username = &value
 	}
 	if value, ok := _c.mutation.PasswordHash(); ok {
 		_spec.SetField(user.FieldPasswordHash, field.TypeString, value)
@@ -457,7 +486,7 @@ func (_c *UserCreate) createSpec() (*User, *sqlgraph.CreateSpec) {
 	}
 	if value, ok := _c.mutation.FullName(); ok {
 		_spec.SetField(user.FieldFullName, field.TypeString, value)
-		_node.FullName = value
+		_node.FullName = &value
 	}
 	if value, ok := _c.mutation.Bio(); ok {
 		_spec.SetField(user.FieldBio, field.TypeString, value)
@@ -470,6 +499,10 @@ func (_c *UserCreate) createSpec() (*User, *sqlgraph.CreateSpec) {
 	if value, ok := _c.mutation.LastSeenAt(); ok {
 		_spec.SetField(user.FieldLastSeenAt, field.TypeTime, value)
 		_node.LastSeenAt = &value
+	}
+	if value, ok := _c.mutation.DeletedAt(); ok {
+		_spec.SetField(user.FieldDeletedAt, field.TypeTime, value)
+		_node.DeletedAt = &value
 	}
 	if nodes := _c.mutation.AvatarIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
@@ -708,6 +741,12 @@ func (u *UserUpsert) UpdateEmail() *UserUpsert {
 	return u
 }
 
+// ClearEmail clears the value of the "email" field.
+func (u *UserUpsert) ClearEmail() *UserUpsert {
+	u.SetNull(user.FieldEmail)
+	return u
+}
+
 // SetUsername sets the "username" field.
 func (u *UserUpsert) SetUsername(v string) *UserUpsert {
 	u.Set(user.FieldUsername, v)
@@ -717,6 +756,12 @@ func (u *UserUpsert) SetUsername(v string) *UserUpsert {
 // UpdateUsername sets the "username" field to the value that was provided on create.
 func (u *UserUpsert) UpdateUsername() *UserUpsert {
 	u.SetExcluded(user.FieldUsername)
+	return u
+}
+
+// ClearUsername clears the value of the "username" field.
+func (u *UserUpsert) ClearUsername() *UserUpsert {
+	u.SetNull(user.FieldUsername)
 	return u
 }
 
@@ -747,6 +792,12 @@ func (u *UserUpsert) SetFullName(v string) *UserUpsert {
 // UpdateFullName sets the "full_name" field to the value that was provided on create.
 func (u *UserUpsert) UpdateFullName() *UserUpsert {
 	u.SetExcluded(user.FieldFullName)
+	return u
+}
+
+// ClearFullName clears the value of the "full_name" field.
+func (u *UserUpsert) ClearFullName() *UserUpsert {
+	u.SetNull(user.FieldFullName)
 	return u
 }
 
@@ -813,6 +864,24 @@ func (u *UserUpsert) UpdateLastSeenAt() *UserUpsert {
 // ClearLastSeenAt clears the value of the "last_seen_at" field.
 func (u *UserUpsert) ClearLastSeenAt() *UserUpsert {
 	u.SetNull(user.FieldLastSeenAt)
+	return u
+}
+
+// SetDeletedAt sets the "deleted_at" field.
+func (u *UserUpsert) SetDeletedAt(v time.Time) *UserUpsert {
+	u.Set(user.FieldDeletedAt, v)
+	return u
+}
+
+// UpdateDeletedAt sets the "deleted_at" field to the value that was provided on create.
+func (u *UserUpsert) UpdateDeletedAt() *UserUpsert {
+	u.SetExcluded(user.FieldDeletedAt)
+	return u
+}
+
+// ClearDeletedAt clears the value of the "deleted_at" field.
+func (u *UserUpsert) ClearDeletedAt() *UserUpsert {
+	u.SetNull(user.FieldDeletedAt)
 	return u
 }
 
@@ -895,6 +964,13 @@ func (u *UserUpsertOne) UpdateEmail() *UserUpsertOne {
 	})
 }
 
+// ClearEmail clears the value of the "email" field.
+func (u *UserUpsertOne) ClearEmail() *UserUpsertOne {
+	return u.Update(func(s *UserUpsert) {
+		s.ClearEmail()
+	})
+}
+
 // SetUsername sets the "username" field.
 func (u *UserUpsertOne) SetUsername(v string) *UserUpsertOne {
 	return u.Update(func(s *UserUpsert) {
@@ -906,6 +982,13 @@ func (u *UserUpsertOne) SetUsername(v string) *UserUpsertOne {
 func (u *UserUpsertOne) UpdateUsername() *UserUpsertOne {
 	return u.Update(func(s *UserUpsert) {
 		s.UpdateUsername()
+	})
+}
+
+// ClearUsername clears the value of the "username" field.
+func (u *UserUpsertOne) ClearUsername() *UserUpsertOne {
+	return u.Update(func(s *UserUpsert) {
+		s.ClearUsername()
 	})
 }
 
@@ -941,6 +1024,13 @@ func (u *UserUpsertOne) SetFullName(v string) *UserUpsertOne {
 func (u *UserUpsertOne) UpdateFullName() *UserUpsertOne {
 	return u.Update(func(s *UserUpsert) {
 		s.UpdateFullName()
+	})
+}
+
+// ClearFullName clears the value of the "full_name" field.
+func (u *UserUpsertOne) ClearFullName() *UserUpsertOne {
+	return u.Update(func(s *UserUpsert) {
+		s.ClearFullName()
 	})
 }
 
@@ -1018,6 +1108,27 @@ func (u *UserUpsertOne) UpdateLastSeenAt() *UserUpsertOne {
 func (u *UserUpsertOne) ClearLastSeenAt() *UserUpsertOne {
 	return u.Update(func(s *UserUpsert) {
 		s.ClearLastSeenAt()
+	})
+}
+
+// SetDeletedAt sets the "deleted_at" field.
+func (u *UserUpsertOne) SetDeletedAt(v time.Time) *UserUpsertOne {
+	return u.Update(func(s *UserUpsert) {
+		s.SetDeletedAt(v)
+	})
+}
+
+// UpdateDeletedAt sets the "deleted_at" field to the value that was provided on create.
+func (u *UserUpsertOne) UpdateDeletedAt() *UserUpsertOne {
+	return u.Update(func(s *UserUpsert) {
+		s.UpdateDeletedAt()
+	})
+}
+
+// ClearDeletedAt clears the value of the "deleted_at" field.
+func (u *UserUpsertOne) ClearDeletedAt() *UserUpsertOne {
+	return u.Update(func(s *UserUpsert) {
+		s.ClearDeletedAt()
 	})
 }
 
@@ -1267,6 +1378,13 @@ func (u *UserUpsertBulk) UpdateEmail() *UserUpsertBulk {
 	})
 }
 
+// ClearEmail clears the value of the "email" field.
+func (u *UserUpsertBulk) ClearEmail() *UserUpsertBulk {
+	return u.Update(func(s *UserUpsert) {
+		s.ClearEmail()
+	})
+}
+
 // SetUsername sets the "username" field.
 func (u *UserUpsertBulk) SetUsername(v string) *UserUpsertBulk {
 	return u.Update(func(s *UserUpsert) {
@@ -1278,6 +1396,13 @@ func (u *UserUpsertBulk) SetUsername(v string) *UserUpsertBulk {
 func (u *UserUpsertBulk) UpdateUsername() *UserUpsertBulk {
 	return u.Update(func(s *UserUpsert) {
 		s.UpdateUsername()
+	})
+}
+
+// ClearUsername clears the value of the "username" field.
+func (u *UserUpsertBulk) ClearUsername() *UserUpsertBulk {
+	return u.Update(func(s *UserUpsert) {
+		s.ClearUsername()
 	})
 }
 
@@ -1313,6 +1438,13 @@ func (u *UserUpsertBulk) SetFullName(v string) *UserUpsertBulk {
 func (u *UserUpsertBulk) UpdateFullName() *UserUpsertBulk {
 	return u.Update(func(s *UserUpsert) {
 		s.UpdateFullName()
+	})
+}
+
+// ClearFullName clears the value of the "full_name" field.
+func (u *UserUpsertBulk) ClearFullName() *UserUpsertBulk {
+	return u.Update(func(s *UserUpsert) {
+		s.ClearFullName()
 	})
 }
 
@@ -1390,6 +1522,27 @@ func (u *UserUpsertBulk) UpdateLastSeenAt() *UserUpsertBulk {
 func (u *UserUpsertBulk) ClearLastSeenAt() *UserUpsertBulk {
 	return u.Update(func(s *UserUpsert) {
 		s.ClearLastSeenAt()
+	})
+}
+
+// SetDeletedAt sets the "deleted_at" field.
+func (u *UserUpsertBulk) SetDeletedAt(v time.Time) *UserUpsertBulk {
+	return u.Update(func(s *UserUpsert) {
+		s.SetDeletedAt(v)
+	})
+}
+
+// UpdateDeletedAt sets the "deleted_at" field to the value that was provided on create.
+func (u *UserUpsertBulk) UpdateDeletedAt() *UserUpsertBulk {
+	return u.Update(func(s *UserUpsert) {
+		s.UpdateDeletedAt()
+	})
+}
+
+// ClearDeletedAt clears the value of the "deleted_at" field.
+func (u *UserUpsertBulk) ClearDeletedAt() *UserUpsertBulk {
+	return u.Update(func(s *UserUpsert) {
+		s.ClearDeletedAt()
 	})
 }
 

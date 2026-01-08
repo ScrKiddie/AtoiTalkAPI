@@ -80,6 +80,8 @@ definitions:
         $ref: '#/definitions/model.MessageResponse'
       last_read_at:
         type: string
+      member_count:
+        type: integer
       my_role:
         type: string
       name:
@@ -88,6 +90,8 @@ definitions:
         type: string
       other_user_id:
         type: string
+      other_user_is_deleted:
+        type: boolean
       type:
         type: string
       unread_count:
@@ -108,6 +112,11 @@ definitions:
         type: string
     required:
     - target_user_id
+    type: object
+  model.DeleteAccountRequest:
+    properties:
+      password:
+        type: string
     type: object
   model.EditMessageRequest:
     properties:
@@ -358,6 +367,47 @@ definitions:
 info:
   contact: {}
 paths:
+  /api/account:
+    delete:
+      consumes:
+      - application/json
+      description: Soft delete user account. Requires password confirmation if set.
+        User must transfer ownership of groups first.
+      parameters:
+      - description: Delete Account Request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.DeleteAccountRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/helper.ResponseSuccess'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
+      security:
+      - BearerAuth: []
+      summary: Delete Account
+      tags:
+      - account
   /api/account/email:
     put:
       consumes:

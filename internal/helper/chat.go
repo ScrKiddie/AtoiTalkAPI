@@ -21,6 +21,7 @@ func MapChatToResponse(userID uuid.UUID, c *ent.Chat, blockedMap map[uuid.UUID]B
 	var unreadCount int
 	var isOnline bool
 	var otherUserID *uuid.UUID
+	var otherUserIsDeleted bool
 	var isBlockedByMe bool
 	var myRole *string
 
@@ -44,21 +45,28 @@ func MapChatToResponse(userID uuid.UUID, c *ent.Chat, blockedMap map[uuid.UUID]B
 
 		if otherUser != nil {
 			otherUserID = &otherUser.ID
-			name = otherUser.FullName
+			if otherUser.FullName != nil {
+				name = *otherUser.FullName
+			}
 
-			status := blockedMap[otherUser.ID]
-			isBlockedByMe = status.BlockedByMe
-
-			if status.BlockedByMe || status.BlockedByOther {
+			if otherUser.DeletedAt != nil {
+				otherUserIsDeleted = true
 				isOnline = false
 
-				if otherUser.Edges.Avatar != nil {
-					avatar = BuildImageURL(storageMode, appURL, cdnURL, storageProfile, otherUser.Edges.Avatar.FileName)
-				}
 			} else {
-				isOnline = otherUser.IsOnline
-				if otherUser.Edges.Avatar != nil {
-					avatar = BuildImageURL(storageMode, appURL, cdnURL, storageProfile, otherUser.Edges.Avatar.FileName)
+				status := blockedMap[otherUser.ID]
+				isBlockedByMe = status.BlockedByMe
+
+				if status.BlockedByMe || status.BlockedByOther {
+					isOnline = false
+					if otherUser.Edges.Avatar != nil {
+						avatar = BuildImageURL(storageMode, appURL, cdnURL, storageProfile, otherUser.Edges.Avatar.FileName)
+					}
+				} else {
+					isOnline = otherUser.IsOnline
+					if otherUser.Edges.Avatar != nil {
+						avatar = BuildImageURL(storageMode, appURL, cdnURL, storageProfile, otherUser.Edges.Avatar.FileName)
+					}
 				}
 			}
 		}
@@ -95,17 +103,18 @@ func MapChatToResponse(userID uuid.UUID, c *ent.Chat, blockedMap map[uuid.UUID]B
 	}
 
 	return &model.ChatListResponse{
-		ID:              c.ID,
-		Type:            string(c.Type),
-		Name:            name,
-		Avatar:          avatar,
-		LastMessage:     lastMsgResp,
-		UnreadCount:     unreadCount,
-		LastReadAt:      lastReadAt,
-		OtherLastReadAt: otherLastReadAt,
-		IsOnline:        isOnline,
-		OtherUserID:     otherUserID,
-		IsBlockedByMe:   isBlockedByMe,
-		MyRole:          myRole,
+		ID:                 c.ID,
+		Type:               string(c.Type),
+		Name:               name,
+		Avatar:             avatar,
+		LastMessage:        lastMsgResp,
+		UnreadCount:        unreadCount,
+		LastReadAt:         lastReadAt,
+		OtherLastReadAt:    otherLastReadAt,
+		IsOnline:           isOnline,
+		OtherUserID:        otherUserID,
+		OtherUserIsDeleted: otherUserIsDeleted,
+		IsBlockedByMe:      isBlockedByMe,
+		MyRole:             myRole,
 	}
 }

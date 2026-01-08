@@ -63,7 +63,10 @@ func (s *AuthService) VerifyUser(ctx context.Context, tokenString string) (*mode
 	}
 
 	exists, err := s.client.User.Query().
-		Where(user.ID(claims.UserID)).
+		Where(
+			user.ID(claims.UserID),
+			user.DeletedAtIsNil(),
+		).
 		Exist(ctx)
 
 	if err != nil {
@@ -94,7 +97,10 @@ func (s *AuthService) Login(ctx context.Context, req model.LoginRequest) (*model
 	req.Email = helper.NormalizeEmail(req.Email)
 
 	u, err := s.client.User.Query().
-		Where(user.Email(req.Email)).
+		Where(
+			user.Email(req.Email),
+			user.DeletedAtIsNil(),
+		).
 		WithAvatar().
 		Only(ctx)
 
@@ -121,13 +127,23 @@ func (s *AuthService) Login(ctx context.Context, req model.LoginRequest) (*model
 		avatarURL = helper.BuildImageURL(s.cfg.StorageMode, s.cfg.AppURL, s.cfg.StorageCDNURL, s.cfg.StorageProfile, u.Edges.Avatar.FileName)
 	}
 
+	username := ""
+	if u.Username != nil {
+		username = *u.Username
+	}
+
+	fullName := ""
+	if u.FullName != nil {
+		fullName = *u.FullName
+	}
+
 	return &model.AuthResponse{
 		Token: token,
 		User: model.UserDTO{
 			ID:       u.ID,
-			Email:    u.Email,
-			Username: u.Username,
-			FullName: u.FullName,
+			Email:    *u.Email,
+			Username: username,
+			FullName: fullName,
 			Avatar:   avatarURL,
 		},
 	}, nil
@@ -173,7 +189,10 @@ func (s *AuthService) GoogleExchange(ctx context.Context, req model.GoogleLoginR
 	}
 
 	u, err := s.client.User.Query().
-		Where(user.Email(email)).
+		Where(
+			user.Email(email),
+			user.DeletedAtIsNil(),
+		).
 		WithAvatar().
 		Only(ctx)
 
@@ -356,13 +375,23 @@ func (s *AuthService) GoogleExchange(ctx context.Context, req model.GoogleLoginR
 		avatarURL = helper.BuildImageURL(s.cfg.StorageMode, s.cfg.AppURL, s.cfg.StorageCDNURL, s.cfg.StorageProfile, avatarFileName)
 	}
 
+	username := ""
+	if u.Username != nil {
+		username = *u.Username
+	}
+
+	fullName := ""
+	if u.FullName != nil {
+		fullName = *u.FullName
+	}
+
 	return &model.AuthResponse{
 		Token: token,
 		User: model.UserDTO{
 			ID:       u.ID,
-			Email:    u.Email,
-			Username: u.Username,
-			FullName: u.FullName,
+			Email:    *u.Email,
+			Username: username,
+			FullName: fullName,
 			Avatar:   avatarURL,
 		},
 	}, nil
@@ -422,7 +451,10 @@ func (s *AuthService) Register(ctx context.Context, req model.RegisterUserReques
 	}
 
 	exists, err := tx.User.Query().
-		Where(user.Email(req.Email)).
+		Where(
+			user.Email(req.Email),
+			user.DeletedAtIsNil(),
+		).
 		Exist(ctx)
 	if err != nil {
 		slog.Error("Failed to check user existence", "error", err)
@@ -433,7 +465,10 @@ func (s *AuthService) Register(ctx context.Context, req model.RegisterUserReques
 	}
 
 	usernameExists, err := tx.User.Query().
-		Where(user.UsernameEQ(req.Username)).
+		Where(
+			user.UsernameEQ(req.Username),
+			user.DeletedAtIsNil(),
+		).
 		Exist(ctx)
 	if err != nil {
 		slog.Error("Failed to check username existence", "error", err)
@@ -471,13 +506,18 @@ func (s *AuthService) Register(ctx context.Context, req model.RegisterUserReques
 		return nil, helper.NewInternalServerError("")
 	}
 
+	fullName := ""
+	if newUser.FullName != nil {
+		fullName = *newUser.FullName
+	}
+
 	return &model.AuthResponse{
 		Token: token,
 		User: model.UserDTO{
 			ID:       newUser.ID,
-			Email:    newUser.Email,
-			Username: newUser.Username,
-			FullName: newUser.FullName,
+			Email:    *newUser.Email,
+			Username: *newUser.Username,
+			FullName: fullName,
 		},
 	}, nil
 }
@@ -535,7 +575,10 @@ func (s *AuthService) ResetPassword(ctx context.Context, req model.ResetPassword
 	}
 
 	u, err := tx.User.Query().
-		Where(user.Email(req.Email)).
+		Where(
+			user.Email(req.Email),
+			user.DeletedAtIsNil(),
+		).
 		Only(ctx)
 	if err != nil {
 		if ent.IsNotFound(err) {
