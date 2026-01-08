@@ -543,6 +543,32 @@ func TestGetMessages(t *testing.T) {
 		assert.Equal(t, msgIDs[2].String(), m2["id"])
 	})
 
+	t.Run("Success - Get Messages Newer (Scroll Down)", func(t *testing.T) {
+
+		cursor := base64.URLEncoding.EncodeToString([]byte(msgIDs[1].String()))
+
+		req, _ := http.NewRequest("GET", fmt.Sprintf("/api/chats/%s/messages?limit=2&cursor=%s&direction=newer", chatEntity.ID, cursor), nil)
+		req.Header.Set("Authorization", "Bearer "+token1)
+
+		rr := executeRequest(req)
+		assert.Equal(t, http.StatusOK, rr.Code)
+
+		var resp helper.ResponseWithPagination
+		json.Unmarshal(rr.Body.Bytes(), &resp)
+		dataList := resp.Data.([]interface{})
+
+		assert.Len(t, dataList, 2)
+
+		m1 := dataList[0].(map[string]interface{})
+		m2 := dataList[1].(map[string]interface{})
+
+		assert.Equal(t, msgIDs[2].String(), m1["id"])
+		assert.Equal(t, msgIDs[3].String(), m2["id"])
+
+		assert.True(t, resp.Meta.HasNext)
+		assert.True(t, resp.Meta.HasPrev)
+	})
+
 	t.Run("Success - Empty Chat", func(t *testing.T) {
 		emptyChat, _ := testClient.Chat.Create().SetType(chat.TypePrivate).Save(context.Background())
 

@@ -1270,7 +1270,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Get a paginated list of messages from a chat.",
+                "description": "Get a paginated list of messages from a chat. Supports bidirectional pagination.",
                 "consumes": [
                     "application/json"
                 ],
@@ -1299,6 +1299,12 @@ const docTemplate = `{
                         "type": "integer",
                         "description": "Number of messages to fetch (default 20, max 50)",
                         "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Pagination direction: 'older' (default) or 'newer'",
+                        "name": "direction",
                         "in": "query"
                     }
                 ],
@@ -2447,7 +2453,13 @@ const docTemplate = `{
                 "has_next": {
                     "type": "boolean"
                 },
+                "has_prev": {
+                    "type": "boolean"
+                },
                 "next_cursor": {
+                    "type": "string"
+                },
+                "prev_cursor": {
                     "type": "string"
                 }
             }
