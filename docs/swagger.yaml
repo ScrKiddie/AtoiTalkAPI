@@ -3,7 +3,11 @@ definitions:
     properties:
       has_next:
         type: boolean
+      has_prev:
+        type: boolean
       next_cursor:
+        type: string
+      prev_cursor:
         type: string
     type: object
   helper.ResponseError:
@@ -635,7 +639,8 @@ paths:
     get:
       consumes:
       - application/json
-      description: Get a paginated list of messages from a chat.
+      description: Get a paginated list of messages from a chat. Supports bidirectional
+        pagination.
       parameters:
       - description: Chat ID (UUID)
         in: path
@@ -650,6 +655,10 @@ paths:
         in: query
         name: limit
         type: integer
+      - description: 'Pagination direction: ''older'' (default) or ''newer'''
+        in: query
+        name: direction
+        type: string
       produces:
       - application/json
       responses:

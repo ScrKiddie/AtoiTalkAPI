@@ -16,6 +16,8 @@ type ResponseError struct {
 type PaginationMeta struct {
 	NextCursor string `json:"next_cursor,omitempty"`
 	HasNext    bool   `json:"has_next"`
+	PrevCursor string `json:"prev_cursor,omitempty"`
+	HasPrev    bool   `json:"has_prev"`
 }
 
 type ResponseWithPagination struct {
@@ -44,6 +46,18 @@ func WriteSuccessWithPagination(w http.ResponseWriter, data interface{}, nextCur
 		Meta: PaginationMeta{
 			NextCursor: nextCursor,
 			HasNext:    hasNext,
+		},
+	})
+}
+
+func WriteSuccessWithPaginationBidirectional(w http.ResponseWriter, data interface{}, nextCursor string, hasNext bool, prevCursor string, hasPrev bool) {
+	WriteJSON(w, http.StatusOK, ResponseWithPagination{
+		Data: data,
+		Meta: PaginationMeta{
+			NextCursor: nextCursor,
+			HasNext:    hasNext,
+			PrevCursor: prevCursor,
+			HasPrev:    hasPrev,
 		},
 	})
 }

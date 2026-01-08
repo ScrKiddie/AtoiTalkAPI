@@ -15,9 +15,10 @@ type EditMessageRequest struct {
 }
 
 type GetMessagesRequest struct {
-	ChatID uuid.UUID `json:"chat_id" validate:"required"`
-	Cursor string    `json:"cursor" validate:"omitempty"`
-	Limit  int       `json:"limit" validate:"omitempty,gt=0,max=50"`
+	ChatID    uuid.UUID `json:"chat_id" validate:"required"`
+	Cursor    string    `json:"cursor" validate:"omitempty"`
+	Limit     int       `json:"limit" validate:"omitempty,gt=0,max=50"`
+	Direction string    `json:"direction" validate:"omitempty,oneof=older newer"`
 }
 
 type MessageResponse struct {

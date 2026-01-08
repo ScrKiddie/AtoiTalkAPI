@@ -445,9 +445,9 @@ func (s *MessageService) EditMessage(ctx context.Context, userID uuid.UUID, mess
 	return resp, nil
 }
 
-func (s *MessageService) GetMessages(ctx context.Context, userID uuid.UUID, req model.GetMessagesRequest) ([]model.MessageResponse, string, bool, error) {
+func (s *MessageService) GetMessages(ctx context.Context, userID uuid.UUID, req model.GetMessagesRequest) ([]model.MessageResponse, string, bool, string, bool, error) {
 	if err := s.validator.Struct(req); err != nil {
-		return nil, "", false, helper.NewBadRequestError("")
+		return nil, "", false, "", false, helper.NewBadRequestError("")
 	}
 
 	if req.Limit == 0 {
@@ -469,10 +469,10 @@ func (s *MessageService) GetMessages(ctx context.Context, userID uuid.UUID, req 
 
 	if err != nil {
 		if ent.IsNotFound(err) {
-			return nil, "", false, helper.NewNotFoundError("Chat not found or deleted")
+			return nil, "", false, "", false, helper.NewNotFoundError("Chat not found or deleted")
 		}
 		slog.Error("Failed to query chat info", "error", err, "chatID", req.ChatID)
-		return nil, "", false, helper.NewInternalServerError("")
+		return nil, "", false, "", false, helper.NewInternalServerError("")
 	}
 
 	isMember := false
@@ -494,25 +494,25 @@ func (s *MessageService) GetMessages(ctx context.Context, userID uuid.UUID, req 
 	}
 
 	if !isMember {
-		return nil, "", false, helper.NewForbiddenError("")
+		return nil, "", false, "", false, helper.NewForbiddenError("")
 	}
 
 	var cursorID uuid.UUID
 	if req.Cursor != "" {
 		decodedBytes, err := base64.URLEncoding.DecodeString(req.Cursor)
 		if err != nil {
-			return nil, "", false, helper.NewBadRequestError("Invalid cursor format")
+			return nil, "", false, "", false, helper.NewBadRequestError("Invalid cursor format")
 		}
 		cursorID, err = uuid.Parse(string(decodedBytes))
 		if err != nil {
-			return nil, "", false, helper.NewBadRequestError("Invalid cursor format")
+			return nil, "", false, "", false, helper.NewBadRequestError("Invalid cursor format")
 		}
 	}
 
-	messages, err := s.repo.Message.GetMessages(ctx, req.ChatID, hiddenAt, cursorID, req.Limit)
+	messages, err := s.repo.Message.GetMessages(ctx, req.ChatID, hiddenAt, cursorID, req.Limit, req.Direction)
 	if err != nil {
 		slog.Error("Failed to get messages", "error", err)
-		return nil, "", false, helper.NewInternalServerError("")
+		return nil, "", false, "", false, helper.NewInternalServerError("")
 	}
 
 	userIDsToResolve := make(map[uuid.UUID]bool)
@@ -549,11 +549,42 @@ func (s *MessageService) GetMessages(ctx context.Context, userID uuid.UUID, req 
 
 	hasNext := false
 	var nextCursor string
+	hasPrev := false
+	var prevCursor string
+
 	if len(messages) > req.Limit {
-		hasNext = true
-		messages = messages[:req.Limit]
-		lastID := messages[len(messages)-1].ID
-		nextCursor = base64.URLEncoding.EncodeToString([]byte(lastID.String()))
+		if req.Direction == "newer" {
+
+			hasNext = true
+			messages = messages[:req.Limit]
+			lastID := messages[len(messages)-1].ID
+			nextCursor = base64.URLEncoding.EncodeToString([]byte(lastID.String()))
+		} else {
+
+			hasNext = true
+			messages = messages[:req.Limit]
+			lastID := messages[len(messages)-1].ID
+			nextCursor = base64.URLEncoding.EncodeToString([]byte(lastID.String()))
+		}
+	}
+
+	if req.Direction != "newer" {
+		for i, j := 0, len(messages)-1; i < j; i, j = i+1, j-1 {
+			messages[i], messages[j] = messages[j], messages[i]
+		}
+	}
+
+	if len(messages) > 0 {
+
+		if req.Direction == "newer" {
+
+			prevCursor = base64.URLEncoding.EncodeToString([]byte(messages[0].ID.String()))
+			hasPrev = true
+		} else {
+
+			prevCursor = base64.URLEncoding.EncodeToString([]byte(messages[len(messages)-1].ID.String()))
+			hasPrev = true
+		}
 	}
 
 	var response []model.MessageResponse
@@ -575,11 +606,7 @@ func (s *MessageService) GetMessages(ctx context.Context, userID uuid.UUID, req 
 		}
 	}
 
-	for i, j := 0, len(response)-1; i < j; i, j = i+1, j-1 {
-		response[i], response[j] = response[j], response[i]
-	}
-
-	return response, nextCursor, hasNext, nil
+	return response, nextCursor, hasNext, prevCursor, hasPrev, nil
 }
 
 func (s *MessageService) DeleteMessage(ctx context.Context, userID uuid.UUID, messageID uuid.UUID) error {

@@ -109,13 +109,14 @@ func (c *MessageController) EditMessage(w http.ResponseWriter, r *http.Request) 
 
 // GetMessages godoc
 // @Summary      Get Messages
-// @Description  Get a paginated list of messages from a chat.
+// @Description  Get a paginated list of messages from a chat. Supports bidirectional pagination.
 // @Tags         message
 // @Accept       json
 // @Produce      json
 // @Param        chatID path string true "Chat ID (UUID)"
 // @Param        cursor query string false "Pagination cursor (Base64 encoded message ID)"
 // @Param        limit query int false "Number of messages to fetch (default 20, max 50)"
+// @Param        direction query string false "Pagination direction: 'older' (default) or 'newer'"
 // @Success      200  {object}  helper.ResponseWithPagination{data=[]model.MessageResponse}
 // @Failure      400  {object}  helper.ResponseError
 // @Failure      401  {object}  helper.ResponseError
@@ -139,20 +140,22 @@ func (c *MessageController) GetMessages(w http.ResponseWriter, r *http.Request) 
 
 	cursor := r.URL.Query().Get("cursor")
 	limit, _ := strconv.Atoi(r.URL.Query().Get("limit"))
+	direction := r.URL.Query().Get("direction")
 
 	req := model.GetMessagesRequest{
-		ChatID: chatID,
-		Cursor: cursor,
-		Limit:  limit,
+		ChatID:    chatID,
+		Cursor:    cursor,
+		Limit:     limit,
+		Direction: direction,
 	}
 
-	messages, nextCursor, hasNext, err := c.messageService.GetMessages(r.Context(), userContext.ID, req)
+	messages, nextCursor, hasNext, prevCursor, hasPrev, err := c.messageService.GetMessages(r.Context(), userContext.ID, req)
 	if err != nil {
 		helper.WriteError(w, err)
 		return
 	}
 
-	helper.WriteSuccessWithPagination(w, messages, nextCursor, hasNext)
+	helper.WriteSuccessWithPaginationBidirectional(w, messages, nextCursor, hasNext, prevCursor, hasPrev)
 }
 
 // DeleteMessage godoc
