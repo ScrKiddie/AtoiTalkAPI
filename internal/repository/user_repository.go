@@ -26,6 +26,7 @@ func (r *UserRepository) SearchUsers(ctx context.Context, currentUserID uuid.UUI
 	query := r.client.User.Query().
 		Where(
 			user.IDNEQ(currentUserID),
+			user.DeletedAtIsNil(),
 			func(s *sql.Selector) {
 				t := sql.Table(userblock.Table)
 				s.Where(
@@ -66,7 +67,7 @@ func (r *UserRepository) SearchUsers(ctx context.Context, currentUserID uuid.UUI
 		if err != nil {
 			return nil, "", false, fmt.Errorf("invalid cursor format: %w", err)
 		}
-		
+
 		cursorID, err := uuid.Parse(cursorIDStr)
 		if err != nil {
 			return nil, "", false, fmt.Errorf("invalid cursor id format: %w", err)
@@ -100,7 +101,12 @@ func (r *UserRepository) SearchUsers(ctx context.Context, currentUserID uuid.UUI
 		hasNext = true
 		users = users[:limit]
 		lastUser := users[len(users)-1]
-		nextCursor = helper.EncodeCursor(lastUser.FullName, lastUser.ID.String(), delimiter)
+		
+		fullName := ""
+		if lastUser.FullName != nil {
+			fullName = *lastUser.FullName
+		}
+		nextCursor = helper.EncodeCursor(fullName, lastUser.ID.String(), delimiter)
 	}
 
 	return users, nextCursor, hasNext, nil
@@ -110,6 +116,7 @@ func (r *UserRepository) GetBlockedUsers(ctx context.Context, currentUserID uuid
 	query := r.client.User.Query().
 		Where(
 			user.HasBlockedByRelWith(userblock.BlockerID(currentUserID)),
+			user.DeletedAtIsNil(),
 		)
 
 	if queryStr != "" {
@@ -128,7 +135,7 @@ func (r *UserRepository) GetBlockedUsers(ctx context.Context, currentUserID uuid
 		if err != nil {
 			return nil, "", false, fmt.Errorf("invalid cursor format: %w", err)
 		}
-		
+
 		cursorID, err := uuid.Parse(cursorIDStr)
 		if err != nil {
 			return nil, "", false, fmt.Errorf("invalid cursor id format: %w", err)
@@ -162,7 +169,12 @@ func (r *UserRepository) GetBlockedUsers(ctx context.Context, currentUserID uuid
 		hasNext = true
 		users = users[:limit]
 		lastUser := users[len(users)-1]
-		nextCursor = helper.EncodeCursor(lastUser.FullName, lastUser.ID.String(), delimiter)
+		
+		fullName := ""
+		if lastUser.FullName != nil {
+			fullName = *lastUser.FullName
+		}
+		nextCursor = helper.EncodeCursor(fullName, lastUser.ID.String(), delimiter)
 	}
 
 	return users, nextCursor, hasNext, nil

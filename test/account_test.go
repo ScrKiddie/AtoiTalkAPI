@@ -1,6 +1,8 @@
 package test
 
 import (
+	"AtoiTalkAPI/ent/chat"
+	"AtoiTalkAPI/ent/groupmember"
 	"AtoiTalkAPI/ent/otp"
 	"AtoiTalkAPI/ent/user"
 	"AtoiTalkAPI/ent/useridentity"
@@ -255,7 +257,7 @@ func TestChangeEmail(t *testing.T) {
 		}
 
 		u, _ := testClient.User.Query().Where(user.ID(userID)).Only(context.Background())
-		assert.Equal(t, newEmail, u.Email)
+		assert.Equal(t, newEmail, *u.Email)
 
 		count, _ := testClient.UserIdentity.Query().Where(useridentity.UserID(userID)).Count(context.Background())
 		assert.Equal(t, 0, count)
@@ -364,5 +366,110 @@ func TestChangeEmail(t *testing.T) {
 		if !assert.Equal(t, http.StatusUnauthorized, rr.Code) {
 			printBody(t, rr)
 		}
+	})
+}
+
+func TestDeleteAccount(t *testing.T) {
+	password := "Password123!"
+
+	setupUser := func(withPassword bool) (string, uuid.UUID) {
+		clearDatabase(context.Background())
+
+		create := testClient.User.Create().
+			SetEmail("delete@example.com").
+			SetUsername("deleteuser").
+			SetFullName("Delete User")
+
+		if withPassword {
+			hashedPassword, _ := helper.HashPassword(password)
+			create.SetPasswordHash(hashedPassword)
+		}
+
+		u, err := create.Save(context.Background())
+		if err != nil {
+			t.Fatalf("Failed to create user: %v", err)
+		}
+
+		token, _ := helper.GenerateJWT(testConfig.JWTSecret, testConfig.JWTExp, u.ID)
+		return token, u.ID
+	}
+
+	t.Run("Success - Delete Account (No Password)", func(t *testing.T) {
+		token, userID := setupUser(false)
+
+		testClient.UserIdentity.Create().SetUserID(userID).SetProvider("google").SetProviderID("123").SaveX(context.Background())
+
+		req, _ := http.NewRequest("DELETE", "/api/account", nil)
+		req.Header.Set("Authorization", "Bearer "+token)
+
+		rr := executeRequest(req)
+		assert.Equal(t, http.StatusOK, rr.Code)
+
+		u, _ := testClient.User.Query().Where(user.ID(userID)).Only(context.Background())
+		assert.NotNil(t, u.DeletedAt)
+		assert.Nil(t, u.FullName)
+		assert.Nil(t, u.Email)
+		assert.Nil(t, u.Username)
+
+		count, _ := testClient.UserIdentity.Query().Where(useridentity.UserID(userID)).Count(context.Background())
+		assert.Equal(t, 0, count)
+	})
+
+	t.Run("Success - Delete Account (With Password)", func(t *testing.T) {
+		token, userID := setupUser(true)
+
+		reqBody := model.DeleteAccountRequest{Password: &password}
+		body, _ := json.Marshal(reqBody)
+		req, _ := http.NewRequest("DELETE", "/api/account", bytes.NewBuffer(body))
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Authorization", "Bearer "+token)
+
+		rr := executeRequest(req)
+		assert.Equal(t, http.StatusOK, rr.Code)
+
+		u, _ := testClient.User.Query().Where(user.ID(userID)).Only(context.Background())
+		assert.NotNil(t, u.DeletedAt)
+	})
+
+	t.Run("Fail - Wrong Password", func(t *testing.T) {
+		token, _ := setupUser(true)
+
+		wrongPass := "wrong"
+		reqBody := model.DeleteAccountRequest{Password: &wrongPass}
+		body, _ := json.Marshal(reqBody)
+		req, _ := http.NewRequest("DELETE", "/api/account", bytes.NewBuffer(body))
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Authorization", "Bearer "+token)
+
+		rr := executeRequest(req)
+		assert.Equal(t, http.StatusBadRequest, rr.Code)
+	})
+
+	t.Run("Fail - Still Owner of Active Group", func(t *testing.T) {
+		token, userID := setupUser(false)
+
+		chatEntity := testClient.Chat.Create().SetType(chat.TypeGroup).SaveX(context.Background())
+		gc := testClient.GroupChat.Create().SetChat(chatEntity).SetCreatorID(userID).SetName("My Group").SaveX(context.Background())
+		testClient.GroupMember.Create().SetGroupChat(gc).SetUserID(userID).SetRole(groupmember.RoleOwner).SaveX(context.Background())
+
+		req, _ := http.NewRequest("DELETE", "/api/account", nil)
+		req.Header.Set("Authorization", "Bearer "+token)
+
+		rr := executeRequest(req)
+		assert.Equal(t, http.StatusForbidden, rr.Code)
+	})
+
+	t.Run("Success - Owner of Deleted Group (Should Allow)", func(t *testing.T) {
+		token, userID := setupUser(false)
+
+		chatEntity := testClient.Chat.Create().SetType(chat.TypeGroup).SetDeletedAt(time.Now().UTC()).SaveX(context.Background())
+		gc := testClient.GroupChat.Create().SetChat(chatEntity).SetCreatorID(userID).SetName("Deleted Group").SaveX(context.Background())
+		testClient.GroupMember.Create().SetGroupChat(gc).SetUserID(userID).SetRole(groupmember.RoleOwner).SaveX(context.Background())
+
+		req, _ := http.NewRequest("DELETE", "/api/account", nil)
+		req.Header.Set("Authorization", "Bearer "+token)
+
+		rr := executeRequest(req)
+		assert.Equal(t, http.StatusOK, rr.Code)
 	})
 }

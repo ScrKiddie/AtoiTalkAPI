@@ -898,6 +898,37 @@ func TestWebSocketTransferOwnership(t *testing.T) {
 	verifyEvent(t, conn2, websocket.EventMessageNew, u1.ID, uuid.Nil)
 }
 
+func TestWebSocketAccountDeletion(t *testing.T) {
+	clearDatabase(context.Background())
+
+	u1 := createWSUser(t, "u1", "u1@test.com")
+	u2 := createWSUser(t, "u2", "u2@test.com")
+	token1, _ := helper.GenerateJWT(testConfig.JWTSecret, testConfig.JWTExp, u1.ID)
+	token2, _ := helper.GenerateJWT(testConfig.JWTSecret, testConfig.JWTExp, u2.ID)
+
+	createWSPrivateChat(t, u2.ID, token1)
+
+	server := httptest.NewServer(testRouter)
+	defer server.Close()
+	wsURL2 := "ws" + strings.TrimPrefix(server.URL, "http") + "/ws?token=" + token2
+
+	conn2, _, err := ws.DefaultDialer.Dial(wsURL2, nil)
+	assert.NoError(t, err)
+	defer conn2.Close()
+
+	time.Sleep(100 * time.Millisecond)
+
+	password := "password123"
+	reqBody := model.DeleteAccountRequest{Password: &password}
+	jsonBody, _ := json.Marshal(reqBody)
+	req, _ := http.NewRequest("DELETE", "/api/account", bytes.NewBuffer(jsonBody))
+	req.Header.Set("Authorization", "Bearer "+token1)
+	req.Header.Set("Content-Type", "application/json")
+	executeRequest(req)
+
+	verifyEvent(t, conn2, websocket.EventUserUpdate, u1.ID, uuid.Nil)
+}
+
 func createWSUser(t *testing.T, username, email string) *ent.User {
 	hashedPassword, _ := helper.HashPassword("password123")
 

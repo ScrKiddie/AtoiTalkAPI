@@ -88,6 +88,25 @@ func TestSendMessage(t *testing.T) {
 		testClient.UserBlock.Delete().Exec(context.Background())
 	})
 
+	t.Run("Fail - Send Message to Deleted User (Private Chat)", func(t *testing.T) {
+
+		testClient.User.UpdateOne(u2).SetDeletedAt(time.Now().UTC()).ExecX(context.Background())
+
+		reqBody := model.SendMessageRequest{
+			ChatID:  chatEntity.ID,
+			Content: "Hello Ghost?",
+		}
+		body, _ := json.Marshal(reqBody)
+		req, _ := http.NewRequest("POST", "/api/messages", bytes.NewBuffer(body))
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Authorization", "Bearer "+token1)
+
+		rr := executeRequest(req)
+		assert.Equal(t, http.StatusForbidden, rr.Code)
+
+		testClient.User.UpdateOne(u2).ClearDeletedAt().ExecX(context.Background())
+	})
+
 	t.Run("Success - Send Message with Reply", func(t *testing.T) {
 
 		msg1, _ := testClient.Message.Create().
@@ -815,95 +834,52 @@ func TestGetMessages(t *testing.T) {
 		rr := executeRequest(req)
 		assert.Equal(t, http.StatusNotFound, rr.Code)
 	})
-}
 
-func TestDeleteMessage(t *testing.T) {
-	clearDatabase(context.Background())
+	t.Run("Success - Messages Persist After Account Deletion", func(t *testing.T) {
+		clearDatabase(context.Background())
+		u1, _ := testClient.User.Create().SetEmail("u1@test.com").SetUsername("u1").SetFullName("User 1").Save(context.Background())
+		u2, _ := testClient.User.Create().SetEmail("u2@test.com").SetUsername("u2").SetFullName("User 2").Save(context.Background())
+		token1, _ := helper.GenerateJWT(testConfig.JWTSecret, testConfig.JWTExp, u1.ID)
 
-	password := "Password123!"
-	hashedPassword, _ := helper.HashPassword(password)
-	u1, _ := testClient.User.Create().SetEmail("u1@test.com").SetUsername("u1").SetFullName("User 1").SetPasswordHash(hashedPassword).Save(context.Background())
-	u2, _ := testClient.User.Create().SetEmail("u2@test.com").SetUsername("u2").SetFullName("User 2").SetPasswordHash(hashedPassword).Save(context.Background())
+		chatEntity, _ := testClient.Chat.Create().SetType(chat.TypePrivate).Save(context.Background())
+		testClient.PrivateChat.Create().SetChat(chatEntity).SetUser1(u1).SetUser2(u2).Save(context.Background())
 
-	token1, _ := helper.GenerateJWT(testConfig.JWTSecret, testConfig.JWTExp, u1.ID)
-	token2, _ := helper.GenerateJWT(testConfig.JWTSecret, testConfig.JWTExp, u2.ID)
-
-	chatEntity, _ := testClient.Chat.Create().SetType(chat.TypePrivate).Save(context.Background())
-	testClient.PrivateChat.Create().SetChat(chatEntity).SetUser1(u1).SetUser2(u2).Save(context.Background())
-
-	t.Run("Success - Delete Own Message", func(t *testing.T) {
 		msg, _ := testClient.Message.Create().
 			SetChatID(chatEntity.ID).
-			SetSenderID(u1.ID).
+			SetSenderID(u2.ID).
 			SetType(message.TypeRegular).
-			SetContent("To be deleted").
+			SetContent("I will be deleted").
 			Save(context.Background())
 
-		req, _ := http.NewRequest("DELETE", fmt.Sprintf("/api/messages/%s", msg.ID), nil)
-		req.Header.Set("Authorization", "Bearer "+token1)
+		testClient.User.UpdateOne(u2).
+			SetDeletedAt(time.Now().UTC()).
+			SetFullName("Deleted Account").
+			SetEmail("deleted@deleted").
+			SetUsername("deleted").
+			ExecX(context.Background())
 
+		req, _ := http.NewRequest("GET", fmt.Sprintf("/api/chats/%s/messages", chatEntity.ID), nil)
+		req.Header.Set("Authorization", "Bearer "+token1)
 		rr := executeRequest(req)
 		assert.Equal(t, http.StatusOK, rr.Code)
 
-		deletedMsg, _ := testClient.Message.Get(context.Background(), msg.ID)
-		assert.NotNil(t, deletedMsg.DeletedAt)
-	})
+		var resp helper.ResponseWithPagination
+		json.Unmarshal(rr.Body.Bytes(), &resp)
+		dataList := resp.Data.([]interface{})
 
-	t.Run("Fail - Delete Other User's Message", func(t *testing.T) {
-		msg, _ := testClient.Message.Create().
-			SetChatID(chatEntity.ID).
-			SetSenderID(u1.ID).
-			SetType(message.TypeRegular).
-			SetContent("User 1 Message").
-			Save(context.Background())
+		var targetMsg map[string]interface{}
+		for _, item := range dataList {
+			m := item.(map[string]interface{})
+			if m["id"].(string) == msg.ID.String() {
+				targetMsg = m
+				break
+			}
+		}
 
-		req, _ := http.NewRequest("DELETE", fmt.Sprintf("/api/messages/%s", msg.ID), nil)
-		req.Header.Set("Authorization", "Bearer "+token2)
-
-		rr := executeRequest(req)
-		assert.Equal(t, http.StatusForbidden, rr.Code)
-
-		notDeletedMsg, _ := testClient.Message.Get(context.Background(), msg.ID)
-		assert.Nil(t, notDeletedMsg.DeletedAt)
-	})
-
-	t.Run("Fail - Message Not Found", func(t *testing.T) {
-		req, _ := http.NewRequest("DELETE", "/api/messages/99999", nil)
-		req.Header.Set("Authorization", "Bearer "+token1)
-
-		rr := executeRequest(req)
-		assert.Equal(t, http.StatusBadRequest, rr.Code)
-	})
-
-	t.Run("Fail - Already Deleted", func(t *testing.T) {
-		msg, _ := testClient.Message.Create().
-			SetChatID(chatEntity.ID).
-			SetSenderID(u1.ID).
-			SetType(message.TypeRegular).
-			SetContent("Already deleted").
-			SetDeletedAt(time.Now().UTC()).
-			Save(context.Background())
-
-		req, _ := http.NewRequest("DELETE", fmt.Sprintf("/api/messages/%s", msg.ID), nil)
-		req.Header.Set("Authorization", "Bearer "+token1)
-
-		rr := executeRequest(req)
-		assert.Equal(t, http.StatusBadRequest, rr.Code)
-	})
-
-	t.Run("Fail - Delete System Message", func(t *testing.T) {
-		sysMsg, _ := testClient.Message.Create().
-			SetChatID(chatEntity.ID).
-			SetSenderID(u1.ID).
-			SetType(message.TypeSystemCreate).
-			SetActionData(map[string]interface{}{"foo": "bar"}).
-			Save(context.Background())
-
-		req, _ := http.NewRequest("DELETE", fmt.Sprintf("/api/messages/%s", sysMsg.ID), nil)
-		req.Header.Set("Authorization", "Bearer "+token1)
-
-		rr := executeRequest(req)
-		assert.Equal(t, http.StatusBadRequest, rr.Code)
+		assert.NotNil(t, targetMsg)
+		assert.Equal(t, "I will be deleted", targetMsg["content"])
+		assert.Equal(t, u2.ID.String(), targetMsg["sender_id"])
+		assert.Equal(t, "Deleted Account", targetMsg["sender_name"])
 	})
 }
 

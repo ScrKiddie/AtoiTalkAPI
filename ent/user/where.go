@@ -106,6 +106,11 @@ func LastSeenAt(v time.Time) predicate.User {
 	return predicate.User(sql.FieldEQ(FieldLastSeenAt, v))
 }
 
+// DeletedAt applies equality check predicate on the "deleted_at" field. It's identical to DeletedAtEQ.
+func DeletedAt(v time.Time) predicate.User {
+	return predicate.User(sql.FieldEQ(FieldDeletedAt, v))
+}
+
 // CreatedAtEQ applies the EQ predicate on the "created_at" field.
 func CreatedAtEQ(v time.Time) predicate.User {
 	return predicate.User(sql.FieldEQ(FieldCreatedAt, v))
@@ -241,6 +246,16 @@ func EmailHasSuffix(v string) predicate.User {
 	return predicate.User(sql.FieldHasSuffix(FieldEmail, v))
 }
 
+// EmailIsNil applies the IsNil predicate on the "email" field.
+func EmailIsNil() predicate.User {
+	return predicate.User(sql.FieldIsNull(FieldEmail))
+}
+
+// EmailNotNil applies the NotNil predicate on the "email" field.
+func EmailNotNil() predicate.User {
+	return predicate.User(sql.FieldNotNull(FieldEmail))
+}
+
 // EmailEqualFold applies the EqualFold predicate on the "email" field.
 func EmailEqualFold(v string) predicate.User {
 	return predicate.User(sql.FieldEqualFold(FieldEmail, v))
@@ -304,6 +319,16 @@ func UsernameHasPrefix(v string) predicate.User {
 // UsernameHasSuffix applies the HasSuffix predicate on the "username" field.
 func UsernameHasSuffix(v string) predicate.User {
 	return predicate.User(sql.FieldHasSuffix(FieldUsername, v))
+}
+
+// UsernameIsNil applies the IsNil predicate on the "username" field.
+func UsernameIsNil() predicate.User {
+	return predicate.User(sql.FieldIsNull(FieldUsername))
+}
+
+// UsernameNotNil applies the NotNil predicate on the "username" field.
+func UsernameNotNil() predicate.User {
+	return predicate.User(sql.FieldNotNull(FieldUsername))
 }
 
 // UsernameEqualFold applies the EqualFold predicate on the "username" field.
@@ -444,6 +469,16 @@ func FullNameHasPrefix(v string) predicate.User {
 // FullNameHasSuffix applies the HasSuffix predicate on the "full_name" field.
 func FullNameHasSuffix(v string) predicate.User {
 	return predicate.User(sql.FieldHasSuffix(FieldFullName, v))
+}
+
+// FullNameIsNil applies the IsNil predicate on the "full_name" field.
+func FullNameIsNil() predicate.User {
+	return predicate.User(sql.FieldIsNull(FieldFullName))
+}
+
+// FullNameNotNil applies the NotNil predicate on the "full_name" field.
+func FullNameNotNil() predicate.User {
+	return predicate.User(sql.FieldNotNull(FieldFullName))
 }
 
 // FullNameEqualFold applies the EqualFold predicate on the "full_name" field.
@@ -619,6 +654,56 @@ func LastSeenAtIsNil() predicate.User {
 // LastSeenAtNotNil applies the NotNil predicate on the "last_seen_at" field.
 func LastSeenAtNotNil() predicate.User {
 	return predicate.User(sql.FieldNotNull(FieldLastSeenAt))
+}
+
+// DeletedAtEQ applies the EQ predicate on the "deleted_at" field.
+func DeletedAtEQ(v time.Time) predicate.User {
+	return predicate.User(sql.FieldEQ(FieldDeletedAt, v))
+}
+
+// DeletedAtNEQ applies the NEQ predicate on the "deleted_at" field.
+func DeletedAtNEQ(v time.Time) predicate.User {
+	return predicate.User(sql.FieldNEQ(FieldDeletedAt, v))
+}
+
+// DeletedAtIn applies the In predicate on the "deleted_at" field.
+func DeletedAtIn(vs ...time.Time) predicate.User {
+	return predicate.User(sql.FieldIn(FieldDeletedAt, vs...))
+}
+
+// DeletedAtNotIn applies the NotIn predicate on the "deleted_at" field.
+func DeletedAtNotIn(vs ...time.Time) predicate.User {
+	return predicate.User(sql.FieldNotIn(FieldDeletedAt, vs...))
+}
+
+// DeletedAtGT applies the GT predicate on the "deleted_at" field.
+func DeletedAtGT(v time.Time) predicate.User {
+	return predicate.User(sql.FieldGT(FieldDeletedAt, v))
+}
+
+// DeletedAtGTE applies the GTE predicate on the "deleted_at" field.
+func DeletedAtGTE(v time.Time) predicate.User {
+	return predicate.User(sql.FieldGTE(FieldDeletedAt, v))
+}
+
+// DeletedAtLT applies the LT predicate on the "deleted_at" field.
+func DeletedAtLT(v time.Time) predicate.User {
+	return predicate.User(sql.FieldLT(FieldDeletedAt, v))
+}
+
+// DeletedAtLTE applies the LTE predicate on the "deleted_at" field.
+func DeletedAtLTE(v time.Time) predicate.User {
+	return predicate.User(sql.FieldLTE(FieldDeletedAt, v))
+}
+
+// DeletedAtIsNil applies the IsNil predicate on the "deleted_at" field.
+func DeletedAtIsNil() predicate.User {
+	return predicate.User(sql.FieldIsNull(FieldDeletedAt))
+}
+
+// DeletedAtNotNil applies the NotNil predicate on the "deleted_at" field.
+func DeletedAtNotNil() predicate.User {
+	return predicate.User(sql.FieldNotNull(FieldDeletedAt))
 }
 
 // HasAvatar applies the HasEdge predicate on the "avatar" edge.

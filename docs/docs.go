@@ -15,6 +15,69 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
+        "/api/account": {
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Soft delete user account. Requires password confirmation if set. User must transfer ownership of groups first.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "account"
+                ],
+                "summary": "Delete Account",
+                "parameters": [
+                    {
+                        "description": "Delete Account Request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.DeleteAccountRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseSuccess"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    }
+                }
+            }
+        },
         "/api/account/email": {
             "put": {
                 "security": [
@@ -2569,6 +2632,9 @@ const docTemplate = `{
                 "last_read_at": {
                     "type": "string"
                 },
+                "member_count": {
+                    "type": "integer"
+                },
                 "my_role": {
                     "type": "string"
                 },
@@ -2580,6 +2646,9 @@ const docTemplate = `{
                 },
                 "other_user_id": {
                     "type": "string"
+                },
+                "other_user_is_deleted": {
+                    "type": "boolean"
                 },
                 "type": {
                     "type": "string"
@@ -2610,6 +2679,14 @@ const docTemplate = `{
             ],
             "properties": {
                 "target_user_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "model.DeleteAccountRequest": {
+            "type": "object",
+            "properties": {
+                "password": {
                     "type": "string"
                 }
             }

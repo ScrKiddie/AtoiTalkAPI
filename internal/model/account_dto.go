@@ -10,3 +10,7 @@ type ChangeEmailRequest struct {
 	Email string `json:"email" validate:"required,email"`
 	Code  string `json:"code" validate:"required,len=6"`
 }
+
+type DeleteAccountRequest struct {
+	Password *string `json:"password"`
+}

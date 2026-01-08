@@ -325,6 +325,34 @@ func TestGetChats(t *testing.T) {
 		}
 	})
 
+	t.Run("Success - Chat with Deleted User", func(t *testing.T) {
+
+		testClient.User.UpdateOne(u2).SetDeletedAt(time.Now().UTC()).ExecX(context.Background())
+
+		req, _ := http.NewRequest("GET", "/api/chats", nil)
+		req.Header.Set("Authorization", "Bearer "+token1)
+		rr := executeRequest(req)
+		assert.Equal(t, http.StatusOK, rr.Code)
+
+		var resp helper.ResponseWithPagination
+		json.Unmarshal(rr.Body.Bytes(), &resp)
+		dataList := resp.Data.([]interface{})
+
+		var deletedUserChat map[string]interface{}
+		for _, item := range dataList {
+			c := item.(map[string]interface{})
+			if c["id"].(string) == chat1.ID.String() {
+				deletedUserChat = c
+				break
+			}
+		}
+
+		assert.NotNil(t, deletedUserChat)
+		assert.True(t, deletedUserChat["other_user_is_deleted"].(bool))
+		assert.False(t, deletedUserChat["is_online"].(bool))
+
+	})
+
 	t.Run("Unauthorized", func(t *testing.T) {
 		req, _ := http.NewRequest("GET", "/api/chats", nil)
 		rr := executeRequest(req)
@@ -380,6 +408,26 @@ func TestGetChatByID(t *testing.T) {
 		assert.False(t, data["is_online"].(bool))
 
 		testClient.UserBlock.Delete().Where(userblock.BlockerID(u1.ID), userblock.BlockedID(u2.ID)).ExecX(context.Background())
+	})
+
+	t.Run("Success - Get Group Chat with Member Count", func(t *testing.T) {
+		chatGroup := testClient.Chat.Create().SetType(chat.TypeGroup).SaveX(context.Background())
+		gc := testClient.GroupChat.Create().SetChat(chatGroup).SetCreator(u1).SetName("Count Test").SaveX(context.Background())
+		testClient.GroupMember.Create().SetGroupChat(gc).SetUser(u1).SaveX(context.Background())
+		testClient.GroupMember.Create().SetGroupChat(gc).SetUser(u2).SaveX(context.Background())
+		testClient.GroupMember.Create().SetGroupChat(gc).SetUser(u3).SaveX(context.Background())
+
+		req, _ := http.NewRequest("GET", fmt.Sprintf("/api/chats/%s", chatGroup.ID), nil)
+		req.Header.Set("Authorization", "Bearer "+token1)
+
+		rr := executeRequest(req)
+		assert.Equal(t, http.StatusOK, rr.Code)
+
+		var resp helper.ResponseSuccess
+		json.Unmarshal(rr.Body.Bytes(), &resp)
+		data := resp.Data.(map[string]interface{})
+
+		assert.Equal(t, float64(3), data["member_count"])
 	})
 
 	t.Run("Fail - Invalid ID", func(t *testing.T) {

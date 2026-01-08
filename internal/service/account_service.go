@@ -2,12 +2,16 @@ package service
 
 import (
 	"AtoiTalkAPI/ent"
+	"AtoiTalkAPI/ent/chat"
+	"AtoiTalkAPI/ent/groupchat"
+	"AtoiTalkAPI/ent/groupmember"
 	"AtoiTalkAPI/ent/otp"
 	"AtoiTalkAPI/ent/user"
 	"AtoiTalkAPI/ent/useridentity"
 	"AtoiTalkAPI/internal/config"
 	"AtoiTalkAPI/internal/helper"
 	"AtoiTalkAPI/internal/model"
+	"AtoiTalkAPI/internal/websocket"
 	"context"
 	"log/slog"
 	"time"
@@ -20,13 +24,15 @@ type AccountService struct {
 	client    *ent.Client
 	cfg       *config.AppConfig
 	validator *validator.Validate
+	wsHub     *websocket.Hub
 }
 
-func NewAccountService(client *ent.Client, cfg *config.AppConfig, validator *validator.Validate) *AccountService {
+func NewAccountService(client *ent.Client, cfg *config.AppConfig, validator *validator.Validate, wsHub *websocket.Hub) *AccountService {
 	return &AccountService{
 		client:    client,
 		cfg:       cfg,
 		validator: validator,
+		wsHub:     wsHub,
 	}
 }
 
@@ -91,7 +97,7 @@ func (s *AccountService) ChangeEmail(ctx context.Context, userID uuid.UUID, req 
 		return helper.NewBadRequestError("You must set a password before changing your email address")
 	}
 
-	if u.Email == req.Email {
+	if u.Email != nil && *u.Email == req.Email {
 		return helper.NewBadRequestError("")
 	}
 
@@ -162,6 +168,111 @@ func (s *AccountService) ChangeEmail(ctx context.Context, userID uuid.UUID, req 
 	if err := tx.Commit(); err != nil {
 		slog.Error("Failed to commit transaction", "error", err)
 		return helper.NewInternalServerError("")
+	}
+
+	return nil
+}
+
+func (s *AccountService) DeleteAccount(ctx context.Context, userID uuid.UUID, req model.DeleteAccountRequest) error {
+	u, err := s.client.User.Query().Where(user.ID(userID)).Only(ctx)
+	if err != nil {
+		if ent.IsNotFound(err) {
+			return helper.NewNotFoundError("")
+		}
+		slog.Error("Failed to query user", "error", err, "userID", userID)
+		return helper.NewInternalServerError("")
+	}
+
+	if u.PasswordHash != nil {
+		if req.Password == nil {
+			return helper.NewBadRequestError("Password is required to delete account")
+		}
+		if !helper.CheckPasswordHash(*req.Password, *u.PasswordHash) {
+			return helper.NewBadRequestError("Invalid password")
+		}
+	}
+
+	ownedGroupsCount, err := s.client.GroupMember.Query().
+		Where(
+			groupmember.UserID(userID),
+			groupmember.RoleEQ(groupmember.RoleOwner),
+			groupmember.HasGroupChatWith(
+				groupchat.HasChatWith(chat.DeletedAtIsNil()),
+			),
+		).
+		Count(ctx)
+
+	if err != nil {
+		slog.Error("Failed to check group ownership", "error", err)
+		return helper.NewInternalServerError("")
+	}
+
+	if ownedGroupsCount > 0 {
+		return helper.NewForbiddenError("You must transfer ownership of your groups or delete them before deleting your account.")
+	}
+
+	tx, err := s.client.Tx(ctx)
+	if err != nil {
+		slog.Error("Failed to start transaction", "error", err)
+		return helper.NewInternalServerError("")
+	}
+
+	defer func() {
+		_ = tx.Rollback()
+		if v := recover(); v != nil {
+			panic(v)
+		}
+	}()
+
+	_, err = tx.UserIdentity.Delete().
+		Where(useridentity.UserID(userID)).
+		Exec(ctx)
+	if err != nil {
+		slog.Error("Failed to delete user identities", "error", err)
+		return helper.NewInternalServerError("")
+	}
+
+	err = tx.User.UpdateOneID(userID).
+		ClearEmail().
+		ClearUsername().
+		ClearFullName().
+		ClearBio().
+		ClearAvatar().
+		ClearPasswordHash().
+		SetDeletedAt(time.Now().UTC()).
+		Exec(ctx)
+
+	if err != nil {
+		slog.Error("Failed to anonymize user", "error", err)
+		return helper.NewInternalServerError("")
+	}
+
+	if err := tx.Commit(); err != nil {
+		slog.Error("Failed to commit transaction", "error", err)
+		return helper.NewInternalServerError("")
+	}
+
+	if s.wsHub != nil {
+		go func() {
+			wsPayload := &model.UserUpdateEventPayload{
+				ID:       userID,
+				Username: "",
+				FullName: "",
+				Avatar:   "",
+				Bio:      "",
+			}
+
+			event := websocket.Event{
+				Type:    websocket.EventUserUpdate,
+				Payload: wsPayload,
+				Meta: &websocket.EventMeta{
+					Timestamp: time.Now().UTC().UnixMilli(),
+					SenderID:  userID,
+				},
+			}
+
+			s.wsHub.BroadcastToContacts(userID, event)
+		}()
 	}
 
 	return nil

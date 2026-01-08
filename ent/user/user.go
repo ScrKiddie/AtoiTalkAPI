@@ -35,6 +35,8 @@ const (
 	FieldIsOnline = "is_online"
 	// FieldLastSeenAt holds the string denoting the last_seen_at field in the database.
 	FieldLastSeenAt = "last_seen_at"
+	// FieldDeletedAt holds the string denoting the deleted_at field in the database.
+	FieldDeletedAt = "deleted_at"
 	// EdgeAvatar holds the string denoting the avatar edge name in mutations.
 	EdgeAvatar = "avatar"
 	// EdgeIdentities holds the string denoting the identities edge name in mutations.
@@ -142,6 +144,7 @@ var Columns = []string{
 	FieldAvatarID,
 	FieldIsOnline,
 	FieldLastSeenAt,
+	FieldDeletedAt,
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
@@ -233,6 +236,11 @@ func ByIsOnline(opts ...sql.OrderTermOption) OrderOption {
 // ByLastSeenAt orders the results by the last_seen_at field.
 func ByLastSeenAt(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldLastSeenAt, opts...).ToFunc()
+}
+
+// ByDeletedAt orders the results by the deleted_at field.
+func ByDeletedAt(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldDeletedAt, opts...).ToFunc()
 }
 
 // ByAvatarField orders the results by avatar field.

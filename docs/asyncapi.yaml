@@ -305,9 +305,9 @@ components:
           type: string
           format: uuid
           description: Omitted if not applicable (e.g. group chat)
-        other_username:
-          type: string
-          description: Username of the other user in private chat
+        other_user_is_deleted:
+          type: boolean
+          description: True if the other user in a private chat has deleted their account.
         is_blocked_by_me:
           type: boolean
           description: Omitted if false
@@ -315,6 +315,9 @@ components:
           type: string
           enum: [owner, admin, member]
           description: Current user's role in the group (Omitted for private chat)
+        member_count:
+          type: integer
+          description: Total number of active members in a group chat.
 
     GroupMemberDTO:
       type: object

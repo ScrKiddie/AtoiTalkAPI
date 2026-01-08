@@ -44,7 +44,13 @@ func (s *PrivateChatService) CreatePrivateChat(ctx context.Context, userID uuid.
 		return nil, helper.NewBadRequestError("Cannot chat with yourself")
 	}
 
-	users, err := s.client.User.Query().Where(user.IDIn(userID, req.TargetUserID)).WithAvatar().All(ctx)
+	users, err := s.client.User.Query().
+		Where(
+			user.IDIn(userID, req.TargetUserID),
+			user.DeletedAtIsNil(),
+		).
+		WithAvatar().
+		All(ctx)
 	if err != nil {
 		slog.Error("Failed to query users for private chat", "error", err)
 		return nil, helper.NewInternalServerError("")
@@ -153,15 +159,21 @@ func (s *PrivateChatService) CreatePrivateChat(ctx context.Context, userID uuid.
 			if creator.Edges.Avatar != nil {
 				creatorAvatarURL = helper.BuildImageURL(s.cfg.StorageMode, s.cfg.AppURL, s.cfg.StorageCDNURL, s.cfg.StorageProfile, creator.Edges.Avatar.FileName)
 			}
+
+			creatorName := ""
+			if creator.FullName != nil {
+				creatorName = *creator.FullName
+			}
+
 			payloadForTarget := model.ChatListResponse{
-				ID:            newChat.ID,
-				Type:          string(newChat.Type),
-				Name:          creator.FullName,
-				Avatar:        creatorAvatarURL,
-				LastMessage:   nil,
-				UnreadCount:   0,
-				IsOnline:      creator.IsOnline,
-				OtherUserID:   &creator.ID,
+				ID:          newChat.ID,
+				Type:        string(newChat.Type),
+				Name:        creatorName,
+				Avatar:      creatorAvatarURL,
+				LastMessage: nil,
+				UnreadCount: 0,
+				IsOnline:    creator.IsOnline,
+				OtherUserID: &creator.ID,
 			}
 			s.wsHub.BroadcastToUser(targetUser.ID, websocket.Event{
 				Type:    websocket.EventChatNew,
@@ -173,15 +185,21 @@ func (s *PrivateChatService) CreatePrivateChat(ctx context.Context, userID uuid.
 			if targetUser.Edges.Avatar != nil {
 				targetAvatarURL = helper.BuildImageURL(s.cfg.StorageMode, s.cfg.AppURL, s.cfg.StorageCDNURL, s.cfg.StorageProfile, targetUser.Edges.Avatar.FileName)
 			}
+
+			targetName := ""
+			if targetUser.FullName != nil {
+				targetName = *targetUser.FullName
+			}
+
 			payloadForCreator := model.ChatListResponse{
-				ID:            newChat.ID,
-				Type:          string(newChat.Type),
-				Name:          targetUser.FullName,
-				Avatar:        targetAvatarURL,
-				LastMessage:   nil,
-				UnreadCount:   0,
-				IsOnline:      targetUser.IsOnline,
-				OtherUserID:   &targetUser.ID,
+				ID:          newChat.ID,
+				Type:        string(newChat.Type),
+				Name:        targetName,
+				Avatar:      targetAvatarURL,
+				LastMessage: nil,
+				UnreadCount: 0,
+				IsOnline:    targetUser.IsOnline,
+				OtherUserID: &targetUser.ID,
 			}
 			s.wsHub.BroadcastToUser(creator.ID, websocket.Event{
 				Type:    websocket.EventChatNew,

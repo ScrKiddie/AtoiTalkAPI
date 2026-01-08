@@ -84,13 +84,30 @@ func (s *ChatService) GetChatByID(ctx context.Context, userID, chatID uuid.UUID)
 
 	resp := helper.MapChatToResponse(userID, c, blockedMap, s.cfg.StorageMode, s.cfg.AppURL, s.cfg.StorageCDNURL, s.cfg.StorageProfile, s.cfg.StorageAttachment)
 
-	if resp != nil && resp.LastMessage != nil && resp.LastMessage.ActionData != nil {
-		if targetIDStr, ok := resp.LastMessage.ActionData["target_id"].(string); ok {
-			if id, err := uuid.Parse(targetIDStr); err == nil {
-				u, err := s.client.User.Query().Where(user.ID(id)).Select(user.FieldFullName).Only(ctx)
-				if err == nil {
-					resp.LastMessage.ActionData["target_name"] = u.FullName
+	if resp != nil {
+
+		if resp.LastMessage != nil && resp.LastMessage.ActionData != nil {
+			if targetIDStr, ok := resp.LastMessage.ActionData["target_id"].(string); ok {
+				if id, err := uuid.Parse(targetIDStr); err == nil {
+					u, err := s.client.User.Query().Where(user.ID(id)).Select(user.FieldFullName).Only(ctx)
+					if err == nil && u.FullName != nil {
+						resp.LastMessage.ActionData["target_name"] = *u.FullName
+					}
 				}
+			}
+		}
+
+		if c.Type == chat.TypeGroup && c.Edges.GroupChat != nil {
+			count, err := s.client.GroupMember.Query().
+				Where(
+					groupmember.GroupChatID(c.Edges.GroupChat.ID),
+					groupmember.HasUserWith(user.DeletedAtIsNil()),
+				).
+				Count(ctx)
+			if err == nil {
+				resp.MemberCount = count
+			} else {
+				slog.Error("Failed to count group members", "error", err)
 			}
 		}
 	}
@@ -173,7 +190,9 @@ func (s *ChatService) GetChats(ctx context.Context, userID uuid.UUID, req model.
 			All(ctx)
 		if err == nil {
 			for _, u := range users {
-				userMap[u.ID] = u.FullName
+				if u.FullName != nil {
+					userMap[u.ID] = *u.FullName
+				}
 			}
 		}
 	}

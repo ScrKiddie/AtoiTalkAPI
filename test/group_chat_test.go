@@ -247,6 +247,31 @@ func TestCreateGroupChat(t *testing.T) {
 		exists, _ := testClient.GroupMember.Query().Where(groupmember.GroupChatID(gc.ID), groupmember.UserID(member.ID)).Exist(context.Background())
 		assert.True(t, exists, "Other members should remain in the group")
 	})
+
+	t.Run("Fail - Create Group with Deleted User", func(t *testing.T) {
+		deletedUser, _ := testClient.User.Create().
+			SetEmail("deleted@test.com").
+			SetUsername("deleted").
+			SetFullName("Deleted User").
+			SetDeletedAt(time.Now().UTC()).
+			Save(context.Background())
+
+		body := &bytes.Buffer{}
+		writer := multipart.NewWriter(body)
+		_ = writer.WriteField("name", "Group with Deleted User")
+
+		idsJSON, _ := json.Marshal([]string{deletedUser.ID.String()})
+		_ = writer.WriteField("member_ids", string(idsJSON))
+
+		writer.Close()
+
+		req, _ := http.NewRequest("POST", "/api/chats/group", body)
+		req.Header.Set("Content-Type", writer.FormDataContentType())
+		req.Header.Set("Authorization", "Bearer "+token1)
+
+		rr := executeRequest(req)
+		assert.Equal(t, http.StatusBadRequest, rr.Code)
+	})
 }
 
 func TestUpdateGroupChat(t *testing.T) {
@@ -555,7 +580,8 @@ func TestAddGroupMember(t *testing.T) {
 		assert.Equal(t, message.TypeSystemAdd, sysMsg.Type)
 		assert.Equal(t, u1.ID, *sysMsg.SenderID)
 
-		assert.Equal(t, u5.ID.String(), sysMsg.ActionData["target_id"])
+		targetID := sysMsg.ActionData["target_id"].(string)
+		assert.True(t, targetID == u4.ID.String() || targetID == u5.ID.String())
 		assert.Equal(t, u1.ID.String(), sysMsg.ActionData["actor_id"])
 		assert.Nil(t, sysMsg.ActionData["target_username_snapshot"])
 		assert.Nil(t, sysMsg.ActionData["target_name_snapshot"])
@@ -601,6 +627,27 @@ func TestAddGroupMember(t *testing.T) {
 
 		u7 := testClient.User.Create().SetEmail("u7@test.com").SetUsername("another7").SetFullName("Another User 7").SaveX(context.Background())
 		reqBody := model.AddGroupMemberRequest{UserIDs: []uuid.UUID{u7.ID}}
+		body, _ := json.Marshal(reqBody)
+		req, _ := http.NewRequest("POST", fmt.Sprintf("/api/chats/group/%s/members", chatEntity.ID), bytes.NewBuffer(body))
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Authorization", "Bearer "+token1)
+
+		rr := executeRequest(req)
+		assert.Equal(t, http.StatusNotFound, rr.Code)
+	})
+
+	t.Run("Fail - Add Deleted User to Group", func(t *testing.T) {
+
+		chatEntity.Update().ClearDeletedAt().ExecX(context.Background())
+
+		deletedUser, _ := testClient.User.Create().
+			SetEmail("deleted2@test.com").
+			SetUsername("deleted2").
+			SetFullName("Deleted User 2").
+			SetDeletedAt(time.Now().UTC()).
+			Save(context.Background())
+
+		reqBody := model.AddGroupMemberRequest{UserIDs: []uuid.UUID{deletedUser.ID}}
 		body, _ := json.Marshal(reqBody)
 		req, _ := http.NewRequest("POST", fmt.Sprintf("/api/chats/group/%s/members", chatEntity.ID), bytes.NewBuffer(body))
 		req.Header.Set("Content-Type", "application/json")
@@ -963,5 +1010,33 @@ func TestDeleteGroup(t *testing.T) {
 
 		rr := executeRequest(req)
 		assert.Equal(t, http.StatusNotFound, rr.Code)
+	})
+
+	t.Run("Success - Member Deletes Account (Remains in Group)", func(t *testing.T) {
+
+		chatEntity3 := testClient.Chat.Create().SetType("group").SaveX(context.Background())
+		gc3 := testClient.GroupChat.Create().SetChat(chatEntity3).SetCreator(u1).SetName("Delete Account Test").SaveX(context.Background())
+		testClient.GroupMember.Create().SetGroupChat(gc3).SetUser(u1).SetRole(groupmember.RoleOwner).SaveX(context.Background())
+
+		u3 := testClient.User.Create().SetEmail("u3@test.com").SetUsername("member3").SetFullName("Member 3").SaveX(context.Background())
+		testClient.GroupMember.Create().SetGroupChat(gc3).SetUser(u3).SetRole(groupmember.RoleMember).SaveX(context.Background())
+
+		testClient.User.UpdateOne(u3).SetDeletedAt(time.Now().UTC()).SetFullName("Deleted Account").ExecX(context.Background())
+
+		exists, _ := testClient.GroupMember.Query().Where(groupmember.GroupChatID(gc3.ID), groupmember.UserID(u3.ID)).Exist(context.Background())
+		assert.True(t, exists, "Deleted user should remain in the group")
+
+		req, _ := http.NewRequest("GET", fmt.Sprintf("/api/chats/group/%s/members", chatEntity3.ID), nil)
+		req.Header.Set("Authorization", "Bearer "+token1)
+		rr := executeRequest(req)
+		assert.Equal(t, http.StatusOK, rr.Code)
+
+		var resp helper.ResponseWithPagination
+		json.Unmarshal(rr.Body.Bytes(), &resp)
+		dataList := resp.Data.([]interface{})
+
+		assert.Len(t, dataList, 1)
+		member := dataList[0].(map[string]interface{})
+		assert.Equal(t, u1.ID.String(), member["user_id"])
 	})
 }

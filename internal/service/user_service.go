@@ -45,7 +45,10 @@ func NewUserService(client *ent.Client, repo *repository.Repository, cfg *config
 
 func (s *UserService) GetCurrentUser(ctx context.Context, userID uuid.UUID) (*model.UserDTO, error) {
 	u, err := s.client.User.Query().
-		Where(user.ID(userID)).
+		Where(
+			user.ID(userID),
+			user.DeletedAtIsNil(),
+		).
 		WithAvatar().
 		Only(ctx)
 
@@ -67,11 +70,25 @@ func (s *UserService) GetCurrentUser(ctx context.Context, userID uuid.UUID) (*mo
 		bio = *u.Bio
 	}
 
+	email := ""
+	if u.Email != nil {
+		email = *u.Email
+	}
+	username := ""
+	if u.Username != nil {
+		username = *u.Username
+	}
+
+	fullName := ""
+	if u.FullName != nil {
+		fullName = *u.FullName
+	}
+
 	return &model.UserDTO{
 		ID:          u.ID,
-		Email:       u.Email,
-		Username:    u.Username,
-		FullName:    u.FullName,
+		Email:       email,
+		Username:    username,
+		FullName:    fullName,
 		Avatar:      avatarURL,
 		Bio:         bio,
 		HasPassword: u.PasswordHash != nil,
@@ -79,7 +96,6 @@ func (s *UserService) GetCurrentUser(ctx context.Context, userID uuid.UUID) (*mo
 }
 
 func (s *UserService) GetUserProfile(ctx context.Context, currentUserID uuid.UUID, targetUserID uuid.UUID) (*model.UserDTO, error) {
-
 	blocks, err := s.client.UserBlock.Query().
 		Where(
 			userblock.Or(
@@ -113,7 +129,10 @@ func (s *UserService) GetUserProfile(ctx context.Context, currentUserID uuid.UUI
 	}
 
 	u, err := s.client.User.Query().
-		Where(user.ID(targetUserID)).
+		Where(
+			user.ID(targetUserID),
+			user.DeletedAtIsNil(),
+		).
 		Select(user.FieldID, user.FieldUsername, user.FieldFullName, user.FieldBio, user.FieldIsOnline, user.FieldLastSeenAt, user.FieldAvatarID).
 		WithAvatar().
 		Only(ctx)
@@ -138,7 +157,10 @@ func (s *UserService) GetUserProfile(ctx context.Context, currentUserID uuid.UUI
 
 	var lastSeenAt *string
 	isOnline := u.IsOnline
-	username := u.Username
+	username := ""
+	if u.Username != nil {
+		username = *u.Username
+	}
 
 	if isBlockedByMe || isBlockedByOther {
 		isOnline = false
@@ -151,10 +173,15 @@ func (s *UserService) GetUserProfile(ctx context.Context, currentUserID uuid.UUI
 		}
 	}
 
+	fullName := ""
+	if u.FullName != nil {
+		fullName = *u.FullName
+	}
+
 	return &model.UserDTO{
 		ID:               u.ID,
 		Username:         username,
-		FullName:         u.FullName,
+		FullName:         fullName,
 		Avatar:           avatarURL,
 		Bio:              bio,
 		HasPassword:      false,
@@ -188,7 +215,13 @@ func (s *UserService) UpdateProfile(ctx context.Context, userID uuid.UUID, req m
 		}
 	}()
 
-	u, err := tx.User.Query().Where(user.ID(userID)).WithAvatar().Only(ctx)
+	u, err := tx.User.Query().
+		Where(
+			user.ID(userID),
+			user.DeletedAtIsNil(),
+		).
+		WithAvatar().
+		Only(ctx)
 	if err != nil {
 		if ent.IsNotFound(err) {
 			return nil, helper.NewNotFoundError("")
@@ -198,7 +231,7 @@ func (s *UserService) UpdateProfile(ctx context.Context, userID uuid.UUID, req m
 		return nil, helper.NewInternalServerError("")
 	}
 
-	update := tx.User.UpdateOneID(userID).SetFullName(req.FullName)
+	update := tx.User.UpdateOneID(userID).SetNillableFullName(&req.FullName)
 	if req.Bio != "" {
 		update.SetBio(req.Bio)
 	} else {
@@ -207,8 +240,18 @@ func (s *UserService) UpdateProfile(ctx context.Context, userID uuid.UUID, req m
 
 	if req.Username != "" {
 		normalizedUsername := helper.NormalizeUsername(req.Username)
-		if normalizedUsername != u.Username {
-			exists, err := tx.User.Query().Where(user.UsernameEQ(normalizedUsername)).Exist(ctx)
+		currentUsername := ""
+		if u.Username != nil {
+			currentUsername = *u.Username
+		}
+
+		if normalizedUsername != currentUsername {
+			exists, err := tx.User.Query().
+				Where(
+					user.UsernameEQ(normalizedUsername),
+					user.DeletedAtIsNil(),
+				).
+				Exist(ctx)
 			if err != nil {
 				slog.Error("Failed to check username existence", "error", err)
 				return nil, helper.NewInternalServerError("")
@@ -321,11 +364,25 @@ func (s *UserService) UpdateProfile(ctx context.Context, userID uuid.UUID, req m
 		bio = *updatedUser.Bio
 	}
 
+	email := ""
+	if updatedUser.Email != nil {
+		email = *updatedUser.Email
+	}
+	username := ""
+	if updatedUser.Username != nil {
+		username = *updatedUser.Username
+	}
+
+	fullName := ""
+	if updatedUser.FullName != nil {
+		fullName = *updatedUser.FullName
+	}
+
 	httpResp := &model.UserDTO{
 		ID:          updatedUser.ID,
-		Email:       updatedUser.Email,
-		Username:    updatedUser.Username,
-		FullName:    updatedUser.FullName,
+		Email:       email,
+		Username:    username,
+		FullName:    fullName,
 		Avatar:      avatarURL,
 		Bio:         bio,
 		HasPassword: updatedUser.PasswordHash != nil,
@@ -340,8 +397,8 @@ func (s *UserService) UpdateProfile(ctx context.Context, userID uuid.UUID, req m
 		go func() {
 			wsPayload := &model.UserUpdateEventPayload{
 				ID:       updatedUser.ID,
-				Username: updatedUser.Username,
-				FullName: updatedUser.FullName,
+				Username: username,
+				FullName: fullName,
 				Avatar:   avatarURL,
 				Bio:      bio,
 			}
@@ -425,8 +482,13 @@ func (s *UserService) SearchUsers(ctx context.Context, currentUserID uuid.UUID, 
 		}
 	}
 
-	userDTOs := make([]model.UserDTO, len(users))
-	for i, u := range users {
+	userDTOs := make([]model.UserDTO, 0)
+	for _, u := range users {
+
+		if u.DeletedAt != nil {
+			continue
+		}
+
 		avatarURL := ""
 		if u.Edges.Avatar != nil {
 			avatarURL = helper.BuildImageURL(s.cfg.StorageMode, s.cfg.AppURL, s.cfg.StorageCDNURL, s.cfg.StorageProfile, u.Edges.Avatar.FileName)
@@ -435,11 +497,20 @@ func (s *UserService) SearchUsers(ctx context.Context, currentUserID uuid.UUID, 
 		if u.Bio != nil {
 			bio = *u.Bio
 		}
+		username := ""
+		if u.Username != nil {
+			username = *u.Username
+		}
+
+		fullName := ""
+		if u.FullName != nil {
+			fullName = *u.FullName
+		}
 
 		dto := model.UserDTO{
 			ID:          u.ID,
-			Username:    u.Username,
-			FullName:    u.FullName,
+			Username:    username,
+			FullName:    fullName,
 			Avatar:      avatarURL,
 			Bio:         bio,
 			HasPassword: false,
@@ -449,7 +520,7 @@ func (s *UserService) SearchUsers(ctx context.Context, currentUserID uuid.UUID, 
 			dto.PrivateChatID = &chatID
 		}
 
-		userDTOs[i] = dto
+		userDTOs = append(userDTOs, dto)
 	}
 
 	return userDTOs, nextCursor, hasNext, nil
@@ -474,8 +545,13 @@ func (s *UserService) GetBlockedUsers(ctx context.Context, currentUserID uuid.UU
 		return nil, "", false, helper.NewInternalServerError("")
 	}
 
-	userDTOs := make([]model.UserDTO, len(users))
-	for i, u := range users {
+	userDTOs := make([]model.UserDTO, 0)
+	for _, u := range users {
+
+		if u.DeletedAt != nil {
+			continue
+		}
+
 		avatarURL := ""
 		if u.Edges.Avatar != nil {
 			avatarURL = helper.BuildImageURL(s.cfg.StorageMode, s.cfg.AppURL, s.cfg.StorageCDNURL, s.cfg.StorageProfile, u.Edges.Avatar.FileName)
@@ -484,15 +560,24 @@ func (s *UserService) GetBlockedUsers(ctx context.Context, currentUserID uuid.UU
 		if u.Bio != nil {
 			bio = *u.Bio
 		}
+		username := ""
+		if u.Username != nil {
+			username = *u.Username
+		}
 
-		userDTOs[i] = model.UserDTO{
+		fullName := ""
+		if u.FullName != nil {
+			fullName = *u.FullName
+		}
+
+		userDTOs = append(userDTOs, model.UserDTO{
 			ID:            u.ID,
-			Username:      u.Username,
-			FullName:      u.FullName,
+			Username:      username,
+			FullName:      fullName,
 			Avatar:        avatarURL,
 			Bio:           bio,
 			IsBlockedByMe: true,
-		}
+		})
 	}
 
 	return userDTOs, nextCursor, hasNext, nil
@@ -503,7 +588,12 @@ func (s *UserService) BlockUser(ctx context.Context, blockerID uuid.UUID, blocke
 		return helper.NewBadRequestError("Cannot block yourself")
 	}
 
-	exists, err := s.client.User.Query().Where(user.ID(blockedID)).Exist(ctx)
+	exists, err := s.client.User.Query().
+		Where(
+			user.ID(blockedID),
+			user.DeletedAtIsNil(),
+		).
+		Exist(ctx)
 	if err != nil {
 		slog.Error("Failed to check user existence", "error", err)
 		return helper.NewInternalServerError("")

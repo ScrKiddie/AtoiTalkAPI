@@ -97,6 +97,7 @@ func (route *Route) Register() {
 
 			r.Put("/account/password", route.accountController.ChangePassword)
 			r.Put("/account/email", route.accountController.ChangeEmail)
+			r.Delete("/account", route.accountController.DeleteAccount)
 
 			r.Get("/chats", route.chatController.GetChats)
 			r.Get("/chats/{id}", route.chatController.GetChat)

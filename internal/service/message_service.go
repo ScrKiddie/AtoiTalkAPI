@@ -70,7 +70,10 @@ func (s *MessageService) SendMessage(ctx context.Context, userID uuid.UUID, req 
 			chat.DeletedAtIsNil(),
 		).
 		ForUpdate().
-		WithPrivateChat().
+		WithPrivateChat(func(q *ent.PrivateChatQuery) {
+			q.WithUser1()
+			q.WithUser2()
+		}).
 		WithGroupChat(func(q *ent.GroupChatQuery) {
 			q.WithMembers(func(mq *ent.GroupMemberQuery) {
 				mq.Where(groupmember.UserID(userID))
@@ -89,12 +92,20 @@ func (s *MessageService) SendMessage(ctx context.Context, userID uuid.UUID, req 
 	if chatInfo.Type == chat.TypePrivate && chatInfo.Edges.PrivateChat != nil {
 		pc := chatInfo.Edges.PrivateChat
 		var otherUserID uuid.UUID
+		var otherUser *ent.User
+
 		if pc.User1ID == userID {
 			otherUserID = pc.User2ID
+			otherUser = pc.Edges.User2
 		} else if pc.User2ID == userID {
 			otherUserID = pc.User1ID
+			otherUser = pc.Edges.User1
 		} else {
 			return nil, helper.NewForbiddenError("")
+		}
+
+		if otherUser != nil && otherUser.DeletedAt != nil {
+			return nil, helper.NewForbiddenError("User is deleted")
 		}
 
 		isBlocked, err := tx.UserBlock.Query().
@@ -554,13 +565,11 @@ func (s *MessageService) GetMessages(ctx context.Context, userID uuid.UUID, req 
 
 	if len(messages) > req.Limit {
 		if req.Direction == "newer" {
-
 			hasNext = true
 			messages = messages[:req.Limit]
 			lastID := messages[len(messages)-1].ID
 			nextCursor = base64.URLEncoding.EncodeToString([]byte(lastID.String()))
 		} else {
-
 			hasNext = true
 			messages = messages[:req.Limit]
 			lastID := messages[len(messages)-1].ID
@@ -575,13 +584,10 @@ func (s *MessageService) GetMessages(ctx context.Context, userID uuid.UUID, req 
 	}
 
 	if len(messages) > 0 {
-
 		if req.Direction == "newer" {
-
 			prevCursor = base64.URLEncoding.EncodeToString([]byte(messages[0].ID.String()))
 			hasPrev = true
 		} else {
-
 			prevCursor = base64.URLEncoding.EncodeToString([]byte(messages[len(messages)-1].ID.String()))
 			hasPrev = true
 		}
@@ -597,7 +603,9 @@ func (s *MessageService) GetMessages(ctx context.Context, userID uuid.UUID, req 
 				if targetIDStr, ok := resp.ActionData["target_id"].(string); ok {
 					if id, err := uuid.Parse(targetIDStr); err == nil {
 						if u, exists := userMap[id]; exists {
-							resp.ActionData["target_name"] = u.FullName
+							if u.FullName != nil {
+								resp.ActionData["target_name"] = *u.FullName
+							}
 						}
 					}
 				}

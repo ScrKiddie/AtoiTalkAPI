@@ -265,39 +265,11 @@ func init() {
 	// userDescEmail is the schema descriptor for email field.
 	userDescEmail := userFields[1].Descriptor()
 	// user.EmailValidator is a validator for the "email" field. It is called by the builders before save.
-	user.EmailValidator = func() func(string) error {
-		validators := userDescEmail.Validators
-		fns := [...]func(string) error{
-			validators[0].(func(string) error),
-			validators[1].(func(string) error),
-		}
-		return func(email string) error {
-			for _, fn := range fns {
-				if err := fn(email); err != nil {
-					return err
-				}
-			}
-			return nil
-		}
-	}()
+	user.EmailValidator = userDescEmail.Validators[0].(func(string) error)
 	// userDescUsername is the schema descriptor for username field.
 	userDescUsername := userFields[2].Descriptor()
 	// user.UsernameValidator is a validator for the "username" field. It is called by the builders before save.
-	user.UsernameValidator = func() func(string) error {
-		validators := userDescUsername.Validators
-		fns := [...]func(string) error{
-			validators[0].(func(string) error),
-			validators[1].(func(string) error),
-		}
-		return func(username string) error {
-			for _, fn := range fns {
-				if err := fn(username); err != nil {
-					return err
-				}
-			}
-			return nil
-		}
-	}()
+	user.UsernameValidator = userDescUsername.Validators[0].(func(string) error)
 	// userDescPasswordHash is the schema descriptor for password_hash field.
 	userDescPasswordHash := userFields[3].Descriptor()
 	// user.PasswordHashValidator is a validator for the "password_hash" field. It is called by the builders before save.
@@ -305,21 +277,7 @@ func init() {
 	// userDescFullName is the schema descriptor for full_name field.
 	userDescFullName := userFields[4].Descriptor()
 	// user.FullNameValidator is a validator for the "full_name" field. It is called by the builders before save.
-	user.FullNameValidator = func() func(string) error {
-		validators := userDescFullName.Validators
-		fns := [...]func(string) error{
-			validators[0].(func(string) error),
-			validators[1].(func(string) error),
-		}
-		return func(full_name string) error {
-			for _, fn := range fns {
-				if err := fn(full_name); err != nil {
-					return err
-				}
-			}
-			return nil
-		}
-	}()
+	user.FullNameValidator = userDescFullName.Validators[0].(func(string) error)
 	// userDescBio is the schema descriptor for bio field.
 	userDescBio := userFields[5].Descriptor()
 	// user.BioValidator is a validator for the "bio" field. It is called by the builders before save.

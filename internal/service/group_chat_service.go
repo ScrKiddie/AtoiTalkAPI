@@ -53,7 +53,10 @@ func (s *GroupChatService) CreateGroupChat(ctx context.Context, creatorID uuid.U
 	}
 
 	users, err := s.client.User.Query().
-		Where(user.IDIn(req.MemberIDs...)).
+		Where(
+			user.IDIn(req.MemberIDs...),
+			user.DeletedAtIsNil(),
+		).
 		All(ctx)
 	if err != nil {
 		slog.Error("Failed to query users for group creation", "error", err)
@@ -61,7 +64,7 @@ func (s *GroupChatService) CreateGroupChat(ctx context.Context, creatorID uuid.U
 	}
 
 	if len(users) != len(req.MemberIDs) {
-		return nil, helper.NewBadRequestError("One or more members not found.")
+		return nil, helper.NewBadRequestError("One or more members not found or deleted.")
 	}
 
 	var memberIDs []uuid.UUID
