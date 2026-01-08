@@ -32,6 +32,7 @@ func (r *ChatRepository) GetChatByID(ctx context.Context, userID, chatID uuid.UU
 	return r.client.Chat.Query().
 		Where(
 			chat.ID(chatID),
+			chat.DeletedAtIsNil(),
 			chat.Or(
 				chat.HasPrivateChatWith(privatechat.Or(privatechat.User1ID(userID), privatechat.User2ID(userID))),
 				chat.HasGroupChatWith(groupchat.HasMembersWith(groupmember.UserID(userID))),
@@ -58,6 +59,7 @@ func (r *ChatRepository) GetChatByID(ctx context.Context, userID, chatID uuid.UU
 func (r *ChatRepository) GetChats(ctx context.Context, userID uuid.UUID, queryStr string, cursor string, limit int) ([]*ent.Chat, string, bool, error) {
 	query := r.client.Chat.Query().
 		Where(
+			chat.DeletedAtIsNil(),
 			chat.Or(
 				chat.HasPrivateChatWith(privatechat.Or(privatechat.User1ID(userID), privatechat.User2ID(userID))),
 				chat.HasGroupChatWith(groupchat.HasMembersWith(groupmember.UserID(userID))),
@@ -178,7 +180,6 @@ func (r *ChatRepository) GetChats(ctx context.Context, userID uuid.UUID, querySt
 		if lastChat.LastMessageAt != nil {
 			cursorTime = lastChat.LastMessageAt.UnixMicro()
 		} else {
-
 			cursorTime = 0
 		}
 

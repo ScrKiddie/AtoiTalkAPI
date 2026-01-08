@@ -56,6 +56,7 @@ type ChatMutation struct {
 	updated_at          *time.Time
 	_type               *chat.Type
 	last_message_at     *time.Time
+	deleted_at          *time.Time
 	clearedFields       map[string]struct{}
 	messages            map[uuid.UUID]struct{}
 	removedmessages     map[uuid.UUID]struct{}
@@ -381,6 +382,55 @@ func (m *ChatMutation) ResetLastMessageAt() {
 	delete(m.clearedFields, chat.FieldLastMessageAt)
 }
 
+// SetDeletedAt sets the "deleted_at" field.
+func (m *ChatMutation) SetDeletedAt(t time.Time) {
+	m.deleted_at = &t
+}
+
+// DeletedAt returns the value of the "deleted_at" field in the mutation.
+func (m *ChatMutation) DeletedAt() (r time.Time, exists bool) {
+	v := m.deleted_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldDeletedAt returns the old "deleted_at" field's value of the Chat entity.
+// If the Chat object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ChatMutation) OldDeletedAt(ctx context.Context) (v *time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldDeletedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldDeletedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDeletedAt: %w", err)
+	}
+	return oldValue.DeletedAt, nil
+}
+
+// ClearDeletedAt clears the value of the "deleted_at" field.
+func (m *ChatMutation) ClearDeletedAt() {
+	m.deleted_at = nil
+	m.clearedFields[chat.FieldDeletedAt] = struct{}{}
+}
+
+// DeletedAtCleared returns if the "deleted_at" field was cleared in this mutation.
+func (m *ChatMutation) DeletedAtCleared() bool {
+	_, ok := m.clearedFields[chat.FieldDeletedAt]
+	return ok
+}
+
+// ResetDeletedAt resets all changes to the "deleted_at" field.
+func (m *ChatMutation) ResetDeletedAt() {
+	m.deleted_at = nil
+	delete(m.clearedFields, chat.FieldDeletedAt)
+}
+
 // AddMessageIDs adds the "messages" edge to the Message entity by ids.
 func (m *ChatMutation) AddMessageIDs(ids ...uuid.UUID) {
 	if m.messages == nil {
@@ -574,7 +624,7 @@ func (m *ChatMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *ChatMutation) Fields() []string {
-	fields := make([]string, 0, 5)
+	fields := make([]string, 0, 6)
 	if m.created_at != nil {
 		fields = append(fields, chat.FieldCreatedAt)
 	}
@@ -589,6 +639,9 @@ func (m *ChatMutation) Fields() []string {
 	}
 	if m.last_message_at != nil {
 		fields = append(fields, chat.FieldLastMessageAt)
+	}
+	if m.deleted_at != nil {
+		fields = append(fields, chat.FieldDeletedAt)
 	}
 	return fields
 }
@@ -608,6 +661,8 @@ func (m *ChatMutation) Field(name string) (ent.Value, bool) {
 		return m.LastMessageID()
 	case chat.FieldLastMessageAt:
 		return m.LastMessageAt()
+	case chat.FieldDeletedAt:
+		return m.DeletedAt()
 	}
 	return nil, false
 }
@@ -627,6 +682,8 @@ func (m *ChatMutation) OldField(ctx context.Context, name string) (ent.Value, er
 		return m.OldLastMessageID(ctx)
 	case chat.FieldLastMessageAt:
 		return m.OldLastMessageAt(ctx)
+	case chat.FieldDeletedAt:
+		return m.OldDeletedAt(ctx)
 	}
 	return nil, fmt.Errorf("unknown Chat field %s", name)
 }
@@ -671,6 +728,13 @@ func (m *ChatMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetLastMessageAt(v)
 		return nil
+	case chat.FieldDeletedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetDeletedAt(v)
+		return nil
 	}
 	return fmt.Errorf("unknown Chat field %s", name)
 }
@@ -707,6 +771,9 @@ func (m *ChatMutation) ClearedFields() []string {
 	if m.FieldCleared(chat.FieldLastMessageAt) {
 		fields = append(fields, chat.FieldLastMessageAt)
 	}
+	if m.FieldCleared(chat.FieldDeletedAt) {
+		fields = append(fields, chat.FieldDeletedAt)
+	}
 	return fields
 }
 
@@ -726,6 +793,9 @@ func (m *ChatMutation) ClearField(name string) error {
 		return nil
 	case chat.FieldLastMessageAt:
 		m.ClearLastMessageAt()
+		return nil
+	case chat.FieldDeletedAt:
+		m.ClearDeletedAt()
 		return nil
 	}
 	return fmt.Errorf("unknown Chat nullable field %s", name)
@@ -749,6 +819,9 @@ func (m *ChatMutation) ResetField(name string) error {
 		return nil
 	case chat.FieldLastMessageAt:
 		m.ResetLastMessageAt()
+		return nil
+	case chat.FieldDeletedAt:
+		m.ResetDeletedAt()
 		return nil
 	}
 	return fmt.Errorf("unknown Chat field %s", name)

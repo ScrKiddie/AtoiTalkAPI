@@ -2,6 +2,7 @@ package repository
 
 import (
 	"AtoiTalkAPI/ent"
+	"AtoiTalkAPI/ent/chat"
 	"AtoiTalkAPI/ent/message"
 	"context"
 	"time"
@@ -23,6 +24,7 @@ func (r *MessageRepository) GetMessages(ctx context.Context, chatID uuid.UUID, h
 	query := r.client.Message.Query().
 		Where(
 			message.ChatID(chatID),
+			message.HasChatWith(chat.DeletedAtIsNil()),
 		)
 
 	if hiddenAt != nil {

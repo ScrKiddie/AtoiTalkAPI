@@ -444,3 +444,41 @@ func (c *GroupChatController) TransferOwnership(w http.ResponseWriter, r *http.R
 
 	helper.WriteSuccess(w, nil)
 }
+
+// DeleteGroup godoc
+// @Summary      Delete Group
+// @Description  Soft delete a group chat. Only owner can perform this action.
+// @Tags         chat
+// @Accept       json
+// @Produce      json
+// @Param        groupID path string true "Group Chat ID (UUID)"
+// @Success      200  {object}  helper.ResponseSuccess
+// @Failure      400  {object}  helper.ResponseError
+// @Failure      401  {object}  helper.ResponseError
+// @Failure      403  {object}  helper.ResponseError
+// @Failure      404  {object}  helper.ResponseError
+// @Failure      500  {object}  helper.ResponseError
+// @Security     BearerAuth
+// @Router       /api/chats/group/{groupID} [delete]
+func (c *GroupChatController) DeleteGroup(w http.ResponseWriter, r *http.Request) {
+	userContext, ok := r.Context().Value(middleware.UserContextKey).(*model.UserDTO)
+	if !ok {
+		helper.WriteError(w, helper.NewUnauthorizedError(""))
+		return
+	}
+
+	groupIDStr := chi.URLParam(r, "groupID")
+	groupID, err := uuid.Parse(groupIDStr)
+	if err != nil {
+		helper.WriteError(w, helper.NewBadRequestError("Invalid Group ID"))
+		return
+	}
+
+	err = c.groupChatService.DeleteGroup(r.Context(), userContext.ID, groupID)
+	if err != nil {
+		helper.WriteError(w, err)
+		return
+	}
+
+	helper.WriteSuccess(w, nil)
+}

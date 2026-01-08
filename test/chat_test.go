@@ -306,6 +306,25 @@ func TestGetChats(t *testing.T) {
 		assert.Equal(t, "User 2", actionData["target_name"])
 	})
 
+	t.Run("Success - Exclude Deleted Group", func(t *testing.T) {
+
+		chat3.Update().SetDeletedAt(time.Now().UTC()).ExecX(context.Background())
+
+		req, _ := http.NewRequest("GET", "/api/chats", nil)
+		req.Header.Set("Authorization", "Bearer "+token1)
+		rr := executeRequest(req)
+		assert.Equal(t, http.StatusOK, rr.Code)
+
+		var resp helper.ResponseWithPagination
+		json.Unmarshal(rr.Body.Bytes(), &resp)
+		dataList := resp.Data.([]interface{})
+
+		for _, item := range dataList {
+			c := item.(map[string]interface{})
+			assert.NotEqual(t, chat3.ID.String(), c["id"], "Deleted group should not appear")
+		}
+	})
+
 	t.Run("Unauthorized", func(t *testing.T) {
 		req, _ := http.NewRequest("GET", "/api/chats", nil)
 		rr := executeRequest(req)
@@ -376,6 +395,15 @@ func TestGetChatByID(t *testing.T) {
 		testClient.PrivateChat.Create().SetChat(chat2).SetUser1(u2).SetUser2(u3).SaveX(context.Background())
 
 		req, _ := http.NewRequest("GET", fmt.Sprintf("/api/chats/%s", chat2.ID), nil)
+		req.Header.Set("Authorization", "Bearer "+token1)
+		rr := executeRequest(req)
+		assert.Equal(t, http.StatusNotFound, rr.Code)
+	})
+
+	t.Run("Fail - Get Deleted Chat", func(t *testing.T) {
+		chat1.Update().SetDeletedAt(time.Now().UTC()).ExecX(context.Background())
+
+		req, _ := http.NewRequest("GET", fmt.Sprintf("/api/chats/%s", chat1.ID), nil)
 		req.Header.Set("Authorization", "Bearer "+token1)
 		rr := executeRequest(req)
 		assert.Equal(t, http.StatusNotFound, rr.Code)

@@ -9,10 +9,11 @@ const (
 	EventMessageUpdate EventType = "message.update"
 	EventMessageDelete EventType = "message.delete"
 
-	EventChatNew  EventType = "chat.new"
-	EventChatRead EventType = "chat.read"
-	EventChatHide EventType = "chat.hide"
-	EventTyping   EventType = "chat.typing"
+	EventChatNew    EventType = "chat.new"
+	EventChatRead   EventType = "chat.read"
+	EventChatHide   EventType = "chat.hide"
+	EventChatDelete EventType = "chat.delete"
+	EventTyping     EventType = "chat.typing"
 
 	EventUserOnline  EventType = "user.online"
 	EventUserOffline EventType = "user.offline"

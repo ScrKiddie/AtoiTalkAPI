@@ -31,6 +31,8 @@ type Chat struct {
 	LastMessageID *uuid.UUID `json:"last_message_id,omitempty"`
 	// LastMessageAt holds the value of the "last_message_at" field.
 	LastMessageAt *time.Time `json:"last_message_at,omitempty"`
+	// DeletedAt holds the value of the "deleted_at" field.
+	DeletedAt *time.Time `json:"deleted_at,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the ChatQuery when eager-loading is set.
 	Edges        ChatEdges `json:"edges"`
@@ -103,7 +105,7 @@ func (*Chat) scanValues(columns []string) ([]any, error) {
 			values[i] = &sql.NullScanner{S: new(uuid.UUID)}
 		case chat.FieldType:
 			values[i] = new(sql.NullString)
-		case chat.FieldCreatedAt, chat.FieldUpdatedAt, chat.FieldLastMessageAt:
+		case chat.FieldCreatedAt, chat.FieldUpdatedAt, chat.FieldLastMessageAt, chat.FieldDeletedAt:
 			values[i] = new(sql.NullTime)
 		case chat.FieldID:
 			values[i] = new(uuid.UUID)
@@ -159,6 +161,13 @@ func (_m *Chat) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				_m.LastMessageAt = new(time.Time)
 				*_m.LastMessageAt = value.Time
+			}
+		case chat.FieldDeletedAt:
+			if value, ok := values[i].(*sql.NullTime); !ok {
+				return fmt.Errorf("unexpected type %T for field deleted_at", values[i])
+			} else if value.Valid {
+				_m.DeletedAt = new(time.Time)
+				*_m.DeletedAt = value.Time
 			}
 		default:
 			_m.selectValues.Set(columns[i], values[i])
@@ -232,6 +241,11 @@ func (_m *Chat) String() string {
 	builder.WriteString(", ")
 	if v := _m.LastMessageAt; v != nil {
 		builder.WriteString("last_message_at=")
+		builder.WriteString(v.Format(time.ANSIC))
+	}
+	builder.WriteString(", ")
+	if v := _m.DeletedAt; v != nil {
+		builder.WriteString("deleted_at=")
 		builder.WriteString(v.Format(time.ANSIC))
 	}
 	builder.WriteByte(')')

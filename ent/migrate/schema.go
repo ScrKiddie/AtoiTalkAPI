@@ -16,6 +16,7 @@ var (
 		{Name: "updated_at", Type: field.TypeTime, Default: "CURRENT_TIMESTAMP"},
 		{Name: "type", Type: field.TypeEnum, Enums: []string{"private", "group"}},
 		{Name: "last_message_at", Type: field.TypeTime, Nullable: true},
+		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
 		{Name: "last_message_id", Type: field.TypeUUID, Nullable: true},
 	}
 	// ChatsTable holds the schema information for the "chats" table.
@@ -26,7 +27,7 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "chats_messages_last_message",
-				Columns:    []*schema.Column{ChatsColumns[5]},
+				Columns:    []*schema.Column{ChatsColumns[6]},
 				RefColumns: []*schema.Column{MessagesColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
@@ -369,11 +370,6 @@ var (
 				Name:    "userblock_blocker_id_blocked_id",
 				Unique:  true,
 				Columns: []*schema.Column{UserBlocksColumns[3], UserBlocksColumns[4]},
-			},
-			{
-				Name:    "userblock_blocked_id",
-				Unique:  false,
-				Columns: []*schema.Column{UserBlocksColumns[4]},
 			},
 		},
 	}

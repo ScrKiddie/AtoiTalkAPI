@@ -26,6 +26,8 @@ const (
 	FieldLastMessageID = "last_message_id"
 	// FieldLastMessageAt holds the string denoting the last_message_at field in the database.
 	FieldLastMessageAt = "last_message_at"
+	// FieldDeletedAt holds the string denoting the deleted_at field in the database.
+	FieldDeletedAt = "deleted_at"
 	// EdgeMessages holds the string denoting the messages edge name in mutations.
 	EdgeMessages = "messages"
 	// EdgePrivateChat holds the string denoting the private_chat edge name in mutations.
@@ -74,6 +76,7 @@ var Columns = []string{
 	FieldType,
 	FieldLastMessageID,
 	FieldLastMessageAt,
+	FieldDeletedAt,
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
@@ -151,6 +154,11 @@ func ByLastMessageID(opts ...sql.OrderTermOption) OrderOption {
 // ByLastMessageAt orders the results by the last_message_at field.
 func ByLastMessageAt(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldLastMessageAt, opts...).ToFunc()
+}
+
+// ByDeletedAt orders the results by the deleted_at field.
+func ByDeletedAt(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldDeletedAt, opts...).ToFunc()
 }
 
 // ByMessagesCount orders the results by messages count.

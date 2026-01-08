@@ -447,6 +447,27 @@ func TestSendMessage(t *testing.T) {
 		rr := executeRequest(req)
 		assert.Equal(t, http.StatusBadRequest, rr.Code)
 	})
+
+	t.Run("Fail - Send Message to Deleted Group", func(t *testing.T) {
+
+		groupChat, _ := testClient.Chat.Create().SetType(chat.TypeGroup).Save(context.Background())
+		gc, _ := testClient.GroupChat.Create().SetChat(groupChat).SetCreator(u1).SetName("Deleted Group").Save(context.Background())
+		testClient.GroupMember.Create().SetGroupChat(gc).SetUser(u1).Save(context.Background())
+
+		groupChat.Update().SetDeletedAt(time.Now().UTC()).Exec(context.Background())
+
+		reqBody := model.SendMessageRequest{
+			ChatID:  groupChat.ID,
+			Content: "Hello Ghost!",
+		}
+		body, _ := json.Marshal(reqBody)
+		req, _ := http.NewRequest("POST", "/api/messages", bytes.NewBuffer(body))
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Authorization", "Bearer "+token1)
+
+		rr := executeRequest(req)
+		assert.Equal(t, http.StatusNotFound, rr.Code)
+	})
 }
 
 func TestGetMessages(t *testing.T) {
@@ -748,6 +769,25 @@ func TestGetMessages(t *testing.T) {
 		assert.NotNil(t, targetMsg)
 		actionData := targetMsg["action_data"].(map[string]interface{})
 		assert.Equal(t, "User 2", actionData["target_name"])
+	})
+
+	t.Run("Fail - Get Messages from Deleted Group", func(t *testing.T) {
+
+		clearDatabase(context.Background())
+		u1, _ := testClient.User.Create().SetEmail("u1@test.com").SetUsername("u1").SetFullName("User 1").Save(context.Background())
+		token1, _ := helper.GenerateJWT(testConfig.JWTSecret, testConfig.JWTExp, u1.ID)
+
+		groupChat, _ := testClient.Chat.Create().SetType(chat.TypeGroup).Save(context.Background())
+		gc, _ := testClient.GroupChat.Create().SetChat(groupChat).SetCreator(u1).SetName("Deleted Group").Save(context.Background())
+		testClient.GroupMember.Create().SetGroupChat(gc).SetUser(u1).Save(context.Background())
+
+		groupChat.Update().SetDeletedAt(time.Now().UTC()).Exec(context.Background())
+
+		req, _ := http.NewRequest("GET", fmt.Sprintf("/api/chats/%s/messages", groupChat.ID), nil)
+		req.Header.Set("Authorization", "Bearer "+token1)
+
+		rr := executeRequest(req)
+		assert.Equal(t, http.StatusNotFound, rr.Code)
 	})
 }
 

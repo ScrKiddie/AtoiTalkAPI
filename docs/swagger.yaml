@@ -866,6 +866,48 @@ paths:
       tags:
       - chat
   /api/chats/group/{groupID}:
+    delete:
+      consumes:
+      - application/json
+      description: Soft delete a group chat. Only owner can perform this action.
+      parameters:
+      - description: Group Chat ID (UUID)
+        in: path
+        name: groupID
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/helper.ResponseSuccess'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
+      security:
+      - BearerAuth: []
+      summary: Delete Group
+      tags:
+      - chat
     put:
       consumes:
       - multipart/form-data

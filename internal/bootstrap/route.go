@@ -113,6 +113,7 @@ func (route *Route) Register() {
 			r.Post("/chats/group/{groupID}/members/{userID}/kick", route.groupChatController.KickMember)
 			r.Put("/chats/group/{groupID}/members/{userID}/role", route.groupChatController.UpdateMemberRole)
 			r.Post("/chats/group/{groupID}/transfer", route.groupChatController.TransferOwnership)
+			r.Delete("/chats/group/{groupID}", route.groupChatController.DeleteGroup)
 
 			r.Post("/messages", route.messageController.SendMessage)
 			r.Put("/messages/{messageID}", route.messageController.EditMessage)

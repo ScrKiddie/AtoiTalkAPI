@@ -21,6 +21,7 @@ func (Chat) Fields() []ent.Field {
 		field.Enum("type").Values("private", "group").Immutable(),
 		field.UUID("last_message_id", uuid.UUID{}).Optional().Nillable(),
 		field.Time("last_message_at").Optional().Nillable(),
+		field.Time("deleted_at").Optional().Nillable(),
 	}
 }
 
