@@ -16,6 +16,7 @@ import (
 	"AtoiTalkAPI/internal/websocket"
 	"context"
 	"encoding/base64"
+	"errors"
 	"log/slog"
 	"time"
 
@@ -286,7 +287,7 @@ func (s *MessageService) SendMessage(ctx context.Context, userID uuid.UUID, req 
 		return nil, helper.NewInternalServerError("")
 	}
 
-	resp := helper.ToMessageResponse(fullMsg, s.cfg.StorageMode, s.cfg.AppURL, s.cfg.StorageCDNURL, s.cfg.StorageProfile, s.cfg.StorageAttachment)
+	resp := helper.ToMessageResponse(fullMsg, s.cfg.StorageMode, s.cfg.AppURL, s.cfg.StorageCDNURL, s.cfg.StorageProfile, s.cfg.StorageAttachment, nil)
 
 	if s.wsHub != nil && resp != nil {
 		go s.wsHub.BroadcastToChat(req.ChatID, websocket.Event{
@@ -445,7 +446,7 @@ func (s *MessageService) EditMessage(ctx context.Context, userID uuid.UUID, mess
 		return nil, helper.NewInternalServerError("")
 	}
 
-	resp := helper.ToMessageResponse(fullMsg, s.cfg.StorageMode, s.cfg.AppURL, s.cfg.StorageCDNURL, s.cfg.StorageProfile, s.cfg.StorageAttachment)
+	resp := helper.ToMessageResponse(fullMsg, s.cfg.StorageMode, s.cfg.AppURL, s.cfg.StorageCDNURL, s.cfg.StorageProfile, s.cfg.StorageAttachment, nil)
 
 	if s.wsHub != nil && resp != nil {
 		go s.wsHub.BroadcastToChat(msg.ChatID, websocket.Event{
@@ -514,21 +515,33 @@ func (s *MessageService) GetMessages(ctx context.Context, userID uuid.UUID, req 
 		return nil, "", false, "", false, helper.NewForbiddenError("")
 	}
 
-	var cursorID uuid.UUID
-	if req.Cursor != "" {
-		decodedBytes, err := base64.URLEncoding.DecodeString(req.Cursor)
-		if err != nil {
-			return nil, "", false, "", false, helper.NewBadRequestError("Invalid cursor format")
+	var messages []*ent.Message
+	var errRepo error
+
+	if req.AroundMessageID != nil {
+
+		messages, errRepo = s.repo.Message.GetMessagesAround(ctx, req.ChatID, hiddenAt, *req.AroundMessageID, req.Limit)
+	} else {
+
+		var cursorID uuid.UUID
+		if req.Cursor != "" {
+			decodedBytes, err := base64.URLEncoding.DecodeString(req.Cursor)
+			if err != nil {
+				return nil, "", false, "", false, helper.NewBadRequestError("Invalid cursor format")
+			}
+			cursorID, err = uuid.Parse(string(decodedBytes))
+			if err != nil {
+				return nil, "", false, "", false, helper.NewBadRequestError("Invalid cursor format")
+			}
 		}
-		cursorID, err = uuid.Parse(string(decodedBytes))
-		if err != nil {
-			return nil, "", false, "", false, helper.NewBadRequestError("Invalid cursor format")
-		}
+		messages, errRepo = s.repo.Message.GetMessages(ctx, req.ChatID, hiddenAt, cursorID, req.Limit, req.Direction)
 	}
 
-	messages, err := s.repo.Message.GetMessages(ctx, req.ChatID, hiddenAt, cursorID, req.Limit, req.Direction)
-	if err != nil {
-		slog.Error("Failed to get messages", "error", err)
+	if errRepo != nil {
+		if ent.IsNotFound(errRepo) || errors.Is(errRepo, repository.ErrMessageNotFound) {
+			return nil, "", false, "", false, helper.NewNotFoundError("Message not found")
+		}
+		slog.Error("Failed to get messages", "error", errRepo)
 		return nil, "", false, "", false, helper.NewInternalServerError("")
 	}
 
@@ -569,39 +582,55 @@ func (s *MessageService) GetMessages(ctx context.Context, userID uuid.UUID, req 
 	hasPrev := false
 	var prevCursor string
 
-	if len(messages) > req.Limit {
-		if req.Direction == "newer" {
-			hasNext = true
-			messages = messages[:req.Limit]
-			lastID := messages[len(messages)-1].ID
-			nextCursor = base64.URLEncoding.EncodeToString([]byte(lastID.String()))
-		} else {
-			hasNext = true
-			messages = messages[:req.Limit]
-			lastID := messages[len(messages)-1].ID
-			nextCursor = base64.URLEncoding.EncodeToString([]byte(lastID.String()))
-		}
-	}
-
-	if req.Direction != "newer" {
-		for i, j := 0, len(messages)-1; i < j; i, j = i+1, j-1 {
-			messages[i], messages[j] = messages[j], messages[i]
-		}
-	}
-
 	if len(messages) > 0 {
-		if req.Direction == "newer" {
-			prevCursor = base64.URLEncoding.EncodeToString([]byte(messages[0].ID.String()))
-			hasPrev = true
-		} else {
-			prevCursor = base64.URLEncoding.EncodeToString([]byte(messages[len(messages)-1].ID.String()))
-			hasPrev = true
+
+		if req.AroundMessageID == nil && len(messages) > req.Limit {
+			if req.Direction == "newer" {
+				messages = messages[:req.Limit]
+			} else {
+				messages = messages[:req.Limit]
+			}
 		}
+
+		if req.AroundMessageID == nil && req.Direction != "newer" {
+
+			for i, j := 0, len(messages)-1; i < j; i, j = i+1, j-1 {
+				messages[i], messages[j] = messages[j], messages[i]
+			}
+		}
+
+		firstMsg := messages[0]
+		lastMsg := messages[len(messages)-1]
+
+		nextCursor = base64.URLEncoding.EncodeToString([]byte(firstMsg.ID.String()))
+		prevCursor = base64.URLEncoding.EncodeToString([]byte(lastMsg.ID.String()))
+
+		nextQuery := s.client.Message.Query().
+			Where(
+				message.ChatID(req.ChatID),
+				message.IDLT(firstMsg.ID),
+				message.HasChatWith(chat.DeletedAtIsNil()),
+			)
+		if hiddenAt != nil {
+			nextQuery = nextQuery.Where(message.CreatedAtGT(*hiddenAt))
+		}
+		hasNext, _ = nextQuery.Exist(ctx)
+
+		prevQuery := s.client.Message.Query().
+			Where(
+				message.ChatID(req.ChatID),
+				message.IDGT(lastMsg.ID),
+				message.HasChatWith(chat.DeletedAtIsNil()),
+			)
+		if hiddenAt != nil {
+			prevQuery = prevQuery.Where(message.CreatedAtGT(*hiddenAt))
+		}
+		hasPrev, _ = prevQuery.Exist(ctx)
 	}
 
 	var response []model.MessageResponse
 	for _, msg := range messages {
-		resp := helper.ToMessageResponse(msg, s.cfg.StorageMode, s.cfg.AppURL, s.cfg.StorageCDNURL, s.cfg.StorageProfile, s.cfg.StorageAttachment)
+		resp := helper.ToMessageResponse(msg, s.cfg.StorageMode, s.cfg.AppURL, s.cfg.StorageCDNURL, s.cfg.StorageProfile, s.cfg.StorageAttachment, hiddenAt)
 		if resp != nil {
 
 			if resp.ActionData != nil {

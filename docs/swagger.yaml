@@ -309,6 +309,8 @@ definitions:
         type: string
       id:
         type: string
+      is_jumpable:
+        type: boolean
       sender_name:
         type: string
       type:
@@ -1009,7 +1011,7 @@ paths:
       consumes:
       - application/json
       description: Get a paginated list of messages from a chat. Supports bidirectional
-        pagination.
+        pagination and jumping to a specific message.
       parameters:
       - description: Chat ID (UUID)
         in: path
@@ -1019,6 +1021,10 @@ paths:
       - description: Pagination cursor (Base64 encoded message ID)
         in: query
         name: cursor
+        type: string
+      - description: Jump to message ID (UUID)
+        in: query
+        name: around_message_id
         type: string
       - description: Number of messages to fetch (default 20, max 50)
         in: query

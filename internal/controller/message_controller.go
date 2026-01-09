@@ -109,12 +109,13 @@ func (c *MessageController) EditMessage(w http.ResponseWriter, r *http.Request) 
 
 // GetMessages godoc
 // @Summary      Get Messages
-// @Description  Get a paginated list of messages from a chat. Supports bidirectional pagination.
+// @Description  Get a paginated list of messages from a chat. Supports bidirectional pagination and jumping to a specific message.
 // @Tags         message
 // @Accept       json
 // @Produce      json
 // @Param        chatID path string true "Chat ID (UUID)"
 // @Param        cursor query string false "Pagination cursor (Base64 encoded message ID)"
+// @Param        around_message_id query string false "Jump to message ID (UUID)"
 // @Param        limit query int false "Number of messages to fetch (default 20, max 50)"
 // @Param        direction query string false "Pagination direction: 'older' (default) or 'newer'"
 // @Success      200  {object}  helper.ResponseWithPagination{data=[]model.MessageResponse}
@@ -141,12 +142,24 @@ func (c *MessageController) GetMessages(w http.ResponseWriter, r *http.Request) 
 	cursor := r.URL.Query().Get("cursor")
 	limit, _ := strconv.Atoi(r.URL.Query().Get("limit"))
 	direction := r.URL.Query().Get("direction")
+	aroundMessageIDStr := r.URL.Query().Get("around_message_id")
+
+	var aroundMessageID *uuid.UUID
+	if aroundMessageIDStr != "" {
+		id, err := uuid.Parse(aroundMessageIDStr)
+		if err != nil {
+			helper.WriteError(w, helper.NewBadRequestError("Invalid around_message_id format"))
+			return
+		}
+		aroundMessageID = &id
+	}
 
 	req := model.GetMessagesRequest{
-		ChatID:    chatID,
-		Cursor:    cursor,
-		Limit:     limit,
-		Direction: direction,
+		ChatID:          chatID,
+		Cursor:          cursor,
+		AroundMessageID: aroundMessageID,
+		Limit:           limit,
+		Direction:       direction,
 	}
 
 	messages, nextCursor, hasNext, prevCursor, hasPrev, err := c.messageService.GetMessages(r.Context(), userContext.ID, req)

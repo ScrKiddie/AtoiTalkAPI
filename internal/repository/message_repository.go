@@ -5,10 +5,14 @@ import (
 	"AtoiTalkAPI/ent/chat"
 	"AtoiTalkAPI/ent/message"
 	"context"
+	"errors"
+	"sort"
 	"time"
 
 	"github.com/google/uuid"
 )
+
+var ErrMessageNotFound = errors.New("message not found")
 
 type MessageRepository struct {
 	client *ent.Client
@@ -54,4 +58,96 @@ func (r *MessageRepository) GetMessages(ctx context.Context, chatID uuid.UUID, h
 		})
 
 	return query.All(ctx)
+}
+
+func (r *MessageRepository) GetMessagesAround(ctx context.Context, chatID uuid.UUID, hiddenAt *time.Time, aroundID uuid.UUID, limit int) ([]*ent.Message, error) {
+
+	targetMsg, err := r.client.Message.Query().
+		Where(
+			message.ID(aroundID),
+			message.ChatID(chatID),
+			message.HasChatWith(chat.DeletedAtIsNil()),
+		).
+		WithSender().
+		WithAttachments().
+		WithReplyTo(func(q *ent.MessageQuery) {
+			q.WithSender()
+			q.WithAttachments(func(aq *ent.MediaQuery) {
+				aq.Limit(1)
+			})
+		}).
+		Only(ctx)
+
+	if err != nil {
+		return nil, err
+	}
+
+	if hiddenAt != nil && !targetMsg.CreatedAt.After(*hiddenAt) {
+		return nil, ErrMessageNotFound
+	}
+
+	halfLimit := limit / 2
+
+	prevQuery := r.client.Message.Query().
+		Where(
+			message.ChatID(chatID),
+			message.IDLT(aroundID),
+		)
+	if hiddenAt != nil {
+		prevQuery = prevQuery.Where(message.CreatedAtGT(*hiddenAt))
+	}
+	prevMsgs, err := prevQuery.
+		Order(ent.Desc(message.FieldID)).
+		Limit(halfLimit).
+		WithSender().
+		WithAttachments().
+		WithReplyTo(func(q *ent.MessageQuery) {
+			q.WithSender()
+			q.WithAttachments(func(aq *ent.MediaQuery) {
+				aq.Limit(1)
+			})
+		}).
+		All(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	nextQuery := r.client.Message.Query().
+		Where(
+			message.ChatID(chatID),
+			message.IDGT(aroundID),
+		)
+	if hiddenAt != nil {
+		nextQuery = nextQuery.Where(message.CreatedAtGT(*hiddenAt))
+	}
+	nextMsgs, err := nextQuery.
+		Order(ent.Asc(message.FieldID)).
+		Limit(halfLimit).
+		WithSender().
+		WithAttachments().
+		WithReplyTo(func(q *ent.MessageQuery) {
+			q.WithSender()
+			q.WithAttachments(func(aq *ent.MediaQuery) {
+				aq.Limit(1)
+			})
+		}).
+		All(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	result := make([]*ent.Message, 0, len(prevMsgs)+1+len(nextMsgs))
+
+	for i := len(prevMsgs) - 1; i >= 0; i-- {
+		result = append(result, prevMsgs[i])
+	}
+
+	result = append(result, targetMsg)
+	result = append(result, nextMsgs...)
+
+	sort.Slice(result, func(i, j int) bool {
+		return result[i].ID.String() < result[j].ID.String()
+	})
+
+	return result, nil
 }

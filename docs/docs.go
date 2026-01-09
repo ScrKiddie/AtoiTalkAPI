@@ -1681,7 +1681,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Get a paginated list of messages from a chat. Supports bidirectional pagination.",
+                "description": "Get a paginated list of messages from a chat. Supports bidirectional pagination and jumping to a specific message.",
                 "consumes": [
                     "application/json"
                 ],
@@ -1704,6 +1704,12 @@ const docTemplate = `{
                         "type": "string",
                         "description": "Pagination cursor (Base64 encoded message ID)",
                         "name": "cursor",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Jump to message ID (UUID)",
+                        "name": "around_message_id",
                         "in": "query"
                     },
                     {
@@ -3358,6 +3364,9 @@ const docTemplate = `{
                 },
                 "id": {
                     "type": "string"
+                },
+                "is_jumpable": {
+                    "type": "boolean"
                 },
                 "sender_name": {
                     "type": "string"
