@@ -245,7 +245,7 @@ func (s *GroupChatService) AddMember(ctx context.Context, requestorID uuid.UUID,
 				WithSender().
 				Only(context.Background())
 
-			msgResponse := helper.ToMessageResponse(fullMsg, s.cfg.StorageMode, s.cfg.AppURL, s.cfg.StorageCDNURL, s.cfg.StorageProfile, s.cfg.StorageAttachment)
+			msgResponse := helper.ToMessageResponse(fullMsg, s.cfg.StorageMode, s.cfg.AppURL, s.cfg.StorageCDNURL, s.cfg.StorageProfile, s.cfg.StorageAttachment, nil)
 
 			for _, u := range newMembers {
 				chatPayload := model.ChatListResponse{
@@ -361,7 +361,7 @@ func (s *GroupChatService) LeaveGroup(ctx context.Context, userID uuid.UUID, gro
 				WithSender().
 				Only(context.Background())
 
-			msgResponse := helper.ToMessageResponse(fullMsg, s.cfg.StorageMode, s.cfg.AppURL, s.cfg.StorageCDNURL, s.cfg.StorageProfile, s.cfg.StorageAttachment)
+			msgResponse := helper.ToMessageResponse(fullMsg, s.cfg.StorageMode, s.cfg.AppURL, s.cfg.StorageCDNURL, s.cfg.StorageProfile, s.cfg.StorageAttachment, nil)
 
 			s.wsHub.BroadcastToChat(gc.ChatID, websocket.Event{
 				Type:    websocket.EventMessageNew,
@@ -477,7 +477,7 @@ func (s *GroupChatService) KickMember(ctx context.Context, requestorID uuid.UUID
 				WithSender().
 				Only(context.Background())
 
-			msgResponse := helper.ToMessageResponse(fullMsg, s.cfg.StorageMode, s.cfg.AppURL, s.cfg.StorageCDNURL, s.cfg.StorageProfile, s.cfg.StorageAttachment)
+			msgResponse := helper.ToMessageResponse(fullMsg, s.cfg.StorageMode, s.cfg.AppURL, s.cfg.StorageCDNURL, s.cfg.StorageProfile, s.cfg.StorageAttachment, nil)
 
 			s.wsHub.BroadcastToChat(gc.ChatID, websocket.Event{
 				Type:    websocket.EventMessageNew,

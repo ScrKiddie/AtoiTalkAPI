@@ -505,7 +505,7 @@ func TestGetMessages(t *testing.T) {
 	testClient.PrivateChat.Create().SetChat(chatEntity).SetUser1(u1).SetUser2(u2).Save(context.Background())
 
 	var msgIDs []uuid.UUID
-	for i := 1; i <= 5; i++ {
+	for i := 1; i <= 20; i++ {
 		msg, _ := testClient.Message.Create().
 			SetChatID(chatEntity.ID).
 			SetSenderID(u1.ID).
@@ -532,8 +532,8 @@ func TestGetMessages(t *testing.T) {
 		m1 := dataList[0].(map[string]interface{})
 		m2 := dataList[1].(map[string]interface{})
 
-		assert.Equal(t, msgIDs[3].String(), m1["id"])
-		assert.Equal(t, msgIDs[4].String(), m2["id"])
+		assert.Equal(t, msgIDs[18].String(), m1["id"])
+		assert.Equal(t, msgIDs[19].String(), m2["id"])
 
 		assert.True(t, resp.Meta.HasNext)
 		assert.NotEmpty(t, resp.Meta.NextCursor)
@@ -541,7 +541,7 @@ func TestGetMessages(t *testing.T) {
 
 	t.Run("Success - Get Messages (Next Page)", func(t *testing.T) {
 
-		cursor := base64.URLEncoding.EncodeToString([]byte(msgIDs[3].String()))
+		cursor := base64.URLEncoding.EncodeToString([]byte(msgIDs[18].String()))
 
 		req, _ := http.NewRequest("GET", fmt.Sprintf("/api/chats/%s/messages?limit=2&cursor=%s", chatEntity.ID, cursor), nil)
 		req.Header.Set("Authorization", "Bearer "+token1)
@@ -558,8 +558,8 @@ func TestGetMessages(t *testing.T) {
 		m1 := dataList[0].(map[string]interface{})
 		m2 := dataList[1].(map[string]interface{})
 
-		assert.Equal(t, msgIDs[1].String(), m1["id"])
-		assert.Equal(t, msgIDs[2].String(), m2["id"])
+		assert.Equal(t, msgIDs[16].String(), m1["id"])
+		assert.Equal(t, msgIDs[17].String(), m2["id"])
 	})
 
 	t.Run("Success - Get Messages Newer (Scroll Down)", func(t *testing.T) {
@@ -586,6 +586,120 @@ func TestGetMessages(t *testing.T) {
 
 		assert.True(t, resp.Meta.HasNext)
 		assert.True(t, resp.Meta.HasPrev)
+	})
+
+	t.Run("Success - Jump to Message (Around ID)", func(t *testing.T) {
+
+		jumpU1, _ := testClient.User.Create().SetEmail("jump1@test.com").SetUsername("jump1").SetFullName("Jump 1").Save(context.Background())
+		jumpU2, _ := testClient.User.Create().SetEmail("jump2@test.com").SetUsername("jump2").SetFullName("Jump 2").Save(context.Background())
+		jumpToken1, _ := helper.GenerateJWT(testConfig.JWTSecret, testConfig.JWTExp, jumpU1.ID)
+
+		jumpChat, _ := testClient.Chat.Create().SetType(chat.TypePrivate).Save(context.Background())
+		testClient.PrivateChat.Create().SetChat(jumpChat).SetUser1(jumpU1).SetUser2(jumpU2).Save(context.Background())
+
+		var jumpMsgIDs []uuid.UUID
+		for i := 1; i <= 20; i++ {
+			msg, _ := testClient.Message.Create().
+				SetChatID(jumpChat.ID).
+				SetSenderID(jumpU1.ID).
+				SetType(message.TypeRegular).
+				SetContent(fmt.Sprintf("Jump Message %d", i)).
+				Save(context.Background())
+			jumpMsgIDs = append(jumpMsgIDs, msg.ID)
+			time.Sleep(10 * time.Millisecond)
+		}
+
+		targetID := jumpMsgIDs[9]
+		limit := 5
+
+		req, _ := http.NewRequest("GET", fmt.Sprintf("/api/chats/%s/messages?limit=%d&around_message_id=%s", jumpChat.ID, limit, targetID), nil)
+		req.Header.Set("Authorization", "Bearer "+jumpToken1)
+
+		rr := executeRequest(req)
+		if !assert.Equal(t, http.StatusOK, rr.Code) {
+			printBody(t, rr)
+		}
+
+		var resp helper.ResponseWithPagination
+		json.Unmarshal(rr.Body.Bytes(), &resp)
+		dataList := resp.Data.([]interface{})
+
+		assert.Len(t, dataList, 5)
+
+		assert.Equal(t, jumpMsgIDs[7].String(), dataList[0].(map[string]interface{})["id"])
+		assert.Equal(t, jumpMsgIDs[8].String(), dataList[1].(map[string]interface{})["id"])
+		assert.Equal(t, jumpMsgIDs[9].String(), dataList[2].(map[string]interface{})["id"])
+		assert.Equal(t, jumpMsgIDs[10].String(), dataList[3].(map[string]interface{})["id"])
+		assert.Equal(t, jumpMsgIDs[11].String(), dataList[4].(map[string]interface{})["id"])
+	})
+
+	t.Run("Success - Verify Pagination Cursors", func(t *testing.T) {
+
+		pU1, _ := testClient.User.Create().SetEmail("page1@test.com").SetUsername("page1").SetFullName("Page 1").Save(context.Background())
+		pU2, _ := testClient.User.Create().SetEmail("page2@test.com").SetUsername("page2").SetFullName("Page 2").Save(context.Background())
+		pToken1, _ := helper.GenerateJWT(testConfig.JWTSecret, testConfig.JWTExp, pU1.ID)
+
+		pChat, _ := testClient.Chat.Create().SetType(chat.TypePrivate).Save(context.Background())
+		testClient.PrivateChat.Create().SetChat(pChat).SetUser1(pU1).SetUser2(pU2).Save(context.Background())
+
+		var pMsgIDs []uuid.UUID
+		for i := 1; i <= 10; i++ {
+			msg, _ := testClient.Message.Create().
+				SetChatID(pChat.ID).
+				SetSenderID(pU1.ID).
+				SetType(message.TypeRegular).
+				SetContent(fmt.Sprintf("Page Message %d", i)).
+				Save(context.Background())
+			pMsgIDs = append(pMsgIDs, msg.ID)
+			time.Sleep(10 * time.Millisecond)
+		}
+
+		req, _ := http.NewRequest("GET", fmt.Sprintf("/api/chats/%s/messages?limit=2", pChat.ID), nil)
+		req.Header.Set("Authorization", "Bearer "+pToken1)
+		rr := executeRequest(req)
+		assert.Equal(t, http.StatusOK, rr.Code)
+
+		var resp helper.ResponseWithPagination
+		json.Unmarshal(rr.Body.Bytes(), &resp)
+		dataList := resp.Data.([]interface{})
+		assert.Len(t, dataList, 2)
+		assert.Equal(t, pMsgIDs[8].String(), dataList[0].(map[string]interface{})["id"])
+		assert.Equal(t, pMsgIDs[9].String(), dataList[1].(map[string]interface{})["id"])
+
+		assert.True(t, resp.Meta.HasNext, "Should have older messages")
+		assert.False(t, resp.Meta.HasPrev, "Should NOT have newer messages (we are at top)")
+		assert.Equal(t, base64.URLEncoding.EncodeToString([]byte(pMsgIDs[8].String())), resp.Meta.NextCursor)
+		assert.Equal(t, base64.URLEncoding.EncodeToString([]byte(pMsgIDs[9].String())), resp.Meta.PrevCursor)
+
+		cursor := resp.Meta.NextCursor
+		req, _ = http.NewRequest("GET", fmt.Sprintf("/api/chats/%s/messages?limit=2&cursor=%s", pChat.ID, cursor), nil)
+		req.Header.Set("Authorization", "Bearer "+pToken1)
+		rr = executeRequest(req)
+		assert.Equal(t, http.StatusOK, rr.Code)
+
+		json.Unmarshal(rr.Body.Bytes(), &resp)
+		dataList = resp.Data.([]interface{})
+		assert.Len(t, dataList, 2)
+		assert.Equal(t, pMsgIDs[6].String(), dataList[0].(map[string]interface{})["id"])
+		assert.Equal(t, pMsgIDs[7].String(), dataList[1].(map[string]interface{})["id"])
+
+		assert.True(t, resp.Meta.HasNext, "Should have older messages")
+		assert.True(t, resp.Meta.HasPrev, "Should have newer messages")
+
+		cursor = base64.URLEncoding.EncodeToString([]byte(pMsgIDs[2].String()))
+		req, _ = http.NewRequest("GET", fmt.Sprintf("/api/chats/%s/messages?limit=2&cursor=%s", pChat.ID, cursor), nil)
+		req.Header.Set("Authorization", "Bearer "+pToken1)
+		rr = executeRequest(req)
+		assert.Equal(t, http.StatusOK, rr.Code)
+
+		json.Unmarshal(rr.Body.Bytes(), &resp)
+		dataList = resp.Data.([]interface{})
+		assert.Len(t, dataList, 2)
+		assert.Equal(t, pMsgIDs[0].String(), dataList[0].(map[string]interface{})["id"])
+		assert.Equal(t, pMsgIDs[1].String(), dataList[1].(map[string]interface{})["id"])
+
+		assert.False(t, resp.Meta.HasNext, "Should NOT have older messages (we are at bottom)")
+		assert.True(t, resp.Meta.HasPrev, "Should have newer messages")
 	})
 
 	t.Run("Success - Empty Chat", func(t *testing.T) {

@@ -231,7 +231,7 @@ func (s *GroupChatService) CreateGroupChat(ctx context.Context, creatorID uuid.U
 
 			var lastMsgResp *model.MessageResponse
 			if err == nil {
-				lastMsgResp = helper.ToMessageResponse(fullMsg, s.cfg.StorageMode, s.cfg.AppURL, s.cfg.StorageCDNURL, s.cfg.StorageProfile, s.cfg.StorageAttachment)
+				lastMsgResp = helper.ToMessageResponse(fullMsg, s.cfg.StorageMode, s.cfg.AppURL, s.cfg.StorageCDNURL, s.cfg.StorageProfile, s.cfg.StorageAttachment, nil)
 			}
 
 			payload := model.ChatListResponse{
@@ -439,7 +439,7 @@ func (s *GroupChatService) UpdateGroupChat(ctx context.Context, requestorID uuid
 				WithSender().
 				Only(context.Background())
 
-			msgResponse := helper.ToMessageResponse(fullMsg, s.cfg.StorageMode, s.cfg.AppURL, s.cfg.StorageCDNURL, s.cfg.StorageProfile, s.cfg.StorageAttachment)
+			msgResponse := helper.ToMessageResponse(fullMsg, s.cfg.StorageMode, s.cfg.AppURL, s.cfg.StorageCDNURL, s.cfg.StorageProfile, s.cfg.StorageAttachment, nil)
 
 			s.wsHub.BroadcastToChat(gc.ChatID, websocket.Event{
 				Type:    websocket.EventMessageNew,

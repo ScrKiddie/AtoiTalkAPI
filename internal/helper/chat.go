@@ -25,6 +25,7 @@ func MapChatToResponse(userID uuid.UUID, c *ent.Chat, blockedMap map[uuid.UUID]B
 	var otherUserIsBanned bool
 	var isBlockedByMe bool
 	var myRole *string
+	var hiddenAt *time.Time
 
 	if c.Type == chat.TypePrivate && c.Edges.PrivateChat != nil {
 		pc := c.Edges.PrivateChat
@@ -37,11 +38,13 @@ func MapChatToResponse(userID uuid.UUID, c *ent.Chat, blockedMap map[uuid.UUID]B
 			myLastRead = pc.User1LastReadAt
 			otherUserLastRead = pc.User2LastReadAt
 			unreadCount = pc.User1UnreadCount
+			hiddenAt = pc.User1HiddenAt
 		} else {
 			otherUser = pc.Edges.User1
 			myLastRead = pc.User2LastReadAt
 			otherUserLastRead = pc.User1LastReadAt
 			unreadCount = pc.User2UnreadCount
+			hiddenAt = pc.User2HiddenAt
 		}
 
 		if otherUser != nil {
@@ -109,7 +112,7 @@ func MapChatToResponse(userID uuid.UUID, c *ent.Chat, blockedMap map[uuid.UUID]B
 
 	var lastMsgResp *model.MessageResponse
 	if c.Edges.LastMessage != nil {
-		lastMsgResp = ToMessageResponse(c.Edges.LastMessage, storageMode, appURL, cdnURL, storageProfile, storageAttachment)
+		lastMsgResp = ToMessageResponse(c.Edges.LastMessage, storageMode, appURL, cdnURL, storageProfile, storageAttachment, hiddenAt)
 	}
 
 	return &model.ChatListResponse{

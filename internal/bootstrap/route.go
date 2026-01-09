@@ -80,61 +80,76 @@ func (route *Route) Register() {
 
 	route.chi.Route("/api", func(r chi.Router) {
 
-		r.Use(middleware.MaxBodySize(100 * 1024))
+		r.Group(func(r chi.Router) {
+			r.Use(middleware.MaxBodySize(100 * 1024))
 
-		r.Post("/auth/login", route.authController.Login)
-		r.Post("/auth/google", route.authController.GoogleExchange)
-		r.Post("/auth/register", route.authController.Register)
-		r.Post("/auth/reset-password", route.authController.ResetPassword)
-		r.Post("/otp/send", route.otpController.SendOTP)
+			r.Post("/auth/login", route.authController.Login)
+			r.Post("/auth/google", route.authController.GoogleExchange)
+			r.Post("/auth/register", route.authController.Register)
+			r.Post("/auth/reset-password", route.authController.ResetPassword)
+			r.Post("/otp/send", route.otpController.SendOTP)
+		})
 
 		r.Group(func(r chi.Router) {
 			r.Use(route.authMiddleware.VerifyToken)
-			r.Get("/user/current", route.userController.GetCurrentUser)
-			r.Get("/users/blocked", route.userController.GetBlockedUsers)
-			r.Get("/users/{id}", route.userController.GetUserProfile)
-			r.Get("/users", route.userController.SearchUsers)
-			r.Post("/users/{id}/block", route.userController.BlockUser)
-			r.Post("/users/{id}/unblock", route.userController.UnblockUser)
-
-			r.With(middleware.MaxBodySize(3*1024*1024)).Put("/user/profile", route.userController.UpdateProfile)
-
-			r.Put("/account/password", route.accountController.ChangePassword)
-			r.Put("/account/email", route.accountController.ChangeEmail)
-			r.Delete("/account", route.accountController.DeleteAccount)
-
-			r.Get("/chats", route.chatController.GetChats)
-			r.Get("/chats/{id}", route.chatController.GetChat)
-			r.Post("/chats/{id}/read", route.chatController.MarkAsRead)
-			r.Post("/chats/{id}/hide", route.chatController.HideChat)
-			r.Get("/chats/{chatID}/messages", route.messageController.GetMessages)
-
-			r.Post("/chats/private", route.privateChatController.CreatePrivateChat)
-			r.With(middleware.MaxBodySize(3*1024*1024)).Post("/chats/group", route.groupChatController.CreateGroupChat)
-			r.With(middleware.MaxBodySize(3*1024*1024)).Put("/chats/group/{groupID}", route.groupChatController.UpdateGroupChat)
-			r.Get("/chats/group/{groupID}/members", route.groupChatController.SearchGroupMembers)
-			r.Post("/chats/group/{groupID}/members", route.groupChatController.AddMember)
-			r.Post("/chats/group/{groupID}/leave", route.groupChatController.LeaveGroup)
-			r.Post("/chats/group/{groupID}/members/{userID}/kick", route.groupChatController.KickMember)
-			r.Put("/chats/group/{groupID}/members/{userID}/role", route.groupChatController.UpdateMemberRole)
-			r.Post("/chats/group/{groupID}/transfer", route.groupChatController.TransferOwnership)
-			r.Delete("/chats/group/{groupID}", route.groupChatController.DeleteGroup)
-
-			r.Post("/messages", route.messageController.SendMessage)
-			r.Put("/messages/{messageID}", route.messageController.EditMessage)
-			r.Delete("/messages/{messageID}", route.messageController.DeleteMessage)
-
-			r.With(middleware.MaxBodySize(3*1024*1024)).Post("/media/upload", route.mediaController.UploadMedia)
-
-			r.Post("/reports", route.reportController.CreateReport)
 
 			r.Group(func(r chi.Router) {
-				r.Use(route.authMiddleware.AdminOnly)
-				r.Post("/admin/users/ban", route.adminController.BanUser)
-				r.Post("/admin/users/{userID}/unban", route.adminController.UnbanUser)
-				r.Get("/admin/reports", route.adminController.GetReports)
-				r.Get("/admin/reports/{reportID}", route.adminController.GetReportDetail)
-				r.Put("/admin/reports/{reportID}/resolve", route.adminController.ResolveReport)
+				r.Use(middleware.MaxBodySize(20 * 1024 * 1024))
+				r.Post("/media/upload", route.mediaController.UploadMedia)
+			})
+
+			r.Group(func(r chi.Router) {
+				r.Use(middleware.MaxBodySize(5 * 1024 * 1024))
+
+				r.Put("/user/profile", route.userController.UpdateProfile)
+				r.Post("/chats/group", route.groupChatController.CreateGroupChat)
+				r.Put("/chats/group/{groupID}", route.groupChatController.UpdateGroupChat)
+			})
+
+			r.Group(func(r chi.Router) {
+				r.Use(middleware.MaxBodySize(100 * 1024))
+
+				r.Get("/user/current", route.userController.GetCurrentUser)
+				r.Get("/users/blocked", route.userController.GetBlockedUsers)
+				r.Get("/users/{id}", route.userController.GetUserProfile)
+				r.Get("/users", route.userController.SearchUsers)
+				r.Post("/users/{id}/block", route.userController.BlockUser)
+				r.Post("/users/{id}/unblock", route.userController.UnblockUser)
+
+				r.Put("/account/password", route.accountController.ChangePassword)
+				r.Put("/account/email", route.accountController.ChangeEmail)
+				r.Delete("/account", route.accountController.DeleteAccount)
+
+				r.Get("/chats", route.chatController.GetChats)
+				r.Get("/chats/{id}", route.chatController.GetChat)
+				r.Post("/chats/{id}/read", route.chatController.MarkAsRead)
+				r.Post("/chats/{id}/hide", route.chatController.HideChat)
+				r.Get("/chats/{chatID}/messages", route.messageController.GetMessages)
+
+				r.Post("/chats/private", route.privateChatController.CreatePrivateChat)
+
+				r.Get("/chats/group/{groupID}/members", route.groupChatController.SearchGroupMembers)
+				r.Post("/chats/group/{groupID}/members", route.groupChatController.AddMember)
+				r.Post("/chats/group/{groupID}/leave", route.groupChatController.LeaveGroup)
+				r.Post("/chats/group/{groupID}/members/{userID}/kick", route.groupChatController.KickMember)
+				r.Put("/chats/group/{groupID}/members/{userID}/role", route.groupChatController.UpdateMemberRole)
+				r.Post("/chats/group/{groupID}/transfer", route.groupChatController.TransferOwnership)
+				r.Delete("/chats/group/{groupID}", route.groupChatController.DeleteGroup)
+
+				r.Post("/messages", route.messageController.SendMessage)
+				r.Put("/messages/{messageID}", route.messageController.EditMessage)
+				r.Delete("/messages/{messageID}", route.messageController.DeleteMessage)
+
+				r.Post("/reports", route.reportController.CreateReport)
+
+				r.Group(func(r chi.Router) {
+					r.Use(route.authMiddleware.AdminOnly)
+					r.Post("/admin/users/ban", route.adminController.BanUser)
+					r.Post("/admin/users/{userID}/unban", route.adminController.UnbanUser)
+					r.Get("/admin/reports", route.adminController.GetReports)
+					r.Get("/admin/reports/{reportID}", route.adminController.GetReportDetail)
+					r.Put("/admin/reports/{reportID}/resolve", route.adminController.ResolveReport)
+				})
 			})
 		})
 	})
