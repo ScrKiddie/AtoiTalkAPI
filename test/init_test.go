@@ -3,6 +3,7 @@ package test
 import (
 	"AtoiTalkAPI/ent"
 	"AtoiTalkAPI/ent/otp"
+	"AtoiTalkAPI/ent/user"
 	"AtoiTalkAPI/internal/adapter"
 	"AtoiTalkAPI/internal/bootstrap"
 	"AtoiTalkAPI/internal/config"
@@ -13,6 +14,7 @@ import (
 	"AtoiTalkAPI/internal/service"
 	"AtoiTalkAPI/internal/websocket"
 	"context"
+	"fmt"
 	"log"
 	"net/http"
 	"net/http/httptest"
@@ -130,11 +132,17 @@ func TestMain(m *testing.M) {
 	mediaService := service.NewMediaService(testClient, testConfig, validator, storageAdapter)
 	mediaController := controller.NewMediaController(mediaService)
 
+	reportService := service.NewReportService(testClient, testConfig, validator)
+	reportController := controller.NewReportController(reportService)
+
+	adminService := service.NewAdminService(testClient, testConfig, validator, testHub)
+	adminController := controller.NewAdminController(adminService)
+
 	wsController := controller.NewWebSocketController(testHub)
 
 	authMiddleware := middleware.NewAuthMiddleware(authService)
 
-	route := bootstrap.NewRoute(testConfig, testRouter, authController, otpController, userController, accountController, chatController, privateChatController, groupChatController, messageController, mediaController, wsController, authMiddleware)
+	route := bootstrap.NewRoute(testConfig, testRouter, authController, otpController, userController, accountController, chatController, privateChatController, groupChatController, messageController, mediaController, wsController, reportController, adminController, authMiddleware)
 	route.Register()
 
 	code := m.Run()
@@ -152,6 +160,7 @@ func executeRequest(req *http.Request) *httptest.ResponseRecorder {
 
 func clearDatabase(ctx context.Context) {
 
+	testClient.Report.Delete().Exec(ctx)
 	testClient.Message.Delete().Exec(ctx)
 	testClient.PrivateChat.Delete().Exec(ctx)
 	testClient.GroupMember.Delete().Exec(ctx)
@@ -192,4 +201,22 @@ func createOTP(email, code string, expiresAt time.Time) {
 
 func printBody(t *testing.T, rr *httptest.ResponseRecorder) {
 	t.Logf("Response Body: %s", rr.Body.String())
+}
+
+func createTestUser(t *testing.T, prefix string) *ent.User {
+	email := fmt.Sprintf("%s%d@test.com", prefix, time.Now().UnixNano())
+	username := fmt.Sprintf("%s%d", prefix, time.Now().UnixNano())
+	hashedPassword, _ := helper.HashPassword("Password123!")
+
+	u, err := testClient.User.Create().
+		SetEmail(email).
+		SetUsername(username).
+		SetFullName(prefix + " User").
+		SetPasswordHash(hashedPassword).
+		SetRole(user.RoleUser).
+		Save(context.Background())
+	if err != nil {
+		t.Fatalf("Failed to create user %s: %v", prefix, err)
+	}
+	return u
 }

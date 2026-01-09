@@ -55,9 +55,11 @@ type MediaEdges struct {
 	GroupAvatar *GroupChat `json:"group_avatar,omitempty"`
 	// Uploader holds the value of the uploader edge.
 	Uploader *User `json:"uploader,omitempty"`
+	// Reports holds the value of the reports edge.
+	Reports []*Report `json:"reports,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [4]bool
+	loadedTypes [5]bool
 }
 
 // MessageOrErr returns the Message value or an error if the edge
@@ -102,6 +104,15 @@ func (e MediaEdges) UploaderOrErr() (*User, error) {
 		return nil, &NotFoundError{label: user.Label}
 	}
 	return nil, &NotLoadedError{edge: "uploader"}
+}
+
+// ReportsOrErr returns the Reports value or an error if the edge
+// was not loaded in eager-loading.
+func (e MediaEdges) ReportsOrErr() ([]*Report, error) {
+	if e.loadedTypes[4] {
+		return e.Reports, nil
+	}
+	return nil, &NotLoadedError{edge: "reports"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -226,6 +237,11 @@ func (_m *Media) QueryGroupAvatar() *GroupChatQuery {
 // QueryUploader queries the "uploader" edge of the Media entity.
 func (_m *Media) QueryUploader() *UserQuery {
 	return NewMediaClient(_m.config).QueryUploader(_m)
+}
+
+// QueryReports queries the "reports" edge of the Media entity.
+func (_m *Media) QueryReports() *ReportQuery {
+	return NewMediaClient(_m.config).QueryReports(_m)
 }
 
 // Update returns a builder for updating this Media.

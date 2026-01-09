@@ -11,6 +11,7 @@ import (
 	"AtoiTalkAPI/ent/otp"
 	"AtoiTalkAPI/ent/predicate"
 	"AtoiTalkAPI/ent/privatechat"
+	"AtoiTalkAPI/ent/report"
 	"AtoiTalkAPI/ent/user"
 	"AtoiTalkAPI/ent/userblock"
 	"AtoiTalkAPI/ent/useridentity"
@@ -41,6 +42,7 @@ const (
 	TypeMessage      = "Message"
 	TypeOTP          = "OTP"
 	TypePrivateChat  = "PrivateChat"
+	TypeReport       = "Report"
 	TypeUser         = "User"
 	TypeUserBlock    = "UserBlock"
 	TypeUserIdentity = "UserIdentity"
@@ -983,6 +985,9 @@ type GroupChatMutation struct {
 	members        map[uuid.UUID]struct{}
 	removedmembers map[uuid.UUID]struct{}
 	clearedmembers bool
+	reports        map[uuid.UUID]struct{}
+	removedreports map[uuid.UUID]struct{}
+	clearedreports bool
 	done           bool
 	oldValue       func(context.Context) (*GroupChat, error)
 	predicates     []predicate.GroupChat
@@ -1459,6 +1464,60 @@ func (m *GroupChatMutation) ResetMembers() {
 	m.removedmembers = nil
 }
 
+// AddReportIDs adds the "reports" edge to the Report entity by ids.
+func (m *GroupChatMutation) AddReportIDs(ids ...uuid.UUID) {
+	if m.reports == nil {
+		m.reports = make(map[uuid.UUID]struct{})
+	}
+	for i := range ids {
+		m.reports[ids[i]] = struct{}{}
+	}
+}
+
+// ClearReports clears the "reports" edge to the Report entity.
+func (m *GroupChatMutation) ClearReports() {
+	m.clearedreports = true
+}
+
+// ReportsCleared reports if the "reports" edge to the Report entity was cleared.
+func (m *GroupChatMutation) ReportsCleared() bool {
+	return m.clearedreports
+}
+
+// RemoveReportIDs removes the "reports" edge to the Report entity by IDs.
+func (m *GroupChatMutation) RemoveReportIDs(ids ...uuid.UUID) {
+	if m.removedreports == nil {
+		m.removedreports = make(map[uuid.UUID]struct{})
+	}
+	for i := range ids {
+		delete(m.reports, ids[i])
+		m.removedreports[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedReports returns the removed IDs of the "reports" edge to the Report entity.
+func (m *GroupChatMutation) RemovedReportsIDs() (ids []uuid.UUID) {
+	for id := range m.removedreports {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ReportsIDs returns the "reports" edge IDs in the mutation.
+func (m *GroupChatMutation) ReportsIDs() (ids []uuid.UUID) {
+	for id := range m.reports {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetReports resets all changes to the "reports" edge.
+func (m *GroupChatMutation) ResetReports() {
+	m.reports = nil
+	m.clearedreports = false
+	m.removedreports = nil
+}
+
 // Where appends a list predicates to the GroupChatMutation builder.
 func (m *GroupChatMutation) Where(ps ...predicate.GroupChat) {
 	m.predicates = append(m.predicates, ps...)
@@ -1681,7 +1740,7 @@ func (m *GroupChatMutation) ResetField(name string) error {
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *GroupChatMutation) AddedEdges() []string {
-	edges := make([]string, 0, 4)
+	edges := make([]string, 0, 5)
 	if m.avatar != nil {
 		edges = append(edges, groupchat.EdgeAvatar)
 	}
@@ -1693,6 +1752,9 @@ func (m *GroupChatMutation) AddedEdges() []string {
 	}
 	if m.members != nil {
 		edges = append(edges, groupchat.EdgeMembers)
+	}
+	if m.reports != nil {
+		edges = append(edges, groupchat.EdgeReports)
 	}
 	return edges
 }
@@ -1719,15 +1781,24 @@ func (m *GroupChatMutation) AddedIDs(name string) []ent.Value {
 			ids = append(ids, id)
 		}
 		return ids
+	case groupchat.EdgeReports:
+		ids := make([]ent.Value, 0, len(m.reports))
+		for id := range m.reports {
+			ids = append(ids, id)
+		}
+		return ids
 	}
 	return nil
 }
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *GroupChatMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 4)
+	edges := make([]string, 0, 5)
 	if m.removedmembers != nil {
 		edges = append(edges, groupchat.EdgeMembers)
+	}
+	if m.removedreports != nil {
+		edges = append(edges, groupchat.EdgeReports)
 	}
 	return edges
 }
@@ -1742,13 +1813,19 @@ func (m *GroupChatMutation) RemovedIDs(name string) []ent.Value {
 			ids = append(ids, id)
 		}
 		return ids
+	case groupchat.EdgeReports:
+		ids := make([]ent.Value, 0, len(m.removedreports))
+		for id := range m.removedreports {
+			ids = append(ids, id)
+		}
+		return ids
 	}
 	return nil
 }
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *GroupChatMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 4)
+	edges := make([]string, 0, 5)
 	if m.clearedavatar {
 		edges = append(edges, groupchat.EdgeAvatar)
 	}
@@ -1760,6 +1837,9 @@ func (m *GroupChatMutation) ClearedEdges() []string {
 	}
 	if m.clearedmembers {
 		edges = append(edges, groupchat.EdgeMembers)
+	}
+	if m.clearedreports {
+		edges = append(edges, groupchat.EdgeReports)
 	}
 	return edges
 }
@@ -1776,6 +1856,8 @@ func (m *GroupChatMutation) EdgeCleared(name string) bool {
 		return m.clearedcreator
 	case groupchat.EdgeMembers:
 		return m.clearedmembers
+	case groupchat.EdgeReports:
+		return m.clearedreports
 	}
 	return false
 }
@@ -1812,6 +1894,9 @@ func (m *GroupChatMutation) ResetEdge(name string) error {
 		return nil
 	case groupchat.EdgeMembers:
 		m.ResetMembers()
+		return nil
+	case groupchat.EdgeReports:
+		m.ResetReports()
 		return nil
 	}
 	return fmt.Errorf("unknown GroupChat edge %s", name)
@@ -2600,6 +2685,9 @@ type MediaMutation struct {
 	clearedgroup_avatar bool
 	uploader            *uuid.UUID
 	cleareduploader     bool
+	reports             map[uuid.UUID]struct{}
+	removedreports      map[uuid.UUID]struct{}
+	clearedreports      bool
 	done                bool
 	oldValue            func(context.Context) (*Media, error)
 	predicates          []predicate.Media
@@ -3211,6 +3299,60 @@ func (m *MediaMutation) ResetUploader() {
 	m.cleareduploader = false
 }
 
+// AddReportIDs adds the "reports" edge to the Report entity by ids.
+func (m *MediaMutation) AddReportIDs(ids ...uuid.UUID) {
+	if m.reports == nil {
+		m.reports = make(map[uuid.UUID]struct{})
+	}
+	for i := range ids {
+		m.reports[ids[i]] = struct{}{}
+	}
+}
+
+// ClearReports clears the "reports" edge to the Report entity.
+func (m *MediaMutation) ClearReports() {
+	m.clearedreports = true
+}
+
+// ReportsCleared reports if the "reports" edge to the Report entity was cleared.
+func (m *MediaMutation) ReportsCleared() bool {
+	return m.clearedreports
+}
+
+// RemoveReportIDs removes the "reports" edge to the Report entity by IDs.
+func (m *MediaMutation) RemoveReportIDs(ids ...uuid.UUID) {
+	if m.removedreports == nil {
+		m.removedreports = make(map[uuid.UUID]struct{})
+	}
+	for i := range ids {
+		delete(m.reports, ids[i])
+		m.removedreports[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedReports returns the removed IDs of the "reports" edge to the Report entity.
+func (m *MediaMutation) RemovedReportsIDs() (ids []uuid.UUID) {
+	for id := range m.removedreports {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ReportsIDs returns the "reports" edge IDs in the mutation.
+func (m *MediaMutation) ReportsIDs() (ids []uuid.UUID) {
+	for id := range m.reports {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetReports resets all changes to the "reports" edge.
+func (m *MediaMutation) ResetReports() {
+	m.reports = nil
+	m.clearedreports = false
+	m.removedreports = nil
+}
+
 // Where appends a list predicates to the MediaMutation builder.
 func (m *MediaMutation) Where(ps ...predicate.Media) {
 	m.predicates = append(m.predicates, ps...)
@@ -3504,7 +3646,7 @@ func (m *MediaMutation) ResetField(name string) error {
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *MediaMutation) AddedEdges() []string {
-	edges := make([]string, 0, 4)
+	edges := make([]string, 0, 5)
 	if m.message != nil {
 		edges = append(edges, media.EdgeMessage)
 	}
@@ -3516,6 +3658,9 @@ func (m *MediaMutation) AddedEdges() []string {
 	}
 	if m.uploader != nil {
 		edges = append(edges, media.EdgeUploader)
+	}
+	if m.reports != nil {
+		edges = append(edges, media.EdgeReports)
 	}
 	return edges
 }
@@ -3540,25 +3685,42 @@ func (m *MediaMutation) AddedIDs(name string) []ent.Value {
 		if id := m.uploader; id != nil {
 			return []ent.Value{*id}
 		}
+	case media.EdgeReports:
+		ids := make([]ent.Value, 0, len(m.reports))
+		for id := range m.reports {
+			ids = append(ids, id)
+		}
+		return ids
 	}
 	return nil
 }
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *MediaMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 4)
+	edges := make([]string, 0, 5)
+	if m.removedreports != nil {
+		edges = append(edges, media.EdgeReports)
+	}
 	return edges
 }
 
 // RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
 // the given name in this mutation.
 func (m *MediaMutation) RemovedIDs(name string) []ent.Value {
+	switch name {
+	case media.EdgeReports:
+		ids := make([]ent.Value, 0, len(m.removedreports))
+		for id := range m.removedreports {
+			ids = append(ids, id)
+		}
+		return ids
+	}
 	return nil
 }
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *MediaMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 4)
+	edges := make([]string, 0, 5)
 	if m.clearedmessage {
 		edges = append(edges, media.EdgeMessage)
 	}
@@ -3570,6 +3732,9 @@ func (m *MediaMutation) ClearedEdges() []string {
 	}
 	if m.cleareduploader {
 		edges = append(edges, media.EdgeUploader)
+	}
+	if m.clearedreports {
+		edges = append(edges, media.EdgeReports)
 	}
 	return edges
 }
@@ -3586,6 +3751,8 @@ func (m *MediaMutation) EdgeCleared(name string) bool {
 		return m.clearedgroup_avatar
 	case media.EdgeUploader:
 		return m.cleareduploader
+	case media.EdgeReports:
+		return m.clearedreports
 	}
 	return false
 }
@@ -3626,6 +3793,9 @@ func (m *MediaMutation) ResetEdge(name string) error {
 	case media.EdgeUploader:
 		m.ResetUploader()
 		return nil
+	case media.EdgeReports:
+		m.ResetReports()
+		return nil
 	}
 	return fmt.Errorf("unknown Media edge %s", name)
 }
@@ -3656,6 +3826,9 @@ type MessageMutation struct {
 	attachments        map[uuid.UUID]struct{}
 	removedattachments map[uuid.UUID]struct{}
 	clearedattachments bool
+	reports            map[uuid.UUID]struct{}
+	removedreports     map[uuid.UUID]struct{}
+	clearedreports     bool
 	done               bool
 	oldValue           func(context.Context) (*Message, error)
 	predicates         []predicate.Message
@@ -4392,6 +4565,60 @@ func (m *MessageMutation) ResetAttachments() {
 	m.removedattachments = nil
 }
 
+// AddReportIDs adds the "reports" edge to the Report entity by ids.
+func (m *MessageMutation) AddReportIDs(ids ...uuid.UUID) {
+	if m.reports == nil {
+		m.reports = make(map[uuid.UUID]struct{})
+	}
+	for i := range ids {
+		m.reports[ids[i]] = struct{}{}
+	}
+}
+
+// ClearReports clears the "reports" edge to the Report entity.
+func (m *MessageMutation) ClearReports() {
+	m.clearedreports = true
+}
+
+// ReportsCleared reports if the "reports" edge to the Report entity was cleared.
+func (m *MessageMutation) ReportsCleared() bool {
+	return m.clearedreports
+}
+
+// RemoveReportIDs removes the "reports" edge to the Report entity by IDs.
+func (m *MessageMutation) RemoveReportIDs(ids ...uuid.UUID) {
+	if m.removedreports == nil {
+		m.removedreports = make(map[uuid.UUID]struct{})
+	}
+	for i := range ids {
+		delete(m.reports, ids[i])
+		m.removedreports[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedReports returns the removed IDs of the "reports" edge to the Report entity.
+func (m *MessageMutation) RemovedReportsIDs() (ids []uuid.UUID) {
+	for id := range m.removedreports {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ReportsIDs returns the "reports" edge IDs in the mutation.
+func (m *MessageMutation) ReportsIDs() (ids []uuid.UUID) {
+	for id := range m.reports {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetReports resets all changes to the "reports" edge.
+func (m *MessageMutation) ResetReports() {
+	m.reports = nil
+	m.clearedreports = false
+	m.removedreports = nil
+}
+
 // Where appends a list predicates to the MessageMutation builder.
 func (m *MessageMutation) Where(ps ...predicate.Message) {
 	m.predicates = append(m.predicates, ps...)
@@ -4717,7 +4944,7 @@ func (m *MessageMutation) ResetField(name string) error {
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *MessageMutation) AddedEdges() []string {
-	edges := make([]string, 0, 5)
+	edges := make([]string, 0, 6)
 	if m.chat != nil {
 		edges = append(edges, message.EdgeChat)
 	}
@@ -4732,6 +4959,9 @@ func (m *MessageMutation) AddedEdges() []string {
 	}
 	if m.attachments != nil {
 		edges = append(edges, message.EdgeAttachments)
+	}
+	if m.reports != nil {
+		edges = append(edges, message.EdgeReports)
 	}
 	return edges
 }
@@ -4764,18 +4994,27 @@ func (m *MessageMutation) AddedIDs(name string) []ent.Value {
 			ids = append(ids, id)
 		}
 		return ids
+	case message.EdgeReports:
+		ids := make([]ent.Value, 0, len(m.reports))
+		for id := range m.reports {
+			ids = append(ids, id)
+		}
+		return ids
 	}
 	return nil
 }
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *MessageMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 5)
+	edges := make([]string, 0, 6)
 	if m.removedreplies != nil {
 		edges = append(edges, message.EdgeReplies)
 	}
 	if m.removedattachments != nil {
 		edges = append(edges, message.EdgeAttachments)
+	}
+	if m.removedreports != nil {
+		edges = append(edges, message.EdgeReports)
 	}
 	return edges
 }
@@ -4796,13 +5035,19 @@ func (m *MessageMutation) RemovedIDs(name string) []ent.Value {
 			ids = append(ids, id)
 		}
 		return ids
+	case message.EdgeReports:
+		ids := make([]ent.Value, 0, len(m.removedreports))
+		for id := range m.removedreports {
+			ids = append(ids, id)
+		}
+		return ids
 	}
 	return nil
 }
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *MessageMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 5)
+	edges := make([]string, 0, 6)
 	if m.clearedchat {
 		edges = append(edges, message.EdgeChat)
 	}
@@ -4817,6 +5062,9 @@ func (m *MessageMutation) ClearedEdges() []string {
 	}
 	if m.clearedattachments {
 		edges = append(edges, message.EdgeAttachments)
+	}
+	if m.clearedreports {
+		edges = append(edges, message.EdgeReports)
 	}
 	return edges
 }
@@ -4835,6 +5083,8 @@ func (m *MessageMutation) EdgeCleared(name string) bool {
 		return m.clearedreply_to
 	case message.EdgeAttachments:
 		return m.clearedattachments
+	case message.EdgeReports:
+		return m.clearedreports
 	}
 	return false
 }
@@ -4874,6 +5124,9 @@ func (m *MessageMutation) ResetEdge(name string) error {
 		return nil
 	case message.EdgeAttachments:
 		m.ResetAttachments()
+		return nil
+	case message.EdgeReports:
+		m.ResetReports()
 		return nil
 	}
 	return fmt.Errorf("unknown Message edge %s", name)
@@ -6539,6 +6792,1253 @@ func (m *PrivateChatMutation) ResetEdge(name string) error {
 	return fmt.Errorf("unknown PrivateChat edge %s", name)
 }
 
+// ReportMutation represents an operation that mutates the Report nodes in the graph.
+type ReportMutation struct {
+	config
+	op                    Op
+	typ                   string
+	id                    *uuid.UUID
+	target_type           *report.TargetType
+	reason                *string
+	description           *string
+	evidence_snapshot     *map[string]interface{}
+	status                *report.Status
+	created_at            *time.Time
+	updated_at            *time.Time
+	clearedFields         map[string]struct{}
+	reporter              *uuid.UUID
+	clearedreporter       bool
+	message               *uuid.UUID
+	clearedmessage        bool
+	group                 *uuid.UUID
+	clearedgroup          bool
+	target_user           *uuid.UUID
+	clearedtarget_user    bool
+	evidence_media        map[uuid.UUID]struct{}
+	removedevidence_media map[uuid.UUID]struct{}
+	clearedevidence_media bool
+	done                  bool
+	oldValue              func(context.Context) (*Report, error)
+	predicates            []predicate.Report
+}
+
+var _ ent.Mutation = (*ReportMutation)(nil)
+
+// reportOption allows management of the mutation configuration using functional options.
+type reportOption func(*ReportMutation)
+
+// newReportMutation creates new mutation for the Report entity.
+func newReportMutation(c config, op Op, opts ...reportOption) *ReportMutation {
+	m := &ReportMutation{
+		config:        c,
+		op:            op,
+		typ:           TypeReport,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withReportID sets the ID field of the mutation.
+func withReportID(id uuid.UUID) reportOption {
+	return func(m *ReportMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *Report
+		)
+		m.oldValue = func(ctx context.Context) (*Report, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().Report.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withReport sets the old Report of the mutation.
+func withReport(node *Report) reportOption {
+	return func(m *ReportMutation) {
+		m.oldValue = func(context.Context) (*Report, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m ReportMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m ReportMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("ent: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// SetID sets the value of the id field. Note that this
+// operation is only accepted on creation of Report entities.
+func (m *ReportMutation) SetID(id uuid.UUID) {
+	m.id = &id
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *ReportMutation) ID() (id uuid.UUID, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *ReportMutation) IDs(ctx context.Context) ([]uuid.UUID, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []uuid.UUID{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().Report.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetTargetType sets the "target_type" field.
+func (m *ReportMutation) SetTargetType(rt report.TargetType) {
+	m.target_type = &rt
+}
+
+// TargetType returns the value of the "target_type" field in the mutation.
+func (m *ReportMutation) TargetType() (r report.TargetType, exists bool) {
+	v := m.target_type
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldTargetType returns the old "target_type" field's value of the Report entity.
+// If the Report object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ReportMutation) OldTargetType(ctx context.Context) (v report.TargetType, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldTargetType is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldTargetType requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldTargetType: %w", err)
+	}
+	return oldValue.TargetType, nil
+}
+
+// ResetTargetType resets all changes to the "target_type" field.
+func (m *ReportMutation) ResetTargetType() {
+	m.target_type = nil
+}
+
+// SetReason sets the "reason" field.
+func (m *ReportMutation) SetReason(s string) {
+	m.reason = &s
+}
+
+// Reason returns the value of the "reason" field in the mutation.
+func (m *ReportMutation) Reason() (r string, exists bool) {
+	v := m.reason
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldReason returns the old "reason" field's value of the Report entity.
+// If the Report object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ReportMutation) OldReason(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldReason is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldReason requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldReason: %w", err)
+	}
+	return oldValue.Reason, nil
+}
+
+// ResetReason resets all changes to the "reason" field.
+func (m *ReportMutation) ResetReason() {
+	m.reason = nil
+}
+
+// SetDescription sets the "description" field.
+func (m *ReportMutation) SetDescription(s string) {
+	m.description = &s
+}
+
+// Description returns the value of the "description" field in the mutation.
+func (m *ReportMutation) Description() (r string, exists bool) {
+	v := m.description
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldDescription returns the old "description" field's value of the Report entity.
+// If the Report object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ReportMutation) OldDescription(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldDescription is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldDescription requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDescription: %w", err)
+	}
+	return oldValue.Description, nil
+}
+
+// ClearDescription clears the value of the "description" field.
+func (m *ReportMutation) ClearDescription() {
+	m.description = nil
+	m.clearedFields[report.FieldDescription] = struct{}{}
+}
+
+// DescriptionCleared returns if the "description" field was cleared in this mutation.
+func (m *ReportMutation) DescriptionCleared() bool {
+	_, ok := m.clearedFields[report.FieldDescription]
+	return ok
+}
+
+// ResetDescription resets all changes to the "description" field.
+func (m *ReportMutation) ResetDescription() {
+	m.description = nil
+	delete(m.clearedFields, report.FieldDescription)
+}
+
+// SetEvidenceSnapshot sets the "evidence_snapshot" field.
+func (m *ReportMutation) SetEvidenceSnapshot(value map[string]interface{}) {
+	m.evidence_snapshot = &value
+}
+
+// EvidenceSnapshot returns the value of the "evidence_snapshot" field in the mutation.
+func (m *ReportMutation) EvidenceSnapshot() (r map[string]interface{}, exists bool) {
+	v := m.evidence_snapshot
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldEvidenceSnapshot returns the old "evidence_snapshot" field's value of the Report entity.
+// If the Report object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ReportMutation) OldEvidenceSnapshot(ctx context.Context) (v map[string]interface{}, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldEvidenceSnapshot is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldEvidenceSnapshot requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldEvidenceSnapshot: %w", err)
+	}
+	return oldValue.EvidenceSnapshot, nil
+}
+
+// ClearEvidenceSnapshot clears the value of the "evidence_snapshot" field.
+func (m *ReportMutation) ClearEvidenceSnapshot() {
+	m.evidence_snapshot = nil
+	m.clearedFields[report.FieldEvidenceSnapshot] = struct{}{}
+}
+
+// EvidenceSnapshotCleared returns if the "evidence_snapshot" field was cleared in this mutation.
+func (m *ReportMutation) EvidenceSnapshotCleared() bool {
+	_, ok := m.clearedFields[report.FieldEvidenceSnapshot]
+	return ok
+}
+
+// ResetEvidenceSnapshot resets all changes to the "evidence_snapshot" field.
+func (m *ReportMutation) ResetEvidenceSnapshot() {
+	m.evidence_snapshot = nil
+	delete(m.clearedFields, report.FieldEvidenceSnapshot)
+}
+
+// SetStatus sets the "status" field.
+func (m *ReportMutation) SetStatus(r report.Status) {
+	m.status = &r
+}
+
+// Status returns the value of the "status" field in the mutation.
+func (m *ReportMutation) Status() (r report.Status, exists bool) {
+	v := m.status
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldStatus returns the old "status" field's value of the Report entity.
+// If the Report object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ReportMutation) OldStatus(ctx context.Context) (v report.Status, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldStatus is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldStatus requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldStatus: %w", err)
+	}
+	return oldValue.Status, nil
+}
+
+// ResetStatus resets all changes to the "status" field.
+func (m *ReportMutation) ResetStatus() {
+	m.status = nil
+}
+
+// SetReporterID sets the "reporter_id" field.
+func (m *ReportMutation) SetReporterID(u uuid.UUID) {
+	m.reporter = &u
+}
+
+// ReporterID returns the value of the "reporter_id" field in the mutation.
+func (m *ReportMutation) ReporterID() (r uuid.UUID, exists bool) {
+	v := m.reporter
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldReporterID returns the old "reporter_id" field's value of the Report entity.
+// If the Report object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ReportMutation) OldReporterID(ctx context.Context) (v uuid.UUID, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldReporterID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldReporterID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldReporterID: %w", err)
+	}
+	return oldValue.ReporterID, nil
+}
+
+// ResetReporterID resets all changes to the "reporter_id" field.
+func (m *ReportMutation) ResetReporterID() {
+	m.reporter = nil
+}
+
+// SetMessageID sets the "message_id" field.
+func (m *ReportMutation) SetMessageID(u uuid.UUID) {
+	m.message = &u
+}
+
+// MessageID returns the value of the "message_id" field in the mutation.
+func (m *ReportMutation) MessageID() (r uuid.UUID, exists bool) {
+	v := m.message
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldMessageID returns the old "message_id" field's value of the Report entity.
+// If the Report object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ReportMutation) OldMessageID(ctx context.Context) (v *uuid.UUID, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldMessageID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldMessageID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldMessageID: %w", err)
+	}
+	return oldValue.MessageID, nil
+}
+
+// ClearMessageID clears the value of the "message_id" field.
+func (m *ReportMutation) ClearMessageID() {
+	m.message = nil
+	m.clearedFields[report.FieldMessageID] = struct{}{}
+}
+
+// MessageIDCleared returns if the "message_id" field was cleared in this mutation.
+func (m *ReportMutation) MessageIDCleared() bool {
+	_, ok := m.clearedFields[report.FieldMessageID]
+	return ok
+}
+
+// ResetMessageID resets all changes to the "message_id" field.
+func (m *ReportMutation) ResetMessageID() {
+	m.message = nil
+	delete(m.clearedFields, report.FieldMessageID)
+}
+
+// SetGroupID sets the "group_id" field.
+func (m *ReportMutation) SetGroupID(u uuid.UUID) {
+	m.group = &u
+}
+
+// GroupID returns the value of the "group_id" field in the mutation.
+func (m *ReportMutation) GroupID() (r uuid.UUID, exists bool) {
+	v := m.group
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldGroupID returns the old "group_id" field's value of the Report entity.
+// If the Report object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ReportMutation) OldGroupID(ctx context.Context) (v *uuid.UUID, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldGroupID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldGroupID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldGroupID: %w", err)
+	}
+	return oldValue.GroupID, nil
+}
+
+// ClearGroupID clears the value of the "group_id" field.
+func (m *ReportMutation) ClearGroupID() {
+	m.group = nil
+	m.clearedFields[report.FieldGroupID] = struct{}{}
+}
+
+// GroupIDCleared returns if the "group_id" field was cleared in this mutation.
+func (m *ReportMutation) GroupIDCleared() bool {
+	_, ok := m.clearedFields[report.FieldGroupID]
+	return ok
+}
+
+// ResetGroupID resets all changes to the "group_id" field.
+func (m *ReportMutation) ResetGroupID() {
+	m.group = nil
+	delete(m.clearedFields, report.FieldGroupID)
+}
+
+// SetTargetUserID sets the "target_user_id" field.
+func (m *ReportMutation) SetTargetUserID(u uuid.UUID) {
+	m.target_user = &u
+}
+
+// TargetUserID returns the value of the "target_user_id" field in the mutation.
+func (m *ReportMutation) TargetUserID() (r uuid.UUID, exists bool) {
+	v := m.target_user
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldTargetUserID returns the old "target_user_id" field's value of the Report entity.
+// If the Report object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ReportMutation) OldTargetUserID(ctx context.Context) (v *uuid.UUID, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldTargetUserID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldTargetUserID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldTargetUserID: %w", err)
+	}
+	return oldValue.TargetUserID, nil
+}
+
+// ClearTargetUserID clears the value of the "target_user_id" field.
+func (m *ReportMutation) ClearTargetUserID() {
+	m.target_user = nil
+	m.clearedFields[report.FieldTargetUserID] = struct{}{}
+}
+
+// TargetUserIDCleared returns if the "target_user_id" field was cleared in this mutation.
+func (m *ReportMutation) TargetUserIDCleared() bool {
+	_, ok := m.clearedFields[report.FieldTargetUserID]
+	return ok
+}
+
+// ResetTargetUserID resets all changes to the "target_user_id" field.
+func (m *ReportMutation) ResetTargetUserID() {
+	m.target_user = nil
+	delete(m.clearedFields, report.FieldTargetUserID)
+}
+
+// SetCreatedAt sets the "created_at" field.
+func (m *ReportMutation) SetCreatedAt(t time.Time) {
+	m.created_at = &t
+}
+
+// CreatedAt returns the value of the "created_at" field in the mutation.
+func (m *ReportMutation) CreatedAt() (r time.Time, exists bool) {
+	v := m.created_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCreatedAt returns the old "created_at" field's value of the Report entity.
+// If the Report object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ReportMutation) OldCreatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCreatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCreatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCreatedAt: %w", err)
+	}
+	return oldValue.CreatedAt, nil
+}
+
+// ResetCreatedAt resets all changes to the "created_at" field.
+func (m *ReportMutation) ResetCreatedAt() {
+	m.created_at = nil
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (m *ReportMutation) SetUpdatedAt(t time.Time) {
+	m.updated_at = &t
+}
+
+// UpdatedAt returns the value of the "updated_at" field in the mutation.
+func (m *ReportMutation) UpdatedAt() (r time.Time, exists bool) {
+	v := m.updated_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldUpdatedAt returns the old "updated_at" field's value of the Report entity.
+// If the Report object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ReportMutation) OldUpdatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldUpdatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldUpdatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldUpdatedAt: %w", err)
+	}
+	return oldValue.UpdatedAt, nil
+}
+
+// ResetUpdatedAt resets all changes to the "updated_at" field.
+func (m *ReportMutation) ResetUpdatedAt() {
+	m.updated_at = nil
+}
+
+// ClearReporter clears the "reporter" edge to the User entity.
+func (m *ReportMutation) ClearReporter() {
+	m.clearedreporter = true
+	m.clearedFields[report.FieldReporterID] = struct{}{}
+}
+
+// ReporterCleared reports if the "reporter" edge to the User entity was cleared.
+func (m *ReportMutation) ReporterCleared() bool {
+	return m.clearedreporter
+}
+
+// ReporterIDs returns the "reporter" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// ReporterID instead. It exists only for internal usage by the builders.
+func (m *ReportMutation) ReporterIDs() (ids []uuid.UUID) {
+	if id := m.reporter; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetReporter resets all changes to the "reporter" edge.
+func (m *ReportMutation) ResetReporter() {
+	m.reporter = nil
+	m.clearedreporter = false
+}
+
+// ClearMessage clears the "message" edge to the Message entity.
+func (m *ReportMutation) ClearMessage() {
+	m.clearedmessage = true
+	m.clearedFields[report.FieldMessageID] = struct{}{}
+}
+
+// MessageCleared reports if the "message" edge to the Message entity was cleared.
+func (m *ReportMutation) MessageCleared() bool {
+	return m.MessageIDCleared() || m.clearedmessage
+}
+
+// MessageIDs returns the "message" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// MessageID instead. It exists only for internal usage by the builders.
+func (m *ReportMutation) MessageIDs() (ids []uuid.UUID) {
+	if id := m.message; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetMessage resets all changes to the "message" edge.
+func (m *ReportMutation) ResetMessage() {
+	m.message = nil
+	m.clearedmessage = false
+}
+
+// ClearGroup clears the "group" edge to the GroupChat entity.
+func (m *ReportMutation) ClearGroup() {
+	m.clearedgroup = true
+	m.clearedFields[report.FieldGroupID] = struct{}{}
+}
+
+// GroupCleared reports if the "group" edge to the GroupChat entity was cleared.
+func (m *ReportMutation) GroupCleared() bool {
+	return m.GroupIDCleared() || m.clearedgroup
+}
+
+// GroupIDs returns the "group" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// GroupID instead. It exists only for internal usage by the builders.
+func (m *ReportMutation) GroupIDs() (ids []uuid.UUID) {
+	if id := m.group; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetGroup resets all changes to the "group" edge.
+func (m *ReportMutation) ResetGroup() {
+	m.group = nil
+	m.clearedgroup = false
+}
+
+// ClearTargetUser clears the "target_user" edge to the User entity.
+func (m *ReportMutation) ClearTargetUser() {
+	m.clearedtarget_user = true
+	m.clearedFields[report.FieldTargetUserID] = struct{}{}
+}
+
+// TargetUserCleared reports if the "target_user" edge to the User entity was cleared.
+func (m *ReportMutation) TargetUserCleared() bool {
+	return m.TargetUserIDCleared() || m.clearedtarget_user
+}
+
+// TargetUserIDs returns the "target_user" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// TargetUserID instead. It exists only for internal usage by the builders.
+func (m *ReportMutation) TargetUserIDs() (ids []uuid.UUID) {
+	if id := m.target_user; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetTargetUser resets all changes to the "target_user" edge.
+func (m *ReportMutation) ResetTargetUser() {
+	m.target_user = nil
+	m.clearedtarget_user = false
+}
+
+// AddEvidenceMediumIDs adds the "evidence_media" edge to the Media entity by ids.
+func (m *ReportMutation) AddEvidenceMediumIDs(ids ...uuid.UUID) {
+	if m.evidence_media == nil {
+		m.evidence_media = make(map[uuid.UUID]struct{})
+	}
+	for i := range ids {
+		m.evidence_media[ids[i]] = struct{}{}
+	}
+}
+
+// ClearEvidenceMedia clears the "evidence_media" edge to the Media entity.
+func (m *ReportMutation) ClearEvidenceMedia() {
+	m.clearedevidence_media = true
+}
+
+// EvidenceMediaCleared reports if the "evidence_media" edge to the Media entity was cleared.
+func (m *ReportMutation) EvidenceMediaCleared() bool {
+	return m.clearedevidence_media
+}
+
+// RemoveEvidenceMediumIDs removes the "evidence_media" edge to the Media entity by IDs.
+func (m *ReportMutation) RemoveEvidenceMediumIDs(ids ...uuid.UUID) {
+	if m.removedevidence_media == nil {
+		m.removedevidence_media = make(map[uuid.UUID]struct{})
+	}
+	for i := range ids {
+		delete(m.evidence_media, ids[i])
+		m.removedevidence_media[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedEvidenceMedia returns the removed IDs of the "evidence_media" edge to the Media entity.
+func (m *ReportMutation) RemovedEvidenceMediaIDs() (ids []uuid.UUID) {
+	for id := range m.removedevidence_media {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// EvidenceMediaIDs returns the "evidence_media" edge IDs in the mutation.
+func (m *ReportMutation) EvidenceMediaIDs() (ids []uuid.UUID) {
+	for id := range m.evidence_media {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetEvidenceMedia resets all changes to the "evidence_media" edge.
+func (m *ReportMutation) ResetEvidenceMedia() {
+	m.evidence_media = nil
+	m.clearedevidence_media = false
+	m.removedevidence_media = nil
+}
+
+// Where appends a list predicates to the ReportMutation builder.
+func (m *ReportMutation) Where(ps ...predicate.Report) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the ReportMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *ReportMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.Report, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *ReportMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *ReportMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (Report).
+func (m *ReportMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *ReportMutation) Fields() []string {
+	fields := make([]string, 0, 11)
+	if m.target_type != nil {
+		fields = append(fields, report.FieldTargetType)
+	}
+	if m.reason != nil {
+		fields = append(fields, report.FieldReason)
+	}
+	if m.description != nil {
+		fields = append(fields, report.FieldDescription)
+	}
+	if m.evidence_snapshot != nil {
+		fields = append(fields, report.FieldEvidenceSnapshot)
+	}
+	if m.status != nil {
+		fields = append(fields, report.FieldStatus)
+	}
+	if m.reporter != nil {
+		fields = append(fields, report.FieldReporterID)
+	}
+	if m.message != nil {
+		fields = append(fields, report.FieldMessageID)
+	}
+	if m.group != nil {
+		fields = append(fields, report.FieldGroupID)
+	}
+	if m.target_user != nil {
+		fields = append(fields, report.FieldTargetUserID)
+	}
+	if m.created_at != nil {
+		fields = append(fields, report.FieldCreatedAt)
+	}
+	if m.updated_at != nil {
+		fields = append(fields, report.FieldUpdatedAt)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *ReportMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case report.FieldTargetType:
+		return m.TargetType()
+	case report.FieldReason:
+		return m.Reason()
+	case report.FieldDescription:
+		return m.Description()
+	case report.FieldEvidenceSnapshot:
+		return m.EvidenceSnapshot()
+	case report.FieldStatus:
+		return m.Status()
+	case report.FieldReporterID:
+		return m.ReporterID()
+	case report.FieldMessageID:
+		return m.MessageID()
+	case report.FieldGroupID:
+		return m.GroupID()
+	case report.FieldTargetUserID:
+		return m.TargetUserID()
+	case report.FieldCreatedAt:
+		return m.CreatedAt()
+	case report.FieldUpdatedAt:
+		return m.UpdatedAt()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *ReportMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case report.FieldTargetType:
+		return m.OldTargetType(ctx)
+	case report.FieldReason:
+		return m.OldReason(ctx)
+	case report.FieldDescription:
+		return m.OldDescription(ctx)
+	case report.FieldEvidenceSnapshot:
+		return m.OldEvidenceSnapshot(ctx)
+	case report.FieldStatus:
+		return m.OldStatus(ctx)
+	case report.FieldReporterID:
+		return m.OldReporterID(ctx)
+	case report.FieldMessageID:
+		return m.OldMessageID(ctx)
+	case report.FieldGroupID:
+		return m.OldGroupID(ctx)
+	case report.FieldTargetUserID:
+		return m.OldTargetUserID(ctx)
+	case report.FieldCreatedAt:
+		return m.OldCreatedAt(ctx)
+	case report.FieldUpdatedAt:
+		return m.OldUpdatedAt(ctx)
+	}
+	return nil, fmt.Errorf("unknown Report field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *ReportMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case report.FieldTargetType:
+		v, ok := value.(report.TargetType)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetTargetType(v)
+		return nil
+	case report.FieldReason:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetReason(v)
+		return nil
+	case report.FieldDescription:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetDescription(v)
+		return nil
+	case report.FieldEvidenceSnapshot:
+		v, ok := value.(map[string]interface{})
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetEvidenceSnapshot(v)
+		return nil
+	case report.FieldStatus:
+		v, ok := value.(report.Status)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetStatus(v)
+		return nil
+	case report.FieldReporterID:
+		v, ok := value.(uuid.UUID)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetReporterID(v)
+		return nil
+	case report.FieldMessageID:
+		v, ok := value.(uuid.UUID)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetMessageID(v)
+		return nil
+	case report.FieldGroupID:
+		v, ok := value.(uuid.UUID)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetGroupID(v)
+		return nil
+	case report.FieldTargetUserID:
+		v, ok := value.(uuid.UUID)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetTargetUserID(v)
+		return nil
+	case report.FieldCreatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCreatedAt(v)
+		return nil
+	case report.FieldUpdatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetUpdatedAt(v)
+		return nil
+	}
+	return fmt.Errorf("unknown Report field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *ReportMutation) AddedFields() []string {
+	return nil
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *ReportMutation) AddedField(name string) (ent.Value, bool) {
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *ReportMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	}
+	return fmt.Errorf("unknown Report numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *ReportMutation) ClearedFields() []string {
+	var fields []string
+	if m.FieldCleared(report.FieldDescription) {
+		fields = append(fields, report.FieldDescription)
+	}
+	if m.FieldCleared(report.FieldEvidenceSnapshot) {
+		fields = append(fields, report.FieldEvidenceSnapshot)
+	}
+	if m.FieldCleared(report.FieldMessageID) {
+		fields = append(fields, report.FieldMessageID)
+	}
+	if m.FieldCleared(report.FieldGroupID) {
+		fields = append(fields, report.FieldGroupID)
+	}
+	if m.FieldCleared(report.FieldTargetUserID) {
+		fields = append(fields, report.FieldTargetUserID)
+	}
+	return fields
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *ReportMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *ReportMutation) ClearField(name string) error {
+	switch name {
+	case report.FieldDescription:
+		m.ClearDescription()
+		return nil
+	case report.FieldEvidenceSnapshot:
+		m.ClearEvidenceSnapshot()
+		return nil
+	case report.FieldMessageID:
+		m.ClearMessageID()
+		return nil
+	case report.FieldGroupID:
+		m.ClearGroupID()
+		return nil
+	case report.FieldTargetUserID:
+		m.ClearTargetUserID()
+		return nil
+	}
+	return fmt.Errorf("unknown Report nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *ReportMutation) ResetField(name string) error {
+	switch name {
+	case report.FieldTargetType:
+		m.ResetTargetType()
+		return nil
+	case report.FieldReason:
+		m.ResetReason()
+		return nil
+	case report.FieldDescription:
+		m.ResetDescription()
+		return nil
+	case report.FieldEvidenceSnapshot:
+		m.ResetEvidenceSnapshot()
+		return nil
+	case report.FieldStatus:
+		m.ResetStatus()
+		return nil
+	case report.FieldReporterID:
+		m.ResetReporterID()
+		return nil
+	case report.FieldMessageID:
+		m.ResetMessageID()
+		return nil
+	case report.FieldGroupID:
+		m.ResetGroupID()
+		return nil
+	case report.FieldTargetUserID:
+		m.ResetTargetUserID()
+		return nil
+	case report.FieldCreatedAt:
+		m.ResetCreatedAt()
+		return nil
+	case report.FieldUpdatedAt:
+		m.ResetUpdatedAt()
+		return nil
+	}
+	return fmt.Errorf("unknown Report field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *ReportMutation) AddedEdges() []string {
+	edges := make([]string, 0, 5)
+	if m.reporter != nil {
+		edges = append(edges, report.EdgeReporter)
+	}
+	if m.message != nil {
+		edges = append(edges, report.EdgeMessage)
+	}
+	if m.group != nil {
+		edges = append(edges, report.EdgeGroup)
+	}
+	if m.target_user != nil {
+		edges = append(edges, report.EdgeTargetUser)
+	}
+	if m.evidence_media != nil {
+		edges = append(edges, report.EdgeEvidenceMedia)
+	}
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *ReportMutation) AddedIDs(name string) []ent.Value {
+	switch name {
+	case report.EdgeReporter:
+		if id := m.reporter; id != nil {
+			return []ent.Value{*id}
+		}
+	case report.EdgeMessage:
+		if id := m.message; id != nil {
+			return []ent.Value{*id}
+		}
+	case report.EdgeGroup:
+		if id := m.group; id != nil {
+			return []ent.Value{*id}
+		}
+	case report.EdgeTargetUser:
+		if id := m.target_user; id != nil {
+			return []ent.Value{*id}
+		}
+	case report.EdgeEvidenceMedia:
+		ids := make([]ent.Value, 0, len(m.evidence_media))
+		for id := range m.evidence_media {
+			ids = append(ids, id)
+		}
+		return ids
+	}
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *ReportMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 5)
+	if m.removedevidence_media != nil {
+		edges = append(edges, report.EdgeEvidenceMedia)
+	}
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *ReportMutation) RemovedIDs(name string) []ent.Value {
+	switch name {
+	case report.EdgeEvidenceMedia:
+		ids := make([]ent.Value, 0, len(m.removedevidence_media))
+		for id := range m.removedevidence_media {
+			ids = append(ids, id)
+		}
+		return ids
+	}
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *ReportMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 5)
+	if m.clearedreporter {
+		edges = append(edges, report.EdgeReporter)
+	}
+	if m.clearedmessage {
+		edges = append(edges, report.EdgeMessage)
+	}
+	if m.clearedgroup {
+		edges = append(edges, report.EdgeGroup)
+	}
+	if m.clearedtarget_user {
+		edges = append(edges, report.EdgeTargetUser)
+	}
+	if m.clearedevidence_media {
+		edges = append(edges, report.EdgeEvidenceMedia)
+	}
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *ReportMutation) EdgeCleared(name string) bool {
+	switch name {
+	case report.EdgeReporter:
+		return m.clearedreporter
+	case report.EdgeMessage:
+		return m.clearedmessage
+	case report.EdgeGroup:
+		return m.clearedgroup
+	case report.EdgeTargetUser:
+		return m.clearedtarget_user
+	case report.EdgeEvidenceMedia:
+		return m.clearedevidence_media
+	}
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *ReportMutation) ClearEdge(name string) error {
+	switch name {
+	case report.EdgeReporter:
+		m.ClearReporter()
+		return nil
+	case report.EdgeMessage:
+		m.ClearMessage()
+		return nil
+	case report.EdgeGroup:
+		m.ClearGroup()
+		return nil
+	case report.EdgeTargetUser:
+		m.ClearTargetUser()
+		return nil
+	}
+	return fmt.Errorf("unknown Report unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *ReportMutation) ResetEdge(name string) error {
+	switch name {
+	case report.EdgeReporter:
+		m.ResetReporter()
+		return nil
+	case report.EdgeMessage:
+		m.ResetMessage()
+		return nil
+	case report.EdgeGroup:
+		m.ResetGroup()
+		return nil
+	case report.EdgeTargetUser:
+		m.ResetTargetUser()
+		return nil
+	case report.EdgeEvidenceMedia:
+		m.ResetEvidenceMedia()
+		return nil
+	}
+	return fmt.Errorf("unknown Report edge %s", name)
+}
+
 // UserMutation represents an operation that mutates the User nodes in the graph.
 type UserMutation struct {
 	config
@@ -6555,6 +8055,10 @@ type UserMutation struct {
 	is_online                     *bool
 	last_seen_at                  *time.Time
 	deleted_at                    *time.Time
+	role                          *user.Role
+	is_banned                     *bool
+	banned_until                  *time.Time
+	ban_reason                    *string
 	clearedFields                 map[string]struct{}
 	avatar                        *uuid.UUID
 	clearedavatar                 bool
@@ -6585,6 +8089,12 @@ type UserMutation struct {
 	blocked_by_rel                map[uuid.UUID]struct{}
 	removedblocked_by_rel         map[uuid.UUID]struct{}
 	clearedblocked_by_rel         bool
+	reports_made                  map[uuid.UUID]struct{}
+	removedreports_made           map[uuid.UUID]struct{}
+	clearedreports_made           bool
+	reports_received              map[uuid.UUID]struct{}
+	removedreports_received       map[uuid.UUID]struct{}
+	clearedreports_received       bool
 	done                          bool
 	oldValue                      func(context.Context) (*User, error)
 	predicates                    []predicate.User
@@ -7194,6 +8704,176 @@ func (m *UserMutation) ResetDeletedAt() {
 	delete(m.clearedFields, user.FieldDeletedAt)
 }
 
+// SetRole sets the "role" field.
+func (m *UserMutation) SetRole(u user.Role) {
+	m.role = &u
+}
+
+// Role returns the value of the "role" field in the mutation.
+func (m *UserMutation) Role() (r user.Role, exists bool) {
+	v := m.role
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldRole returns the old "role" field's value of the User entity.
+// If the User object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *UserMutation) OldRole(ctx context.Context) (v user.Role, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldRole is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldRole requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldRole: %w", err)
+	}
+	return oldValue.Role, nil
+}
+
+// ResetRole resets all changes to the "role" field.
+func (m *UserMutation) ResetRole() {
+	m.role = nil
+}
+
+// SetIsBanned sets the "is_banned" field.
+func (m *UserMutation) SetIsBanned(b bool) {
+	m.is_banned = &b
+}
+
+// IsBanned returns the value of the "is_banned" field in the mutation.
+func (m *UserMutation) IsBanned() (r bool, exists bool) {
+	v := m.is_banned
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldIsBanned returns the old "is_banned" field's value of the User entity.
+// If the User object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *UserMutation) OldIsBanned(ctx context.Context) (v bool, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldIsBanned is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldIsBanned requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldIsBanned: %w", err)
+	}
+	return oldValue.IsBanned, nil
+}
+
+// ResetIsBanned resets all changes to the "is_banned" field.
+func (m *UserMutation) ResetIsBanned() {
+	m.is_banned = nil
+}
+
+// SetBannedUntil sets the "banned_until" field.
+func (m *UserMutation) SetBannedUntil(t time.Time) {
+	m.banned_until = &t
+}
+
+// BannedUntil returns the value of the "banned_until" field in the mutation.
+func (m *UserMutation) BannedUntil() (r time.Time, exists bool) {
+	v := m.banned_until
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldBannedUntil returns the old "banned_until" field's value of the User entity.
+// If the User object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *UserMutation) OldBannedUntil(ctx context.Context) (v *time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldBannedUntil is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldBannedUntil requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldBannedUntil: %w", err)
+	}
+	return oldValue.BannedUntil, nil
+}
+
+// ClearBannedUntil clears the value of the "banned_until" field.
+func (m *UserMutation) ClearBannedUntil() {
+	m.banned_until = nil
+	m.clearedFields[user.FieldBannedUntil] = struct{}{}
+}
+
+// BannedUntilCleared returns if the "banned_until" field was cleared in this mutation.
+func (m *UserMutation) BannedUntilCleared() bool {
+	_, ok := m.clearedFields[user.FieldBannedUntil]
+	return ok
+}
+
+// ResetBannedUntil resets all changes to the "banned_until" field.
+func (m *UserMutation) ResetBannedUntil() {
+	m.banned_until = nil
+	delete(m.clearedFields, user.FieldBannedUntil)
+}
+
+// SetBanReason sets the "ban_reason" field.
+func (m *UserMutation) SetBanReason(s string) {
+	m.ban_reason = &s
+}
+
+// BanReason returns the value of the "ban_reason" field in the mutation.
+func (m *UserMutation) BanReason() (r string, exists bool) {
+	v := m.ban_reason
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldBanReason returns the old "ban_reason" field's value of the User entity.
+// If the User object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *UserMutation) OldBanReason(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldBanReason is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldBanReason requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldBanReason: %w", err)
+	}
+	return oldValue.BanReason, nil
+}
+
+// ClearBanReason clears the value of the "ban_reason" field.
+func (m *UserMutation) ClearBanReason() {
+	m.ban_reason = nil
+	m.clearedFields[user.FieldBanReason] = struct{}{}
+}
+
+// BanReasonCleared returns if the "ban_reason" field was cleared in this mutation.
+func (m *UserMutation) BanReasonCleared() bool {
+	_, ok := m.clearedFields[user.FieldBanReason]
+	return ok
+}
+
+// ResetBanReason resets all changes to the "ban_reason" field.
+func (m *UserMutation) ResetBanReason() {
+	m.ban_reason = nil
+	delete(m.clearedFields, user.FieldBanReason)
+}
+
 // ClearAvatar clears the "avatar" edge to the Media entity.
 func (m *UserMutation) ClearAvatar() {
 	m.clearedavatar = true
@@ -7707,6 +9387,114 @@ func (m *UserMutation) ResetBlockedByRel() {
 	m.removedblocked_by_rel = nil
 }
 
+// AddReportsMadeIDs adds the "reports_made" edge to the Report entity by ids.
+func (m *UserMutation) AddReportsMadeIDs(ids ...uuid.UUID) {
+	if m.reports_made == nil {
+		m.reports_made = make(map[uuid.UUID]struct{})
+	}
+	for i := range ids {
+		m.reports_made[ids[i]] = struct{}{}
+	}
+}
+
+// ClearReportsMade clears the "reports_made" edge to the Report entity.
+func (m *UserMutation) ClearReportsMade() {
+	m.clearedreports_made = true
+}
+
+// ReportsMadeCleared reports if the "reports_made" edge to the Report entity was cleared.
+func (m *UserMutation) ReportsMadeCleared() bool {
+	return m.clearedreports_made
+}
+
+// RemoveReportsMadeIDs removes the "reports_made" edge to the Report entity by IDs.
+func (m *UserMutation) RemoveReportsMadeIDs(ids ...uuid.UUID) {
+	if m.removedreports_made == nil {
+		m.removedreports_made = make(map[uuid.UUID]struct{})
+	}
+	for i := range ids {
+		delete(m.reports_made, ids[i])
+		m.removedreports_made[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedReportsMade returns the removed IDs of the "reports_made" edge to the Report entity.
+func (m *UserMutation) RemovedReportsMadeIDs() (ids []uuid.UUID) {
+	for id := range m.removedreports_made {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ReportsMadeIDs returns the "reports_made" edge IDs in the mutation.
+func (m *UserMutation) ReportsMadeIDs() (ids []uuid.UUID) {
+	for id := range m.reports_made {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetReportsMade resets all changes to the "reports_made" edge.
+func (m *UserMutation) ResetReportsMade() {
+	m.reports_made = nil
+	m.clearedreports_made = false
+	m.removedreports_made = nil
+}
+
+// AddReportsReceivedIDs adds the "reports_received" edge to the Report entity by ids.
+func (m *UserMutation) AddReportsReceivedIDs(ids ...uuid.UUID) {
+	if m.reports_received == nil {
+		m.reports_received = make(map[uuid.UUID]struct{})
+	}
+	for i := range ids {
+		m.reports_received[ids[i]] = struct{}{}
+	}
+}
+
+// ClearReportsReceived clears the "reports_received" edge to the Report entity.
+func (m *UserMutation) ClearReportsReceived() {
+	m.clearedreports_received = true
+}
+
+// ReportsReceivedCleared reports if the "reports_received" edge to the Report entity was cleared.
+func (m *UserMutation) ReportsReceivedCleared() bool {
+	return m.clearedreports_received
+}
+
+// RemoveReportsReceivedIDs removes the "reports_received" edge to the Report entity by IDs.
+func (m *UserMutation) RemoveReportsReceivedIDs(ids ...uuid.UUID) {
+	if m.removedreports_received == nil {
+		m.removedreports_received = make(map[uuid.UUID]struct{})
+	}
+	for i := range ids {
+		delete(m.reports_received, ids[i])
+		m.removedreports_received[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedReportsReceived returns the removed IDs of the "reports_received" edge to the Report entity.
+func (m *UserMutation) RemovedReportsReceivedIDs() (ids []uuid.UUID) {
+	for id := range m.removedreports_received {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ReportsReceivedIDs returns the "reports_received" edge IDs in the mutation.
+func (m *UserMutation) ReportsReceivedIDs() (ids []uuid.UUID) {
+	for id := range m.reports_received {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetReportsReceived resets all changes to the "reports_received" edge.
+func (m *UserMutation) ResetReportsReceived() {
+	m.reports_received = nil
+	m.clearedreports_received = false
+	m.removedreports_received = nil
+}
+
 // Where appends a list predicates to the UserMutation builder.
 func (m *UserMutation) Where(ps ...predicate.User) {
 	m.predicates = append(m.predicates, ps...)
@@ -7741,7 +9529,7 @@ func (m *UserMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *UserMutation) Fields() []string {
-	fields := make([]string, 0, 11)
+	fields := make([]string, 0, 15)
 	if m.created_at != nil {
 		fields = append(fields, user.FieldCreatedAt)
 	}
@@ -7775,6 +9563,18 @@ func (m *UserMutation) Fields() []string {
 	if m.deleted_at != nil {
 		fields = append(fields, user.FieldDeletedAt)
 	}
+	if m.role != nil {
+		fields = append(fields, user.FieldRole)
+	}
+	if m.is_banned != nil {
+		fields = append(fields, user.FieldIsBanned)
+	}
+	if m.banned_until != nil {
+		fields = append(fields, user.FieldBannedUntil)
+	}
+	if m.ban_reason != nil {
+		fields = append(fields, user.FieldBanReason)
+	}
 	return fields
 }
 
@@ -7805,6 +9605,14 @@ func (m *UserMutation) Field(name string) (ent.Value, bool) {
 		return m.LastSeenAt()
 	case user.FieldDeletedAt:
 		return m.DeletedAt()
+	case user.FieldRole:
+		return m.Role()
+	case user.FieldIsBanned:
+		return m.IsBanned()
+	case user.FieldBannedUntil:
+		return m.BannedUntil()
+	case user.FieldBanReason:
+		return m.BanReason()
 	}
 	return nil, false
 }
@@ -7836,6 +9644,14 @@ func (m *UserMutation) OldField(ctx context.Context, name string) (ent.Value, er
 		return m.OldLastSeenAt(ctx)
 	case user.FieldDeletedAt:
 		return m.OldDeletedAt(ctx)
+	case user.FieldRole:
+		return m.OldRole(ctx)
+	case user.FieldIsBanned:
+		return m.OldIsBanned(ctx)
+	case user.FieldBannedUntil:
+		return m.OldBannedUntil(ctx)
+	case user.FieldBanReason:
+		return m.OldBanReason(ctx)
 	}
 	return nil, fmt.Errorf("unknown User field %s", name)
 }
@@ -7922,6 +9738,34 @@ func (m *UserMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetDeletedAt(v)
 		return nil
+	case user.FieldRole:
+		v, ok := value.(user.Role)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetRole(v)
+		return nil
+	case user.FieldIsBanned:
+		v, ok := value.(bool)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetIsBanned(v)
+		return nil
+	case user.FieldBannedUntil:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetBannedUntil(v)
+		return nil
+	case user.FieldBanReason:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetBanReason(v)
+		return nil
 	}
 	return fmt.Errorf("unknown User field %s", name)
 }
@@ -7976,6 +9820,12 @@ func (m *UserMutation) ClearedFields() []string {
 	if m.FieldCleared(user.FieldDeletedAt) {
 		fields = append(fields, user.FieldDeletedAt)
 	}
+	if m.FieldCleared(user.FieldBannedUntil) {
+		fields = append(fields, user.FieldBannedUntil)
+	}
+	if m.FieldCleared(user.FieldBanReason) {
+		fields = append(fields, user.FieldBanReason)
+	}
 	return fields
 }
 
@@ -8013,6 +9863,12 @@ func (m *UserMutation) ClearField(name string) error {
 		return nil
 	case user.FieldDeletedAt:
 		m.ClearDeletedAt()
+		return nil
+	case user.FieldBannedUntil:
+		m.ClearBannedUntil()
+		return nil
+	case user.FieldBanReason:
+		m.ClearBanReason()
 		return nil
 	}
 	return fmt.Errorf("unknown User nullable field %s", name)
@@ -8055,13 +9911,25 @@ func (m *UserMutation) ResetField(name string) error {
 	case user.FieldDeletedAt:
 		m.ResetDeletedAt()
 		return nil
+	case user.FieldRole:
+		m.ResetRole()
+		return nil
+	case user.FieldIsBanned:
+		m.ResetIsBanned()
+		return nil
+	case user.FieldBannedUntil:
+		m.ResetBannedUntil()
+		return nil
+	case user.FieldBanReason:
+		m.ResetBanReason()
+		return nil
 	}
 	return fmt.Errorf("unknown User field %s", name)
 }
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *UserMutation) AddedEdges() []string {
-	edges := make([]string, 0, 10)
+	edges := make([]string, 0, 12)
 	if m.avatar != nil {
 		edges = append(edges, user.EdgeAvatar)
 	}
@@ -8091,6 +9959,12 @@ func (m *UserMutation) AddedEdges() []string {
 	}
 	if m.blocked_by_rel != nil {
 		edges = append(edges, user.EdgeBlockedByRel)
+	}
+	if m.reports_made != nil {
+		edges = append(edges, user.EdgeReportsMade)
+	}
+	if m.reports_received != nil {
+		edges = append(edges, user.EdgeReportsReceived)
 	}
 	return edges
 }
@@ -8157,13 +10031,25 @@ func (m *UserMutation) AddedIDs(name string) []ent.Value {
 			ids = append(ids, id)
 		}
 		return ids
+	case user.EdgeReportsMade:
+		ids := make([]ent.Value, 0, len(m.reports_made))
+		for id := range m.reports_made {
+			ids = append(ids, id)
+		}
+		return ids
+	case user.EdgeReportsReceived:
+		ids := make([]ent.Value, 0, len(m.reports_received))
+		for id := range m.reports_received {
+			ids = append(ids, id)
+		}
+		return ids
 	}
 	return nil
 }
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *UserMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 10)
+	edges := make([]string, 0, 12)
 	if m.removedidentities != nil {
 		edges = append(edges, user.EdgeIdentities)
 	}
@@ -8190,6 +10076,12 @@ func (m *UserMutation) RemovedEdges() []string {
 	}
 	if m.removedblocked_by_rel != nil {
 		edges = append(edges, user.EdgeBlockedByRel)
+	}
+	if m.removedreports_made != nil {
+		edges = append(edges, user.EdgeReportsMade)
+	}
+	if m.removedreports_received != nil {
+		edges = append(edges, user.EdgeReportsReceived)
 	}
 	return edges
 }
@@ -8252,13 +10144,25 @@ func (m *UserMutation) RemovedIDs(name string) []ent.Value {
 			ids = append(ids, id)
 		}
 		return ids
+	case user.EdgeReportsMade:
+		ids := make([]ent.Value, 0, len(m.removedreports_made))
+		for id := range m.removedreports_made {
+			ids = append(ids, id)
+		}
+		return ids
+	case user.EdgeReportsReceived:
+		ids := make([]ent.Value, 0, len(m.removedreports_received))
+		for id := range m.removedreports_received {
+			ids = append(ids, id)
+		}
+		return ids
 	}
 	return nil
 }
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *UserMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 10)
+	edges := make([]string, 0, 12)
 	if m.clearedavatar {
 		edges = append(edges, user.EdgeAvatar)
 	}
@@ -8289,6 +10193,12 @@ func (m *UserMutation) ClearedEdges() []string {
 	if m.clearedblocked_by_rel {
 		edges = append(edges, user.EdgeBlockedByRel)
 	}
+	if m.clearedreports_made {
+		edges = append(edges, user.EdgeReportsMade)
+	}
+	if m.clearedreports_received {
+		edges = append(edges, user.EdgeReportsReceived)
+	}
 	return edges
 }
 
@@ -8316,6 +10226,10 @@ func (m *UserMutation) EdgeCleared(name string) bool {
 		return m.clearedblocked_users_rel
 	case user.EdgeBlockedByRel:
 		return m.clearedblocked_by_rel
+	case user.EdgeReportsMade:
+		return m.clearedreports_made
+	case user.EdgeReportsReceived:
+		return m.clearedreports_received
 	}
 	return false
 }
@@ -8364,6 +10278,12 @@ func (m *UserMutation) ResetEdge(name string) error {
 		return nil
 	case user.EdgeBlockedByRel:
 		m.ResetBlockedByRel()
+		return nil
+	case user.EdgeReportsMade:
+		m.ResetReportsMade()
+		return nil
+	case user.EdgeReportsReceived:
+		m.ResetReportsReceived()
 		return nil
 	}
 	return fmt.Errorf("unknown User edge %s", name)

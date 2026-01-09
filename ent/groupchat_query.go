@@ -8,6 +8,7 @@ import (
 	"AtoiTalkAPI/ent/groupmember"
 	"AtoiTalkAPI/ent/media"
 	"AtoiTalkAPI/ent/predicate"
+	"AtoiTalkAPI/ent/report"
 	"AtoiTalkAPI/ent/user"
 	"context"
 	"database/sql/driver"
@@ -33,6 +34,7 @@ type GroupChatQuery struct {
 	withChat    *ChatQuery
 	withCreator *UserQuery
 	withMembers *GroupMemberQuery
+	withReports *ReportQuery
 	modifiers   []func(*sql.Selector)
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
@@ -151,6 +153,28 @@ func (_q *GroupChatQuery) QueryMembers() *GroupMemberQuery {
 			sqlgraph.From(groupchat.Table, groupchat.FieldID, selector),
 			sqlgraph.To(groupmember.Table, groupmember.FieldID),
 			sqlgraph.Edge(sqlgraph.O2M, false, groupchat.MembersTable, groupchat.MembersColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryReports chains the current query on the "reports" edge.
+func (_q *GroupChatQuery) QueryReports() *ReportQuery {
+	query := (&ReportClient{config: _q.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := _q.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := _q.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(groupchat.Table, groupchat.FieldID, selector),
+			sqlgraph.To(report.Table, report.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, true, groupchat.ReportsTable, groupchat.ReportsColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
 		return fromU, nil
@@ -354,6 +378,7 @@ func (_q *GroupChatQuery) Clone() *GroupChatQuery {
 		withChat:    _q.withChat.Clone(),
 		withCreator: _q.withCreator.Clone(),
 		withMembers: _q.withMembers.Clone(),
+		withReports: _q.withReports.Clone(),
 		// clone intermediate query.
 		sql:       _q.sql.Clone(),
 		path:      _q.path,
@@ -402,6 +427,17 @@ func (_q *GroupChatQuery) WithMembers(opts ...func(*GroupMemberQuery)) *GroupCha
 		opt(query)
 	}
 	_q.withMembers = query
+	return _q
+}
+
+// WithReports tells the query-builder to eager-load the nodes that are connected to
+// the "reports" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *GroupChatQuery) WithReports(opts ...func(*ReportQuery)) *GroupChatQuery {
+	query := (&ReportClient{config: _q.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	_q.withReports = query
 	return _q
 }
 
@@ -483,11 +519,12 @@ func (_q *GroupChatQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Gr
 	var (
 		nodes       = []*GroupChat{}
 		_spec       = _q.querySpec()
-		loadedTypes = [4]bool{
+		loadedTypes = [5]bool{
 			_q.withAvatar != nil,
 			_q.withChat != nil,
 			_q.withCreator != nil,
 			_q.withMembers != nil,
+			_q.withReports != nil,
 		}
 	)
 	_spec.ScanValues = func(columns []string) ([]any, error) {
@@ -533,6 +570,13 @@ func (_q *GroupChatQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Gr
 		if err := _q.loadMembers(ctx, query, nodes,
 			func(n *GroupChat) { n.Edges.Members = []*GroupMember{} },
 			func(n *GroupChat, e *GroupMember) { n.Edges.Members = append(n.Edges.Members, e) }); err != nil {
+			return nil, err
+		}
+	}
+	if query := _q.withReports; query != nil {
+		if err := _q.loadReports(ctx, query, nodes,
+			func(n *GroupChat) { n.Edges.Reports = []*Report{} },
+			func(n *GroupChat, e *Report) { n.Edges.Reports = append(n.Edges.Reports, e) }); err != nil {
 			return nil, err
 		}
 	}
@@ -657,6 +701,40 @@ func (_q *GroupChatQuery) loadMembers(ctx context.Context, query *GroupMemberQue
 		node, ok := nodeids[fk]
 		if !ok {
 			return fmt.Errorf(`unexpected referenced foreign-key "group_chat_id" returned %v for node %v`, fk, n.ID)
+		}
+		assign(node, n)
+	}
+	return nil
+}
+func (_q *GroupChatQuery) loadReports(ctx context.Context, query *ReportQuery, nodes []*GroupChat, init func(*GroupChat), assign func(*GroupChat, *Report)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[uuid.UUID]*GroupChat)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+		if init != nil {
+			init(nodes[i])
+		}
+	}
+	query.withFKs = true
+	if len(query.ctx.Fields) > 0 {
+		query.ctx.AppendFieldOnce(report.FieldGroupID)
+	}
+	query.Where(predicate.Report(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(groupchat.ReportsColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.GroupID
+		if fk == nil {
+			return fmt.Errorf(`foreign-key "group_id" is nil for node %v`, n.ID)
+		}
+		node, ok := nodeids[*fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "group_id" returned %v for node %v`, *fk, n.ID)
 		}
 		assign(node, n)
 	}

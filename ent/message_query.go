@@ -7,6 +7,7 @@ import (
 	"AtoiTalkAPI/ent/media"
 	"AtoiTalkAPI/ent/message"
 	"AtoiTalkAPI/ent/predicate"
+	"AtoiTalkAPI/ent/report"
 	"AtoiTalkAPI/ent/user"
 	"context"
 	"database/sql/driver"
@@ -33,6 +34,7 @@ type MessageQuery struct {
 	withReplies     *MessageQuery
 	withReplyTo     *MessageQuery
 	withAttachments *MediaQuery
+	withReports     *ReportQuery
 	modifiers       []func(*sql.Selector)
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
@@ -173,6 +175,28 @@ func (_q *MessageQuery) QueryAttachments() *MediaQuery {
 			sqlgraph.From(message.Table, message.FieldID, selector),
 			sqlgraph.To(media.Table, media.FieldID),
 			sqlgraph.Edge(sqlgraph.O2M, false, message.AttachmentsTable, message.AttachmentsColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryReports chains the current query on the "reports" edge.
+func (_q *MessageQuery) QueryReports() *ReportQuery {
+	query := (&ReportClient{config: _q.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := _q.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := _q.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(message.Table, message.FieldID, selector),
+			sqlgraph.To(report.Table, report.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, true, message.ReportsTable, message.ReportsColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
 		return fromU, nil
@@ -377,6 +401,7 @@ func (_q *MessageQuery) Clone() *MessageQuery {
 		withReplies:     _q.withReplies.Clone(),
 		withReplyTo:     _q.withReplyTo.Clone(),
 		withAttachments: _q.withAttachments.Clone(),
+		withReports:     _q.withReports.Clone(),
 		// clone intermediate query.
 		sql:       _q.sql.Clone(),
 		path:      _q.path,
@@ -436,6 +461,17 @@ func (_q *MessageQuery) WithAttachments(opts ...func(*MediaQuery)) *MessageQuery
 		opt(query)
 	}
 	_q.withAttachments = query
+	return _q
+}
+
+// WithReports tells the query-builder to eager-load the nodes that are connected to
+// the "reports" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *MessageQuery) WithReports(opts ...func(*ReportQuery)) *MessageQuery {
+	query := (&ReportClient{config: _q.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	_q.withReports = query
 	return _q
 }
 
@@ -517,12 +553,13 @@ func (_q *MessageQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Mess
 	var (
 		nodes       = []*Message{}
 		_spec       = _q.querySpec()
-		loadedTypes = [5]bool{
+		loadedTypes = [6]bool{
 			_q.withChat != nil,
 			_q.withSender != nil,
 			_q.withReplies != nil,
 			_q.withReplyTo != nil,
 			_q.withAttachments != nil,
+			_q.withReports != nil,
 		}
 	)
 	_spec.ScanValues = func(columns []string) ([]any, error) {
@@ -575,6 +612,13 @@ func (_q *MessageQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Mess
 		if err := _q.loadAttachments(ctx, query, nodes,
 			func(n *Message) { n.Edges.Attachments = []*Media{} },
 			func(n *Message, e *Media) { n.Edges.Attachments = append(n.Edges.Attachments, e) }); err != nil {
+			return nil, err
+		}
+	}
+	if query := _q.withReports; query != nil {
+		if err := _q.loadReports(ctx, query, nodes,
+			func(n *Message) { n.Edges.Reports = []*Report{} },
+			func(n *Message, e *Report) { n.Edges.Reports = append(n.Edges.Reports, e) }); err != nil {
 			return nil, err
 		}
 	}
@@ -722,6 +766,40 @@ func (_q *MessageQuery) loadAttachments(ctx context.Context, query *MediaQuery, 
 	}
 	query.Where(predicate.Media(func(s *sql.Selector) {
 		s.Where(sql.InValues(s.C(message.AttachmentsColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.MessageID
+		if fk == nil {
+			return fmt.Errorf(`foreign-key "message_id" is nil for node %v`, n.ID)
+		}
+		node, ok := nodeids[*fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "message_id" returned %v for node %v`, *fk, n.ID)
+		}
+		assign(node, n)
+	}
+	return nil
+}
+func (_q *MessageQuery) loadReports(ctx context.Context, query *ReportQuery, nodes []*Message, init func(*Message), assign func(*Message, *Report)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[uuid.UUID]*Message)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+		if init != nil {
+			init(nodes[i])
+		}
+	}
+	query.withFKs = true
+	if len(query.ctx.Fields) > 0 {
+		query.ctx.AppendFieldOnce(report.FieldMessageID)
+	}
+	query.Where(predicate.Report(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(message.ReportsColumn), fks...))
 	}))
 	neighbors, err := query.All(ctx)
 	if err != nil {

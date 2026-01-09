@@ -303,6 +303,77 @@ var (
 			},
 		},
 	}
+	// ReportsColumns holds the columns for the "reports" table.
+	ReportsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeUUID},
+		{Name: "target_type", Type: field.TypeEnum, Enums: []string{"message", "group", "user"}},
+		{Name: "reason", Type: field.TypeString},
+		{Name: "description", Type: field.TypeString, Nullable: true, Size: 2147483647},
+		{Name: "evidence_snapshot", Type: field.TypeJSON, Nullable: true},
+		{Name: "status", Type: field.TypeEnum, Enums: []string{"pending", "reviewed", "resolved", "rejected"}, Default: "pending"},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+		{Name: "message_id", Type: field.TypeUUID, Nullable: true},
+		{Name: "group_id", Type: field.TypeUUID, Nullable: true},
+		{Name: "target_user_id", Type: field.TypeUUID, Nullable: true},
+		{Name: "reporter_id", Type: field.TypeUUID},
+		{Name: "user_reports_received", Type: field.TypeUUID, Nullable: true},
+	}
+	// ReportsTable holds the schema information for the "reports" table.
+	ReportsTable = &schema.Table{
+		Name:       "reports",
+		Columns:    ReportsColumns,
+		PrimaryKey: []*schema.Column{ReportsColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "reports_messages_message",
+				Columns:    []*schema.Column{ReportsColumns[8]},
+				RefColumns: []*schema.Column{MessagesColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
+			{
+				Symbol:     "reports_group_chats_group",
+				Columns:    []*schema.Column{ReportsColumns[9]},
+				RefColumns: []*schema.Column{GroupChatsColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
+			{
+				Symbol:     "reports_users_target_user",
+				Columns:    []*schema.Column{ReportsColumns[10]},
+				RefColumns: []*schema.Column{UsersColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
+			{
+				Symbol:     "reports_users_reports_made",
+				Columns:    []*schema.Column{ReportsColumns[11]},
+				RefColumns: []*schema.Column{UsersColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+			{
+				Symbol:     "reports_users_reports_received",
+				Columns:    []*schema.Column{ReportsColumns[12]},
+				RefColumns: []*schema.Column{UsersColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "report_status",
+				Unique:  false,
+				Columns: []*schema.Column{ReportsColumns[5]},
+			},
+			{
+				Name:    "report_created_at",
+				Unique:  false,
+				Columns: []*schema.Column{ReportsColumns[6]},
+			},
+			{
+				Name:    "report_reporter_id",
+				Unique:  false,
+				Columns: []*schema.Column{ReportsColumns[11]},
+			},
+		},
+	}
 	// UsersColumns holds the columns for the "users" table.
 	UsersColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeUUID},
@@ -316,6 +387,10 @@ var (
 		{Name: "is_online", Type: field.TypeBool, Default: false},
 		{Name: "last_seen_at", Type: field.TypeTime, Nullable: true},
 		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
+		{Name: "role", Type: field.TypeEnum, Enums: []string{"user", "admin"}, Default: "user"},
+		{Name: "is_banned", Type: field.TypeBool, Default: false},
+		{Name: "banned_until", Type: field.TypeTime, Nullable: true},
+		{Name: "ban_reason", Type: field.TypeString, Nullable: true},
 		{Name: "avatar_id", Type: field.TypeUUID, Unique: true, Nullable: true},
 	}
 	// UsersTable holds the schema information for the "users" table.
@@ -326,7 +401,7 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "users_media_user_avatar",
-				Columns:    []*schema.Column{UsersColumns[11]},
+				Columns:    []*schema.Column{UsersColumns[15]},
 				RefColumns: []*schema.Column{MediaColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
@@ -410,6 +485,31 @@ var (
 			},
 		},
 	}
+	// ReportEvidenceMediaColumns holds the columns for the "report_evidence_media" table.
+	ReportEvidenceMediaColumns = []*schema.Column{
+		{Name: "report_id", Type: field.TypeUUID},
+		{Name: "media_id", Type: field.TypeUUID},
+	}
+	// ReportEvidenceMediaTable holds the schema information for the "report_evidence_media" table.
+	ReportEvidenceMediaTable = &schema.Table{
+		Name:       "report_evidence_media",
+		Columns:    ReportEvidenceMediaColumns,
+		PrimaryKey: []*schema.Column{ReportEvidenceMediaColumns[0], ReportEvidenceMediaColumns[1]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "report_evidence_media_report_id",
+				Columns:    []*schema.Column{ReportEvidenceMediaColumns[0]},
+				RefColumns: []*schema.Column{ReportsColumns[0]},
+				OnDelete:   schema.Cascade,
+			},
+			{
+				Symbol:     "report_evidence_media_media_id",
+				Columns:    []*schema.Column{ReportEvidenceMediaColumns[1]},
+				RefColumns: []*schema.Column{MediaColumns[0]},
+				OnDelete:   schema.Cascade,
+			},
+		},
+	}
 	// Tables holds all the tables in the schema.
 	Tables = []*schema.Table{
 		ChatsTable,
@@ -419,9 +519,11 @@ var (
 		MessagesTable,
 		OtpsTable,
 		PrivateChatsTable,
+		ReportsTable,
 		UsersTable,
 		UserBlocksTable,
 		UserIdentitiesTable,
+		ReportEvidenceMediaTable,
 	}
 )
 
@@ -443,8 +545,15 @@ func init() {
 	PrivateChatsTable.ForeignKeys[0].RefTable = ChatsTable
 	PrivateChatsTable.ForeignKeys[1].RefTable = UsersTable
 	PrivateChatsTable.ForeignKeys[2].RefTable = UsersTable
+	ReportsTable.ForeignKeys[0].RefTable = MessagesTable
+	ReportsTable.ForeignKeys[1].RefTable = GroupChatsTable
+	ReportsTable.ForeignKeys[2].RefTable = UsersTable
+	ReportsTable.ForeignKeys[3].RefTable = UsersTable
+	ReportsTable.ForeignKeys[4].RefTable = UsersTable
 	UsersTable.ForeignKeys[0].RefTable = MediaTable
 	UserBlocksTable.ForeignKeys[0].RefTable = UsersTable
 	UserBlocksTable.ForeignKeys[1].RefTable = UsersTable
 	UserIdentitiesTable.ForeignKeys[0].RefTable = UsersTable
+	ReportEvidenceMediaTable.ForeignKeys[0].RefTable = ReportsTable
+	ReportEvidenceMediaTable.ForeignKeys[1].RefTable = MediaTable
 }

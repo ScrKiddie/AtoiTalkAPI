@@ -63,6 +63,10 @@ channels:
         $ref: '#/components/messages/ServerUserBlock'
       serverUserUnblock:
         $ref: '#/components/messages/ServerUserUnblock'
+      serverUserBanned:
+        $ref: '#/components/messages/ServerUserBanned'
+      serverUserDeleted:
+        $ref: '#/components/messages/ServerUserDeleted'
       serverTyping:
         $ref: '#/components/messages/ServerTyping'
 
@@ -91,6 +95,8 @@ operations:
       - $ref: '#/channels/chat/messages/serverUserUpdate'
       - $ref: '#/channels/chat/messages/serverUserBlock'
       - $ref: '#/channels/chat/messages/serverUserUnblock'
+      - $ref: '#/channels/chat/messages/serverUserBanned'
+      - $ref: '#/channels/chat/messages/serverUserDeleted'
       - $ref: '#/channels/chat/messages/serverTyping'
 
 components:
@@ -244,6 +250,10 @@ components:
         sender_username:
           type: string
           description: Username of the sender
+        sender_avatar:
+          type: string
+          format: uri
+          description: Avatar URL of the sender
         type:
           type: string
           description: Type of the message (regular, system_create, system_add, system_rename, system_description, system_avatar, system_leave, system_promote, system_demote, system_kick, etc.)
@@ -308,6 +318,9 @@ components:
         other_user_is_deleted:
           type: boolean
           description: True if the other user in a private chat has deleted their account.
+        other_user_is_banned:
+          type: boolean
+          description: True if the other user in a private chat has been banned.
         is_blocked_by_me:
           type: boolean
           description: Omitted if false
@@ -572,5 +585,43 @@ components:
                     type: string
                     format: uuid
                   blocked_id:
+                    type: string
+                    format: uuid
+
+    ServerUserBanned:
+      name: user.banned
+      title: User Banned
+      summary: Sent to the banned user and their contacts immediately
+      payload:
+        allOf:
+          - $ref: '#/components/schemas/BaseEvent'
+          - type: object
+            properties:
+              type:
+                const: user.banned
+              payload:
+                type: object
+                properties:
+                  user_id:
+                    type: string
+                    format: uuid
+                  reason:
+                    type: string
+
+    ServerUserDeleted:
+      name: user.deleted
+      title: User Deleted
+      summary: Sent to contacts when a user deletes their account
+      payload:
+        allOf:
+          - $ref: '#/components/schemas/BaseEvent'
+          - type: object
+            properties:
+              type:
+                const: user.deleted
+              payload:
+                type: object
+                properties:
+                  user_id:
                     type: string
                     format: uuid

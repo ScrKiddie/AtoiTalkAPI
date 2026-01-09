@@ -8,6 +8,7 @@ import (
 	"AtoiTalkAPI/ent/media"
 	"AtoiTalkAPI/ent/message"
 	"AtoiTalkAPI/ent/privatechat"
+	"AtoiTalkAPI/ent/report"
 	"AtoiTalkAPI/ent/user"
 	"AtoiTalkAPI/ent/userblock"
 	"AtoiTalkAPI/ent/useridentity"
@@ -185,6 +186,62 @@ func (_c *UserCreate) SetNillableDeletedAt(v *time.Time) *UserCreate {
 	return _c
 }
 
+// SetRole sets the "role" field.
+func (_c *UserCreate) SetRole(v user.Role) *UserCreate {
+	_c.mutation.SetRole(v)
+	return _c
+}
+
+// SetNillableRole sets the "role" field if the given value is not nil.
+func (_c *UserCreate) SetNillableRole(v *user.Role) *UserCreate {
+	if v != nil {
+		_c.SetRole(*v)
+	}
+	return _c
+}
+
+// SetIsBanned sets the "is_banned" field.
+func (_c *UserCreate) SetIsBanned(v bool) *UserCreate {
+	_c.mutation.SetIsBanned(v)
+	return _c
+}
+
+// SetNillableIsBanned sets the "is_banned" field if the given value is not nil.
+func (_c *UserCreate) SetNillableIsBanned(v *bool) *UserCreate {
+	if v != nil {
+		_c.SetIsBanned(*v)
+	}
+	return _c
+}
+
+// SetBannedUntil sets the "banned_until" field.
+func (_c *UserCreate) SetBannedUntil(v time.Time) *UserCreate {
+	_c.mutation.SetBannedUntil(v)
+	return _c
+}
+
+// SetNillableBannedUntil sets the "banned_until" field if the given value is not nil.
+func (_c *UserCreate) SetNillableBannedUntil(v *time.Time) *UserCreate {
+	if v != nil {
+		_c.SetBannedUntil(*v)
+	}
+	return _c
+}
+
+// SetBanReason sets the "ban_reason" field.
+func (_c *UserCreate) SetBanReason(v string) *UserCreate {
+	_c.mutation.SetBanReason(v)
+	return _c
+}
+
+// SetNillableBanReason sets the "ban_reason" field if the given value is not nil.
+func (_c *UserCreate) SetNillableBanReason(v *string) *UserCreate {
+	if v != nil {
+		_c.SetBanReason(*v)
+	}
+	return _c
+}
+
 // SetID sets the "id" field.
 func (_c *UserCreate) SetID(v uuid.UUID) *UserCreate {
 	_c.mutation.SetID(v)
@@ -339,6 +396,36 @@ func (_c *UserCreate) AddBlockedByRel(v ...*UserBlock) *UserCreate {
 	return _c.AddBlockedByRelIDs(ids...)
 }
 
+// AddReportsMadeIDs adds the "reports_made" edge to the Report entity by IDs.
+func (_c *UserCreate) AddReportsMadeIDs(ids ...uuid.UUID) *UserCreate {
+	_c.mutation.AddReportsMadeIDs(ids...)
+	return _c
+}
+
+// AddReportsMade adds the "reports_made" edges to the Report entity.
+func (_c *UserCreate) AddReportsMade(v ...*Report) *UserCreate {
+	ids := make([]uuid.UUID, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _c.AddReportsMadeIDs(ids...)
+}
+
+// AddReportsReceivedIDs adds the "reports_received" edge to the Report entity by IDs.
+func (_c *UserCreate) AddReportsReceivedIDs(ids ...uuid.UUID) *UserCreate {
+	_c.mutation.AddReportsReceivedIDs(ids...)
+	return _c
+}
+
+// AddReportsReceived adds the "reports_received" edges to the Report entity.
+func (_c *UserCreate) AddReportsReceived(v ...*Report) *UserCreate {
+	ids := make([]uuid.UUID, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _c.AddReportsReceivedIDs(ids...)
+}
+
 // Mutation returns the UserMutation object of the builder.
 func (_c *UserCreate) Mutation() *UserMutation {
 	return _c.mutation
@@ -386,6 +473,14 @@ func (_c *UserCreate) defaults() {
 		v := user.DefaultIsOnline
 		_c.mutation.SetIsOnline(v)
 	}
+	if _, ok := _c.mutation.Role(); !ok {
+		v := user.DefaultRole
+		_c.mutation.SetRole(v)
+	}
+	if _, ok := _c.mutation.IsBanned(); !ok {
+		v := user.DefaultIsBanned
+		_c.mutation.SetIsBanned(v)
+	}
 	if _, ok := _c.mutation.ID(); !ok {
 		v := user.DefaultID()
 		_c.mutation.SetID(v)
@@ -427,6 +522,17 @@ func (_c *UserCreate) check() error {
 	}
 	if _, ok := _c.mutation.IsOnline(); !ok {
 		return &ValidationError{Name: "is_online", err: errors.New(`ent: missing required field "User.is_online"`)}
+	}
+	if _, ok := _c.mutation.Role(); !ok {
+		return &ValidationError{Name: "role", err: errors.New(`ent: missing required field "User.role"`)}
+	}
+	if v, ok := _c.mutation.Role(); ok {
+		if err := user.RoleValidator(v); err != nil {
+			return &ValidationError{Name: "role", err: fmt.Errorf(`ent: validator failed for field "User.role": %w`, err)}
+		}
+	}
+	if _, ok := _c.mutation.IsBanned(); !ok {
+		return &ValidationError{Name: "is_banned", err: errors.New(`ent: missing required field "User.is_banned"`)}
 	}
 	return nil
 }
@@ -503,6 +609,22 @@ func (_c *UserCreate) createSpec() (*User, *sqlgraph.CreateSpec) {
 	if value, ok := _c.mutation.DeletedAt(); ok {
 		_spec.SetField(user.FieldDeletedAt, field.TypeTime, value)
 		_node.DeletedAt = &value
+	}
+	if value, ok := _c.mutation.Role(); ok {
+		_spec.SetField(user.FieldRole, field.TypeEnum, value)
+		_node.Role = value
+	}
+	if value, ok := _c.mutation.IsBanned(); ok {
+		_spec.SetField(user.FieldIsBanned, field.TypeBool, value)
+		_node.IsBanned = value
+	}
+	if value, ok := _c.mutation.BannedUntil(); ok {
+		_spec.SetField(user.FieldBannedUntil, field.TypeTime, value)
+		_node.BannedUntil = &value
+	}
+	if value, ok := _c.mutation.BanReason(); ok {
+		_spec.SetField(user.FieldBanReason, field.TypeString, value)
+		_node.BanReason = &value
 	}
 	if nodes := _c.mutation.AvatarIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
@@ -658,6 +780,38 @@ func (_c *UserCreate) createSpec() (*User, *sqlgraph.CreateSpec) {
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(userblock.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.ReportsMadeIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.ReportsMadeTable,
+			Columns: []string{user.ReportsMadeColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(report.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.ReportsReceivedIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.ReportsReceivedTable,
+			Columns: []string{user.ReportsReceivedColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(report.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {
@@ -882,6 +1036,66 @@ func (u *UserUpsert) UpdateDeletedAt() *UserUpsert {
 // ClearDeletedAt clears the value of the "deleted_at" field.
 func (u *UserUpsert) ClearDeletedAt() *UserUpsert {
 	u.SetNull(user.FieldDeletedAt)
+	return u
+}
+
+// SetRole sets the "role" field.
+func (u *UserUpsert) SetRole(v user.Role) *UserUpsert {
+	u.Set(user.FieldRole, v)
+	return u
+}
+
+// UpdateRole sets the "role" field to the value that was provided on create.
+func (u *UserUpsert) UpdateRole() *UserUpsert {
+	u.SetExcluded(user.FieldRole)
+	return u
+}
+
+// SetIsBanned sets the "is_banned" field.
+func (u *UserUpsert) SetIsBanned(v bool) *UserUpsert {
+	u.Set(user.FieldIsBanned, v)
+	return u
+}
+
+// UpdateIsBanned sets the "is_banned" field to the value that was provided on create.
+func (u *UserUpsert) UpdateIsBanned() *UserUpsert {
+	u.SetExcluded(user.FieldIsBanned)
+	return u
+}
+
+// SetBannedUntil sets the "banned_until" field.
+func (u *UserUpsert) SetBannedUntil(v time.Time) *UserUpsert {
+	u.Set(user.FieldBannedUntil, v)
+	return u
+}
+
+// UpdateBannedUntil sets the "banned_until" field to the value that was provided on create.
+func (u *UserUpsert) UpdateBannedUntil() *UserUpsert {
+	u.SetExcluded(user.FieldBannedUntil)
+	return u
+}
+
+// ClearBannedUntil clears the value of the "banned_until" field.
+func (u *UserUpsert) ClearBannedUntil() *UserUpsert {
+	u.SetNull(user.FieldBannedUntil)
+	return u
+}
+
+// SetBanReason sets the "ban_reason" field.
+func (u *UserUpsert) SetBanReason(v string) *UserUpsert {
+	u.Set(user.FieldBanReason, v)
+	return u
+}
+
+// UpdateBanReason sets the "ban_reason" field to the value that was provided on create.
+func (u *UserUpsert) UpdateBanReason() *UserUpsert {
+	u.SetExcluded(user.FieldBanReason)
+	return u
+}
+
+// ClearBanReason clears the value of the "ban_reason" field.
+func (u *UserUpsert) ClearBanReason() *UserUpsert {
+	u.SetNull(user.FieldBanReason)
 	return u
 }
 
@@ -1129,6 +1343,76 @@ func (u *UserUpsertOne) UpdateDeletedAt() *UserUpsertOne {
 func (u *UserUpsertOne) ClearDeletedAt() *UserUpsertOne {
 	return u.Update(func(s *UserUpsert) {
 		s.ClearDeletedAt()
+	})
+}
+
+// SetRole sets the "role" field.
+func (u *UserUpsertOne) SetRole(v user.Role) *UserUpsertOne {
+	return u.Update(func(s *UserUpsert) {
+		s.SetRole(v)
+	})
+}
+
+// UpdateRole sets the "role" field to the value that was provided on create.
+func (u *UserUpsertOne) UpdateRole() *UserUpsertOne {
+	return u.Update(func(s *UserUpsert) {
+		s.UpdateRole()
+	})
+}
+
+// SetIsBanned sets the "is_banned" field.
+func (u *UserUpsertOne) SetIsBanned(v bool) *UserUpsertOne {
+	return u.Update(func(s *UserUpsert) {
+		s.SetIsBanned(v)
+	})
+}
+
+// UpdateIsBanned sets the "is_banned" field to the value that was provided on create.
+func (u *UserUpsertOne) UpdateIsBanned() *UserUpsertOne {
+	return u.Update(func(s *UserUpsert) {
+		s.UpdateIsBanned()
+	})
+}
+
+// SetBannedUntil sets the "banned_until" field.
+func (u *UserUpsertOne) SetBannedUntil(v time.Time) *UserUpsertOne {
+	return u.Update(func(s *UserUpsert) {
+		s.SetBannedUntil(v)
+	})
+}
+
+// UpdateBannedUntil sets the "banned_until" field to the value that was provided on create.
+func (u *UserUpsertOne) UpdateBannedUntil() *UserUpsertOne {
+	return u.Update(func(s *UserUpsert) {
+		s.UpdateBannedUntil()
+	})
+}
+
+// ClearBannedUntil clears the value of the "banned_until" field.
+func (u *UserUpsertOne) ClearBannedUntil() *UserUpsertOne {
+	return u.Update(func(s *UserUpsert) {
+		s.ClearBannedUntil()
+	})
+}
+
+// SetBanReason sets the "ban_reason" field.
+func (u *UserUpsertOne) SetBanReason(v string) *UserUpsertOne {
+	return u.Update(func(s *UserUpsert) {
+		s.SetBanReason(v)
+	})
+}
+
+// UpdateBanReason sets the "ban_reason" field to the value that was provided on create.
+func (u *UserUpsertOne) UpdateBanReason() *UserUpsertOne {
+	return u.Update(func(s *UserUpsert) {
+		s.UpdateBanReason()
+	})
+}
+
+// ClearBanReason clears the value of the "ban_reason" field.
+func (u *UserUpsertOne) ClearBanReason() *UserUpsertOne {
+	return u.Update(func(s *UserUpsert) {
+		s.ClearBanReason()
 	})
 }
 
@@ -1543,6 +1827,76 @@ func (u *UserUpsertBulk) UpdateDeletedAt() *UserUpsertBulk {
 func (u *UserUpsertBulk) ClearDeletedAt() *UserUpsertBulk {
 	return u.Update(func(s *UserUpsert) {
 		s.ClearDeletedAt()
+	})
+}
+
+// SetRole sets the "role" field.
+func (u *UserUpsertBulk) SetRole(v user.Role) *UserUpsertBulk {
+	return u.Update(func(s *UserUpsert) {
+		s.SetRole(v)
+	})
+}
+
+// UpdateRole sets the "role" field to the value that was provided on create.
+func (u *UserUpsertBulk) UpdateRole() *UserUpsertBulk {
+	return u.Update(func(s *UserUpsert) {
+		s.UpdateRole()
+	})
+}
+
+// SetIsBanned sets the "is_banned" field.
+func (u *UserUpsertBulk) SetIsBanned(v bool) *UserUpsertBulk {
+	return u.Update(func(s *UserUpsert) {
+		s.SetIsBanned(v)
+	})
+}
+
+// UpdateIsBanned sets the "is_banned" field to the value that was provided on create.
+func (u *UserUpsertBulk) UpdateIsBanned() *UserUpsertBulk {
+	return u.Update(func(s *UserUpsert) {
+		s.UpdateIsBanned()
+	})
+}
+
+// SetBannedUntil sets the "banned_until" field.
+func (u *UserUpsertBulk) SetBannedUntil(v time.Time) *UserUpsertBulk {
+	return u.Update(func(s *UserUpsert) {
+		s.SetBannedUntil(v)
+	})
+}
+
+// UpdateBannedUntil sets the "banned_until" field to the value that was provided on create.
+func (u *UserUpsertBulk) UpdateBannedUntil() *UserUpsertBulk {
+	return u.Update(func(s *UserUpsert) {
+		s.UpdateBannedUntil()
+	})
+}
+
+// ClearBannedUntil clears the value of the "banned_until" field.
+func (u *UserUpsertBulk) ClearBannedUntil() *UserUpsertBulk {
+	return u.Update(func(s *UserUpsert) {
+		s.ClearBannedUntil()
+	})
+}
+
+// SetBanReason sets the "ban_reason" field.
+func (u *UserUpsertBulk) SetBanReason(v string) *UserUpsertBulk {
+	return u.Update(func(s *UserUpsert) {
+		s.SetBanReason(v)
+	})
+}
+
+// UpdateBanReason sets the "ban_reason" field to the value that was provided on create.
+func (u *UserUpsertBulk) UpdateBanReason() *UserUpsertBulk {
+	return u.Update(func(s *UserUpsert) {
+		s.UpdateBanReason()
+	})
+}
+
+// ClearBanReason clears the value of the "ban_reason" field.
+func (u *UserUpsertBulk) ClearBanReason() *UserUpsertBulk {
+	return u.Update(func(s *UserUpsert) {
+		s.ClearBanReason()
 	})
 }
 

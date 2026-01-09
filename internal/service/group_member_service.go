@@ -135,6 +135,12 @@ func (s *GroupChatService) AddMember(ctx context.Context, requestorID uuid.UUID,
 
 	var targetUserIDs []uuid.UUID
 	for _, u := range targetUsers {
+
+		if u.IsBanned {
+			if u.BannedUntil == nil || time.Now().Before(*u.BannedUntil) {
+				return helper.NewForbiddenError("Cannot add suspended/banned user to group")
+			}
+		}
 		targetUserIDs = append(targetUserIDs, u.ID)
 	}
 
@@ -194,22 +200,24 @@ func (s *GroupChatService) AddMember(ctx context.Context, requestorID uuid.UUID,
 		return helper.NewInternalServerError("")
 	}
 
-	var lastSystemMsg *ent.Message
+	var msgCreates []*ent.MessageCreate
 	for _, u := range newMembers {
-		lastSystemMsg, err = tx.Message.Create().
+		msgCreates = append(msgCreates, tx.Message.Create().
 			SetChatID(gc.ChatID).
 			SetSenderID(requestorID).
 			SetType(message.TypeSystemAdd).
 			SetActionData(map[string]interface{}{
 				"target_id": u.ID,
 				"actor_id":  requestorID,
-			}).
-			Save(ctx)
-		if err != nil {
-			slog.Error("Failed to create system message", "error", err)
-			return helper.NewInternalServerError("")
-		}
+			}))
 	}
+
+	msgs, err := tx.Message.CreateBulk(msgCreates...).Save(ctx)
+	if err != nil {
+		slog.Error("Failed to create system messages", "error", err)
+		return helper.NewInternalServerError("")
+	}
+	lastSystemMsg := msgs[len(msgs)-1]
 
 	err = tx.Chat.UpdateOne(gc.Edges.Chat).
 		SetLastMessage(lastSystemMsg).
@@ -232,14 +240,14 @@ func (s *GroupChatService) AddMember(ctx context.Context, requestorID uuid.UUID,
 				avatarURL = helper.BuildImageURL(s.cfg.StorageMode, s.cfg.AppURL, s.cfg.StorageCDNURL, s.cfg.StorageProfile, gc.Edges.Avatar.FileName)
 			}
 
+			fullMsg, _ := s.client.Message.Query().
+				Where(message.ID(lastSystemMsg.ID)).
+				WithSender().
+				Only(context.Background())
+
+			msgResponse := helper.ToMessageResponse(fullMsg, s.cfg.StorageMode, s.cfg.AppURL, s.cfg.StorageCDNURL, s.cfg.StorageProfile, s.cfg.StorageAttachment)
+
 			for _, u := range newMembers {
-				fullMsg, _ := s.client.Message.Query().
-					Where(message.ID(lastSystemMsg.ID)).
-					WithSender().
-					Only(context.Background())
-
-				msgResponse := helper.ToMessageResponse(fullMsg, s.cfg.StorageMode, s.cfg.AppURL, s.cfg.StorageCDNURL, s.cfg.StorageAttachment)
-
 				chatPayload := model.ChatListResponse{
 					ID:          gc.Edges.Chat.ID,
 					Type:        string(chat.TypeGroup),
@@ -259,12 +267,6 @@ func (s *GroupChatService) AddMember(ctx context.Context, requestorID uuid.UUID,
 					},
 				})
 			}
-
-			fullMsg, _ := s.client.Message.Query().
-				Where(message.ID(lastSystemMsg.ID)).
-				WithSender().
-				Only(context.Background())
-			msgResponse := helper.ToMessageResponse(fullMsg, s.cfg.StorageMode, s.cfg.AppURL, s.cfg.StorageCDNURL, s.cfg.StorageAttachment)
 
 			s.wsHub.BroadcastToChat(gc.ChatID, websocket.Event{
 				Type:    websocket.EventMessageNew,
@@ -359,7 +361,7 @@ func (s *GroupChatService) LeaveGroup(ctx context.Context, userID uuid.UUID, gro
 				WithSender().
 				Only(context.Background())
 
-			msgResponse := helper.ToMessageResponse(fullMsg, s.cfg.StorageMode, s.cfg.AppURL, s.cfg.StorageCDNURL, s.cfg.StorageAttachment)
+			msgResponse := helper.ToMessageResponse(fullMsg, s.cfg.StorageMode, s.cfg.AppURL, s.cfg.StorageCDNURL, s.cfg.StorageProfile, s.cfg.StorageAttachment)
 
 			s.wsHub.BroadcastToChat(gc.ChatID, websocket.Event{
 				Type:    websocket.EventMessageNew,
@@ -475,7 +477,7 @@ func (s *GroupChatService) KickMember(ctx context.Context, requestorID uuid.UUID
 				WithSender().
 				Only(context.Background())
 
-			msgResponse := helper.ToMessageResponse(fullMsg, s.cfg.StorageMode, s.cfg.AppURL, s.cfg.StorageCDNURL, s.cfg.StorageAttachment)
+			msgResponse := helper.ToMessageResponse(fullMsg, s.cfg.StorageMode, s.cfg.AppURL, s.cfg.StorageCDNURL, s.cfg.StorageProfile, s.cfg.StorageAttachment)
 
 			s.wsHub.BroadcastToChat(gc.ChatID, websocket.Event{
 				Type:    websocket.EventMessageNew,

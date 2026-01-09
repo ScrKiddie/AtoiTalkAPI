@@ -42,6 +42,19 @@ definitions:
       user:
         $ref: '#/definitions/model.UserDTO'
     type: object
+  model.BanUserRequest:
+    properties:
+      duration_hours:
+        minimum: 0
+        type: integer
+      reason:
+        type: string
+      target_user_id:
+        type: string
+    required:
+    - reason
+    - target_user_id
+    type: object
   model.ChangeEmailRequest:
     properties:
       code:
@@ -74,6 +87,8 @@ definitions:
         type: string
       is_blocked_by_me:
         type: boolean
+      is_blocked_by_other:
+        type: boolean
       is_online:
         type: boolean
       last_message:
@@ -90,6 +105,8 @@ definitions:
         type: string
       other_user_id:
         type: string
+      other_user_is_banned:
+        type: boolean
       other_user_is_deleted:
         type: boolean
       type:
@@ -112,6 +129,28 @@ definitions:
         type: string
     required:
     - target_user_id
+    type: object
+  model.CreateReportRequest:
+    properties:
+      description:
+        type: string
+      group_id:
+        type: string
+      message_id:
+        type: string
+      reason:
+        type: string
+      target_type:
+        enum:
+        - message
+        - group
+        - user
+        type: string
+      target_user_id:
+        type: string
+    required:
+    - reason
+    - target_type
     type: object
   model.DeleteAccountRequest:
     properties:
@@ -142,6 +181,8 @@ definitions:
         type: string
       id:
         type: string
+      is_banned:
+        type: boolean
       is_online:
         type: boolean
       joined_at:
@@ -220,6 +261,8 @@ definitions:
         type: string
       reply_to:
         $ref: '#/definitions/model.ReplyPreviewDTO'
+      sender_avatar:
+        type: string
       sender_id:
         type: string
       sender_name:
@@ -271,6 +314,49 @@ definitions:
       type:
         type: string
     type: object
+  model.ReportDetailResponse:
+    properties:
+      admin_notes:
+        type: string
+      created_at:
+        type: string
+      description:
+        type: string
+      evidence_snapshot:
+        additionalProperties: true
+        type: object
+      id:
+        type: string
+      reason:
+        type: string
+      reporter_avatar:
+        type: string
+      reporter_id:
+        type: string
+      reporter_name:
+        type: string
+      status:
+        type: string
+      target_type:
+        type: string
+      updated_at:
+        type: string
+    type: object
+  model.ReportListResponse:
+    properties:
+      created_at:
+        type: string
+      id:
+        type: string
+      reason:
+        type: string
+      reporter_name:
+        type: string
+      status:
+        type: string
+      target_type:
+        type: string
+    type: object
   model.ResetPasswordRequest:
     properties:
       captcha_token:
@@ -291,6 +377,18 @@ definitions:
     - confirm_password
     - email
     - password
+    type: object
+  model.ResolveReportRequest:
+    properties:
+      notes:
+        type: string
+      status:
+        enum:
+        - resolved
+        - rejected
+        type: string
+    required:
+    - status
     type: object
   model.SendMessageRequest:
     properties:
@@ -360,6 +458,8 @@ definitions:
       last_seen_at:
         type: string
       private_chat_id:
+        type: string
+      role:
         type: string
       username:
         type: string
@@ -488,6 +588,225 @@ paths:
       summary: Change Password
       tags:
       - account
+  /api/admin/reports:
+    get:
+      consumes:
+      - application/json
+      description: Get a list of reports. Requires Admin privileges.
+      parameters:
+      - description: Filter by status (pending, reviewed, resolved, rejected)
+        in: query
+        name: status
+        type: string
+      - description: Limit (default 20)
+        in: query
+        name: limit
+        type: integer
+      - description: Cursor for pagination
+        in: query
+        name: cursor
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/helper.ResponseWithPagination'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/model.ReportListResponse'
+                  type: array
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
+      security:
+      - BearerAuth: []
+      summary: Get Reports
+      tags:
+      - admin
+  /api/admin/reports/{reportID}:
+    get:
+      consumes:
+      - application/json
+      description: Get detailed information about a report including evidence snapshot.
+        Requires Admin privileges.
+      parameters:
+      - description: Report ID (UUID)
+        in: path
+        name: reportID
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/helper.ResponseSuccess'
+            - properties:
+                data:
+                  $ref: '#/definitions/model.ReportDetailResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
+      security:
+      - BearerAuth: []
+      summary: Get Report Detail
+      tags:
+      - admin
+  /api/admin/reports/{reportID}/resolve:
+    put:
+      consumes:
+      - application/json
+      description: Update the status of a report (e.g., to resolved or rejected).
+        Requires Admin privileges.
+      parameters:
+      - description: Report ID (UUID)
+        in: path
+        name: reportID
+        required: true
+        type: string
+      - description: Resolve Request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.ResolveReportRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/helper.ResponseSuccess'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
+      security:
+      - BearerAuth: []
+      summary: Resolve Report
+      tags:
+      - admin
+  /api/admin/users/{userID}/unban:
+    post:
+      consumes:
+      - application/json
+      description: Lift a ban from a user. Requires Admin privileges.
+      parameters:
+      - description: User ID (UUID)
+        in: path
+        name: userID
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/helper.ResponseSuccess'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
+      security:
+      - BearerAuth: []
+      summary: Unban User
+      tags:
+      - admin
+  /api/admin/users/ban:
+    post:
+      consumes:
+      - application/json
+      description: Ban a user permanently or temporarily. Requires Admin privileges.
+      parameters:
+      - description: Ban Request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.BanUserRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/helper.ResponseSuccess'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
+      security:
+      - BearerAuth: []
+      summary: Ban User
+      tags:
+      - admin
   /api/auth/google:
     post:
       consumes:
@@ -1606,6 +1925,47 @@ paths:
       summary: Send OTP
       tags:
       - otp
+  /api/reports:
+    post:
+      consumes:
+      - application/json
+      description: Report a message, group, or user. Server will automatically snapshot
+        the evidence.
+      parameters:
+      - description: Report Request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.CreateReportRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/helper.ResponseSuccess'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
+      security:
+      - BearerAuth: []
+      summary: Create Report
+      tags:
+      - report
   /api/user/current:
     get:
       consumes:

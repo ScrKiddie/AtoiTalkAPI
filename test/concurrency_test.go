@@ -20,9 +20,8 @@ import (
 func TestConcurrency_UnreadCount(t *testing.T) {
 	clearDatabase(context.Background())
 
-	hashedPassword, _ := helper.HashPassword("Password123!")
-	u1 := testClient.User.Create().SetEmail("u1@test.com").SetUsername("u1").SetFullName("User 1").SetPasswordHash(hashedPassword).SaveX(context.Background())
-	u2 := testClient.User.Create().SetEmail("u2@test.com").SetUsername("u2").SetFullName("User 2").SetPasswordHash(hashedPassword).SaveX(context.Background())
+	u1 := createTestUser(t, "user1")
+	u2 := createTestUser(t, "user2")
 
 	token1, _ := helper.GenerateJWT(testConfig.JWTSecret, testConfig.JWTExp, u1.ID)
 	token2, _ := helper.GenerateJWT(testConfig.JWTSecret, testConfig.JWTExp, u2.ID)

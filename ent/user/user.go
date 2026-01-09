@@ -3,6 +3,7 @@
 package user
 
 import (
+	"fmt"
 	"time"
 
 	"entgo.io/ent/dialect/sql"
@@ -37,6 +38,14 @@ const (
 	FieldLastSeenAt = "last_seen_at"
 	// FieldDeletedAt holds the string denoting the deleted_at field in the database.
 	FieldDeletedAt = "deleted_at"
+	// FieldRole holds the string denoting the role field in the database.
+	FieldRole = "role"
+	// FieldIsBanned holds the string denoting the is_banned field in the database.
+	FieldIsBanned = "is_banned"
+	// FieldBannedUntil holds the string denoting the banned_until field in the database.
+	FieldBannedUntil = "banned_until"
+	// FieldBanReason holds the string denoting the ban_reason field in the database.
+	FieldBanReason = "ban_reason"
 	// EdgeAvatar holds the string denoting the avatar edge name in mutations.
 	EdgeAvatar = "avatar"
 	// EdgeIdentities holds the string denoting the identities edge name in mutations.
@@ -57,6 +66,10 @@ const (
 	EdgeBlockedUsersRel = "blocked_users_rel"
 	// EdgeBlockedByRel holds the string denoting the blocked_by_rel edge name in mutations.
 	EdgeBlockedByRel = "blocked_by_rel"
+	// EdgeReportsMade holds the string denoting the reports_made edge name in mutations.
+	EdgeReportsMade = "reports_made"
+	// EdgeReportsReceived holds the string denoting the reports_received edge name in mutations.
+	EdgeReportsReceived = "reports_received"
 	// Table holds the table name of the user in the database.
 	Table = "users"
 	// AvatarTable is the table that holds the avatar relation/edge.
@@ -129,6 +142,20 @@ const (
 	BlockedByRelInverseTable = "user_blocks"
 	// BlockedByRelColumn is the table column denoting the blocked_by_rel relation/edge.
 	BlockedByRelColumn = "blocked_id"
+	// ReportsMadeTable is the table that holds the reports_made relation/edge.
+	ReportsMadeTable = "reports"
+	// ReportsMadeInverseTable is the table name for the Report entity.
+	// It exists in this package in order to avoid circular dependency with the "report" package.
+	ReportsMadeInverseTable = "reports"
+	// ReportsMadeColumn is the table column denoting the reports_made relation/edge.
+	ReportsMadeColumn = "reporter_id"
+	// ReportsReceivedTable is the table that holds the reports_received relation/edge.
+	ReportsReceivedTable = "reports"
+	// ReportsReceivedInverseTable is the table name for the Report entity.
+	// It exists in this package in order to avoid circular dependency with the "report" package.
+	ReportsReceivedInverseTable = "reports"
+	// ReportsReceivedColumn is the table column denoting the reports_received relation/edge.
+	ReportsReceivedColumn = "user_reports_received"
 )
 
 // Columns holds all SQL columns for user fields.
@@ -145,6 +172,10 @@ var Columns = []string{
 	FieldIsOnline,
 	FieldLastSeenAt,
 	FieldDeletedAt,
+	FieldRole,
+	FieldIsBanned,
+	FieldBannedUntil,
+	FieldBanReason,
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
@@ -176,9 +207,37 @@ var (
 	BioValidator func(string) error
 	// DefaultIsOnline holds the default value on creation for the "is_online" field.
 	DefaultIsOnline bool
+	// DefaultIsBanned holds the default value on creation for the "is_banned" field.
+	DefaultIsBanned bool
 	// DefaultID holds the default value on creation for the "id" field.
 	DefaultID func() uuid.UUID
 )
+
+// Role defines the type for the "role" enum field.
+type Role string
+
+// RoleUser is the default value of the Role enum.
+const DefaultRole = RoleUser
+
+// Role values.
+const (
+	RoleUser  Role = "user"
+	RoleAdmin Role = "admin"
+)
+
+func (r Role) String() string {
+	return string(r)
+}
+
+// RoleValidator is a validator for the "role" field enum values. It is called by the builders before save.
+func RoleValidator(r Role) error {
+	switch r {
+	case RoleUser, RoleAdmin:
+		return nil
+	default:
+		return fmt.Errorf("user: invalid enum value for role field: %q", r)
+	}
+}
 
 // OrderOption defines the ordering options for the User queries.
 type OrderOption func(*sql.Selector)
@@ -241,6 +300,26 @@ func ByLastSeenAt(opts ...sql.OrderTermOption) OrderOption {
 // ByDeletedAt orders the results by the deleted_at field.
 func ByDeletedAt(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldDeletedAt, opts...).ToFunc()
+}
+
+// ByRole orders the results by the role field.
+func ByRole(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldRole, opts...).ToFunc()
+}
+
+// ByIsBanned orders the results by the is_banned field.
+func ByIsBanned(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldIsBanned, opts...).ToFunc()
+}
+
+// ByBannedUntil orders the results by the banned_until field.
+func ByBannedUntil(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldBannedUntil, opts...).ToFunc()
+}
+
+// ByBanReason orders the results by the ban_reason field.
+func ByBanReason(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldBanReason, opts...).ToFunc()
 }
 
 // ByAvatarField orders the results by avatar field.
@@ -375,6 +454,34 @@ func ByBlockedByRel(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
 		sqlgraph.OrderByNeighborTerms(s, newBlockedByRelStep(), append([]sql.OrderTerm{term}, terms...)...)
 	}
 }
+
+// ByReportsMadeCount orders the results by reports_made count.
+func ByReportsMadeCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newReportsMadeStep(), opts...)
+	}
+}
+
+// ByReportsMade orders the results by reports_made terms.
+func ByReportsMade(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newReportsMadeStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
+
+// ByReportsReceivedCount orders the results by reports_received count.
+func ByReportsReceivedCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newReportsReceivedStep(), opts...)
+	}
+}
+
+// ByReportsReceived orders the results by reports_received terms.
+func ByReportsReceived(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newReportsReceivedStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
 func newAvatarStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
@@ -443,5 +550,19 @@ func newBlockedByRelStep() *sqlgraph.Step {
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(BlockedByRelInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.O2M, false, BlockedByRelTable, BlockedByRelColumn),
+	)
+}
+func newReportsMadeStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(ReportsMadeInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, ReportsMadeTable, ReportsMadeColumn),
+	)
+}
+func newReportsReceivedStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(ReportsReceivedInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, ReportsReceivedTable, ReportsReceivedColumn),
 	)
 }

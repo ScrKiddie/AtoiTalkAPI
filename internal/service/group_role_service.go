@@ -72,6 +72,12 @@ func (s *GroupChatService) UpdateMemberRole(ctx context.Context, requestorID uui
 		return helper.NewBadRequestError("Cannot change your own role")
 	}
 
+	if targetMember.Edges.User != nil && targetMember.Edges.User.IsBanned {
+		if targetMember.Edges.User.BannedUntil == nil || time.Now().Before(*targetMember.Edges.User.BannedUntil) {
+			return helper.NewForbiddenError("Cannot promote a suspended/banned user")
+		}
+	}
+
 	newRole := groupmember.Role(req.Role)
 	if targetMember.Role == newRole {
 		return nil
@@ -124,7 +130,7 @@ func (s *GroupChatService) UpdateMemberRole(ctx context.Context, requestorID uui
 				WithSender().
 				Only(context.Background())
 
-			msgResponse := helper.ToMessageResponse(fullMsg, s.cfg.StorageMode, s.cfg.AppURL, s.cfg.StorageCDNURL, s.cfg.StorageAttachment)
+			msgResponse := helper.ToMessageResponse(fullMsg, s.cfg.StorageMode, s.cfg.AppURL, s.cfg.StorageCDNURL, s.cfg.StorageProfile, s.cfg.StorageAttachment)
 
 			s.wsHub.BroadcastToChat(gc.ChatID, websocket.Event{
 				Type:    websocket.EventMessageNew,
@@ -197,6 +203,12 @@ func (s *GroupChatService) TransferOwnership(ctx context.Context, requestorID uu
 		return helper.NewNotFoundError("Target user is not a member of this group")
 	}
 
+	if targetMember.Edges.User != nil && targetMember.Edges.User.IsBanned {
+		if targetMember.Edges.User.BannedUntil == nil || time.Now().Before(*targetMember.Edges.User.BannedUntil) {
+			return helper.NewForbiddenError("Cannot transfer ownership to a suspended/banned user")
+		}
+	}
+
 	err = tx.GroupMember.UpdateOne(requestorMember).SetRole(groupmember.RoleAdmin).Exec(ctx)
 	if err != nil {
 		slog.Error("Failed to demote old owner", "error", err)
@@ -246,7 +258,7 @@ func (s *GroupChatService) TransferOwnership(ctx context.Context, requestorID uu
 				WithSender().
 				Only(context.Background())
 
-			msgResponse := helper.ToMessageResponse(fullMsg, s.cfg.StorageMode, s.cfg.AppURL, s.cfg.StorageCDNURL, s.cfg.StorageAttachment)
+			msgResponse := helper.ToMessageResponse(fullMsg, s.cfg.StorageMode, s.cfg.AppURL, s.cfg.StorageCDNURL, s.cfg.StorageProfile, s.cfg.StorageAttachment)
 
 			s.wsHub.BroadcastToChat(gc.ChatID, websocket.Event{
 				Type:    websocket.EventMessageNew,

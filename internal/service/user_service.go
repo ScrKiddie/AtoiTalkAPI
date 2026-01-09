@@ -133,7 +133,7 @@ func (s *UserService) GetUserProfile(ctx context.Context, currentUserID uuid.UUI
 			user.ID(targetUserID),
 			user.DeletedAtIsNil(),
 		).
-		Select(user.FieldID, user.FieldUsername, user.FieldFullName, user.FieldBio, user.FieldIsOnline, user.FieldLastSeenAt, user.FieldAvatarID).
+		Select(user.FieldID, user.FieldUsername, user.FieldFullName, user.FieldBio, user.FieldIsOnline, user.FieldLastSeenAt, user.FieldAvatarID, user.FieldIsBanned, user.FieldBannedUntil).
 		WithAvatar().
 		Only(ctx)
 
@@ -162,10 +162,14 @@ func (s *UserService) GetUserProfile(ctx context.Context, currentUserID uuid.UUI
 		username = *u.Username
 	}
 
-	if isBlockedByMe || isBlockedByOther {
+	isBanned := u.IsBanned
+	if isBanned && u.BannedUntil != nil && time.Now().After(*u.BannedUntil) {
+		isBanned = false
+	}
+
+	if isBlockedByMe || isBlockedByOther || isBanned {
 		isOnline = false
 		lastSeenAt = nil
-
 	} else {
 		if u.LastSeenAt != nil {
 			t := u.LastSeenAt.Format(time.RFC3339)

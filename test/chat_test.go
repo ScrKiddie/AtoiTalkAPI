@@ -23,11 +23,9 @@ import (
 func TestGetChats(t *testing.T) {
 	clearDatabase(context.Background())
 
-	password := "Password123!"
-	hashedPassword, _ := helper.HashPassword(password)
-	u1 := testClient.User.Create().SetEmail("u1@test.com").SetUsername("user1").SetFullName("User 1").SetPasswordHash(hashedPassword).SaveX(context.Background())
-	u2 := testClient.User.Create().SetEmail("u2@test.com").SetUsername("user2").SetFullName("User 2").SetPasswordHash(hashedPassword).SaveX(context.Background())
-	u3 := testClient.User.Create().SetEmail("u3@test.com").SetUsername("user3").SetFullName("User 3").SetPasswordHash(hashedPassword).SaveX(context.Background())
+	u1 := createTestUser(t, "user1")
+	u2 := createTestUser(t, "user2")
+	u3 := createTestUser(t, "user3")
 
 	token1, _ := helper.GenerateJWT(testConfig.JWTSecret, testConfig.JWTExp, u1.ID)
 
@@ -76,12 +74,13 @@ func TestGetChats(t *testing.T) {
 		assert.Equal(t, "regular", lastMsg1["type"])
 
 		assert.Equal(t, chat2.ID.String(), c2["id"])
-		assert.Equal(t, "User 3", c2["name"])
+
+		assert.Contains(t, c2["name"], "user3")
 		assert.NotContains(t, c2, "unread_count", "unread_count should be omitted when it is 0")
 		assert.Equal(t, u3.ID.String(), c2["other_user_id"], "Private chat should have other_user_id")
 
 		assert.Equal(t, chat1.ID.String(), c3["id"])
-		assert.Equal(t, "User 2", c3["name"])
+		assert.Contains(t, c3["name"], "user2")
 		assert.Equal(t, float64(3), c3["unread_count"])
 		assert.Equal(t, u2.ID.String(), c3["other_user_id"], "Private chat should have other_user_id")
 	})
@@ -126,7 +125,7 @@ func TestGetChats(t *testing.T) {
 		json.Unmarshal(rr.Body.Bytes(), &resp)
 		dataList := resp.Data.([]interface{})
 		assert.Len(t, dataList, 1)
-		assert.Equal(t, "User 3", dataList[0].(map[string]interface{})["name"])
+		assert.Contains(t, dataList[0].(map[string]interface{})["name"], "user3")
 	})
 
 	t.Run("Success - Search No Results", func(t *testing.T) {
@@ -148,7 +147,7 @@ func TestGetChats(t *testing.T) {
 
 	t.Run("Success - Last Message Placeholder for Deleted Message", func(t *testing.T) {
 
-		u4 := testClient.User.Create().SetEmail("u4@test.com").SetUsername("u4").SetFullName("User 4").SetPasswordHash(hashedPassword).SaveX(context.Background())
+		u4 := createTestUser(t, "user4")
 
 		delChat := testClient.Chat.Create().SetType(chat.TypePrivate).SaveX(context.Background())
 		testClient.PrivateChat.Create().SetChat(delChat).SetUser1(u1).SetUser2(u4).SaveX(context.Background())
@@ -303,7 +302,7 @@ func TestGetChats(t *testing.T) {
 		lastMsg := c["last_message"].(map[string]interface{})
 		actionData := lastMsg["action_data"].(map[string]interface{})
 
-		assert.Equal(t, "User 2", actionData["target_name"])
+		assert.Contains(t, actionData["target_name"], "user2")
 	})
 
 	t.Run("Success - Exclude Deleted Group", func(t *testing.T) {
@@ -363,11 +362,9 @@ func TestGetChats(t *testing.T) {
 func TestGetChatByID(t *testing.T) {
 	clearDatabase(context.Background())
 
-	password := "Password123!"
-	hashedPassword, _ := helper.HashPassword(password)
-	u1 := testClient.User.Create().SetEmail("u1@test.com").SetUsername("user1").SetFullName("User 1").SetPasswordHash(hashedPassword).SaveX(context.Background())
-	u2 := testClient.User.Create().SetEmail("u2@test.com").SetUsername("user2").SetFullName("User 2").SetPasswordHash(hashedPassword).SaveX(context.Background())
-	u3 := testClient.User.Create().SetEmail("u3@test.com").SetUsername("user3").SetFullName("User 3").SetPasswordHash(hashedPassword).SaveX(context.Background())
+	u1 := createTestUser(t, "user1")
+	u2 := createTestUser(t, "user2")
+	u3 := createTestUser(t, "user3")
 
 	token1, _ := helper.GenerateJWT(testConfig.JWTSecret, testConfig.JWTExp, u1.ID)
 
@@ -386,7 +383,7 @@ func TestGetChatByID(t *testing.T) {
 		data := resp.Data.(map[string]interface{})
 
 		assert.Equal(t, chat1.ID.String(), data["id"])
-		assert.Equal(t, "User 2", data["name"])
+		assert.Contains(t, data["name"], "user2")
 		assert.Equal(t, float64(3), data["unread_count"])
 	})
 
@@ -461,11 +458,9 @@ func TestGetChatByID(t *testing.T) {
 func TestMarkAsRead(t *testing.T) {
 	clearDatabase(context.Background())
 
-	password := "Password123!"
-	hashedPassword, _ := helper.HashPassword(password)
-	u1 := testClient.User.Create().SetEmail("u1@test.com").SetUsername("u1").SetFullName("User 1").SetPasswordHash(hashedPassword).SaveX(context.Background())
-	u2 := testClient.User.Create().SetEmail("u2@test.com").SetUsername("u2").SetFullName("User 2").SetPasswordHash(hashedPassword).SaveX(context.Background())
-	u3 := testClient.User.Create().SetEmail("u3@test.com").SetUsername("u3").SetFullName("User 3").SetPasswordHash(hashedPassword).SaveX(context.Background())
+	u1 := createTestUser(t, "user1")
+	u2 := createTestUser(t, "user2")
+	u3 := createTestUser(t, "user3")
 
 	token1, _ := helper.GenerateJWT(testConfig.JWTSecret, testConfig.JWTExp, u1.ID)
 	token3, _ := helper.GenerateJWT(testConfig.JWTSecret, testConfig.JWTExp, u3.ID)
@@ -541,10 +536,8 @@ func TestMarkAsRead(t *testing.T) {
 func TestHideChat(t *testing.T) {
 	clearDatabase(context.Background())
 
-	password := "Password123!"
-	hashedPassword, _ := helper.HashPassword(password)
-	u1 := testClient.User.Create().SetEmail("u1@test.com").SetUsername("u1").SetFullName("User 1").SetPasswordHash(hashedPassword).SaveX(context.Background())
-	u2 := testClient.User.Create().SetEmail("u2@test.com").SetUsername("u2").SetFullName("User 2").SetPasswordHash(hashedPassword).SaveX(context.Background())
+	u1 := createTestUser(t, "user1")
+	u2 := createTestUser(t, "user2")
 
 	token1, _ := helper.GenerateJWT(testConfig.JWTSecret, testConfig.JWTExp, u1.ID)
 
@@ -587,11 +580,9 @@ func TestHideChat(t *testing.T) {
 func TestGroupUnreadConsistency(t *testing.T) {
 	clearDatabase(context.Background())
 
-	password := "Password123!"
-	hashedPassword, _ := helper.HashPassword(password)
-	u1 := testClient.User.Create().SetEmail("u1@test.com").SetUsername("u1").SetFullName("User 1").SetPasswordHash(hashedPassword).SaveX(context.Background())
-	u2 := testClient.User.Create().SetEmail("u2@test.com").SetUsername("u2").SetFullName("User 2").SetPasswordHash(hashedPassword).SaveX(context.Background())
-	u3 := testClient.User.Create().SetEmail("u3@test.com").SetUsername("u3").SetFullName("User 3").SetPasswordHash(hashedPassword).SaveX(context.Background())
+	u1 := createTestUser(t, "user1")
+	u2 := createTestUser(t, "user2")
+	u3 := createTestUser(t, "user3")
 
 	token1, _ := helper.GenerateJWT(testConfig.JWTSecret, testConfig.JWTExp, u1.ID)
 	token2, _ := helper.GenerateJWT(testConfig.JWTSecret, testConfig.JWTExp, u2.ID)

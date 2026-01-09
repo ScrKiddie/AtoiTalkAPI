@@ -10,6 +10,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -25,24 +26,17 @@ import (
 )
 
 func TestLogin(t *testing.T) {
-	validEmail := "login@example.com"
 	validPassword := "Password123!"
-	validUsername := "loginuser"
 
 	t.Run("Success", func(t *testing.T) {
 		clearDatabase(context.Background())
+		u := createTestUser(t, "loginsuccess")
+		validEmail := *u.Email
+		validUsername := *u.Username
 
 		originalSecret := testConfig.TurnstileSecretKey
 		testConfig.TurnstileSecretKey = cfTurnstileAlwaysPasses
 		defer func() { testConfig.TurnstileSecretKey = originalSecret }()
-
-		hashedPassword, _ := helper.HashPassword(validPassword)
-		testClient.User.Create().
-			SetEmail(validEmail).
-			SetUsername(validUsername).
-			SetFullName("Login User").
-			SetPasswordHash(hashedPassword).
-			Save(context.Background())
 
 		reqBody := model.LoginRequest{
 			Email:        validEmail,
@@ -73,6 +67,8 @@ func TestLogin(t *testing.T) {
 
 	t.Run("Invalid Captcha", func(t *testing.T) {
 		clearDatabase(context.Background())
+		u := createTestUser(t, "logincaptcha")
+		validEmail := *u.Email
 
 		originalSecret := testConfig.TurnstileSecretKey
 		testConfig.TurnstileSecretKey = cfTurnstileAlwaysFails
@@ -119,18 +115,12 @@ func TestLogin(t *testing.T) {
 
 	t.Run("Invalid Password", func(t *testing.T) {
 		clearDatabase(context.Background())
+		u := createTestUser(t, "loginwrongpass")
+		validEmail := *u.Email
 
 		originalSecret := testConfig.TurnstileSecretKey
 		testConfig.TurnstileSecretKey = cfTurnstileAlwaysPasses
 		defer func() { testConfig.TurnstileSecretKey = originalSecret }()
-
-		hashedPassword, _ := helper.HashPassword(validPassword)
-		testClient.User.Create().
-			SetEmail(validEmail).
-			SetUsername(validUsername).
-			SetFullName("Login User").
-			SetPasswordHash(hashedPassword).
-			Save(context.Background())
 
 		reqBody := model.LoginRequest{
 			Email:        validEmail,
@@ -155,16 +145,20 @@ func TestLogin(t *testing.T) {
 		defer func() { testConfig.TurnstileSecretKey = originalSecret }()
 
 		hashedPassword, _ := helper.HashPassword(validPassword)
+
+		email := fmt.Sprintf("deletedlogin%d@test.com", time.Now().UnixNano())
+		username := fmt.Sprintf("deletedlogin%d", time.Now().UnixNano())
+
 		testClient.User.Create().
-			SetEmail(validEmail).
-			SetUsername(validUsername).
+			SetEmail(email).
+			SetUsername(username).
 			SetFullName("Deleted User").
 			SetPasswordHash(hashedPassword).
 			SetDeletedAt(time.Now().UTC()).
 			Save(context.Background())
 
 		reqBody := model.LoginRequest{
-			Email:        validEmail,
+			Email:        email,
 			Password:     validPassword,
 			CaptchaToken: dummyTurnstileToken,
 		}
@@ -350,13 +344,13 @@ func TestGoogleExchange(t *testing.T) {
 }
 
 func TestRegister(t *testing.T) {
-
-	validEmail := "test@example.com"
 	validCode := "123456"
-	validUsername := "testuser"
 
 	t.Run("Success", func(t *testing.T) {
 		clearDatabase(context.Background())
+
+		validEmail := fmt.Sprintf("regsuccess%d@example.com", time.Now().UnixNano())
+		validUsername := fmt.Sprintf("reguser%d", time.Now().UnixNano())
 
 		originalSecret := testConfig.TurnstileSecretKey
 		testConfig.TurnstileSecretKey = cfTurnstileAlwaysPasses
@@ -397,21 +391,19 @@ func TestRegister(t *testing.T) {
 
 	t.Run("Username Already Taken (Case Insensitive)", func(t *testing.T) {
 		clearDatabase(context.Background())
+		u := createTestUser(t, "regtaken")
+
+		validEmail := fmt.Sprintf("regnew%d@example.com", time.Now().UnixNano())
+
 		originalSecret := testConfig.TurnstileSecretKey
 		testConfig.TurnstileSecretKey = cfTurnstileAlwaysPasses
 		defer func() { testConfig.TurnstileSecretKey = originalSecret }()
-
-		testClient.User.Create().
-			SetEmail("other@example.com").
-			SetUsername("scrkiddie").
-			SetFullName("Other User").
-			Save(context.Background())
 
 		createOTP(validEmail, validCode, time.Now().UTC().Add(5*time.Minute))
 
 		reqBody := model.RegisterUserRequest{
 			Email:        validEmail,
-			Username:     "scrkiddie",
+			Username:     *u.Username,
 			Code:         validCode,
 			FullName:     "Test User",
 			Password:     "Password123!",
@@ -430,6 +422,8 @@ func TestRegister(t *testing.T) {
 
 	t.Run("Invalid Captcha", func(t *testing.T) {
 		clearDatabase(context.Background())
+		validEmail := fmt.Sprintf("regcaptcha%d@example.com", time.Now().UnixNano())
+		validUsername := fmt.Sprintf("regcaptcha%d", time.Now().UnixNano())
 
 		originalSecret := testConfig.TurnstileSecretKey
 		testConfig.TurnstileSecretKey = cfTurnstileAlwaysFails
@@ -461,6 +455,8 @@ func TestRegister(t *testing.T) {
 
 	t.Run("Invalid OTP", func(t *testing.T) {
 		clearDatabase(context.Background())
+		validEmail := fmt.Sprintf("regotp%d@example.com", time.Now().UnixNano())
+		validUsername := fmt.Sprintf("regotp%d", time.Now().UnixNano())
 
 		originalSecret := testConfig.TurnstileSecretKey
 		testConfig.TurnstileSecretKey = cfTurnstileAlwaysPasses
@@ -489,16 +485,18 @@ func TestRegister(t *testing.T) {
 
 	t.Run("Expired OTP", func(t *testing.T) {
 		clearDatabase(context.Background())
+		validEmail := fmt.Sprintf("regexpired%d@example.com", time.Now().UnixNano())
+		validUsername := fmt.Sprintf("regexpired%d", time.Now().UnixNano())
 
 		originalSecret := testConfig.TurnstileSecretKey
 		testConfig.TurnstileSecretKey = cfTurnstileAlwaysPasses
 		defer func() { testConfig.TurnstileSecretKey = originalSecret }()
 
-		createOTP("expired@example.com", validCode, time.Now().UTC().Add(-5*time.Minute))
+		createOTP(validEmail, validCode, time.Now().UTC().Add(-5*time.Minute))
 
 		reqBody := model.RegisterUserRequest{
-			Email:        "expired@example.com",
-			Username:     "expireduser",
+			Email:        validEmail,
+			Username:     validUsername,
 			Code:         validCode,
 			FullName:     "Test User",
 			Password:     "Password123!",
@@ -517,23 +515,18 @@ func TestRegister(t *testing.T) {
 
 	t.Run("Email Already Registered", func(t *testing.T) {
 		clearDatabase(context.Background())
+		u := createTestUser(t, "regexist")
+		validEmail := *u.Email
+		validUsername := fmt.Sprintf("regnew%d", time.Now().UnixNano())
 
 		originalSecret := testConfig.TurnstileSecretKey
 		testConfig.TurnstileSecretKey = cfTurnstileAlwaysPasses
 		defer func() { testConfig.TurnstileSecretKey = originalSecret }()
 
-		hashedPassword, _ := helper.HashPassword("Password123!")
-		testClient.User.Create().
-			SetEmail("existing@example.com").
-			SetUsername("existinguser").
-			SetFullName("Existing User").
-			SetPasswordHash(hashedPassword).
-			Save(context.Background())
-
-		createOTP("existing@example.com", validCode, time.Now().UTC().Add(5*time.Minute))
+		createOTP(validEmail, validCode, time.Now().UTC().Add(5*time.Minute))
 
 		reqBody := model.RegisterUserRequest{
-			Email:        "existing@example.com",
+			Email:        validEmail,
 			Username:     validUsername,
 			Code:         validCode,
 			FullName:     "Test User",
@@ -553,24 +546,17 @@ func TestRegister(t *testing.T) {
 }
 
 func TestResetPassword(t *testing.T) {
-	validEmail := "reset@example.com"
 	validCode := "123456"
 	newPassword := "NewPassword123!"
 
 	t.Run("Success", func(t *testing.T) {
 		clearDatabase(context.Background())
+		u := createTestUser(t, "resetsuccess")
+		validEmail := *u.Email
 
 		originalSecret := testConfig.TurnstileSecretKey
 		testConfig.TurnstileSecretKey = cfTurnstileAlwaysPasses
 		defer func() { testConfig.TurnstileSecretKey = originalSecret }()
-
-		hashedPassword, _ := helper.HashPassword("OldPassword123!")
-		testClient.User.Create().
-			SetEmail(validEmail).
-			SetUsername("resetuser").
-			SetFullName("Reset User").
-			SetPasswordHash(hashedPassword).
-			Save(context.Background())
 
 		createOTP(validEmail, validCode, time.Now().UTC().Add(5*time.Minute))
 
@@ -598,28 +584,29 @@ func TestResetPassword(t *testing.T) {
 			printBody(t, rr)
 		}
 
-		u, _ := testClient.User.Query().Where(user.Email(validEmail)).Only(context.Background())
+		u, _ = testClient.User.Query().Where(user.Email(validEmail)).Only(context.Background())
 		assert.NotNil(t, u.PasswordHash)
 		assert.True(t, helper.CheckPasswordHash(newPassword, *u.PasswordHash))
 	})
 
 	t.Run("User Not Found", func(t *testing.T) {
 		clearDatabase(context.Background())
+		validEmail := fmt.Sprintf("reset404%d@example.com", time.Now().UnixNano())
 
 		originalSecret := testConfig.TurnstileSecretKey
 		testConfig.TurnstileSecretKey = cfTurnstileAlwaysPasses
 		defer func() { testConfig.TurnstileSecretKey = originalSecret }()
 
-		createOTP("nonexistent@example.com", validCode, time.Now().UTC().Add(5*time.Minute))
+		createOTP(validEmail, validCode, time.Now().UTC().Add(5*time.Minute))
 		hashedCode := helper.HashOTP(validCode, testConfig.OTPSecret)
 		testClient.OTP.Update().
-			Where(otp.Email("nonexistent@example.com")).
+			Where(otp.Email(validEmail)).
 			SetMode(otp.Mode(otp.ModeReset)).
 			SetCode(hashedCode).
 			Exec(context.Background())
 
 		reqBody := model.ResetPasswordRequest{
-			Email:           "nonexistent@example.com",
+			Email:           validEmail,
 			Code:            validCode,
 			Password:        newPassword,
 			ConfirmPassword: newPassword,
@@ -638,18 +625,12 @@ func TestResetPassword(t *testing.T) {
 
 	t.Run("Invalid OTP", func(t *testing.T) {
 		clearDatabase(context.Background())
+		u := createTestUser(t, "resetotp")
+		validEmail := *u.Email
 
 		originalSecret := testConfig.TurnstileSecretKey
 		testConfig.TurnstileSecretKey = cfTurnstileAlwaysPasses
 		defer func() { testConfig.TurnstileSecretKey = originalSecret }()
-
-		hashedPassword, _ := helper.HashPassword("OldPassword123!")
-		testClient.User.Create().
-			SetEmail(validEmail).
-			SetUsername("resetuser").
-			SetFullName("Reset User").
-			SetPasswordHash(hashedPassword).
-			Save(context.Background())
 
 		createOTP(validEmail, validCode, time.Now().UTC().Add(5*time.Minute))
 		hashedCode := helper.HashOTP(validCode, testConfig.OTPSecret)
@@ -679,6 +660,7 @@ func TestResetPassword(t *testing.T) {
 
 	t.Run("Password Mismatch", func(t *testing.T) {
 		clearDatabase(context.Background())
+		validEmail := fmt.Sprintf("resetmismatch%d@example.com", time.Now().UnixNano())
 
 		reqBody := model.ResetPasswordRequest{
 			Email:           validEmail,
@@ -700,7 +682,7 @@ func TestResetPassword(t *testing.T) {
 
 	t.Run("Token Integrity", func(t *testing.T) {
 		clearDatabase(context.Background())
-		u, _ := testClient.User.Create().SetEmail("token@test.com").SetUsername("tokenuser").SetFullName("Token User").Save(context.Background())
+		u := createTestUser(t, "tokenintegrity")
 
 		t.Run("Expired Token", func(t *testing.T) {
 			token, _ := helper.GenerateJWT(testConfig.JWTSecret, -1, u.ID)

@@ -72,6 +72,12 @@ func (s *GroupChatService) CreateGroupChat(ctx context.Context, creatorID uuid.U
 		if u.ID == creatorID {
 			return nil, helper.NewBadRequestError("Cannot add yourself to the member list.")
 		}
+
+		if u.IsBanned {
+			if u.BannedUntil == nil || time.Now().Before(*u.BannedUntil) {
+				return nil, helper.NewForbiddenError("Cannot add suspended/banned user to group")
+			}
+		}
 		memberIDs = append(memberIDs, u.ID)
 	}
 	allMemberIDs := append(memberIDs, creatorID)
@@ -225,7 +231,7 @@ func (s *GroupChatService) CreateGroupChat(ctx context.Context, creatorID uuid.U
 
 			var lastMsgResp *model.MessageResponse
 			if err == nil {
-				lastMsgResp = helper.ToMessageResponse(fullMsg, s.cfg.StorageMode, s.cfg.AppURL, s.cfg.StorageCDNURL, s.cfg.StorageAttachment)
+				lastMsgResp = helper.ToMessageResponse(fullMsg, s.cfg.StorageMode, s.cfg.AppURL, s.cfg.StorageCDNURL, s.cfg.StorageProfile, s.cfg.StorageAttachment)
 			}
 
 			payload := model.ChatListResponse{
@@ -433,7 +439,7 @@ func (s *GroupChatService) UpdateGroupChat(ctx context.Context, requestorID uuid
 				WithSender().
 				Only(context.Background())
 
-			msgResponse := helper.ToMessageResponse(fullMsg, s.cfg.StorageMode, s.cfg.AppURL, s.cfg.StorageCDNURL, s.cfg.StorageAttachment)
+			msgResponse := helper.ToMessageResponse(fullMsg, s.cfg.StorageMode, s.cfg.AppURL, s.cfg.StorageCDNURL, s.cfg.StorageProfile, s.cfg.StorageAttachment)
 
 			s.wsHub.BroadcastToChat(gc.ChatID, websocket.Event{
 				Type:    websocket.EventMessageNew,

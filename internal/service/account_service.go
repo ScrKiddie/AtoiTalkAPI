@@ -254,17 +254,10 @@ func (s *AccountService) DeleteAccount(ctx context.Context, userID uuid.UUID, re
 
 	if s.wsHub != nil {
 		go func() {
-			wsPayload := &model.UserUpdateEventPayload{
-				ID:       userID,
-				Username: "",
-				FullName: "",
-				Avatar:   "",
-				Bio:      "",
-			}
 
 			event := websocket.Event{
-				Type:    websocket.EventUserUpdate,
-				Payload: wsPayload,
+				Type:    websocket.EventUserDeleted,
+				Payload: map[string]uuid.UUID{"user_id": userID},
 				Meta: &websocket.EventMeta{
 					Timestamp: time.Now().UTC().UnixMilli(),
 					SenderID:  userID,

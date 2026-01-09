@@ -10,6 +10,7 @@ import (
 	"AtoiTalkAPI/ent/message"
 	"AtoiTalkAPI/ent/otp"
 	"AtoiTalkAPI/ent/privatechat"
+	"AtoiTalkAPI/ent/report"
 	"AtoiTalkAPI/ent/schema"
 	"AtoiTalkAPI/ent/user"
 	"AtoiTalkAPI/ent/userblock"
@@ -247,6 +248,26 @@ func init() {
 	privatechatDescID := privatechatFields[0].Descriptor()
 	// privatechat.DefaultID holds the default value on creation for the id field.
 	privatechat.DefaultID = privatechatDescID.Default.(func() uuid.UUID)
+	reportFields := schema.Report{}.Fields()
+	_ = reportFields
+	// reportDescReason is the schema descriptor for reason field.
+	reportDescReason := reportFields[2].Descriptor()
+	// report.ReasonValidator is a validator for the "reason" field. It is called by the builders before save.
+	report.ReasonValidator = reportDescReason.Validators[0].(func(string) error)
+	// reportDescCreatedAt is the schema descriptor for created_at field.
+	reportDescCreatedAt := reportFields[10].Descriptor()
+	// report.DefaultCreatedAt holds the default value on creation for the created_at field.
+	report.DefaultCreatedAt = reportDescCreatedAt.Default.(func() time.Time)
+	// reportDescUpdatedAt is the schema descriptor for updated_at field.
+	reportDescUpdatedAt := reportFields[11].Descriptor()
+	// report.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	report.DefaultUpdatedAt = reportDescUpdatedAt.Default.(func() time.Time)
+	// report.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	report.UpdateDefaultUpdatedAt = reportDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// reportDescID is the schema descriptor for id field.
+	reportDescID := reportFields[0].Descriptor()
+	// report.DefaultID holds the default value on creation for the id field.
+	report.DefaultID = reportDescID.Default.(func() uuid.UUID)
 	userMixin := schema.User{}.Mixin()
 	userMixinFields0 := userMixin[0].Fields()
 	_ = userMixinFields0
@@ -286,6 +307,10 @@ func init() {
 	userDescIsOnline := userFields[7].Descriptor()
 	// user.DefaultIsOnline holds the default value on creation for the is_online field.
 	user.DefaultIsOnline = userDescIsOnline.Default.(bool)
+	// userDescIsBanned is the schema descriptor for is_banned field.
+	userDescIsBanned := userFields[11].Descriptor()
+	// user.DefaultIsBanned holds the default value on creation for the is_banned field.
+	user.DefaultIsBanned = userDescIsBanned.Default.(bool)
 	// userDescID is the schema descriptor for id field.
 	userDescID := userFields[0].Descriptor()
 	// user.DefaultID holds the default value on creation for the id field.

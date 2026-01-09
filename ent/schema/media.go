@@ -21,6 +21,7 @@ func (Media) Fields() []ent.Field {
 		field.Int64("file_size").Positive(),
 		field.String("mime_type").MaxLen(100).NotEmpty(),
 		field.Enum("status").Values("pending", "active", "failed").Default("pending"),
+
 		field.UUID("message_id", uuid.UUID{}).Optional().Nillable(),
 		field.UUID("uploaded_by_id", uuid.UUID{}),
 	}
@@ -43,5 +44,8 @@ func (Media) Edges() []ent.Edge {
 			Field("uploaded_by_id").
 			Unique().
 			Required(),
+
+		edge.From("reports", Report.Type).
+			Ref("evidence_media"),
 	}
 }

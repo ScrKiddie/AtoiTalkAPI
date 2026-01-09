@@ -22,12 +22,13 @@ type GetMessagesRequest struct {
 }
 
 type MessageResponse struct {
-	ID          uuid.UUID  `json:"id"`
-	ChatID      uuid.UUID  `json:"chat_id"`
-	SenderID    *uuid.UUID `json:"sender_id,omitempty"`
-	SenderName  string     `json:"sender_name,omitempty"`
-	Type        string     `json:"type"`
-	Content     string     `json:"content,omitempty"`
+	ID           uuid.UUID  `json:"id"`
+	ChatID       uuid.UUID  `json:"chat_id"`
+	SenderID     *uuid.UUID `json:"sender_id,omitempty"`
+	SenderName   string     `json:"sender_name,omitempty"`
+	SenderAvatar string     `json:"sender_avatar,omitempty"`
+	Type         string     `json:"type"`
+	Content      string     `json:"content,omitempty"`
 	// ActionData contains metadata for system messages.
 	//
 	// Structure depends on Type:

@@ -22,6 +22,7 @@ func MapChatToResponse(userID uuid.UUID, c *ent.Chat, blockedMap map[uuid.UUID]B
 	var isOnline bool
 	var otherUserID *uuid.UUID
 	var otherUserIsDeleted bool
+	var otherUserIsBanned bool
 	var isBlockedByMe bool
 	var myRole *string
 
@@ -52,8 +53,15 @@ func MapChatToResponse(userID uuid.UUID, c *ent.Chat, blockedMap map[uuid.UUID]B
 			if otherUser.DeletedAt != nil {
 				otherUserIsDeleted = true
 				isOnline = false
-
 			} else {
+
+				if otherUser.IsBanned {
+					if otherUser.BannedUntil == nil || time.Now().Before(*otherUser.BannedUntil) {
+						otherUserIsBanned = true
+						isOnline = false
+					}
+				}
+
 				status := blockedMap[otherUser.ID]
 				isBlockedByMe = status.BlockedByMe
 
@@ -63,7 +71,9 @@ func MapChatToResponse(userID uuid.UUID, c *ent.Chat, blockedMap map[uuid.UUID]B
 						avatar = BuildImageURL(storageMode, appURL, cdnURL, storageProfile, otherUser.Edges.Avatar.FileName)
 					}
 				} else {
-					isOnline = otherUser.IsOnline
+					if !otherUserIsBanned {
+						isOnline = otherUser.IsOnline
+					}
 					if otherUser.Edges.Avatar != nil {
 						avatar = BuildImageURL(storageMode, appURL, cdnURL, storageProfile, otherUser.Edges.Avatar.FileName)
 					}
@@ -99,7 +109,7 @@ func MapChatToResponse(userID uuid.UUID, c *ent.Chat, blockedMap map[uuid.UUID]B
 
 	var lastMsgResp *model.MessageResponse
 	if c.Edges.LastMessage != nil {
-		lastMsgResp = ToMessageResponse(c.Edges.LastMessage, storageMode, appURL, cdnURL, storageAttachment)
+		lastMsgResp = ToMessageResponse(c.Edges.LastMessage, storageMode, appURL, cdnURL, storageProfile, storageAttachment)
 	}
 
 	return &model.ChatListResponse{
@@ -114,6 +124,7 @@ func MapChatToResponse(userID uuid.UUID, c *ent.Chat, blockedMap map[uuid.UUID]B
 		IsOnline:           isOnline,
 		OtherUserID:        otherUserID,
 		OtherUserIsDeleted: otherUserIsDeleted,
+		OtherUserIsBanned:  otherUserIsBanned,
 		IsBlockedByMe:      isBlockedByMe,
 		MyRole:             myRole,
 	}

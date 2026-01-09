@@ -6,7 +6,7 @@ import (
 	"time"
 )
 
-func ToMessageResponse(msg *ent.Message, storageMode, appURL, cdnURL, storageAttachment string) *model.MessageResponse {
+func ToMessageResponse(msg *ent.Message, storageMode, appURL, cdnURL, storageProfile, storageAttachment string) *model.MessageResponse {
 	if msg == nil {
 		return nil
 	}
@@ -45,8 +45,15 @@ func ToMessageResponse(msg *ent.Message, storageMode, appURL, cdnURL, storageAtt
 	}
 
 	var senderName string
-	if msg.Edges.Sender != nil && msg.Edges.Sender.FullName != nil {
-		senderName = *msg.Edges.Sender.FullName
+	var senderAvatar string
+
+	if msg.Edges.Sender != nil {
+		if msg.Edges.Sender.FullName != nil {
+			senderName = *msg.Edges.Sender.FullName
+		}
+		if msg.Edges.Sender.Edges.Avatar != nil {
+			senderAvatar = BuildImageURL(storageMode, appURL, cdnURL, storageProfile, msg.Edges.Sender.Edges.Avatar.FileName)
+		}
 	}
 
 	var replyPreview *model.ReplyPreviewDTO
@@ -83,17 +90,18 @@ func ToMessageResponse(msg *ent.Message, storageMode, appURL, cdnURL, storageAtt
 	}
 
 	return &model.MessageResponse{
-		ID:          msg.ID,
-		ChatID:      msg.ChatID,
-		SenderID:    msg.SenderID,
-		SenderName:  senderName,
-		Type:        string(msg.Type),
-		Content:     content,
-		ActionData:  actionData,
-		Attachments: attachments,
-		ReplyTo:     replyPreview,
-		CreatedAt:   msg.CreatedAt.Format(time.RFC3339),
-		DeletedAt:   deletedAtStr,
-		EditedAt:    editedAtStr,
+		ID:           msg.ID,
+		ChatID:       msg.ChatID,
+		SenderID:     msg.SenderID,
+		SenderName:   senderName,
+		SenderAvatar: senderAvatar,
+		Type:         string(msg.Type),
+		Content:      content,
+		ActionData:   actionData,
+		Attachments:  attachments,
+		ReplyTo:      replyPreview,
+		CreatedAt:    msg.CreatedAt.Format(time.RFC3339),
+		DeletedAt:    deletedAtStr,
+		EditedAt:     editedAtStr,
 	}
 }

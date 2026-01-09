@@ -9,6 +9,7 @@ import (
 	"AtoiTalkAPI/ent/message"
 	"AtoiTalkAPI/ent/predicate"
 	"AtoiTalkAPI/ent/privatechat"
+	"AtoiTalkAPI/ent/report"
 	"AtoiTalkAPI/ent/user"
 	"AtoiTalkAPI/ent/userblock"
 	"AtoiTalkAPI/ent/useridentity"
@@ -217,6 +218,74 @@ func (_u *UserUpdate) ClearDeletedAt() *UserUpdate {
 	return _u
 }
 
+// SetRole sets the "role" field.
+func (_u *UserUpdate) SetRole(v user.Role) *UserUpdate {
+	_u.mutation.SetRole(v)
+	return _u
+}
+
+// SetNillableRole sets the "role" field if the given value is not nil.
+func (_u *UserUpdate) SetNillableRole(v *user.Role) *UserUpdate {
+	if v != nil {
+		_u.SetRole(*v)
+	}
+	return _u
+}
+
+// SetIsBanned sets the "is_banned" field.
+func (_u *UserUpdate) SetIsBanned(v bool) *UserUpdate {
+	_u.mutation.SetIsBanned(v)
+	return _u
+}
+
+// SetNillableIsBanned sets the "is_banned" field if the given value is not nil.
+func (_u *UserUpdate) SetNillableIsBanned(v *bool) *UserUpdate {
+	if v != nil {
+		_u.SetIsBanned(*v)
+	}
+	return _u
+}
+
+// SetBannedUntil sets the "banned_until" field.
+func (_u *UserUpdate) SetBannedUntil(v time.Time) *UserUpdate {
+	_u.mutation.SetBannedUntil(v)
+	return _u
+}
+
+// SetNillableBannedUntil sets the "banned_until" field if the given value is not nil.
+func (_u *UserUpdate) SetNillableBannedUntil(v *time.Time) *UserUpdate {
+	if v != nil {
+		_u.SetBannedUntil(*v)
+	}
+	return _u
+}
+
+// ClearBannedUntil clears the value of the "banned_until" field.
+func (_u *UserUpdate) ClearBannedUntil() *UserUpdate {
+	_u.mutation.ClearBannedUntil()
+	return _u
+}
+
+// SetBanReason sets the "ban_reason" field.
+func (_u *UserUpdate) SetBanReason(v string) *UserUpdate {
+	_u.mutation.SetBanReason(v)
+	return _u
+}
+
+// SetNillableBanReason sets the "ban_reason" field if the given value is not nil.
+func (_u *UserUpdate) SetNillableBanReason(v *string) *UserUpdate {
+	if v != nil {
+		_u.SetBanReason(*v)
+	}
+	return _u
+}
+
+// ClearBanReason clears the value of the "ban_reason" field.
+func (_u *UserUpdate) ClearBanReason() *UserUpdate {
+	_u.mutation.ClearBanReason()
+	return _u
+}
+
 // SetAvatar sets the "avatar" edge to the Media entity.
 func (_u *UserUpdate) SetAvatar(v *Media) *UserUpdate {
 	return _u.SetAvatarID(v.ID)
@@ -355,6 +424,36 @@ func (_u *UserUpdate) AddBlockedByRel(v ...*UserBlock) *UserUpdate {
 		ids[i] = v[i].ID
 	}
 	return _u.AddBlockedByRelIDs(ids...)
+}
+
+// AddReportsMadeIDs adds the "reports_made" edge to the Report entity by IDs.
+func (_u *UserUpdate) AddReportsMadeIDs(ids ...uuid.UUID) *UserUpdate {
+	_u.mutation.AddReportsMadeIDs(ids...)
+	return _u
+}
+
+// AddReportsMade adds the "reports_made" edges to the Report entity.
+func (_u *UserUpdate) AddReportsMade(v ...*Report) *UserUpdate {
+	ids := make([]uuid.UUID, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddReportsMadeIDs(ids...)
+}
+
+// AddReportsReceivedIDs adds the "reports_received" edge to the Report entity by IDs.
+func (_u *UserUpdate) AddReportsReceivedIDs(ids ...uuid.UUID) *UserUpdate {
+	_u.mutation.AddReportsReceivedIDs(ids...)
+	return _u
+}
+
+// AddReportsReceived adds the "reports_received" edges to the Report entity.
+func (_u *UserUpdate) AddReportsReceived(v ...*Report) *UserUpdate {
+	ids := make([]uuid.UUID, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddReportsReceivedIDs(ids...)
 }
 
 // Mutation returns the UserMutation object of the builder.
@@ -557,6 +656,48 @@ func (_u *UserUpdate) RemoveBlockedByRel(v ...*UserBlock) *UserUpdate {
 	return _u.RemoveBlockedByRelIDs(ids...)
 }
 
+// ClearReportsMade clears all "reports_made" edges to the Report entity.
+func (_u *UserUpdate) ClearReportsMade() *UserUpdate {
+	_u.mutation.ClearReportsMade()
+	return _u
+}
+
+// RemoveReportsMadeIDs removes the "reports_made" edge to Report entities by IDs.
+func (_u *UserUpdate) RemoveReportsMadeIDs(ids ...uuid.UUID) *UserUpdate {
+	_u.mutation.RemoveReportsMadeIDs(ids...)
+	return _u
+}
+
+// RemoveReportsMade removes "reports_made" edges to Report entities.
+func (_u *UserUpdate) RemoveReportsMade(v ...*Report) *UserUpdate {
+	ids := make([]uuid.UUID, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveReportsMadeIDs(ids...)
+}
+
+// ClearReportsReceived clears all "reports_received" edges to the Report entity.
+func (_u *UserUpdate) ClearReportsReceived() *UserUpdate {
+	_u.mutation.ClearReportsReceived()
+	return _u
+}
+
+// RemoveReportsReceivedIDs removes the "reports_received" edge to Report entities by IDs.
+func (_u *UserUpdate) RemoveReportsReceivedIDs(ids ...uuid.UUID) *UserUpdate {
+	_u.mutation.RemoveReportsReceivedIDs(ids...)
+	return _u
+}
+
+// RemoveReportsReceived removes "reports_received" edges to Report entities.
+func (_u *UserUpdate) RemoveReportsReceived(v ...*Report) *UserUpdate {
+	ids := make([]uuid.UUID, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveReportsReceivedIDs(ids...)
+}
+
 // Save executes the query and returns the number of nodes affected by the update operation.
 func (_u *UserUpdate) Save(ctx context.Context) (int, error) {
 	_u.defaults()
@@ -618,6 +759,11 @@ func (_u *UserUpdate) check() error {
 	if v, ok := _u.mutation.Bio(); ok {
 		if err := user.BioValidator(v); err != nil {
 			return &ValidationError{Name: "bio", err: fmt.Errorf(`ent: validator failed for field "User.bio": %w`, err)}
+		}
+	}
+	if v, ok := _u.mutation.Role(); ok {
+		if err := user.RoleValidator(v); err != nil {
+			return &ValidationError{Name: "role", err: fmt.Errorf(`ent: validator failed for field "User.role": %w`, err)}
 		}
 	}
 	return nil
@@ -688,6 +834,24 @@ func (_u *UserUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	}
 	if _u.mutation.DeletedAtCleared() {
 		_spec.ClearField(user.FieldDeletedAt, field.TypeTime)
+	}
+	if value, ok := _u.mutation.Role(); ok {
+		_spec.SetField(user.FieldRole, field.TypeEnum, value)
+	}
+	if value, ok := _u.mutation.IsBanned(); ok {
+		_spec.SetField(user.FieldIsBanned, field.TypeBool, value)
+	}
+	if value, ok := _u.mutation.BannedUntil(); ok {
+		_spec.SetField(user.FieldBannedUntil, field.TypeTime, value)
+	}
+	if _u.mutation.BannedUntilCleared() {
+		_spec.ClearField(user.FieldBannedUntil, field.TypeTime)
+	}
+	if value, ok := _u.mutation.BanReason(); ok {
+		_spec.SetField(user.FieldBanReason, field.TypeString, value)
+	}
+	if _u.mutation.BanReasonCleared() {
+		_spec.ClearField(user.FieldBanReason, field.TypeString)
 	}
 	if _u.mutation.AvatarCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -1116,6 +1280,96 @@ func (_u *UserUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(userblock.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.ReportsMadeCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.ReportsMadeTable,
+			Columns: []string{user.ReportsMadeColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(report.FieldID, field.TypeUUID),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedReportsMadeIDs(); len(nodes) > 0 && !_u.mutation.ReportsMadeCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.ReportsMadeTable,
+			Columns: []string{user.ReportsMadeColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(report.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.ReportsMadeIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.ReportsMadeTable,
+			Columns: []string{user.ReportsMadeColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(report.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.ReportsReceivedCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.ReportsReceivedTable,
+			Columns: []string{user.ReportsReceivedColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(report.FieldID, field.TypeUUID),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedReportsReceivedIDs(); len(nodes) > 0 && !_u.mutation.ReportsReceivedCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.ReportsReceivedTable,
+			Columns: []string{user.ReportsReceivedColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(report.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.ReportsReceivedIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.ReportsReceivedTable,
+			Columns: []string{user.ReportsReceivedColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(report.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {
@@ -1325,6 +1579,74 @@ func (_u *UserUpdateOne) ClearDeletedAt() *UserUpdateOne {
 	return _u
 }
 
+// SetRole sets the "role" field.
+func (_u *UserUpdateOne) SetRole(v user.Role) *UserUpdateOne {
+	_u.mutation.SetRole(v)
+	return _u
+}
+
+// SetNillableRole sets the "role" field if the given value is not nil.
+func (_u *UserUpdateOne) SetNillableRole(v *user.Role) *UserUpdateOne {
+	if v != nil {
+		_u.SetRole(*v)
+	}
+	return _u
+}
+
+// SetIsBanned sets the "is_banned" field.
+func (_u *UserUpdateOne) SetIsBanned(v bool) *UserUpdateOne {
+	_u.mutation.SetIsBanned(v)
+	return _u
+}
+
+// SetNillableIsBanned sets the "is_banned" field if the given value is not nil.
+func (_u *UserUpdateOne) SetNillableIsBanned(v *bool) *UserUpdateOne {
+	if v != nil {
+		_u.SetIsBanned(*v)
+	}
+	return _u
+}
+
+// SetBannedUntil sets the "banned_until" field.
+func (_u *UserUpdateOne) SetBannedUntil(v time.Time) *UserUpdateOne {
+	_u.mutation.SetBannedUntil(v)
+	return _u
+}
+
+// SetNillableBannedUntil sets the "banned_until" field if the given value is not nil.
+func (_u *UserUpdateOne) SetNillableBannedUntil(v *time.Time) *UserUpdateOne {
+	if v != nil {
+		_u.SetBannedUntil(*v)
+	}
+	return _u
+}
+
+// ClearBannedUntil clears the value of the "banned_until" field.
+func (_u *UserUpdateOne) ClearBannedUntil() *UserUpdateOne {
+	_u.mutation.ClearBannedUntil()
+	return _u
+}
+
+// SetBanReason sets the "ban_reason" field.
+func (_u *UserUpdateOne) SetBanReason(v string) *UserUpdateOne {
+	_u.mutation.SetBanReason(v)
+	return _u
+}
+
+// SetNillableBanReason sets the "ban_reason" field if the given value is not nil.
+func (_u *UserUpdateOne) SetNillableBanReason(v *string) *UserUpdateOne {
+	if v != nil {
+		_u.SetBanReason(*v)
+	}
+	return _u
+}
+
+// ClearBanReason clears the value of the "ban_reason" field.
+func (_u *UserUpdateOne) ClearBanReason() *UserUpdateOne {
+	_u.mutation.ClearBanReason()
+	return _u
+}
+
 // SetAvatar sets the "avatar" edge to the Media entity.
 func (_u *UserUpdateOne) SetAvatar(v *Media) *UserUpdateOne {
 	return _u.SetAvatarID(v.ID)
@@ -1463,6 +1785,36 @@ func (_u *UserUpdateOne) AddBlockedByRel(v ...*UserBlock) *UserUpdateOne {
 		ids[i] = v[i].ID
 	}
 	return _u.AddBlockedByRelIDs(ids...)
+}
+
+// AddReportsMadeIDs adds the "reports_made" edge to the Report entity by IDs.
+func (_u *UserUpdateOne) AddReportsMadeIDs(ids ...uuid.UUID) *UserUpdateOne {
+	_u.mutation.AddReportsMadeIDs(ids...)
+	return _u
+}
+
+// AddReportsMade adds the "reports_made" edges to the Report entity.
+func (_u *UserUpdateOne) AddReportsMade(v ...*Report) *UserUpdateOne {
+	ids := make([]uuid.UUID, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddReportsMadeIDs(ids...)
+}
+
+// AddReportsReceivedIDs adds the "reports_received" edge to the Report entity by IDs.
+func (_u *UserUpdateOne) AddReportsReceivedIDs(ids ...uuid.UUID) *UserUpdateOne {
+	_u.mutation.AddReportsReceivedIDs(ids...)
+	return _u
+}
+
+// AddReportsReceived adds the "reports_received" edges to the Report entity.
+func (_u *UserUpdateOne) AddReportsReceived(v ...*Report) *UserUpdateOne {
+	ids := make([]uuid.UUID, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddReportsReceivedIDs(ids...)
 }
 
 // Mutation returns the UserMutation object of the builder.
@@ -1665,6 +2017,48 @@ func (_u *UserUpdateOne) RemoveBlockedByRel(v ...*UserBlock) *UserUpdateOne {
 	return _u.RemoveBlockedByRelIDs(ids...)
 }
 
+// ClearReportsMade clears all "reports_made" edges to the Report entity.
+func (_u *UserUpdateOne) ClearReportsMade() *UserUpdateOne {
+	_u.mutation.ClearReportsMade()
+	return _u
+}
+
+// RemoveReportsMadeIDs removes the "reports_made" edge to Report entities by IDs.
+func (_u *UserUpdateOne) RemoveReportsMadeIDs(ids ...uuid.UUID) *UserUpdateOne {
+	_u.mutation.RemoveReportsMadeIDs(ids...)
+	return _u
+}
+
+// RemoveReportsMade removes "reports_made" edges to Report entities.
+func (_u *UserUpdateOne) RemoveReportsMade(v ...*Report) *UserUpdateOne {
+	ids := make([]uuid.UUID, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveReportsMadeIDs(ids...)
+}
+
+// ClearReportsReceived clears all "reports_received" edges to the Report entity.
+func (_u *UserUpdateOne) ClearReportsReceived() *UserUpdateOne {
+	_u.mutation.ClearReportsReceived()
+	return _u
+}
+
+// RemoveReportsReceivedIDs removes the "reports_received" edge to Report entities by IDs.
+func (_u *UserUpdateOne) RemoveReportsReceivedIDs(ids ...uuid.UUID) *UserUpdateOne {
+	_u.mutation.RemoveReportsReceivedIDs(ids...)
+	return _u
+}
+
+// RemoveReportsReceived removes "reports_received" edges to Report entities.
+func (_u *UserUpdateOne) RemoveReportsReceived(v ...*Report) *UserUpdateOne {
+	ids := make([]uuid.UUID, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveReportsReceivedIDs(ids...)
+}
+
 // Where appends a list predicates to the UserUpdate builder.
 func (_u *UserUpdateOne) Where(ps ...predicate.User) *UserUpdateOne {
 	_u.mutation.Where(ps...)
@@ -1739,6 +2133,11 @@ func (_u *UserUpdateOne) check() error {
 	if v, ok := _u.mutation.Bio(); ok {
 		if err := user.BioValidator(v); err != nil {
 			return &ValidationError{Name: "bio", err: fmt.Errorf(`ent: validator failed for field "User.bio": %w`, err)}
+		}
+	}
+	if v, ok := _u.mutation.Role(); ok {
+		if err := user.RoleValidator(v); err != nil {
+			return &ValidationError{Name: "role", err: fmt.Errorf(`ent: validator failed for field "User.role": %w`, err)}
 		}
 	}
 	return nil
@@ -1826,6 +2225,24 @@ func (_u *UserUpdateOne) sqlSave(ctx context.Context) (_node *User, err error) {
 	}
 	if _u.mutation.DeletedAtCleared() {
 		_spec.ClearField(user.FieldDeletedAt, field.TypeTime)
+	}
+	if value, ok := _u.mutation.Role(); ok {
+		_spec.SetField(user.FieldRole, field.TypeEnum, value)
+	}
+	if value, ok := _u.mutation.IsBanned(); ok {
+		_spec.SetField(user.FieldIsBanned, field.TypeBool, value)
+	}
+	if value, ok := _u.mutation.BannedUntil(); ok {
+		_spec.SetField(user.FieldBannedUntil, field.TypeTime, value)
+	}
+	if _u.mutation.BannedUntilCleared() {
+		_spec.ClearField(user.FieldBannedUntil, field.TypeTime)
+	}
+	if value, ok := _u.mutation.BanReason(); ok {
+		_spec.SetField(user.FieldBanReason, field.TypeString, value)
+	}
+	if _u.mutation.BanReasonCleared() {
+		_spec.ClearField(user.FieldBanReason, field.TypeString)
 	}
 	if _u.mutation.AvatarCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -2254,6 +2671,96 @@ func (_u *UserUpdateOne) sqlSave(ctx context.Context) (_node *User, err error) {
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(userblock.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.ReportsMadeCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.ReportsMadeTable,
+			Columns: []string{user.ReportsMadeColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(report.FieldID, field.TypeUUID),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedReportsMadeIDs(); len(nodes) > 0 && !_u.mutation.ReportsMadeCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.ReportsMadeTable,
+			Columns: []string{user.ReportsMadeColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(report.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.ReportsMadeIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.ReportsMadeTable,
+			Columns: []string{user.ReportsMadeColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(report.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.ReportsReceivedCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.ReportsReceivedTable,
+			Columns: []string{user.ReportsReceivedColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(report.FieldID, field.TypeUUID),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedReportsReceivedIDs(); len(nodes) > 0 && !_u.mutation.ReportsReceivedCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.ReportsReceivedTable,
+			Columns: []string{user.ReportsReceivedColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(report.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.ReportsReceivedIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.ReportsReceivedTable,
+			Columns: []string{user.ReportsReceivedColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(report.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {
