@@ -59,9 +59,11 @@ type MessageEdges struct {
 	ReplyTo *Message `json:"reply_to,omitempty"`
 	// Attachments holds the value of the attachments edge.
 	Attachments []*Media `json:"attachments,omitempty"`
+	// Reports holds the value of the reports edge.
+	Reports []*Report `json:"reports,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [5]bool
+	loadedTypes [6]bool
 }
 
 // ChatOrErr returns the Chat value or an error if the edge
@@ -113,6 +115,15 @@ func (e MessageEdges) AttachmentsOrErr() ([]*Media, error) {
 		return e.Attachments, nil
 	}
 	return nil, &NotLoadedError{edge: "attachments"}
+}
+
+// ReportsOrErr returns the Reports value or an error if the edge
+// was not loaded in eager-loading.
+func (e MessageEdges) ReportsOrErr() ([]*Report, error) {
+	if e.loadedTypes[5] {
+		return e.Reports, nil
+	}
+	return nil, &NotLoadedError{edge: "reports"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -254,6 +265,11 @@ func (_m *Message) QueryReplyTo() *MessageQuery {
 // QueryAttachments queries the "attachments" edge of the Message entity.
 func (_m *Message) QueryAttachments() *MediaQuery {
 	return NewMessageClient(_m.config).QueryAttachments(_m)
+}
+
+// QueryReports queries the "reports" edge of the Message entity.
+func (_m *Message) QueryReports() *ReportQuery {
+	return NewMessageClient(_m.config).QueryReports(_m)
 }
 
 // Update returns a builder for updating this Message.

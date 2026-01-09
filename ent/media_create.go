@@ -6,6 +6,7 @@ import (
 	"AtoiTalkAPI/ent/groupchat"
 	"AtoiTalkAPI/ent/media"
 	"AtoiTalkAPI/ent/message"
+	"AtoiTalkAPI/ent/report"
 	"AtoiTalkAPI/ent/user"
 	"context"
 	"errors"
@@ -179,6 +180,21 @@ func (_c *MediaCreate) SetUploaderID(id uuid.UUID) *MediaCreate {
 // SetUploader sets the "uploader" edge to the User entity.
 func (_c *MediaCreate) SetUploader(v *User) *MediaCreate {
 	return _c.SetUploaderID(v.ID)
+}
+
+// AddReportIDs adds the "reports" edge to the Report entity by IDs.
+func (_c *MediaCreate) AddReportIDs(ids ...uuid.UUID) *MediaCreate {
+	_c.mutation.AddReportIDs(ids...)
+	return _c
+}
+
+// AddReports adds the "reports" edges to the Report entity.
+func (_c *MediaCreate) AddReports(v ...*Report) *MediaCreate {
+	ids := make([]uuid.UUID, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _c.AddReportIDs(ids...)
 }
 
 // Mutation returns the MediaMutation object of the builder.
@@ -416,6 +432,22 @@ func (_c *MediaCreate) createSpec() (*Media, *sqlgraph.CreateSpec) {
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
 		_node.UploadedByID = nodes[0]
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.ReportsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2M,
+			Inverse: true,
+			Table:   media.ReportsTable,
+			Columns: media.ReportsPrimaryKey,
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(report.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
 		_spec.Edges = append(_spec.Edges, edge)
 	}
 	return _node, _spec

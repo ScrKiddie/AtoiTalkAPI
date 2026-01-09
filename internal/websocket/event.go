@@ -20,6 +20,8 @@ const (
 	EventUserUpdate  EventType = "user.update"
 	EventUserBlock   EventType = "user.block"
 	EventUserUnblock EventType = "user.unblock"
+	EventUserBanned  EventType = "user.banned"
+	EventUserDeleted EventType = "user.deleted"
 )
 
 type Event struct {

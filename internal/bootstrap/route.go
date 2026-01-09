@@ -25,10 +25,12 @@ type Route struct {
 	messageController     *controller.MessageController
 	mediaController       *controller.MediaController
 	wsController          *controller.WebSocketController
+	reportController      *controller.ReportController
+	adminController       *controller.AdminController
 	authMiddleware        *middleware.AuthMiddleware
 }
 
-func NewRoute(cfg *config.AppConfig, chi *chi.Mux, authController *controller.AuthController, otpController *controller.OTPController, userController *controller.UserController, accountController *controller.AccountController, chatController *controller.ChatController, privateChatController *controller.PrivateChatController, groupChatController *controller.GroupChatController, messageController *controller.MessageController, mediaController *controller.MediaController, wsController *controller.WebSocketController, authMiddleware *middleware.AuthMiddleware) *Route {
+func NewRoute(cfg *config.AppConfig, chi *chi.Mux, authController *controller.AuthController, otpController *controller.OTPController, userController *controller.UserController, accountController *controller.AccountController, chatController *controller.ChatController, privateChatController *controller.PrivateChatController, groupChatController *controller.GroupChatController, messageController *controller.MessageController, mediaController *controller.MediaController, wsController *controller.WebSocketController, reportController *controller.ReportController, adminController *controller.AdminController, authMiddleware *middleware.AuthMiddleware) *Route {
 	return &Route{
 		cfg:                   cfg,
 		chi:                   chi,
@@ -42,6 +44,8 @@ func NewRoute(cfg *config.AppConfig, chi *chi.Mux, authController *controller.Au
 		messageController:     messageController,
 		mediaController:       mediaController,
 		wsController:          wsController,
+		reportController:      reportController,
+		adminController:       adminController,
 		authMiddleware:        authMiddleware,
 	}
 }
@@ -121,6 +125,17 @@ func (route *Route) Register() {
 			r.Delete("/messages/{messageID}", route.messageController.DeleteMessage)
 
 			r.With(middleware.MaxBodySize(3*1024*1024)).Post("/media/upload", route.mediaController.UploadMedia)
+
+			r.Post("/reports", route.reportController.CreateReport)
+
+			r.Group(func(r chi.Router) {
+				r.Use(route.authMiddleware.AdminOnly)
+				r.Post("/admin/users/ban", route.adminController.BanUser)
+				r.Post("/admin/users/{userID}/unban", route.adminController.UnbanUser)
+				r.Get("/admin/reports", route.adminController.GetReports)
+				r.Get("/admin/reports/{reportID}", route.adminController.GetReportDetail)
+				r.Put("/admin/reports/{reportID}/resolve", route.adminController.ResolveReport)
+			})
 		})
 	})
 }

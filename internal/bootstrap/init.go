@@ -52,10 +52,16 @@ func Init(appConfig *config.AppConfig, client *ent.Client, validator *validator.
 	mediaService := service.NewMediaService(client, appConfig, validator, storageAdapter)
 	mediaController := controller.NewMediaController(mediaService)
 
+	reportService := service.NewReportService(client, appConfig, validator)
+	reportController := controller.NewReportController(reportService)
+
+	adminService := service.NewAdminService(client, appConfig, validator, wsHub)
+	adminController := controller.NewAdminController(adminService)
+
 	wsController := controller.NewWebSocketController(wsHub)
 
 	authMiddleware := middleware.NewAuthMiddleware(authService)
 
-	route := NewRoute(appConfig, chiMux, authController, otpController, userController, accountController, chatController, privateChatController, groupChatController, messageController, mediaController, wsController, authMiddleware)
+	route := NewRoute(appConfig, chiMux, authController, otpController, userController, accountController, chatController, privateChatController, groupChatController, messageController, mediaController, wsController, reportController, adminController, authMiddleware)
 	route.Register()
 }

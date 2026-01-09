@@ -9,6 +9,7 @@ import (
 	"AtoiTalkAPI/ent/message"
 	"AtoiTalkAPI/ent/predicate"
 	"AtoiTalkAPI/ent/privatechat"
+	"AtoiTalkAPI/ent/report"
 	"AtoiTalkAPI/ent/user"
 	"AtoiTalkAPI/ent/userblock"
 	"AtoiTalkAPI/ent/useridentity"
@@ -42,6 +43,8 @@ type UserQuery struct {
 	withUploadedMedia       *MediaQuery
 	withBlockedUsersRel     *UserBlockQuery
 	withBlockedByRel        *UserBlockQuery
+	withReportsMade         *ReportQuery
+	withReportsReceived     *ReportQuery
 	modifiers               []func(*sql.Selector)
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
@@ -299,6 +302,50 @@ func (_q *UserQuery) QueryBlockedByRel() *UserBlockQuery {
 	return query
 }
 
+// QueryReportsMade chains the current query on the "reports_made" edge.
+func (_q *UserQuery) QueryReportsMade() *ReportQuery {
+	query := (&ReportClient{config: _q.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := _q.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := _q.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(user.Table, user.FieldID, selector),
+			sqlgraph.To(report.Table, report.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, user.ReportsMadeTable, user.ReportsMadeColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryReportsReceived chains the current query on the "reports_received" edge.
+func (_q *UserQuery) QueryReportsReceived() *ReportQuery {
+	query := (&ReportClient{config: _q.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := _q.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := _q.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(user.Table, user.FieldID, selector),
+			sqlgraph.To(report.Table, report.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, user.ReportsReceivedTable, user.ReportsReceivedColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
 // First returns the first User entity from the query.
 // Returns a *NotFoundError when no User was found.
 func (_q *UserQuery) First(ctx context.Context) (*User, error) {
@@ -501,6 +548,8 @@ func (_q *UserQuery) Clone() *UserQuery {
 		withUploadedMedia:       _q.withUploadedMedia.Clone(),
 		withBlockedUsersRel:     _q.withBlockedUsersRel.Clone(),
 		withBlockedByRel:        _q.withBlockedByRel.Clone(),
+		withReportsMade:         _q.withReportsMade.Clone(),
+		withReportsReceived:     _q.withReportsReceived.Clone(),
 		// clone intermediate query.
 		sql:       _q.sql.Clone(),
 		path:      _q.path,
@@ -618,6 +667,28 @@ func (_q *UserQuery) WithBlockedByRel(opts ...func(*UserBlockQuery)) *UserQuery 
 	return _q
 }
 
+// WithReportsMade tells the query-builder to eager-load the nodes that are connected to
+// the "reports_made" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *UserQuery) WithReportsMade(opts ...func(*ReportQuery)) *UserQuery {
+	query := (&ReportClient{config: _q.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	_q.withReportsMade = query
+	return _q
+}
+
+// WithReportsReceived tells the query-builder to eager-load the nodes that are connected to
+// the "reports_received" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *UserQuery) WithReportsReceived(opts ...func(*ReportQuery)) *UserQuery {
+	query := (&ReportClient{config: _q.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	_q.withReportsReceived = query
+	return _q
+}
+
 // GroupBy is used to group vertices by one or more fields/columns.
 // It is often used with aggregate functions, like: count, max, mean, min, sum.
 //
@@ -696,7 +767,7 @@ func (_q *UserQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*User, e
 	var (
 		nodes       = []*User{}
 		_spec       = _q.querySpec()
-		loadedTypes = [10]bool{
+		loadedTypes = [12]bool{
 			_q.withAvatar != nil,
 			_q.withIdentities != nil,
 			_q.withSentMessages != nil,
@@ -707,6 +778,8 @@ func (_q *UserQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*User, e
 			_q.withUploadedMedia != nil,
 			_q.withBlockedUsersRel != nil,
 			_q.withBlockedByRel != nil,
+			_q.withReportsMade != nil,
+			_q.withReportsReceived != nil,
 		}
 	)
 	_spec.ScanValues = func(columns []string) ([]any, error) {
@@ -796,6 +869,20 @@ func (_q *UserQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*User, e
 		if err := _q.loadBlockedByRel(ctx, query, nodes,
 			func(n *User) { n.Edges.BlockedByRel = []*UserBlock{} },
 			func(n *User, e *UserBlock) { n.Edges.BlockedByRel = append(n.Edges.BlockedByRel, e) }); err != nil {
+			return nil, err
+		}
+	}
+	if query := _q.withReportsMade; query != nil {
+		if err := _q.loadReportsMade(ctx, query, nodes,
+			func(n *User) { n.Edges.ReportsMade = []*Report{} },
+			func(n *User, e *Report) { n.Edges.ReportsMade = append(n.Edges.ReportsMade, e) }); err != nil {
+			return nil, err
+		}
+	}
+	if query := _q.withReportsReceived; query != nil {
+		if err := _q.loadReportsReceived(ctx, query, nodes,
+			func(n *User) { n.Edges.ReportsReceived = []*Report{} },
+			func(n *User, e *Report) { n.Edges.ReportsReceived = append(n.Edges.ReportsReceived, e) }); err != nil {
 			return nil, err
 		}
 	}
@@ -1105,6 +1192,68 @@ func (_q *UserQuery) loadBlockedByRel(ctx context.Context, query *UserBlockQuery
 		node, ok := nodeids[fk]
 		if !ok {
 			return fmt.Errorf(`unexpected referenced foreign-key "blocked_id" returned %v for node %v`, fk, n.ID)
+		}
+		assign(node, n)
+	}
+	return nil
+}
+func (_q *UserQuery) loadReportsMade(ctx context.Context, query *ReportQuery, nodes []*User, init func(*User), assign func(*User, *Report)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[uuid.UUID]*User)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+		if init != nil {
+			init(nodes[i])
+		}
+	}
+	query.withFKs = true
+	if len(query.ctx.Fields) > 0 {
+		query.ctx.AppendFieldOnce(report.FieldReporterID)
+	}
+	query.Where(predicate.Report(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(user.ReportsMadeColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.ReporterID
+		node, ok := nodeids[fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "reporter_id" returned %v for node %v`, fk, n.ID)
+		}
+		assign(node, n)
+	}
+	return nil
+}
+func (_q *UserQuery) loadReportsReceived(ctx context.Context, query *ReportQuery, nodes []*User, init func(*User), assign func(*User, *Report)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[uuid.UUID]*User)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+		if init != nil {
+			init(nodes[i])
+		}
+	}
+	query.withFKs = true
+	query.Where(predicate.Report(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(user.ReportsReceivedColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.user_reports_received
+		if fk == nil {
+			return fmt.Errorf(`foreign-key "user_reports_received" is nil for node %v`, n.ID)
+		}
+		node, ok := nodeids[*fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "user_reports_received" returned %v for node %v`, *fk, n.ID)
 		}
 		assign(node, n)
 	}

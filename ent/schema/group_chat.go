@@ -34,5 +34,7 @@ func (GroupChat) Edges() []ent.Edge {
 		edge.From("chat", Chat.Type).Ref("group_chat").Field("chat_id").Unique().Required(),
 		edge.From("creator", User.Type).Ref("created_groups").Field("created_by").Unique(),
 		edge.To("members", GroupMember.Type).Annotations(entsql.OnDelete(entsql.Cascade)),
+
+		edge.From("reports", Report.Type).Ref("group"),
 	}
 }

@@ -926,7 +926,7 @@ func TestWebSocketAccountDeletion(t *testing.T) {
 	req.Header.Set("Content-Type", "application/json")
 	executeRequest(req)
 
-	verifyEvent(t, conn2, websocket.EventUserUpdate, u1.ID, uuid.Nil)
+	verifyEvent(t, conn2, websocket.EventUserDeleted, u1.ID, uuid.Nil)
 }
 
 func createWSUser(t *testing.T, username, email string) *ent.User {

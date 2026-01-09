@@ -111,6 +111,21 @@ func DeletedAt(v time.Time) predicate.User {
 	return predicate.User(sql.FieldEQ(FieldDeletedAt, v))
 }
 
+// IsBanned applies equality check predicate on the "is_banned" field. It's identical to IsBannedEQ.
+func IsBanned(v bool) predicate.User {
+	return predicate.User(sql.FieldEQ(FieldIsBanned, v))
+}
+
+// BannedUntil applies equality check predicate on the "banned_until" field. It's identical to BannedUntilEQ.
+func BannedUntil(v time.Time) predicate.User {
+	return predicate.User(sql.FieldEQ(FieldBannedUntil, v))
+}
+
+// BanReason applies equality check predicate on the "ban_reason" field. It's identical to BanReasonEQ.
+func BanReason(v string) predicate.User {
+	return predicate.User(sql.FieldEQ(FieldBanReason, v))
+}
+
 // CreatedAtEQ applies the EQ predicate on the "created_at" field.
 func CreatedAtEQ(v time.Time) predicate.User {
 	return predicate.User(sql.FieldEQ(FieldCreatedAt, v))
@@ -706,6 +721,161 @@ func DeletedAtNotNil() predicate.User {
 	return predicate.User(sql.FieldNotNull(FieldDeletedAt))
 }
 
+// RoleEQ applies the EQ predicate on the "role" field.
+func RoleEQ(v Role) predicate.User {
+	return predicate.User(sql.FieldEQ(FieldRole, v))
+}
+
+// RoleNEQ applies the NEQ predicate on the "role" field.
+func RoleNEQ(v Role) predicate.User {
+	return predicate.User(sql.FieldNEQ(FieldRole, v))
+}
+
+// RoleIn applies the In predicate on the "role" field.
+func RoleIn(vs ...Role) predicate.User {
+	return predicate.User(sql.FieldIn(FieldRole, vs...))
+}
+
+// RoleNotIn applies the NotIn predicate on the "role" field.
+func RoleNotIn(vs ...Role) predicate.User {
+	return predicate.User(sql.FieldNotIn(FieldRole, vs...))
+}
+
+// IsBannedEQ applies the EQ predicate on the "is_banned" field.
+func IsBannedEQ(v bool) predicate.User {
+	return predicate.User(sql.FieldEQ(FieldIsBanned, v))
+}
+
+// IsBannedNEQ applies the NEQ predicate on the "is_banned" field.
+func IsBannedNEQ(v bool) predicate.User {
+	return predicate.User(sql.FieldNEQ(FieldIsBanned, v))
+}
+
+// BannedUntilEQ applies the EQ predicate on the "banned_until" field.
+func BannedUntilEQ(v time.Time) predicate.User {
+	return predicate.User(sql.FieldEQ(FieldBannedUntil, v))
+}
+
+// BannedUntilNEQ applies the NEQ predicate on the "banned_until" field.
+func BannedUntilNEQ(v time.Time) predicate.User {
+	return predicate.User(sql.FieldNEQ(FieldBannedUntil, v))
+}
+
+// BannedUntilIn applies the In predicate on the "banned_until" field.
+func BannedUntilIn(vs ...time.Time) predicate.User {
+	return predicate.User(sql.FieldIn(FieldBannedUntil, vs...))
+}
+
+// BannedUntilNotIn applies the NotIn predicate on the "banned_until" field.
+func BannedUntilNotIn(vs ...time.Time) predicate.User {
+	return predicate.User(sql.FieldNotIn(FieldBannedUntil, vs...))
+}
+
+// BannedUntilGT applies the GT predicate on the "banned_until" field.
+func BannedUntilGT(v time.Time) predicate.User {
+	return predicate.User(sql.FieldGT(FieldBannedUntil, v))
+}
+
+// BannedUntilGTE applies the GTE predicate on the "banned_until" field.
+func BannedUntilGTE(v time.Time) predicate.User {
+	return predicate.User(sql.FieldGTE(FieldBannedUntil, v))
+}
+
+// BannedUntilLT applies the LT predicate on the "banned_until" field.
+func BannedUntilLT(v time.Time) predicate.User {
+	return predicate.User(sql.FieldLT(FieldBannedUntil, v))
+}
+
+// BannedUntilLTE applies the LTE predicate on the "banned_until" field.
+func BannedUntilLTE(v time.Time) predicate.User {
+	return predicate.User(sql.FieldLTE(FieldBannedUntil, v))
+}
+
+// BannedUntilIsNil applies the IsNil predicate on the "banned_until" field.
+func BannedUntilIsNil() predicate.User {
+	return predicate.User(sql.FieldIsNull(FieldBannedUntil))
+}
+
+// BannedUntilNotNil applies the NotNil predicate on the "banned_until" field.
+func BannedUntilNotNil() predicate.User {
+	return predicate.User(sql.FieldNotNull(FieldBannedUntil))
+}
+
+// BanReasonEQ applies the EQ predicate on the "ban_reason" field.
+func BanReasonEQ(v string) predicate.User {
+	return predicate.User(sql.FieldEQ(FieldBanReason, v))
+}
+
+// BanReasonNEQ applies the NEQ predicate on the "ban_reason" field.
+func BanReasonNEQ(v string) predicate.User {
+	return predicate.User(sql.FieldNEQ(FieldBanReason, v))
+}
+
+// BanReasonIn applies the In predicate on the "ban_reason" field.
+func BanReasonIn(vs ...string) predicate.User {
+	return predicate.User(sql.FieldIn(FieldBanReason, vs...))
+}
+
+// BanReasonNotIn applies the NotIn predicate on the "ban_reason" field.
+func BanReasonNotIn(vs ...string) predicate.User {
+	return predicate.User(sql.FieldNotIn(FieldBanReason, vs...))
+}
+
+// BanReasonGT applies the GT predicate on the "ban_reason" field.
+func BanReasonGT(v string) predicate.User {
+	return predicate.User(sql.FieldGT(FieldBanReason, v))
+}
+
+// BanReasonGTE applies the GTE predicate on the "ban_reason" field.
+func BanReasonGTE(v string) predicate.User {
+	return predicate.User(sql.FieldGTE(FieldBanReason, v))
+}
+
+// BanReasonLT applies the LT predicate on the "ban_reason" field.
+func BanReasonLT(v string) predicate.User {
+	return predicate.User(sql.FieldLT(FieldBanReason, v))
+}
+
+// BanReasonLTE applies the LTE predicate on the "ban_reason" field.
+func BanReasonLTE(v string) predicate.User {
+	return predicate.User(sql.FieldLTE(FieldBanReason, v))
+}
+
+// BanReasonContains applies the Contains predicate on the "ban_reason" field.
+func BanReasonContains(v string) predicate.User {
+	return predicate.User(sql.FieldContains(FieldBanReason, v))
+}
+
+// BanReasonHasPrefix applies the HasPrefix predicate on the "ban_reason" field.
+func BanReasonHasPrefix(v string) predicate.User {
+	return predicate.User(sql.FieldHasPrefix(FieldBanReason, v))
+}
+
+// BanReasonHasSuffix applies the HasSuffix predicate on the "ban_reason" field.
+func BanReasonHasSuffix(v string) predicate.User {
+	return predicate.User(sql.FieldHasSuffix(FieldBanReason, v))
+}
+
+// BanReasonIsNil applies the IsNil predicate on the "ban_reason" field.
+func BanReasonIsNil() predicate.User {
+	return predicate.User(sql.FieldIsNull(FieldBanReason))
+}
+
+// BanReasonNotNil applies the NotNil predicate on the "ban_reason" field.
+func BanReasonNotNil() predicate.User {
+	return predicate.User(sql.FieldNotNull(FieldBanReason))
+}
+
+// BanReasonEqualFold applies the EqualFold predicate on the "ban_reason" field.
+func BanReasonEqualFold(v string) predicate.User {
+	return predicate.User(sql.FieldEqualFold(FieldBanReason, v))
+}
+
+// BanReasonContainsFold applies the ContainsFold predicate on the "ban_reason" field.
+func BanReasonContainsFold(v string) predicate.User {
+	return predicate.User(sql.FieldContainsFold(FieldBanReason, v))
+}
+
 // HasAvatar applies the HasEdge predicate on the "avatar" edge.
 func HasAvatar() predicate.User {
 	return predicate.User(func(s *sql.Selector) {
@@ -928,6 +1098,52 @@ func HasBlockedByRel() predicate.User {
 func HasBlockedByRelWith(preds ...predicate.UserBlock) predicate.User {
 	return predicate.User(func(s *sql.Selector) {
 		step := newBlockedByRelStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
+// HasReportsMade applies the HasEdge predicate on the "reports_made" edge.
+func HasReportsMade() predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, ReportsMadeTable, ReportsMadeColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasReportsMadeWith applies the HasEdge predicate on the "reports_made" edge with a given conditions (other predicates).
+func HasReportsMadeWith(preds ...predicate.Report) predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		step := newReportsMadeStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
+// HasReportsReceived applies the HasEdge predicate on the "reports_received" edge.
+func HasReportsReceived() predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, ReportsReceivedTable, ReportsReceivedColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasReportsReceivedWith applies the HasEdge predicate on the "reports_received" edge with a given conditions (other predicates).
+func HasReportsReceivedWith(preds ...predicate.Report) predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		step := newReportsReceivedStep()
 		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
 			for _, p := range preds {
 				p(s)

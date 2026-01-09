@@ -26,6 +26,8 @@ type Tx struct {
 	OTP *OTPClient
 	// PrivateChat is the client for interacting with the PrivateChat builders.
 	PrivateChat *PrivateChatClient
+	// Report is the client for interacting with the Report builders.
+	Report *ReportClient
 	// User is the client for interacting with the User builders.
 	User *UserClient
 	// UserBlock is the client for interacting with the UserBlock builders.
@@ -170,6 +172,7 @@ func (tx *Tx) init() {
 	tx.Message = NewMessageClient(tx.config)
 	tx.OTP = NewOTPClient(tx.config)
 	tx.PrivateChat = NewPrivateChatClient(tx.config)
+	tx.Report = NewReportClient(tx.config)
 	tx.User = NewUserClient(tx.config)
 	tx.UserBlock = NewUserBlockClient(tx.config)
 	tx.UserIdentity = NewUserIdentityClient(tx.config)

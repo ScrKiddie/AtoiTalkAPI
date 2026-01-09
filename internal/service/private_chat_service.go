@@ -68,6 +68,12 @@ func (s *PrivateChatService) CreatePrivateChat(ctx context.Context, userID uuid.
 		}
 	}
 
+	if targetUser.IsBanned {
+		if targetUser.BannedUntil == nil || time.Now().Before(*targetUser.BannedUntil) {
+			return nil, helper.NewForbiddenError("Cannot create chat with suspended/banned user")
+		}
+	}
+
 	isBlocked, err := s.client.UserBlock.Query().
 		Where(
 			userblock.Or(

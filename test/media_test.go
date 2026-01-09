@@ -25,13 +25,7 @@ func TestUploadMedia(t *testing.T) {
 	clearDatabase(context.Background())
 	cleanupStorage(true)
 
-	hashedPassword, _ := helper.HashPassword("Password123!")
-	u, _ := testClient.User.Create().
-		SetEmail("uploader@test.com").
-		SetUsername("uploader").
-		SetFullName("Uploader").
-		SetPasswordHash(hashedPassword).
-		Save(context.Background())
+	u := createTestUser(t, "uploader")
 	token, _ := helper.GenerateJWT(testConfig.JWTSecret, testConfig.JWTExp, u.ID)
 
 	t.Run("Success - Upload Image", func(t *testing.T) {

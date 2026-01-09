@@ -41,6 +41,14 @@ type User struct {
 	LastSeenAt *time.Time `json:"last_seen_at,omitempty"`
 	// DeletedAt holds the value of the "deleted_at" field.
 	DeletedAt *time.Time `json:"deleted_at,omitempty"`
+	// Role holds the value of the "role" field.
+	Role user.Role `json:"role,omitempty"`
+	// IsBanned holds the value of the "is_banned" field.
+	IsBanned bool `json:"is_banned,omitempty"`
+	// BannedUntil holds the value of the "banned_until" field.
+	BannedUntil *time.Time `json:"banned_until,omitempty"`
+	// BanReason holds the value of the "ban_reason" field.
+	BanReason *string `json:"ban_reason,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the UserQuery when eager-loading is set.
 	Edges        UserEdges `json:"edges"`
@@ -69,9 +77,13 @@ type UserEdges struct {
 	BlockedUsersRel []*UserBlock `json:"blocked_users_rel,omitempty"`
 	// BlockedByRel holds the value of the blocked_by_rel edge.
 	BlockedByRel []*UserBlock `json:"blocked_by_rel,omitempty"`
+	// ReportsMade holds the value of the reports_made edge.
+	ReportsMade []*Report `json:"reports_made,omitempty"`
+	// ReportsReceived holds the value of the reports_received edge.
+	ReportsReceived []*Report `json:"reports_received,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [10]bool
+	loadedTypes [12]bool
 }
 
 // AvatarOrErr returns the Avatar value or an error if the edge
@@ -166,6 +178,24 @@ func (e UserEdges) BlockedByRelOrErr() ([]*UserBlock, error) {
 	return nil, &NotLoadedError{edge: "blocked_by_rel"}
 }
 
+// ReportsMadeOrErr returns the ReportsMade value or an error if the edge
+// was not loaded in eager-loading.
+func (e UserEdges) ReportsMadeOrErr() ([]*Report, error) {
+	if e.loadedTypes[10] {
+		return e.ReportsMade, nil
+	}
+	return nil, &NotLoadedError{edge: "reports_made"}
+}
+
+// ReportsReceivedOrErr returns the ReportsReceived value or an error if the edge
+// was not loaded in eager-loading.
+func (e UserEdges) ReportsReceivedOrErr() ([]*Report, error) {
+	if e.loadedTypes[11] {
+		return e.ReportsReceived, nil
+	}
+	return nil, &NotLoadedError{edge: "reports_received"}
+}
+
 // scanValues returns the types for scanning values from sql.Rows.
 func (*User) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
@@ -173,11 +203,11 @@ func (*User) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case user.FieldAvatarID:
 			values[i] = &sql.NullScanner{S: new(uuid.UUID)}
-		case user.FieldIsOnline:
+		case user.FieldIsOnline, user.FieldIsBanned:
 			values[i] = new(sql.NullBool)
-		case user.FieldEmail, user.FieldUsername, user.FieldPasswordHash, user.FieldFullName, user.FieldBio:
+		case user.FieldEmail, user.FieldUsername, user.FieldPasswordHash, user.FieldFullName, user.FieldBio, user.FieldRole, user.FieldBanReason:
 			values[i] = new(sql.NullString)
-		case user.FieldCreatedAt, user.FieldUpdatedAt, user.FieldLastSeenAt, user.FieldDeletedAt:
+		case user.FieldCreatedAt, user.FieldUpdatedAt, user.FieldLastSeenAt, user.FieldDeletedAt, user.FieldBannedUntil:
 			values[i] = new(sql.NullTime)
 		case user.FieldID:
 			values[i] = new(uuid.UUID)
@@ -276,6 +306,32 @@ func (_m *User) assignValues(columns []string, values []any) error {
 				_m.DeletedAt = new(time.Time)
 				*_m.DeletedAt = value.Time
 			}
+		case user.FieldRole:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field role", values[i])
+			} else if value.Valid {
+				_m.Role = user.Role(value.String)
+			}
+		case user.FieldIsBanned:
+			if value, ok := values[i].(*sql.NullBool); !ok {
+				return fmt.Errorf("unexpected type %T for field is_banned", values[i])
+			} else if value.Valid {
+				_m.IsBanned = value.Bool
+			}
+		case user.FieldBannedUntil:
+			if value, ok := values[i].(*sql.NullTime); !ok {
+				return fmt.Errorf("unexpected type %T for field banned_until", values[i])
+			} else if value.Valid {
+				_m.BannedUntil = new(time.Time)
+				*_m.BannedUntil = value.Time
+			}
+		case user.FieldBanReason:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field ban_reason", values[i])
+			} else if value.Valid {
+				_m.BanReason = new(string)
+				*_m.BanReason = value.String
+			}
 		default:
 			_m.selectValues.Set(columns[i], values[i])
 		}
@@ -337,6 +393,16 @@ func (_m *User) QueryBlockedUsersRel() *UserBlockQuery {
 // QueryBlockedByRel queries the "blocked_by_rel" edge of the User entity.
 func (_m *User) QueryBlockedByRel() *UserBlockQuery {
 	return NewUserClient(_m.config).QueryBlockedByRel(_m)
+}
+
+// QueryReportsMade queries the "reports_made" edge of the User entity.
+func (_m *User) QueryReportsMade() *ReportQuery {
+	return NewUserClient(_m.config).QueryReportsMade(_m)
+}
+
+// QueryReportsReceived queries the "reports_received" edge of the User entity.
+func (_m *User) QueryReportsReceived() *ReportQuery {
+	return NewUserClient(_m.config).QueryReportsReceived(_m)
 }
 
 // Update returns a builder for updating this User.
@@ -406,6 +472,22 @@ func (_m *User) String() string {
 	if v := _m.DeletedAt; v != nil {
 		builder.WriteString("deleted_at=")
 		builder.WriteString(v.Format(time.ANSIC))
+	}
+	builder.WriteString(", ")
+	builder.WriteString("role=")
+	builder.WriteString(fmt.Sprintf("%v", _m.Role))
+	builder.WriteString(", ")
+	builder.WriteString("is_banned=")
+	builder.WriteString(fmt.Sprintf("%v", _m.IsBanned))
+	builder.WriteString(", ")
+	if v := _m.BannedUntil; v != nil {
+		builder.WriteString("banned_until=")
+		builder.WriteString(v.Format(time.ANSIC))
+	}
+	builder.WriteString(", ")
+	if v := _m.BanReason; v != nil {
+		builder.WriteString("ban_reason=")
+		builder.WriteString(*v)
 	}
 	builder.WriteByte(')')
 	return builder.String()

@@ -46,4 +46,5 @@ type GroupMemberDTO struct {
 	Role     string    `json:"role"`
 	JoinedAt string    `json:"joined_at"`
 	IsOnline bool      `json:"is_online"`
+	IsBanned bool      `json:"is_banned"`
 }

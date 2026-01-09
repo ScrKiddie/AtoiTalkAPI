@@ -7,6 +7,7 @@ import (
 	"AtoiTalkAPI/internal/helper"
 	"context"
 	"fmt"
+	"time"
 
 	"entgo.io/ent/dialect/sql"
 	"github.com/google/uuid"
@@ -23,10 +24,20 @@ func NewUserRepository(client *ent.Client) *UserRepository {
 }
 
 func (r *UserRepository) SearchUsers(ctx context.Context, currentUserID uuid.UUID, queryStr string, cursor string, limit int) ([]*ent.User, string, bool, error) {
+
 	query := r.client.User.Query().
 		Where(
 			user.IDNEQ(currentUserID),
 			user.DeletedAtIsNil(),
+
+			user.Or(
+				user.IsBanned(false),
+				user.And(
+					user.IsBanned(true),
+					user.BannedUntilLT(time.Now().UTC()),
+				),
+			),
+
 			func(s *sql.Selector) {
 				t := sql.Table(userblock.Table)
 				s.Where(
@@ -53,9 +64,9 @@ func (r *UserRepository) SearchUsers(ctx context.Context, currentUserID uuid.UUI
 	if queryStr != "" {
 		query = query.Where(
 			user.Or(
-				user.FullNameEqualFold(queryStr),
+				user.FullNameContainsFold(queryStr),
 				user.EmailEqualFold(queryStr),
-				user.UsernameEqualFold(queryStr),
+				user.UsernameContainsFold(queryStr),
 			),
 		)
 	}
@@ -101,7 +112,7 @@ func (r *UserRepository) SearchUsers(ctx context.Context, currentUserID uuid.UUI
 		hasNext = true
 		users = users[:limit]
 		lastUser := users[len(users)-1]
-		
+
 		fullName := ""
 		if lastUser.FullName != nil {
 			fullName = *lastUser.FullName
@@ -169,7 +180,7 @@ func (r *UserRepository) GetBlockedUsers(ctx context.Context, currentUserID uuid
 		hasNext = true
 		users = users[:limit]
 		lastUser := users[len(users)-1]
-		
+
 		fullName := ""
 		if lastUser.FullName != nil {
 			fullName = *lastUser.FullName

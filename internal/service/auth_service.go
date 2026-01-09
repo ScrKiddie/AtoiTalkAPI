@@ -62,24 +62,35 @@ func (s *AuthService) VerifyUser(ctx context.Context, tokenString string) (*mode
 		return nil, helper.NewUnauthorizedError("")
 	}
 
-	exists, err := s.client.User.Query().
+	u, err := s.client.User.Query().
 		Where(
 			user.ID(claims.UserID),
 			user.DeletedAtIsNil(),
 		).
-		Exist(ctx)
+		Only(ctx)
 
 	if err != nil {
+		if ent.IsNotFound(err) {
+			return nil, helper.NewUnauthorizedError("")
+		}
 		slog.Error("Failed to check user existence", "error", err)
 		return nil, helper.NewInternalServerError("")
 	}
 
-	if !exists {
-		return nil, helper.NewUnauthorizedError("")
+	if u.IsBanned {
+		if u.BannedUntil != nil {
+			if time.Now().Before(*u.BannedUntil) {
+				return nil, helper.NewForbiddenError("Account is temporarily suspended")
+			}
+
+		} else {
+			return nil, helper.NewForbiddenError("Account is permanently banned")
+		}
 	}
 
 	return &model.UserDTO{
-		ID: claims.UserID,
+		ID:   claims.UserID,
+		Role: string(u.Role),
 	}, nil
 }
 
@@ -116,6 +127,25 @@ func (s *AuthService) Login(ctx context.Context, req model.LoginRequest) (*model
 		return nil, helper.NewUnauthorizedError("")
 	}
 
+	if u.IsBanned {
+		if u.BannedUntil != nil {
+			if time.Now().Before(*u.BannedUntil) {
+				return nil, helper.NewForbiddenError(fmt.Sprintf("Account suspended until %s", u.BannedUntil.Format(time.RFC1123)))
+			}
+
+			_, err := s.client.User.UpdateOne(u).
+				SetIsBanned(false).
+				ClearBannedUntil().
+				ClearBanReason().
+				Save(ctx)
+			if err != nil {
+				slog.Error("Failed to lift expired ban", "error", err)
+			}
+		} else {
+			return nil, helper.NewForbiddenError("Account is permanently banned")
+		}
+	}
+
 	token, err := helper.GenerateJWT(s.cfg.JWTSecret, s.cfg.JWTExp, u.ID)
 	if err != nil {
 		slog.Error("Failed to generate JWT token", "error", err)
@@ -145,6 +175,7 @@ func (s *AuthService) Login(ctx context.Context, req model.LoginRequest) (*model
 			Username: username,
 			FullName: fullName,
 			Avatar:   avatarURL,
+			Role:     string(u.Role),
 		},
 	}, nil
 }
@@ -199,6 +230,25 @@ func (s *AuthService) GoogleExchange(ctx context.Context, req model.GoogleLoginR
 	if err != nil && !ent.IsNotFound(err) {
 		slog.Error("Failed to query user", "error", err)
 		return nil, helper.NewInternalServerError("")
+	}
+
+	if u != nil && u.IsBanned {
+		if u.BannedUntil != nil {
+			if time.Now().Before(*u.BannedUntil) {
+				return nil, helper.NewForbiddenError(fmt.Sprintf("Account suspended until %s", u.BannedUntil.Format(time.RFC1123)))
+			}
+
+			_, err := s.client.User.UpdateOne(u).
+				SetIsBanned(false).
+				ClearBannedUntil().
+				ClearBanReason().
+				Save(ctx)
+			if err != nil {
+				slog.Error("Failed to lift expired ban", "error", err)
+			}
+		} else {
+			return nil, helper.NewForbiddenError("Account is permanently banned")
+		}
 	}
 
 	var avatarFileName string
@@ -393,6 +443,7 @@ func (s *AuthService) GoogleExchange(ctx context.Context, req model.GoogleLoginR
 			Username: username,
 			FullName: fullName,
 			Avatar:   avatarURL,
+			Role:     string(u.Role),
 		},
 	}, nil
 }
@@ -518,6 +569,7 @@ func (s *AuthService) Register(ctx context.Context, req model.RegisterUserReques
 			Email:    *newUser.Email,
 			Username: *newUser.Username,
 			FullName: fullName,
+			Role:     string(newUser.Role),
 		},
 	}, nil
 }

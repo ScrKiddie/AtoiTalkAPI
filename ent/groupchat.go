@@ -46,9 +46,11 @@ type GroupChatEdges struct {
 	Creator *User `json:"creator,omitempty"`
 	// Members holds the value of the members edge.
 	Members []*GroupMember `json:"members,omitempty"`
+	// Reports holds the value of the reports edge.
+	Reports []*Report `json:"reports,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [4]bool
+	loadedTypes [5]bool
 }
 
 // AvatarOrErr returns the Avatar value or an error if the edge
@@ -91,6 +93,15 @@ func (e GroupChatEdges) MembersOrErr() ([]*GroupMember, error) {
 		return e.Members, nil
 	}
 	return nil, &NotLoadedError{edge: "members"}
+}
+
+// ReportsOrErr returns the Reports value or an error if the edge
+// was not loaded in eager-loading.
+func (e GroupChatEdges) ReportsOrErr() ([]*Report, error) {
+	if e.loadedTypes[4] {
+		return e.Reports, nil
+	}
+	return nil, &NotLoadedError{edge: "reports"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -189,6 +200,11 @@ func (_m *GroupChat) QueryCreator() *UserQuery {
 // QueryMembers queries the "members" edge of the GroupChat entity.
 func (_m *GroupChat) QueryMembers() *GroupMemberQuery {
 	return NewGroupChatClient(_m.config).QueryMembers(_m)
+}
+
+// QueryReports queries the "reports" edge of the GroupChat entity.
+func (_m *GroupChat) QueryReports() *ReportQuery {
+	return NewGroupChatClient(_m.config).QueryReports(_m)
 }
 
 // Update returns a builder for updating this GroupChat.

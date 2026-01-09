@@ -27,6 +27,9 @@ type OTP func(*sql.Selector)
 // PrivateChat is the predicate function for privatechat builders.
 type PrivateChat func(*sql.Selector)
 
+// Report is the predicate function for report builders.
+type Report func(*sql.Selector)
+
 // User is the predicate function for user builders.
 type User func(*sql.Selector)
 

@@ -49,6 +49,7 @@ func (r *ChatRepository) GetChatByID(ctx context.Context, userID, chatID uuid.UU
 			})
 		}).
 		WithLastMessage(func(q *ent.MessageQuery) {
+			q.WithSender()
 			q.WithAttachments(func(aq *ent.MediaQuery) {
 				aq.Limit(1)
 			})
@@ -159,6 +160,7 @@ func (r *ChatRepository) GetChats(ctx context.Context, userID uuid.UUID, querySt
 			})
 		}).
 		WithLastMessage(func(q *ent.MessageQuery) {
+			q.WithSender()
 			q.WithAttachments(func(aq *ent.MediaQuery) {
 				aq.Limit(1)
 			})

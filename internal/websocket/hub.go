@@ -70,6 +70,21 @@ func (h *Hub) Run() {
 	}
 }
 
+func (h *Hub) DisconnectUser(userID uuid.UUID) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+
+	if clients, ok := h.userClients[userID]; ok {
+		for client := range clients {
+			delete(h.clients, client)
+			close(client.Send)
+			client.Conn.Close()
+		}
+		delete(h.userClients, userID)
+		go h.broadcastUserStatus(userID, false)
+	}
+}
+
 func (h *Hub) BroadcastToUser(userID uuid.UUID, event Event) {
 	h.mu.RLock()
 	defer h.mu.RUnlock()

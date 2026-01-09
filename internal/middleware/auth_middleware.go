@@ -1,7 +1,9 @@
 package middleware
 
 import (
+	"AtoiTalkAPI/ent/user"
 	"AtoiTalkAPI/internal/helper"
+	"AtoiTalkAPI/internal/model"
 	"AtoiTalkAPI/internal/service"
 	"context"
 	"net/http"
@@ -65,5 +67,22 @@ func (m *AuthMiddleware) VerifyWSToken(next http.Handler) http.Handler {
 
 		ctx := context.WithValue(r.Context(), UserContextKey, userContext)
 		next.ServeHTTP(w, r.WithContext(ctx))
+	})
+}
+
+func (m *AuthMiddleware) AdminOnly(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		userContext, ok := r.Context().Value(UserContextKey).(*model.UserDTO)
+		if !ok {
+			helper.WriteError(w, helper.NewUnauthorizedError(""))
+			return
+		}
+
+		if userContext.Role != string(user.RoleAdmin) {
+			helper.WriteError(w, helper.NewForbiddenError("Admin access required"))
+			return
+		}
+
+		next.ServeHTTP(w, r)
 	})
 }

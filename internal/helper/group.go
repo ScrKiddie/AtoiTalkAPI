@@ -3,6 +3,7 @@ package helper
 import (
 	"AtoiTalkAPI/ent"
 	"AtoiTalkAPI/internal/model"
+	"time"
 )
 
 func ToGroupMemberDTO(m *ent.GroupMember, storageMode, appURL, cdnURL, storageProfile string) model.GroupMemberDTO {
@@ -21,6 +22,12 @@ func ToGroupMemberDTO(m *ent.GroupMember, storageMode, appURL, cdnURL, storagePr
 		fullName = *user.FullName
 	}
 
+	isBanned := user.IsBanned
+
+	if isBanned && user.BannedUntil != nil && time.Now().After(*user.BannedUntil) {
+		isBanned = false
+	}
+
 	return model.GroupMemberDTO{
 		ID:       m.ID,
 		UserID:   user.ID,
@@ -29,5 +36,6 @@ func ToGroupMemberDTO(m *ent.GroupMember, storageMode, appURL, cdnURL, storagePr
 		Role:     string(m.Role),
 		JoinedAt: m.JoinedAt.String(),
 		IsOnline: user.IsOnline,
+		IsBanned: isBanned,
 	}
 }

@@ -11,7 +11,9 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
+	"strings"
 	"testing"
 	"time"
 
@@ -19,17 +21,24 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func generateUniqueEmail(prefix string) string {
+	return fmt.Sprintf("%s_%d@example.com", prefix, time.Now().UnixNano())
+}
+
 func TestChangePassword(t *testing.T) {
-	validEmail := "changepass@example.com"
 	oldPassword := "OldPassword123!"
 	newPassword := "NewPassword123!"
 
-	setupUser := func(password *string) (string, uuid.UUID) {
+	setupUser := func(email string, password *string) (string, uuid.UUID) {
 		clearDatabase(context.Background())
 
+		username := "user" + strings.Split(email, "@")[0]
+		username = strings.ReplaceAll(username, "_", "")
+		username = strings.ReplaceAll(username, ".", "")
+
 		create := testClient.User.Create().
-			SetEmail(validEmail).
-			SetUsername("changepassuser").
+			SetEmail(email).
+			SetUsername(username).
 			SetFullName("Change Pass User")
 
 		if password != nil {
@@ -47,7 +56,7 @@ func TestChangePassword(t *testing.T) {
 	}
 
 	t.Run("Success with Old Password", func(t *testing.T) {
-		token, userID := setupUser(&oldPassword)
+		token, userID := setupUser(generateUniqueEmail("changepass1"), &oldPassword)
 
 		reqBody := model.ChangePasswordRequest{
 			OldPassword:     &oldPassword,
@@ -70,8 +79,7 @@ func TestChangePassword(t *testing.T) {
 	})
 
 	t.Run("Success without Old Password (DB password is null)", func(t *testing.T) {
-
-		token, userID := setupUser(nil)
+		token, userID := setupUser(generateUniqueEmail("changepass2"), nil)
 
 		reqBody := model.ChangePasswordRequest{
 			OldPassword:     nil,
@@ -95,7 +103,7 @@ func TestChangePassword(t *testing.T) {
 	})
 
 	t.Run("Fail: Old Password Required but Missing", func(t *testing.T) {
-		token, _ := setupUser(&oldPassword)
+		token, _ := setupUser(generateUniqueEmail("changepass3"), &oldPassword)
 
 		reqBody := model.ChangePasswordRequest{
 			OldPassword:     nil,
@@ -115,7 +123,7 @@ func TestChangePassword(t *testing.T) {
 	})
 
 	t.Run("Fail: Old Password Incorrect", func(t *testing.T) {
-		token, _ := setupUser(&oldPassword)
+		token, _ := setupUser(generateUniqueEmail("changepass4"), &oldPassword)
 
 		wrongPass := "WrongPass123!"
 		reqBody := model.ChangePasswordRequest{
@@ -136,7 +144,7 @@ func TestChangePassword(t *testing.T) {
 	})
 
 	t.Run("Fail: New Password Mismatch", func(t *testing.T) {
-		token, _ := setupUser(&oldPassword)
+		token, _ := setupUser(generateUniqueEmail("changepass5"), &oldPassword)
 
 		reqBody := model.ChangePasswordRequest{
 			OldPassword:     &oldPassword,
@@ -156,7 +164,7 @@ func TestChangePassword(t *testing.T) {
 	})
 
 	t.Run("Fail: Weak Password", func(t *testing.T) {
-		token, _ := setupUser(&oldPassword)
+		token, _ := setupUser(generateUniqueEmail("changepass6"), &oldPassword)
 
 		weakPass := "weak"
 		reqBody := model.ChangePasswordRequest{
@@ -195,16 +203,18 @@ func TestChangePassword(t *testing.T) {
 }
 
 func TestChangeEmail(t *testing.T) {
-	currentEmail := "current@example.com"
-	newEmail := "new@example.com"
 	validCode := "123456"
 
-	setupUser := func(withPassword bool) (string, uuid.UUID) {
+	setupUser := func(email string, withPassword bool) (string, uuid.UUID) {
 		clearDatabase(context.Background())
 
+		username := "user" + strings.Split(email, "@")[0]
+		username = strings.ReplaceAll(username, "_", "")
+		username = strings.ReplaceAll(username, ".", "")
+
 		create := testClient.User.Create().
-			SetEmail(currentEmail).
-			SetUsername("changeemailuser").
+			SetEmail(email).
+			SetUsername(username).
 			SetFullName("Change Email User")
 
 		if withPassword {
@@ -232,7 +242,9 @@ func TestChangeEmail(t *testing.T) {
 	}
 
 	t.Run("Success", func(t *testing.T) {
-		token, userID := setupUser(true)
+		currentEmail := generateUniqueEmail("current1")
+		newEmail := generateUniqueEmail("new1")
+		token, userID := setupUser(currentEmail, true)
 		createEmailOTP(newEmail, validCode)
 
 		testClient.UserIdentity.Create().
@@ -264,7 +276,9 @@ func TestChangeEmail(t *testing.T) {
 	})
 
 	t.Run("Fail: No Password Set", func(t *testing.T) {
-		token, _ := setupUser(false)
+		currentEmail := generateUniqueEmail("current2")
+		newEmail := generateUniqueEmail("new2")
+		token, _ := setupUser(currentEmail, false)
 		createEmailOTP(newEmail, validCode)
 
 		reqBody := model.ChangeEmailRequest{
@@ -288,7 +302,8 @@ func TestChangeEmail(t *testing.T) {
 	})
 
 	t.Run("Fail: Same Email", func(t *testing.T) {
-		token, _ := setupUser(true)
+		currentEmail := generateUniqueEmail("current3")
+		token, _ := setupUser(currentEmail, true)
 
 		reqBody := model.ChangeEmailRequest{
 			Email: currentEmail,
@@ -307,7 +322,9 @@ func TestChangeEmail(t *testing.T) {
 	})
 
 	t.Run("Fail: Invalid OTP", func(t *testing.T) {
-		token, _ := setupUser(true)
+		currentEmail := generateUniqueEmail("current4")
+		newEmail := generateUniqueEmail("new4")
+		token, _ := setupUser(currentEmail, true)
 		createEmailOTP(newEmail, validCode)
 
 		reqBody := model.ChangeEmailRequest{
@@ -327,12 +344,14 @@ func TestChangeEmail(t *testing.T) {
 	})
 
 	t.Run("Fail: Email Already Registered", func(t *testing.T) {
-		token, _ := setupUser(true)
+		currentEmail := generateUniqueEmail("current5")
+		newEmail := generateUniqueEmail("new5")
+		token, _ := setupUser(currentEmail, true)
 		createEmailOTP(newEmail, validCode)
 
 		testClient.User.Create().
 			SetEmail(newEmail).
-			SetUsername("existinguser").
+			SetUsername("existing" + strings.Split(newEmail, "@")[0]).
 			SetFullName("Existing User").
 			Save(context.Background())
 
@@ -353,6 +372,7 @@ func TestChangeEmail(t *testing.T) {
 	})
 
 	t.Run("Fail: Unauthorized", func(t *testing.T) {
+		newEmail := generateUniqueEmail("new6")
 		reqBody := model.ChangeEmailRequest{
 			Email: newEmail,
 			Code:  validCode,
@@ -372,12 +392,16 @@ func TestChangeEmail(t *testing.T) {
 func TestDeleteAccount(t *testing.T) {
 	password := "Password123!"
 
-	setupUser := func(withPassword bool) (string, uuid.UUID) {
-		clearDatabase(context.Background())
+	setupUser := func(prefix string, withPassword bool) (string, uuid.UUID) {
+
+		email := generateUniqueEmail(prefix)
+		username := "user" + strings.Split(email, "@")[0]
+		username = strings.ReplaceAll(username, "_", "")
+		username = strings.ReplaceAll(username, ".", "")
 
 		create := testClient.User.Create().
-			SetEmail("delete@example.com").
-			SetUsername("deleteuser").
+			SetEmail(email).
+			SetUsername(username).
 			SetFullName("Delete User")
 
 		if withPassword {
@@ -395,7 +419,7 @@ func TestDeleteAccount(t *testing.T) {
 	}
 
 	t.Run("Success - Delete Account (No Password)", func(t *testing.T) {
-		token, userID := setupUser(false)
+		token, userID := setupUser("delete1", false)
 
 		testClient.UserIdentity.Create().SetUserID(userID).SetProvider("google").SetProviderID("123").SaveX(context.Background())
 
@@ -416,7 +440,7 @@ func TestDeleteAccount(t *testing.T) {
 	})
 
 	t.Run("Success - Delete Account (With Password)", func(t *testing.T) {
-		token, userID := setupUser(true)
+		token, userID := setupUser("delete2", true)
 
 		reqBody := model.DeleteAccountRequest{Password: &password}
 		body, _ := json.Marshal(reqBody)
@@ -432,7 +456,7 @@ func TestDeleteAccount(t *testing.T) {
 	})
 
 	t.Run("Fail - Wrong Password", func(t *testing.T) {
-		token, _ := setupUser(true)
+		token, _ := setupUser("delete3", true)
 
 		wrongPass := "wrong"
 		reqBody := model.DeleteAccountRequest{Password: &wrongPass}
@@ -446,7 +470,7 @@ func TestDeleteAccount(t *testing.T) {
 	})
 
 	t.Run("Fail - Still Owner of Active Group", func(t *testing.T) {
-		token, userID := setupUser(false)
+		token, userID := setupUser("delete4", false)
 
 		chatEntity := testClient.Chat.Create().SetType(chat.TypeGroup).SaveX(context.Background())
 		gc := testClient.GroupChat.Create().SetChat(chatEntity).SetCreatorID(userID).SetName("My Group").SaveX(context.Background())
@@ -460,7 +484,7 @@ func TestDeleteAccount(t *testing.T) {
 	})
 
 	t.Run("Success - Owner of Deleted Group (Should Allow)", func(t *testing.T) {
-		token, userID := setupUser(false)
+		token, userID := setupUser("delete5", false)
 
 		chatEntity := testClient.Chat.Create().SetType(chat.TypeGroup).SetDeletedAt(time.Now().UTC()).SaveX(context.Background())
 		gc := testClient.GroupChat.Create().SetChat(chatEntity).SetCreatorID(userID).SetName("Deleted Group").SaveX(context.Background())

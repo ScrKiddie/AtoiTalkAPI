@@ -13,6 +13,7 @@ type UserDTO struct {
 	FullName         string     `json:"full_name"`
 	Avatar           string     `json:"avatar"`
 	Bio              string     `json:"bio"`
+	Role             string     `json:"role,omitempty"`
 	HasPassword      bool       `json:"has_password,omitempty"`
 	PrivateChatID    *uuid.UUID `json:"private_chat_id,omitempty"`
 	IsBlockedByMe    bool       `json:"is_blocked_by_me"`

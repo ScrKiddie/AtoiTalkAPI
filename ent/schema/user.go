@@ -27,6 +27,11 @@ func (User) Fields() []ent.Field {
 		field.Bool("is_online").Default(false),
 		field.Time("last_seen_at").Optional().Nillable(),
 		field.Time("deleted_at").Optional().Nillable(),
+
+		field.Enum("role").Values("user", "admin").Default("user"),
+		field.Bool("is_banned").Default(false),
+		field.Time("banned_until").Optional().Nillable(),
+		field.String("ban_reason").Optional().Nillable(),
 	}
 }
 
@@ -54,6 +59,9 @@ func (User) Edges() []ent.Edge {
 			Annotations(entsql.OnDelete(entsql.Cascade)),
 		edge.To("blocked_by_rel", UserBlock.Type).
 			Annotations(entsql.OnDelete(entsql.Cascade)),
+
+		edge.To("reports_made", Report.Type),
+		edge.To("reports_received", Report.Type),
 	}
 }
 

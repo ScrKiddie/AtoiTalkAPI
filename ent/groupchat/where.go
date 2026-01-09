@@ -392,6 +392,29 @@ func HasMembersWith(preds ...predicate.GroupMember) predicate.GroupChat {
 	})
 }
 
+// HasReports applies the HasEdge predicate on the "reports" edge.
+func HasReports() predicate.GroupChat {
+	return predicate.GroupChat(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, true, ReportsTable, ReportsColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasReportsWith applies the HasEdge predicate on the "reports" edge with a given conditions (other predicates).
+func HasReportsWith(preds ...predicate.Report) predicate.GroupChat {
+	return predicate.GroupChat(func(s *sql.Selector) {
+		step := newReportsStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
 // And groups predicates with the AND operator between them.
 func And(predicates ...predicate.GroupChat) predicate.GroupChat {
 	return predicate.GroupChat(sql.AndPredicates(predicates...))
