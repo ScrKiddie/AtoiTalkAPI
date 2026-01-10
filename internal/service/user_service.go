@@ -189,9 +189,9 @@ func (s *UserService) GetUserProfile(ctx context.Context, currentUserID uuid.UUI
 		Avatar:           avatarURL,
 		Bio:              bio,
 		HasPassword:      false,
-		IsBlockedByMe:    isBlockedByMe,
-		IsBlockedByOther: isBlockedByOther,
-		IsOnline:         isOnline,
+		IsBlockedByMe:    &isBlockedByMe,
+		IsBlockedByOther: &isBlockedByOther,
+		IsOnline:         &isOnline,
 		LastSeenAt:       lastSeenAt,
 	}, nil
 }
@@ -238,11 +238,25 @@ func (s *UserService) UpdateProfile(ctx context.Context, userID uuid.UUID, req m
 		return nil, helper.NewInternalServerError("")
 	}
 
-	update := tx.User.UpdateOneID(userID).SetNillableFullName(&req.FullName)
-	if req.Bio != "" {
-		update.SetBio(req.Bio)
-	} else {
-		update.ClearBio()
+	update := tx.User.UpdateOneID(userID)
+	hasChanges := false
+
+	if req.FullName != "" && (u.FullName == nil || *u.FullName != req.FullName) {
+		update.SetFullName(req.FullName)
+		hasChanges = true
+	}
+
+	currentBio := ""
+	if u.Bio != nil {
+		currentBio = *u.Bio
+	}
+	if req.Bio != currentBio {
+		if req.Bio != "" {
+			update.SetBio(req.Bio)
+		} else {
+			update.ClearBio()
+		}
+		hasChanges = true
 	}
 
 	if req.Username != "" {
@@ -267,7 +281,54 @@ func (s *UserService) UpdateProfile(ctx context.Context, userID uuid.UUID, req m
 				return nil, helper.NewConflictError("Username already taken")
 			}
 			update.SetUsername(normalizedUsername)
+			hasChanges = true
 		}
+	}
+
+	if req.DeleteAvatar || req.Avatar != nil {
+		hasChanges = true
+	}
+
+	if !hasChanges {
+		avatarURL := ""
+		if u.Edges.Avatar != nil {
+			avatarURL = helper.BuildImageURL(s.cfg.StorageMode, s.cfg.AppURL, s.cfg.StorageCDNURL, s.cfg.StorageProfile, u.Edges.Avatar.FileName)
+		}
+
+		bio := ""
+		if u.Bio != nil {
+			bio = *u.Bio
+		}
+
+		email := ""
+		if u.Email != nil {
+			email = *u.Email
+		}
+		username := ""
+		if u.Username != nil {
+			username = *u.Username
+		}
+
+		fullName := ""
+		if u.FullName != nil {
+			fullName = *u.FullName
+		}
+
+		httpResp := &model.UserDTO{
+			ID:          u.ID,
+			Email:       email,
+			Username:    username,
+			FullName:    fullName,
+			Avatar:      avatarURL,
+			Bio:         bio,
+			HasPassword: u.PasswordHash != nil,
+			IsOnline:    &u.IsOnline,
+		}
+		if u.LastSeenAt != nil {
+			t := u.LastSeenAt.Format(time.RFC3339)
+			httpResp.LastSeenAt = &t
+		}
+		return httpResp, nil
 	}
 
 	var newAvatarFileName string
@@ -393,7 +454,7 @@ func (s *UserService) UpdateProfile(ctx context.Context, userID uuid.UUID, req m
 		Avatar:      avatarURL,
 		Bio:         bio,
 		HasPassword: updatedUser.PasswordHash != nil,
-		IsOnline:    updatedUser.IsOnline,
+		IsOnline:    &updatedUser.IsOnline,
 	}
 	if updatedUser.LastSeenAt != nil {
 		t := updatedUser.LastSeenAt.Format(time.RFC3339)
@@ -577,13 +638,14 @@ func (s *UserService) GetBlockedUsers(ctx context.Context, currentUserID uuid.UU
 			fullName = *u.FullName
 		}
 
+		isBlockedByMe := true
 		userDTOs = append(userDTOs, model.UserDTO{
 			ID:            u.ID,
 			Username:      username,
 			FullName:      fullName,
 			Avatar:        avatarURL,
 			Bio:           bio,
-			IsBlockedByMe: true,
+			IsBlockedByMe: &isBlockedByMe,
 		})
 	}
 

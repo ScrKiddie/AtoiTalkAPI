@@ -327,6 +327,7 @@ func (s *GroupChatService) UpdateGroupChat(ctx context.Context, requestorID uuid
 
 	update := tx.GroupChat.UpdateOne(gc)
 	var systemMessages []*ent.MessageCreate
+	hasChanges := false
 
 	if req.Name != nil && *req.Name != gc.Name {
 		update.SetName(*req.Name)
@@ -338,6 +339,7 @@ func (s *GroupChatService) UpdateGroupChat(ctx context.Context, requestorID uuid
 				"old_name": gc.Name,
 				"new_name": *req.Name,
 			}))
+		hasChanges = true
 	}
 
 	if req.Description != nil {
@@ -355,6 +357,7 @@ func (s *GroupChatService) UpdateGroupChat(ctx context.Context, requestorID uuid
 					"old_description": oldDesc,
 					"new_description": *req.Description,
 				}))
+			hasChanges = true
 		}
 	}
 
@@ -405,6 +408,22 @@ func (s *GroupChatService) UpdateGroupChat(ctx context.Context, requestorID uuid
 			SetActionData(map[string]interface{}{
 				"action": "updated",
 			}))
+		hasChanges = true
+	}
+
+	if !hasChanges {
+		avatarURL := ""
+		if gc.Edges.Avatar != nil {
+			avatarURL = helper.BuildImageURL(s.cfg.StorageMode, s.cfg.AppURL, s.cfg.StorageCDNURL, s.cfg.StorageProfile, gc.Edges.Avatar.FileName)
+		}
+		myRole := string(requestorMember.Role)
+		return &model.ChatListResponse{
+			ID:     gc.Edges.Chat.ID,
+			Type:   string(chat.TypeGroup),
+			Name:   gc.Name,
+			Avatar: avatarURL,
+			MyRole: &myRole,
+		}, nil
 	}
 
 	updatedGroup, err := update.Save(ctx)

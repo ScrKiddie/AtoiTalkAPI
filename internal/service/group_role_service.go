@@ -203,6 +203,10 @@ func (s *GroupChatService) TransferOwnership(ctx context.Context, requestorID uu
 		return helper.NewNotFoundError("Target user is not a member of this group")
 	}
 
+	if targetMember.Role == groupmember.RoleOwner {
+		return nil
+	}
+
 	if targetMember.Edges.User != nil && targetMember.Edges.User.IsBanned {
 		if targetMember.Edges.User.BannedUntil == nil || time.Now().Before(*targetMember.Edges.User.BannedUntil) {
 			return helper.NewForbiddenError("Cannot transfer ownership to a suspended/banned user")

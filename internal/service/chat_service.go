@@ -254,9 +254,15 @@ func (s *ChatService) MarkAsRead(ctx context.Context, userID uuid.UUID, chatID u
 		update := tx.PrivateChat.UpdateOneID(pc.ID)
 
 		if pc.User1ID == userID {
+			if pc.User1UnreadCount == 0 {
+				return nil
+			}
 			otherUserID = pc.User2ID
 			update.SetUser1UnreadCount(0)
 		} else if pc.User2ID == userID {
+			if pc.User2UnreadCount == 0 {
+				return nil
+			}
 			otherUserID = pc.User1ID
 			update.SetUser2UnreadCount(0)
 		} else {
@@ -292,12 +298,25 @@ func (s *ChatService) MarkAsRead(ctx context.Context, userID uuid.UUID, chatID u
 		}
 
 	} else if c.Type == chat.TypeGroup && c.Edges.GroupChat != nil {
-
-		err := tx.GroupMember.Update().
+		member, err := tx.GroupMember.Query().
 			Where(
 				groupmember.GroupChatID(c.Edges.GroupChat.ID),
 				groupmember.UserID(userID),
 			).
+			Only(ctx)
+		if err != nil {
+			if ent.IsNotFound(err) {
+				return helper.NewForbiddenError("Not a member of this group")
+			}
+			slog.Error("Failed to query group member", "error", err)
+			return helper.NewInternalServerError("")
+		}
+
+		if member.UnreadCount == 0 {
+			return nil
+		}
+
+		err = tx.GroupMember.UpdateOne(member).
 			SetUnreadCount(0).
 			SetLastReadAt(time.Now().UTC()).
 			Exec(ctx)
