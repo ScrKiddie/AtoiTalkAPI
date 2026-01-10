@@ -333,6 +333,50 @@ func TestUpdateProfile(t *testing.T) {
 		assert.Equal(t, "newusername", *updatedUser.Username)
 	})
 
+	t.Run("Success Update Info with Whitespace", func(t *testing.T) {
+		clearDatabase(context.Background())
+		cleanupStorage(true)
+
+		hashedPassword, _ := helper.HashPassword(validPassword)
+		u, err := testClient.User.Create().
+			SetEmail(validEmail).
+			SetUsername(validUsername).
+			SetFullName("Old Name").
+			SetPasswordHash(hashedPassword).
+			Save(context.Background())
+		assert.NoError(t, err)
+
+		token, _ := helper.GenerateJWT(testConfig.JWTSecret, testConfig.JWTExp, u.ID)
+
+		body := &bytes.Buffer{}
+		writer := multipart.NewWriter(body)
+		_ = writer.WriteField("full_name", "  New Name  ")
+		_ = writer.WriteField("bio", "  New Bio  ")
+		_ = writer.Close()
+
+		req, _ := http.NewRequest("PUT", "/api/user/profile", body)
+		req.Header.Set("Content-Type", writer.FormDataContentType())
+		req.Header.Set("Authorization", "Bearer "+token)
+
+		rr := executeRequest(req)
+
+		if !assert.Equal(t, http.StatusOK, rr.Code) {
+			printBody(t, rr)
+		}
+		var resp helper.ResponseSuccess
+		json.Unmarshal(rr.Body.Bytes(), &resp)
+
+		dataMap, ok := resp.Data.(map[string]interface{})
+		assert.True(t, ok)
+		assert.Equal(t, "New Name", dataMap["full_name"])
+		assert.Equal(t, "New Bio", dataMap["bio"])
+
+		updatedUser, err := testClient.User.Query().Where(user.ID(u.ID)).Only(context.Background())
+		assert.NoError(t, err)
+		assert.Equal(t, "New Name", *updatedUser.FullName)
+		assert.Equal(t, "New Bio", *updatedUser.Bio)
+	})
+
 	t.Run("Fail Update Username Taken", func(t *testing.T) {
 		clearDatabase(context.Background())
 		cleanupStorage(true)
@@ -601,11 +645,12 @@ func TestUpdateProfile(t *testing.T) {
 func TestSearchUsers(t *testing.T) {
 	clearDatabase(context.Background())
 
-	names := []string{"David", "Alice", "Charlie", "Bob", "Eve"}
+	names := []string{"User David", "User Alice", "User Charlie", "User Bob", "User Eve"}
 	users := make(map[string]*ent.User)
 	for _, name := range names {
-		email := strings.ToLower(name) + "@test.com"
-		username := strings.ToLower(name)
+
+		username := strings.ToLower(strings.ReplaceAll(name, " ", ""))
+		email := username + "@test.com"
 		hashedPassword, _ := helper.HashPassword("Password123!")
 		u, _ := testClient.User.Create().
 			SetEmail(email).
@@ -628,11 +673,12 @@ func TestSearchUsers(t *testing.T) {
 	testClient.PrivateChat.Create().
 		SetChat(chatEntity).
 		SetUser1(searcher).
-		SetUser2(users["Alice"]).
+		SetUser2(users["User Alice"]).
 		Save(context.Background())
 
 	t.Run("Success - List All (Pagination)", func(t *testing.T) {
-		req, _ := http.NewRequest("GET", "/api/users?limit=2", nil)
+
+		req, _ := http.NewRequest("GET", "/api/users?query=User&limit=2", nil)
 		req.Header.Set("Authorization", "Bearer "+token)
 		rr := executeRequest(req)
 
@@ -650,11 +696,12 @@ func TestSearchUsers(t *testing.T) {
 
 		user1 := dataList[0].(map[string]interface{})
 		user2 := dataList[1].(map[string]interface{})
-		assert.Equal(t, "Alice", user1["full_name"])
-		assert.Equal(t, "Bob", user2["full_name"])
+
+		assert.Equal(t, "User Alice", user1["full_name"])
+		assert.Equal(t, "User Bob", user2["full_name"])
 
 		cursor := resp.Meta.NextCursor
-		req2, _ := http.NewRequest("GET", fmt.Sprintf("/api/users?limit=2&cursor=%s", cursor), nil)
+		req2, _ := http.NewRequest("GET", fmt.Sprintf("/api/users?query=User&limit=2&cursor=%s", cursor), nil)
 		req2.Header.Set("Authorization", "Bearer "+token)
 		rr2 := executeRequest(req2)
 
@@ -669,12 +716,12 @@ func TestSearchUsers(t *testing.T) {
 
 		user3 := dataList2[0].(map[string]interface{})
 		user4 := dataList2[1].(map[string]interface{})
-		assert.Equal(t, "Charlie", user3["full_name"])
-		assert.Equal(t, "David", user4["full_name"])
+		assert.Equal(t, "User Charlie", user3["full_name"])
+		assert.Equal(t, "User David", user4["full_name"])
 	})
 
 	t.Run("Success - Search with Private Chat ID (include_chat_id=true)", func(t *testing.T) {
-		req, _ := http.NewRequest("GET", "/api/users?query=Alice&include_chat_id=true", nil)
+		req, _ := http.NewRequest("GET", "/api/users?query=User%20Alice&include_chat_id=true", nil)
 		req.Header.Set("Authorization", "Bearer "+token)
 		rr := executeRequest(req)
 
@@ -687,13 +734,13 @@ func TestSearchUsers(t *testing.T) {
 		dataList := resp.Data.([]interface{})
 		assert.Len(t, dataList, 1)
 		userAlice := dataList[0].(map[string]interface{})
-		assert.Equal(t, "Alice", userAlice["full_name"])
+		assert.Equal(t, "User Alice", userAlice["full_name"])
 		assert.NotNil(t, userAlice["private_chat_id"])
 		assert.Equal(t, chatEntity.ID.String(), userAlice["private_chat_id"])
 	})
 
 	t.Run("Success - Search with Private Chat ID (include_chat_id=false)", func(t *testing.T) {
-		req, _ := http.NewRequest("GET", "/api/users?query=Alice&include_chat_id=false", nil)
+		req, _ := http.NewRequest("GET", "/api/users?query=User%20Alice&include_chat_id=false", nil)
 		req.Header.Set("Authorization", "Bearer "+token)
 		rr := executeRequest(req)
 
@@ -706,12 +753,12 @@ func TestSearchUsers(t *testing.T) {
 		dataList := resp.Data.([]interface{})
 		assert.Len(t, dataList, 1)
 		userAlice := dataList[0].(map[string]interface{})
-		assert.Equal(t, "Alice", userAlice["full_name"])
+		assert.Equal(t, "User Alice", userAlice["full_name"])
 		assert.Nil(t, userAlice["private_chat_id"])
 	})
 
 	t.Run("Success - Search without Private Chat ID", func(t *testing.T) {
-		req, _ := http.NewRequest("GET", "/api/users?query=Bob", nil)
+		req, _ := http.NewRequest("GET", "/api/users?query=User%20Bob", nil)
 		req.Header.Set("Authorization", "Bearer "+token)
 		rr := executeRequest(req)
 
@@ -724,12 +771,12 @@ func TestSearchUsers(t *testing.T) {
 		dataList := resp.Data.([]interface{})
 		assert.Len(t, dataList, 1)
 		userBob := dataList[0].(map[string]interface{})
-		assert.Equal(t, "Bob", userBob["full_name"])
+		assert.Equal(t, "User Bob", userBob["full_name"])
 		assert.Nil(t, userBob["private_chat_id"])
 	})
 
 	t.Run("Success - Search by Username", func(t *testing.T) {
-		req, _ := http.NewRequest("GET", "/api/users?query=alice", nil)
+		req, _ := http.NewRequest("GET", "/api/users?query=useralice", nil)
 		req.Header.Set("Authorization", "Bearer "+token)
 		rr := executeRequest(req)
 
@@ -742,11 +789,11 @@ func TestSearchUsers(t *testing.T) {
 		dataList := resp.Data.([]interface{})
 		assert.Len(t, dataList, 1)
 		userAlice := dataList[0].(map[string]interface{})
-		assert.Equal(t, "Alice", userAlice["full_name"])
+		assert.Equal(t, "User Alice", userAlice["full_name"])
 	})
 
 	t.Run("Success - Search by Email Exact Match", func(t *testing.T) {
-		req, _ := http.NewRequest("GET", "/api/users?query=alice@test.com", nil)
+		req, _ := http.NewRequest("GET", "/api/users?query=useralice@test.com", nil)
 		req.Header.Set("Authorization", "Bearer "+token)
 		rr := executeRequest(req)
 
@@ -759,12 +806,12 @@ func TestSearchUsers(t *testing.T) {
 		dataList := resp.Data.([]interface{})
 		if assert.NotEmpty(t, dataList) {
 			userAlice := dataList[0].(map[string]interface{})
-			assert.Equal(t, "Alice", userAlice["full_name"])
+			assert.Equal(t, "User Alice", userAlice["full_name"])
 		}
 	})
 
 	t.Run("Fail - Search by Partial Email (Should be Empty)", func(t *testing.T) {
-		req, _ := http.NewRequest("GET", "/api/users?query=alice@test", nil)
+		req, _ := http.NewRequest("GET", "/api/users?query=useralice@test", nil)
 		req.Header.Set("Authorization", "Bearer "+token)
 		rr := executeRequest(req)
 
@@ -780,9 +827,9 @@ func TestSearchUsers(t *testing.T) {
 
 	t.Run("Success - Exclude Blocked Users", func(t *testing.T) {
 
-		testClient.UserBlock.Create().SetBlockerID(searcher.ID).SetBlockedID(users["Bob"].ID).Save(context.Background())
+		testClient.UserBlock.Create().SetBlockerID(searcher.ID).SetBlockedID(users["User Bob"].ID).Save(context.Background())
 
-		req, _ := http.NewRequest("GET", "/api/users?query=Bob", nil)
+		req, _ := http.NewRequest("GET", "/api/users?query=User%20Bob", nil)
 		req.Header.Set("Authorization", "Bearer "+token)
 		rr := executeRequest(req)
 
@@ -794,11 +841,11 @@ func TestSearchUsers(t *testing.T) {
 
 	t.Run("Success - Mutual Block (Both should not see each other)", func(t *testing.T) {
 
-		testClient.UserBlock.Create().SetBlockerID(users["Eve"].ID).SetBlockedID(searcher.ID).Save(context.Background())
+		testClient.UserBlock.Create().SetBlockerID(users["User Eve"].ID).SetBlockedID(searcher.ID).Save(context.Background())
 
-		testClient.UserBlock.Create().SetBlockerID(searcher.ID).SetBlockedID(users["Eve"].ID).Save(context.Background())
+		testClient.UserBlock.Create().SetBlockerID(searcher.ID).SetBlockedID(users["User Eve"].ID).Save(context.Background())
 
-		req, _ := http.NewRequest("GET", "/api/users?query=Eve", nil)
+		req, _ := http.NewRequest("GET", "/api/users?query=User%20Eve", nil)
 		req.Header.Set("Authorization", "Bearer "+token)
 		rr := executeRequest(req)
 
@@ -810,9 +857,9 @@ func TestSearchUsers(t *testing.T) {
 
 	t.Run("Success - Exclude Deleted Users", func(t *testing.T) {
 
-		testClient.User.UpdateOne(users["Charlie"]).SetDeletedAt(time.Now().UTC()).ExecX(context.Background())
+		testClient.User.UpdateOne(users["User Charlie"]).SetDeletedAt(time.Now().UTC()).ExecX(context.Background())
 
-		req, _ := http.NewRequest("GET", "/api/users?query=Charlie", nil)
+		req, _ := http.NewRequest("GET", "/api/users?query=User%20Charlie", nil)
 		req.Header.Set("Authorization", "Bearer "+token)
 		rr := executeRequest(req)
 
@@ -839,7 +886,7 @@ func TestSearchUsers(t *testing.T) {
 	})
 
 	t.Run("Invalid Cursor", func(t *testing.T) {
-		req, _ := http.NewRequest("GET", "/api/users?cursor=invalid-base64-string", nil)
+		req, _ := http.NewRequest("GET", "/api/users?cursor=invalid-base64-string&query=User", nil)
 		req.Header.Set("Authorization", "Bearer "+token)
 		rr := executeRequest(req)
 

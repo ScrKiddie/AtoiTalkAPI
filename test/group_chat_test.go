@@ -88,6 +88,30 @@ func TestCreateGroupChat(t *testing.T) {
 		assert.Equal(t, sysMsg.ID, *gc.Edges.Chat.LastMessageID)
 	})
 
+	t.Run("Success - Create Group with Whitespace", func(t *testing.T) {
+		body := &bytes.Buffer{}
+		writer := multipart.NewWriter(body)
+		_ = writer.WriteField("name", "  Spaced Group  ")
+		_ = writer.WriteField("description", "  Spaced Desc  ")
+
+		idsJSON, _ := json.Marshal([]string{u2.ID.String()})
+		_ = writer.WriteField("member_ids", string(idsJSON))
+
+		writer.Close()
+
+		req, _ := http.NewRequest("POST", "/api/chats/group", body)
+		req.Header.Set("Content-Type", writer.FormDataContentType())
+		req.Header.Set("Authorization", "Bearer "+token1)
+
+		rr := executeRequest(req)
+		assert.Equal(t, http.StatusOK, rr.Code)
+
+		gc, err := testClient.GroupChat.Query().Where(groupchat.Name("Spaced Group")).Only(context.Background())
+		assert.NoError(t, err)
+		assert.Equal(t, "Spaced Group", gc.Name)
+		assert.Equal(t, "Spaced Desc", *gc.Description)
+	})
+
 	t.Run("Success - Create Group with Avatar", func(t *testing.T) {
 		body := &bytes.Buffer{}
 		writer := multipart.NewWriter(body)

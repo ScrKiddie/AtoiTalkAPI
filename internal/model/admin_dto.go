@@ -34,14 +34,20 @@ type ReportListResponse struct {
 }
 
 type ReportDetailResponse struct {
-	ID               uuid.UUID              `json:"id"`
-	TargetType       string                 `json:"target_type"`
-	Reason           string                 `json:"reason"`
-	Description      *string                `json:"description,omitempty"`
-	Status           string                 `json:"status"`
-	ReporterID       uuid.UUID              `json:"reporter_id"`
-	ReporterName     string                 `json:"reporter_name"`
-	ReporterAvatar   string                 `json:"reporter_avatar"`
+	ID             uuid.UUID `json:"id"`
+	TargetType     string    `json:"target_type"`
+	Reason         string    `json:"reason"`
+	Description    *string   `json:"description,omitempty"`
+	Status         string    `json:"status"`
+	ReporterID     uuid.UUID `json:"reporter_id"`
+	ReporterName   string    `json:"reporter_name"`
+	ReporterAvatar string    `json:"reporter_avatar"`
+	// EvidenceSnapshot contains a snapshot of the reported entity at the time of reporting.
+	//
+	// Structure depends on TargetType:
+	// - message: { "content": string, "sender_id": uuid, "sent_at": time, "attachments": []string, "is_edited": bool }
+	// - group: { "name": string, "description": string, "avatar": string, "created_by": uuid }
+	// - user: { "username": string, "full_name": string, "bio": string, "avatar": string }
 	EvidenceSnapshot map[string]interface{} `json:"evidence_snapshot"`
 	AdminNotes       *string                `json:"admin_notes,omitempty"`
 	CreatedAt        string                 `json:"created_at"`

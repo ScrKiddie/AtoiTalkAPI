@@ -77,12 +77,12 @@ func (s *AccountService) ChangePassword(ctx context.Context, userID uuid.UUID, r
 }
 
 func (s *AccountService) ChangeEmail(ctx context.Context, userID uuid.UUID, req model.ChangeEmailRequest) error {
+	req.Email = helper.NormalizeEmail(req.Email)
+
 	if err := s.validator.Struct(req); err != nil {
 		slog.Warn("Validation failed", "error", err, "userID", userID)
 		return helper.NewBadRequestError("")
 	}
-
-	req.Email = helper.NormalizeEmail(req.Email)
 
 	u, err := s.client.User.Query().Where(user.ID(userID)).Only(ctx)
 	if err != nil {

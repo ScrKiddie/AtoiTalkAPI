@@ -44,12 +44,12 @@ func NewOTPService(client *ent.Client, cfg *config.AppConfig, validator *validat
 }
 
 func (s *OTPService) SendOTP(ctx context.Context, req model.SendOTPRequest) error {
+	req.Email = helper.NormalizeEmail(req.Email)
+
 	if err := s.validator.Struct(req); err != nil {
 		slog.Warn("Validation failed", "error", err)
 		return helper.NewBadRequestError("")
 	}
-
-	req.Email = helper.NormalizeEmail(req.Email)
 
 	if err := s.captchaAdapter.Verify(req.CaptchaToken, ""); err != nil {
 		slog.Warn("Captcha verification failed", "error", err)

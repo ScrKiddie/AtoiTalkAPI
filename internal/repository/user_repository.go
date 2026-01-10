@@ -7,6 +7,7 @@ import (
 	"AtoiTalkAPI/internal/helper"
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"entgo.io/ent/dialect/sql"
@@ -24,6 +25,11 @@ func NewUserRepository(client *ent.Client) *UserRepository {
 }
 
 func (r *UserRepository) SearchUsers(ctx context.Context, currentUserID uuid.UUID, queryStr string, cursor string, limit int) ([]*ent.User, string, bool, error) {
+	queryStr = strings.TrimSpace(queryStr)
+
+	if len(queryStr) < 3 {
+		return []*ent.User{}, "", false, nil
+	}
 
 	query := r.client.User.Query().
 		Where(
@@ -61,15 +67,13 @@ func (r *UserRepository) SearchUsers(ctx context.Context, currentUserID uuid.UUI
 			},
 		)
 
-	if queryStr != "" {
-		query = query.Where(
-			user.Or(
-				user.FullNameContainsFold(queryStr),
-				user.EmailEqualFold(queryStr),
-				user.UsernameContainsFold(queryStr),
-			),
-		)
-	}
+	query = query.Where(
+		user.Or(
+			user.FullNameHasPrefix(queryStr),
+			user.EmailEqualFold(queryStr),
+			user.UsernameHasPrefix(queryStr),
+		),
+	)
 
 	delimiter := "|||"
 
@@ -129,6 +133,8 @@ func (r *UserRepository) GetBlockedUsers(ctx context.Context, currentUserID uuid
 			user.HasBlockedByRelWith(userblock.BlockerID(currentUserID)),
 			user.DeletedAtIsNil(),
 		)
+
+	queryStr = strings.TrimSpace(queryStr)
 
 	if queryStr != "" {
 		query = query.Where(

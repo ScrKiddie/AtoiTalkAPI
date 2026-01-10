@@ -95,6 +95,8 @@ func (s *AuthService) VerifyUser(ctx context.Context, tokenString string) (*mode
 }
 
 func (s *AuthService) Login(ctx context.Context, req model.LoginRequest) (*model.AuthResponse, error) {
+	req.Email = helper.NormalizeEmail(req.Email)
+
 	if err := s.validator.Struct(req); err != nil {
 		slog.Warn("Validation failed", "error", err)
 		return nil, helper.NewBadRequestError("")
@@ -104,8 +106,6 @@ func (s *AuthService) Login(ctx context.Context, req model.LoginRequest) (*model
 		slog.Warn("Captcha verification failed", "error", err)
 		return nil, helper.NewBadRequestError("")
 	}
-
-	req.Email = helper.NormalizeEmail(req.Email)
 
 	u, err := s.client.User.Query().
 		Where(
@@ -181,7 +181,7 @@ func (s *AuthService) Login(ctx context.Context, req model.LoginRequest) (*model
 }
 
 func (s *AuthService) GoogleExchange(ctx context.Context, req model.GoogleLoginRequest) (*model.AuthResponse, error) {
-	if err := s.validator.Struct(req); err != nil {
+	if err := s.validator.Struct(&req); err != nil {
 		slog.Warn("Validation failed", "error", err)
 		return nil, helper.NewBadRequestError("")
 	}
@@ -210,6 +210,7 @@ func (s *AuthService) GoogleExchange(ctx context.Context, req model.GoogleLoginR
 	if !ok || name == "" {
 		name = strings.Split(email, "@")[0]
 	}
+	name = strings.TrimSpace(name)
 
 	picture, _ := payload.Claims["picture"].(string)
 
@@ -449,7 +450,11 @@ func (s *AuthService) GoogleExchange(ctx context.Context, req model.GoogleLoginR
 }
 
 func (s *AuthService) Register(ctx context.Context, req model.RegisterUserRequest) (*model.AuthResponse, error) {
-	if err := s.validator.Struct(req); err != nil {
+	req.Email = helper.NormalizeEmail(req.Email)
+	req.Username = helper.NormalizeUsername(req.Username)
+	req.FullName = strings.TrimSpace(req.FullName)
+
+	if err := s.validator.Struct(&req); err != nil {
 		slog.Warn("Validation failed", "error", err)
 		return nil, helper.NewBadRequestError("")
 	}
@@ -458,9 +463,6 @@ func (s *AuthService) Register(ctx context.Context, req model.RegisterUserReques
 		slog.Warn("Captcha verification failed", "error", err)
 		return nil, helper.NewBadRequestError("")
 	}
-
-	req.Email = helper.NormalizeEmail(req.Email)
-	req.Username = helper.NormalizeUsername(req.Username)
 
 	tx, err := s.client.Tx(ctx)
 	if err != nil {
@@ -575,7 +577,9 @@ func (s *AuthService) Register(ctx context.Context, req model.RegisterUserReques
 }
 
 func (s *AuthService) ResetPassword(ctx context.Context, req model.ResetPasswordRequest) error {
-	if err := s.validator.Struct(req); err != nil {
+	req.Email = helper.NormalizeEmail(req.Email)
+
+	if err := s.validator.Struct(&req); err != nil {
 		slog.Warn("Validation failed", "error", err)
 		return helper.NewBadRequestError("")
 	}
@@ -584,8 +588,6 @@ func (s *AuthService) ResetPassword(ctx context.Context, req model.ResetPassword
 		slog.Warn("Captcha verification failed", "error", err)
 		return helper.NewBadRequestError("")
 	}
-
-	req.Email = helper.NormalizeEmail(req.Email)
 
 	tx, err := s.client.Tx(ctx)
 	if err != nil {

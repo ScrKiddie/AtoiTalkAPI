@@ -326,6 +326,13 @@ definitions:
         type: string
       evidence_snapshot:
         additionalProperties: true
+        description: |-
+          EvidenceSnapshot contains a snapshot of the reported entity at the time of reporting.
+
+          Structure depends on TargetType:
+          - message: { "content": string, "sender_id": uuid, "sent_at": time, "attachments": []string, "is_edited": bool }
+          - group: { "name": string, "description": string, "avatar": string, "created_by": uuid }
+          - user: { "username": string, "full_name": string, "bio": string, "avatar": string }
         type: object
       id:
         type: string

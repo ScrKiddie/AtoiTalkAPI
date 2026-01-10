@@ -19,6 +19,7 @@ import (
 	"log/slog"
 	"mime/multipart"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/go-playground/validator/v10"
@@ -51,6 +52,9 @@ func (s *GroupChatService) CreateGroupChat(ctx context.Context, creatorID uuid.U
 		slog.Warn("Validation failed for CreateGroupChat", "error", err)
 		return nil, helper.NewBadRequestError("")
 	}
+
+	req.Name = strings.TrimSpace(req.Name)
+	req.Description = strings.TrimSpace(req.Description)
 
 	users, err := s.client.User.Query().
 		Where(
@@ -269,6 +273,15 @@ func (s *GroupChatService) CreateGroupChat(ctx context.Context, creatorID uuid.U
 func (s *GroupChatService) UpdateGroupChat(ctx context.Context, requestorID uuid.UUID, groupID uuid.UUID, req model.UpdateGroupChatRequest) (*model.ChatListResponse, error) {
 	if err := s.validator.Struct(req); err != nil {
 		return nil, helper.NewBadRequestError("")
+	}
+
+	if req.Name != nil {
+		trimmed := strings.TrimSpace(*req.Name)
+		req.Name = &trimmed
+	}
+	if req.Description != nil {
+		trimmed := strings.TrimSpace(*req.Description)
+		req.Description = &trimmed
 	}
 
 	tx, err := s.client.Tx(ctx)
