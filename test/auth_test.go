@@ -389,6 +389,45 @@ func TestRegister(t *testing.T) {
 		assert.Contains(t, userMap, "avatar")
 	})
 
+	t.Run("Success - Register with Whitespace", func(t *testing.T) {
+		clearDatabase(context.Background())
+
+		validEmail := fmt.Sprintf("  regspace%d@example.com  ", time.Now().UnixNano())
+		validUsername := fmt.Sprintf("  regspace%d  ", time.Now().UnixNano())
+		cleanEmail := strings.TrimSpace(validEmail)
+		cleanUsername := strings.TrimSpace(validUsername)
+
+		originalSecret := testConfig.TurnstileSecretKey
+		testConfig.TurnstileSecretKey = cfTurnstileAlwaysPasses
+		defer func() { testConfig.TurnstileSecretKey = originalSecret }()
+
+		createOTP(cleanEmail, validCode, time.Now().UTC().Add(5*time.Minute))
+
+		reqBody := model.RegisterUserRequest{
+			Email:        validEmail,
+			Username:     validUsername,
+			Code:         validCode,
+			FullName:     "  Test User  ",
+			Password:     "Password123!",
+			CaptchaToken: dummyTurnstileToken,
+		}
+		body, _ := json.Marshal(reqBody)
+		req, _ := http.NewRequest("POST", "/api/auth/register", bytes.NewBuffer(body))
+		req.Header.Set("Content-Type", "application/json")
+
+		rr := executeRequest(req)
+		assert.Equal(t, http.StatusOK, rr.Code)
+
+		var resp helper.ResponseSuccess
+		json.Unmarshal(rr.Body.Bytes(), &resp)
+		dataMap := resp.Data.(map[string]interface{})
+		userMap := dataMap["user"].(map[string]interface{})
+
+		assert.Equal(t, cleanEmail, userMap["email"])
+		assert.Equal(t, cleanUsername, userMap["username"])
+		assert.Equal(t, "Test User", userMap["full_name"])
+	})
+
 	t.Run("Username Already Taken (Case Insensitive)", func(t *testing.T) {
 		clearDatabase(context.Background())
 		u := createTestUser(t, "regtaken")

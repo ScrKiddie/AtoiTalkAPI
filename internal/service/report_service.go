@@ -13,6 +13,7 @@ import (
 	"AtoiTalkAPI/internal/model"
 	"context"
 	"log/slog"
+	"strings"
 
 	"github.com/go-playground/validator/v10"
 	"github.com/google/uuid"
@@ -37,6 +38,9 @@ func (s *ReportService) CreateReport(ctx context.Context, reporterID uuid.UUID, 
 		slog.Warn("Validation failed", "error", err)
 		return helper.NewBadRequestError("")
 	}
+
+	req.Reason = strings.TrimSpace(req.Reason)
+	req.Description = strings.TrimSpace(req.Description)
 
 	var evidenceData map[string]interface{}
 	var targetMessageID *uuid.UUID

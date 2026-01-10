@@ -18,6 +18,7 @@ import (
 	"encoding/base64"
 	"errors"
 	"log/slog"
+	"strings"
 	"time"
 
 	"github.com/go-playground/validator/v10"
@@ -49,6 +50,8 @@ func (s *MessageService) SendMessage(ctx context.Context, userID uuid.UUID, req 
 		slog.Warn("Validation failed", "error", err, "userID", userID)
 		return nil, helper.NewBadRequestError("")
 	}
+
+	req.Content = strings.TrimSpace(req.Content)
 
 	var msg *ent.Message
 
@@ -309,6 +312,8 @@ func (s *MessageService) EditMessage(ctx context.Context, userID uuid.UUID, mess
 		slog.Warn("Validation failed", "error", err, "userID", userID)
 		return nil, helper.NewBadRequestError("")
 	}
+
+	req.Content = strings.TrimSpace(req.Content)
 
 	tx, err := s.client.Tx(ctx)
 	if err != nil {

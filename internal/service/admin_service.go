@@ -11,6 +11,7 @@ import (
 	"context"
 	"encoding/base64"
 	"log/slog"
+	"strings"
 	"time"
 
 	"github.com/go-playground/validator/v10"
@@ -37,6 +38,8 @@ func (s *AdminService) BanUser(ctx context.Context, adminID uuid.UUID, req model
 	if err := s.validator.Struct(req); err != nil {
 		return helper.NewBadRequestError("")
 	}
+
+	req.Reason = strings.TrimSpace(req.Reason)
 
 	targetUser, err := s.client.User.Query().
 		Where(user.ID(req.TargetUserID)).
@@ -221,6 +224,8 @@ func (s *AdminService) ResolveReport(ctx context.Context, reportID uuid.UUID, re
 	if err := s.validator.Struct(req); err != nil {
 		return helper.NewBadRequestError("")
 	}
+
+	req.Notes = strings.TrimSpace(req.Notes)
 
 	err := s.client.Report.UpdateOneID(reportID).
 		SetStatus(report.Status(req.Status)).

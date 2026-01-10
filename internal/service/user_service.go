@@ -206,6 +206,9 @@ func (s *UserService) UpdateProfile(ctx context.Context, userID uuid.UUID, req m
 		return nil, helper.NewBadRequestError("")
 	}
 
+	req.FullName = strings.TrimSpace(req.FullName)
+	req.Bio = strings.TrimSpace(req.Bio)
+
 	tx, err := s.client.Tx(ctx)
 	if err != nil {
 		slog.Error("Failed to start transaction", "error", err)

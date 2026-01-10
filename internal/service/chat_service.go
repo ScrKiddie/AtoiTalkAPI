@@ -14,6 +14,7 @@ import (
 	"AtoiTalkAPI/internal/websocket"
 	"context"
 	"log/slog"
+	"strings"
 	"time"
 
 	"github.com/go-playground/validator/v10"
@@ -123,6 +124,8 @@ func (s *ChatService) GetChats(ctx context.Context, userID uuid.UUID, req model.
 	if req.Limit == 0 {
 		req.Limit = 20
 	}
+
+	req.Query = strings.TrimSpace(req.Query)
 
 	chats, nextCursor, hasNext, err := s.repo.Chat.GetChats(ctx, userID, req.Query, req.Cursor, req.Limit)
 	if err != nil {

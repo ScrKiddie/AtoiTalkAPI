@@ -69,6 +69,31 @@ func TestSendMessage(t *testing.T) {
 		assert.Equal(t, 1, pc.User2UnreadCount)
 	})
 
+	t.Run("Success - Send Text Message with Whitespace", func(t *testing.T) {
+		reqBody := model.SendMessageRequest{
+			ChatID:  chatEntity.ID,
+			Content: "  Hello World  ",
+		}
+		body, _ := json.Marshal(reqBody)
+		req, _ := http.NewRequest("POST", "/api/messages", bytes.NewBuffer(body))
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Authorization", "Bearer "+token1)
+
+		rr := executeRequest(req)
+		assert.Equal(t, http.StatusOK, rr.Code)
+
+		var resp helper.ResponseSuccess
+		json.Unmarshal(rr.Body.Bytes(), &resp)
+		dataMap := resp.Data.(map[string]interface{})
+
+		assert.Equal(t, "Hello World", dataMap["content"])
+
+		msgIDStr := dataMap["id"].(string)
+		msgID, _ := uuid.Parse(msgIDStr)
+		msg, _ := testClient.Message.Get(context.Background(), msgID)
+		assert.Equal(t, "Hello World", *msg.Content)
+	})
+
 	t.Run("Fail - Sender is Blocked", func(t *testing.T) {
 
 		testClient.UserBlock.Create().SetBlockerID(u2.ID).SetBlockedID(u1.ID).Exec(context.Background())
@@ -250,7 +275,7 @@ func TestSendMessage(t *testing.T) {
 
 		pc, _ := testClient.PrivateChat.Query().Where(privatechat.ChatID(chatEntity.ID)).Only(context.Background())
 		assert.Equal(t, 0, pc.User1UnreadCount)
-		assert.Equal(t, 3, pc.User2UnreadCount)
+		assert.Equal(t, 4, pc.User2UnreadCount)
 	})
 
 	t.Run("Fail - Attachment Belongs to Another User", func(t *testing.T) {

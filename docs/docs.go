@@ -3389,6 +3389,7 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "evidence_snapshot": {
+                    "description": "EvidenceSnapshot contains a snapshot of the reported entity at the time of reporting.\n\nStructure depends on TargetType:\n- message: { \"content\": string, \"sender_id\": uuid, \"sent_at\": time, \"attachments\": []string, \"is_edited\": bool }\n- group: { \"name\": string, \"description\": string, \"avatar\": string, \"created_by\": uuid }\n- user: { \"username\": string, \"full_name\": string, \"bio\": string, \"avatar\": string }",
                     "type": "object",
                     "additionalProperties": true
                 },

@@ -275,6 +275,29 @@ func TestChangeEmail(t *testing.T) {
 		assert.Equal(t, 0, count)
 	})
 
+	t.Run("Success - Change Email with Whitespace", func(t *testing.T) {
+		currentEmail := generateUniqueEmail("current_space")
+		newEmail := generateUniqueEmail("new_space")
+		cleanNewEmail := strings.TrimSpace(newEmail)
+		token, userID := setupUser(currentEmail, true)
+		createEmailOTP(cleanNewEmail, validCode)
+
+		reqBody := model.ChangeEmailRequest{
+			Email: "  " + newEmail + "  ",
+			Code:  validCode,
+		}
+		body, _ := json.Marshal(reqBody)
+		req, _ := http.NewRequest("PUT", "/api/account/email", bytes.NewBuffer(body))
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Authorization", "Bearer "+token)
+
+		rr := executeRequest(req)
+		assert.Equal(t, http.StatusOK, rr.Code)
+
+		u, _ := testClient.User.Query().Where(user.ID(userID)).Only(context.Background())
+		assert.Equal(t, cleanNewEmail, *u.Email)
+	})
+
 	t.Run("Fail: No Password Set", func(t *testing.T) {
 		currentEmail := generateUniqueEmail("current2")
 		newEmail := generateUniqueEmail("new2")
