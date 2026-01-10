@@ -386,6 +386,34 @@ func (s *MessageService) EditMessage(ctx context.Context, userID uuid.UUID, mess
 		}
 	}
 
+	contentChanged := req.Content != *msg.Content
+	attachmentsChanged := len(toUnlink) > 0 || len(toLink) > 0
+
+	if !contentChanged && !attachmentsChanged {
+		fullMsg, err := s.client.Message.Query().
+			Where(message.ID(msg.ID)).
+			WithSender(func(uq *ent.UserQuery) {
+				uq.WithAvatar()
+			}).
+			WithAttachments().
+			WithReplyTo(func(q *ent.MessageQuery) {
+				q.WithSender(func(uq *ent.UserQuery) {
+					uq.WithAvatar()
+				})
+				q.WithAttachments(func(aq *ent.MediaQuery) {
+					aq.Limit(1)
+				})
+			}).
+			Only(ctx)
+
+		if err != nil {
+			slog.Error("Failed to fetch full message for response", "error", err)
+			return nil, helper.NewInternalServerError("")
+		}
+
+		return helper.ToMessageResponse(fullMsg, s.cfg.StorageMode, s.cfg.AppURL, s.cfg.StorageCDNURL, s.cfg.StorageProfile, s.cfg.StorageAttachment, nil), nil
+	}
+
 	if len(toLink) > 0 {
 		count, err := tx.Media.Query().
 			Where(

@@ -67,11 +67,16 @@ func (r *UserRepository) SearchUsers(ctx context.Context, currentUserID uuid.UUI
 			},
 		)
 
+	lowerQuery := strings.ToLower(queryStr)
 	query = query.Where(
 		user.Or(
-			user.FullNameHasPrefix(queryStr),
+			func(s *sql.Selector) {
+				s.Where(sql.HasPrefix(sql.Lower(s.C(user.FieldFullName)), lowerQuery))
+			},
 			user.EmailEqualFold(queryStr),
-			user.UsernameHasPrefix(queryStr),
+			func(s *sql.Selector) {
+				s.Where(sql.HasPrefix(sql.Lower(s.C(user.FieldUsername)), lowerQuery))
+			},
 		),
 	)
 
@@ -99,7 +104,7 @@ func (r *UserRepository) SearchUsers(ctx context.Context, currentUserID uuid.UUI
 		)
 	}
 
-	query = query.Select(user.FieldID, user.FieldUsername, user.FieldFullName, user.FieldBio, user.FieldAvatarID).
+	query = query.Select(user.FieldID, user.FieldUsername, user.FieldFullName, user.FieldAvatarID).
 		Order(ent.Asc(user.FieldFullName), ent.Asc(user.FieldID)).
 		Limit(limit + 1).
 		WithAvatar()
@@ -137,10 +142,16 @@ func (r *UserRepository) GetBlockedUsers(ctx context.Context, currentUserID uuid
 	queryStr = strings.TrimSpace(queryStr)
 
 	if queryStr != "" {
+
+		lowerQuery := strings.ToLower(queryStr)
 		query = query.Where(
 			user.Or(
-				user.FullNameContainsFold(queryStr),
-				user.UsernameContainsFold(queryStr),
+				func(s *sql.Selector) {
+					s.Where(sql.HasPrefix(sql.Lower(s.C(user.FieldFullName)), lowerQuery))
+				},
+				func(s *sql.Selector) {
+					s.Where(sql.HasPrefix(sql.Lower(s.C(user.FieldUsername)), lowerQuery))
+				},
 			),
 		)
 	}
@@ -169,7 +180,7 @@ func (r *UserRepository) GetBlockedUsers(ctx context.Context, currentUserID uuid
 		)
 	}
 
-	query = query.Select(user.FieldID, user.FieldUsername, user.FieldFullName, user.FieldBio, user.FieldAvatarID).
+	query = query.Select(user.FieldID, user.FieldUsername, user.FieldFullName, user.FieldAvatarID).
 		Order(ent.Asc(user.FieldFullName), ent.Asc(user.FieldID)).
 		Limit(limit + 1).
 		WithAvatar()

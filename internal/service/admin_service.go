@@ -55,13 +55,25 @@ func (s *AdminService) BanUser(ctx context.Context, adminID uuid.UUID, req model
 		return helper.NewForbiddenError("Cannot ban another admin")
 	}
 
+	var newBannedUntil *time.Time
+	if req.DurationHours > 0 {
+		until := time.Now().UTC().Add(time.Duration(req.DurationHours) * time.Hour)
+		newBannedUntil = &until
+	}
+
+	if targetUser.IsBanned && targetUser.BanReason != nil && *targetUser.BanReason == req.Reason {
+		if (targetUser.BannedUntil == nil && newBannedUntil == nil) ||
+			(targetUser.BannedUntil != nil && newBannedUntil != nil && targetUser.BannedUntil.Equal(*newBannedUntil)) {
+			return nil
+		}
+	}
+
 	update := s.client.User.UpdateOneID(req.TargetUserID).
 		SetIsBanned(true).
 		SetBanReason(req.Reason)
 
-	if req.DurationHours > 0 {
-		until := time.Now().UTC().Add(time.Duration(req.DurationHours) * time.Hour)
-		update.SetBannedUntil(until)
+	if newBannedUntil != nil {
+		update.SetBannedUntil(*newBannedUntil)
 	} else {
 		update.ClearBannedUntil()
 	}
@@ -94,16 +106,27 @@ func (s *AdminService) BanUser(ctx context.Context, adminID uuid.UUID, req model
 }
 
 func (s *AdminService) UnbanUser(ctx context.Context, adminID uuid.UUID, targetUserID uuid.UUID) error {
-	err := s.client.User.UpdateOneID(targetUserID).
+	targetUser, err := s.client.User.Query().
+		Where(user.ID(targetUserID)).
+		Only(ctx)
+	if err != nil {
+		if ent.IsNotFound(err) {
+			return helper.NewNotFoundError("User not found")
+		}
+		return helper.NewInternalServerError("")
+	}
+
+	if !targetUser.IsBanned {
+		return nil
+	}
+
+	err = s.client.User.UpdateOneID(targetUserID).
 		SetIsBanned(false).
 		ClearBannedUntil().
 		ClearBanReason().
 		Exec(ctx)
 
 	if err != nil {
-		if ent.IsNotFound(err) {
-			return helper.NewNotFoundError("User not found")
-		}
 		slog.Error("Failed to unban user", "error", err)
 		return helper.NewInternalServerError("")
 	}
@@ -227,14 +250,26 @@ func (s *AdminService) ResolveReport(ctx context.Context, reportID uuid.UUID, re
 
 	req.Notes = strings.TrimSpace(req.Notes)
 
-	err := s.client.Report.UpdateOneID(reportID).
-		SetStatus(report.Status(req.Status)).
-		Exec(ctx)
-
+	r, err := s.client.Report.Query().
+		Where(report.ID(reportID)).
+		Only(ctx)
 	if err != nil {
 		if ent.IsNotFound(err) {
 			return helper.NewNotFoundError("Report not found")
 		}
+		slog.Error("Failed to query report", "error", err)
+		return helper.NewInternalServerError("")
+	}
+
+	if r.Status == report.Status(req.Status) {
+		return nil
+	}
+
+	err = s.client.Report.UpdateOneID(reportID).
+		SetStatus(report.Status(req.Status)).
+		Exec(ctx)
+
+	if err != nil {
 		slog.Error("Failed to resolve report", "error", err)
 		return helper.NewInternalServerError("")
 	}

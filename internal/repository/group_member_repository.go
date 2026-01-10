@@ -7,8 +7,10 @@ import (
 	"AtoiTalkAPI/internal/helper"
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
+	"entgo.io/ent/dialect/sql"
 	"github.com/google/uuid"
 )
 
@@ -23,19 +25,32 @@ func NewGroupMemberRepository(client *ent.Client) *GroupMemberRepository {
 }
 
 func (r *GroupMemberRepository) SearchGroupMembers(ctx context.Context, groupID uuid.UUID, query, cursor string, limit int) ([]*ent.GroupMember, string, bool, error) {
+	query = strings.TrimSpace(query)
+
+	if query != "" && len(query) < 3 {
+		return []*ent.GroupMember{}, "", false, nil
+	}
+
 	queryBuilder := r.client.GroupMember.Query().
 		Where(groupmember.GroupChatID(groupID)).
 		Order(ent.Asc(groupmember.FieldJoinedAt), ent.Asc(groupmember.FieldID)).
 		Limit(limit + 1).
 		WithUser(func(uq *ent.UserQuery) {
+			uq.Select(user.FieldID, user.FieldUsername, user.FieldFullName, user.FieldAvatarID)
 			uq.WithAvatar()
 		})
 
 	if query != "" {
+
+		lowerQuery := strings.ToLower(query)
 		queryBuilder = queryBuilder.Where(groupmember.HasUserWith(
 			user.Or(
-				user.UsernameContainsFold(query),
-				user.FullNameContainsFold(query),
+				func(s *sql.Selector) {
+					s.Where(sql.HasPrefix(sql.Lower(s.C(user.FieldUsername)), lowerQuery))
+				},
+				func(s *sql.Selector) {
+					s.Where(sql.HasPrefix(sql.Lower(s.C(user.FieldFullName)), lowerQuery))
+				},
 			),
 		))
 	}

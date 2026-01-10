@@ -303,6 +303,18 @@ func TestWebSocketReadStatusSync(t *testing.T) {
 
 	time.Sleep(100 * time.Millisecond)
 
+	reqMsg := model.SendMessageRequest{
+		ChatID:  chatID,
+		Content: "Unread Message",
+	}
+	jsonMsg, _ := json.Marshal(reqMsg)
+	reqSend, _ := http.NewRequest("POST", "/api/messages", bytes.NewBuffer(jsonMsg))
+	reqSend.Header.Set("Authorization", "Bearer "+token1)
+	reqSend.Header.Set("Content-Type", "application/json")
+	executeRequest(reqSend)
+
+	time.Sleep(100 * time.Millisecond)
+
 	req, _ := http.NewRequest("POST", fmt.Sprintf("/api/chats/%s/read", chatID), nil)
 	req.Header.Set("Authorization", "Bearer "+token2)
 	executeRequest(req)
