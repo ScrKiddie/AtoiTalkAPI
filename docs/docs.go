@@ -3053,6 +3053,9 @@ const docTemplate = `{
                 "avatar": {
                     "type": "string"
                 },
+                "hidden_at": {
+                    "type": "string"
+                },
                 "id": {
                     "type": "string"
                 },
@@ -3359,14 +3362,14 @@ const docTemplate = `{
                 "content": {
                     "type": "string"
                 },
+                "created_at": {
+                    "type": "string"
+                },
                 "deleted_at": {
                     "type": "string"
                 },
                 "id": {
                     "type": "string"
-                },
-                "is_jumpable": {
-                    "type": "boolean"
                 },
                 "sender_name": {
                     "type": "string"

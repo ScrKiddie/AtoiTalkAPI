@@ -60,5 +60,5 @@ type ReplyPreviewDTO struct {
 	Content    string                 `json:"content,omitempty"`
 	ActionData map[string]interface{} `json:"action_data,omitempty"`
 	DeletedAt  *string                `json:"deleted_at,omitempty"`
-	IsJumpable bool                   `json:"is_jumpable"`
+	CreatedAt  string                 `json:"created_at"`
 }

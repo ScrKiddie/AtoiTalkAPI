@@ -23,7 +23,10 @@ import (
 	"github.com/go-playground/validator/v10"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
-	"google.golang.org/api/idtoken"
+	"golang.org/x/oauth2"
+	"golang.org/x/oauth2/google"
+	googleOAuth2 "google.golang.org/api/oauth2/v2"
+	"google.golang.org/api/option"
 )
 
 type AuthService struct {
@@ -186,38 +189,60 @@ func (s *AuthService) GoogleExchange(ctx context.Context, req model.GoogleLoginR
 		return nil, helper.NewBadRequestError("")
 	}
 
-	payload, err := idtoken.Validate(ctx, req.Code, s.cfg.GoogleClientID)
+	conf := &oauth2.Config{
+		ClientID:     s.cfg.GoogleClientID,
+		ClientSecret: s.cfg.GoogleClientSecret,
+		RedirectURL:  s.cfg.GoogleRedirectURL,
+		Scopes: []string{
+			"https://www.googleapis.com/auth/userinfo.email",
+			"https://www.googleapis.com/auth/userinfo.profile",
+		},
+		Endpoint: google.Endpoint,
+	}
+
+	oauthToken, err := conf.Exchange(ctx, req.Code)
 	if err != nil {
-		slog.Error("Failed to validate google token", "error", err)
-		return nil, helper.NewUnauthorizedError("")
+		slog.Error("Failed to exchange authorization code", "error", err)
+		return nil, helper.NewUnauthorizedError("Invalid authorization code")
 	}
 
-	email, ok := payload.Claims["email"].(string)
-	if !ok {
-		slog.Warn("Email not found in token claims")
-		return nil, helper.NewBadRequestError("")
+	oauth2Service, err := googleOAuth2.NewService(ctx, option.WithTokenSource(conf.TokenSource(ctx, oauthToken)))
+	if err != nil {
+		slog.Error("Failed to create oauth2 service", "error", err)
+		return nil, helper.NewInternalServerError("")
 	}
 
-	emailVerified, ok := payload.Claims["email_verified"].(bool)
-	if !ok || !emailVerified {
-		slog.Warn("Email from Google token is not verified", "email", email)
+	userInfo, err := oauth2Service.Userinfo.Get().Do()
+	if err != nil {
+		slog.Error("Failed to get user info from google", "error", err)
+		return nil, helper.NewInternalServerError("")
+	}
+
+	email := userInfo.Email
+	if email == "" {
+		slog.Warn("Email not found in google user info")
+		return nil, helper.NewBadRequestError("Email not found")
+	}
+
+	if userInfo.VerifiedEmail == nil || !*userInfo.VerifiedEmail {
+		slog.Warn("Email from Google is not verified", "email", email)
 		return nil, helper.NewBadRequestError("Email from Google is not verified.")
 	}
 
 	email = helper.NormalizeEmail(email)
 
-	name, ok := payload.Claims["name"].(string)
-	if !ok || name == "" {
+	name := userInfo.Name
+	if name == "" {
 		name = strings.Split(email, "@")[0]
 	}
 	name = strings.TrimSpace(name)
 
-	picture, _ := payload.Claims["picture"].(string)
+	picture := userInfo.Picture
+	sub := userInfo.Id
 
-	sub, ok := payload.Claims["sub"].(string)
-	if !ok || sub == "" {
-		slog.Warn("Subject ID not found in token claims")
-		return nil, helper.NewBadRequestError("")
+	if sub == "" {
+		slog.Warn("Subject ID (Google ID) not found")
+		return nil, helper.NewBadRequestError("Invalid Google ID")
 	}
 
 	u, err := s.client.User.Query().
@@ -415,7 +440,7 @@ func (s *AuthService) GoogleExchange(ctx context.Context, req model.GoogleLoginR
 		}
 	}
 
-	token, err := helper.GenerateJWT(s.cfg.JWTSecret, s.cfg.JWTExp, u.ID)
+	jwtToken, err := helper.GenerateJWT(s.cfg.JWTSecret, s.cfg.JWTExp, u.ID)
 	if err != nil {
 		slog.Error("Failed to generate JWT token", "error", err)
 		return nil, helper.NewInternalServerError("")
@@ -437,7 +462,7 @@ func (s *AuthService) GoogleExchange(ctx context.Context, req model.GoogleLoginR
 	}
 
 	return &model.AuthResponse{
-		Token: token,
+		Token: jwtToken,
 		User: model.UserDTO{
 			ID:       u.ID,
 			Email:    *u.Email,

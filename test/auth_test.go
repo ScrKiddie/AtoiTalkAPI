@@ -20,7 +20,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 )
@@ -190,8 +189,8 @@ func TestGoogleExchange(t *testing.T) {
 		assert.NotEmpty(t, resp.Error)
 	})
 
-	t.Run("Invalid Token", func(t *testing.T) {
-		reqBody := model.GoogleLoginRequest{Code: "invalid-token-string"}
+	t.Run("Invalid Code", func(t *testing.T) {
+		reqBody := model.GoogleLoginRequest{Code: "invalid-auth-code"}
 		body, _ := json.Marshal(reqBody)
 		req, _ := http.NewRequest("POST", "/api/auth/google", bytes.NewBuffer(body))
 		req.Header.Set("Content-Type", "application/json")
@@ -206,30 +205,14 @@ func TestGoogleExchange(t *testing.T) {
 		assert.NotEmpty(t, resp.Error)
 	})
 
-	t.Run("Valid Token", func(t *testing.T) {
-		validToken := os.Getenv("TEST_GOOGLE_ID_TOKEN")
-		if validToken == "" {
-			t.Skip("Skipping Valid Token test: TEST_GOOGLE_ID_TOKEN not set")
-		}
-
-		token, _, err := new(jwt.Parser).ParseUnverified(validToken, jwt.MapClaims{})
-		if err != nil {
-			t.Fatalf("Failed to parse test token: %v", err)
-		}
-		claims, ok := token.Claims.(jwt.MapClaims)
-		if !ok {
-			t.Fatalf("Invalid token claims")
-		}
-
-		realEmail, _ := claims["email"].(string)
-		realSub, _ := claims["sub"].(string)
-
-		if realEmail == "" || realSub == "" {
-			t.Skip("Skipping: Token does not contain email or sub")
+	t.Run("Valid Code", func(t *testing.T) {
+		validCode := os.Getenv("TEST_GOOGLE_AUTH_CODE")
+		if validCode == "" {
+			t.Skip("Skipping Valid Code test: TEST_GOOGLE_AUTH_CODE not set")
 		}
 
 		makeRequest := func() *httptest.ResponseRecorder {
-			reqBody := model.GoogleLoginRequest{Code: validToken}
+			reqBody := model.GoogleLoginRequest{Code: validCode}
 			body, _ := json.Marshal(reqBody)
 			req, _ := http.NewRequest("POST", "/api/auth/google", bytes.NewBuffer(body))
 			req.Header.Set("Content-Type", "application/json")
@@ -253,20 +236,8 @@ func TestGoogleExchange(t *testing.T) {
 
 			userMap, ok := dataMap["user"].(map[string]interface{})
 			assert.True(t, ok, "Expected user object in response data")
-			assert.Equal(t, realEmail, userMap["email"])
+			assert.NotEmpty(t, userMap["email"])
 			assert.NotEmpty(t, userMap["username"])
-
-			emailPrefix := strings.Split(realEmail, "@")[0]
-
-			emailPrefix = helper.NormalizeUsername(emailPrefix)
-			if len(emailPrefix) > 40 {
-				emailPrefix = emailPrefix[:40]
-			}
-			if len(emailPrefix) < 3 {
-				emailPrefix = "user" + emailPrefix
-			}
-
-			assert.True(t, strings.HasPrefix(userMap["username"].(string), emailPrefix))
 
 			userIDStr := userMap["id"].(string)
 			userID, _ := uuid.Parse(userIDStr)
@@ -276,7 +247,7 @@ func TestGoogleExchange(t *testing.T) {
 				Only(context.Background())
 			assert.NoError(t, err)
 			assert.Equal(t, useridentity.ProviderGoogle, identity.Provider)
-			assert.Equal(t, realSub, identity.ProviderID)
+			assert.NotEmpty(t, identity.ProviderID)
 
 			if avatarURL, ok := userMap["avatar"].(string); ok && avatarURL != "" {
 				parts := strings.Split(avatarURL, "/")
@@ -292,53 +263,6 @@ func TestGoogleExchange(t *testing.T) {
 			} else {
 				t.Log("No avatar URL returned, skipping file check")
 			}
-		})
-
-		t.Run("Login Existing User and Link Identity", func(t *testing.T) {
-
-			clearDatabase(context.Background())
-			u, _ := testClient.User.Create().
-				SetEmail(realEmail).
-				SetUsername("existinguser").
-				SetFullName("Existing User").
-				Save(context.Background())
-
-			rr := makeRequest()
-			if !assert.Equal(t, http.StatusOK, rr.Code, "Response body: %s", rr.Body.String()) {
-				printBody(t, rr)
-			}
-
-			identity, err := testClient.UserIdentity.Query().
-				Where(useridentity.UserID(u.ID)).
-				Only(context.Background())
-			assert.NoError(t, err)
-			assert.Equal(t, useridentity.ProviderGoogle, identity.Provider)
-			assert.Equal(t, realSub, identity.ProviderID)
-		})
-
-		t.Run("Login Existing User with Existing Identity", func(t *testing.T) {
-
-			clearDatabase(context.Background())
-			u, _ := testClient.User.Create().
-				SetEmail(realEmail).
-				SetUsername("existinguser").
-				SetFullName("Existing User").
-				Save(context.Background())
-			testClient.UserIdentity.Create().
-				SetUserID(u.ID).
-				SetProvider(useridentity.ProviderGoogle).
-				SetProviderID(realSub).
-				Save(context.Background())
-
-			rr := makeRequest()
-			if !assert.Equal(t, http.StatusOK, rr.Code, "Response body: %s", rr.Body.String()) {
-				printBody(t, rr)
-			}
-
-			count, _ := testClient.UserIdentity.Query().
-				Where(useridentity.UserID(u.ID)).
-				Count(context.Background())
-			assert.Equal(t, 1, count)
 		})
 	})
 }

@@ -18,6 +18,7 @@ func MapChatToResponse(userID uuid.UUID, c *ent.Chat, blockedMap map[uuid.UUID]B
 	var name, avatar string
 	var lastReadAt *string
 	var otherLastReadAt *string
+	var hiddenAtStr *string
 	var unreadCount int
 	var isOnline bool
 	var otherUserID *uuid.UUID
@@ -91,6 +92,10 @@ func MapChatToResponse(userID uuid.UUID, c *ent.Chat, blockedMap map[uuid.UUID]B
 			t := otherUserLastRead.Format(time.RFC3339)
 			otherLastReadAt = &t
 		}
+		if hiddenAt != nil {
+			t := hiddenAt.Format(time.RFC3339)
+			hiddenAtStr = &t
+		}
 	} else if c.Type == chat.TypeGroup && c.Edges.GroupChat != nil {
 		gc := c.Edges.GroupChat
 		name = gc.Name
@@ -124,6 +129,7 @@ func MapChatToResponse(userID uuid.UUID, c *ent.Chat, blockedMap map[uuid.UUID]B
 		UnreadCount:        unreadCount,
 		LastReadAt:         lastReadAt,
 		OtherLastReadAt:    otherLastReadAt,
+		HiddenAt:           hiddenAtStr,
 		IsOnline:           isOnline,
 		OtherUserID:        otherUserID,
 		OtherUserIsDeleted: otherUserIsDeleted,
