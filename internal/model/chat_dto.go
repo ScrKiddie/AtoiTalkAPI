@@ -23,6 +23,7 @@ type ChatListResponse struct {
 	UnreadCount        int              `json:"unread_count,omitempty"`
 	LastReadAt         *string          `json:"last_read_at,omitempty"`
 	OtherLastReadAt    *string          `json:"other_last_read_at,omitempty"`
+	HiddenAt           *string          `json:"hidden_at,omitempty"`
 	IsOnline           bool             `json:"is_online"`
 	OtherUserID        *uuid.UUID       `json:"other_user_id,omitempty"`
 	OtherUserIsDeleted bool             `json:"other_user_is_deleted"`

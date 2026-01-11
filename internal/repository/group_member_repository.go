@@ -36,7 +36,7 @@ func (r *GroupMemberRepository) SearchGroupMembers(ctx context.Context, groupID 
 		Order(ent.Asc(groupmember.FieldJoinedAt), ent.Asc(groupmember.FieldID)).
 		Limit(limit + 1).
 		WithUser(func(uq *ent.UserQuery) {
-			uq.Select(user.FieldID, user.FieldUsername, user.FieldFullName, user.FieldAvatarID)
+			uq.Select(user.FieldID, user.FieldUsername, user.FieldFullName, user.FieldAvatarID, user.FieldDeletedAt)
 			uq.WithAvatar()
 		})
 

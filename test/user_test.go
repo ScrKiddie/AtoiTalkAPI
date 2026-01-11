@@ -940,7 +940,7 @@ func TestGetBlockedUsers(t *testing.T) {
 	})
 
 	t.Run("Success - Search Blocked User", func(t *testing.T) {
-		req, _ := http.NewRequest("GET", "/api/users/blocked?query=One", nil)
+		req, _ := http.NewRequest("GET", "/api/users/blocked?query=Blocked%20One", nil)
 		req.Header.Set("Authorization", "Bearer "+token)
 		rr := executeRequest(req)
 

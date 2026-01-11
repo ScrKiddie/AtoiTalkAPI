@@ -57,7 +57,7 @@ func (s *AccountService) ChangePassword(ctx context.Context, userID uuid.UUID, r
 			return helper.NewBadRequestError("")
 		}
 		if !helper.CheckPasswordHash(*req.OldPassword, *u.PasswordHash) {
-			return helper.NewBadRequestError("")
+			return helper.NewBadRequestError("Invalid old password")
 		}
 	}
 

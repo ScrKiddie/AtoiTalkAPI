@@ -62,7 +62,6 @@ func ToMessageResponse(msg *ent.Message, storageMode, appURL, cdnURL, storagePro
 		var replyDeletedAt *string
 		var replyActionData map[string]interface{}
 		replySenderName := ""
-		isJumpable := true
 
 		if reply.Edges.Sender != nil && reply.Edges.Sender.FullName != nil {
 			replySenderName = *reply.Edges.Sender.FullName
@@ -71,7 +70,6 @@ func ToMessageResponse(msg *ent.Message, storageMode, appURL, cdnURL, storagePro
 		if reply.DeletedAt != nil {
 			t := reply.DeletedAt.Format(time.RFC3339)
 			replyDeletedAt = &t
-			isJumpable = false
 		} else {
 			if reply.Content != nil {
 				replyContent = *reply.Content
@@ -81,10 +79,6 @@ func ToMessageResponse(msg *ent.Message, storageMode, appURL, cdnURL, storagePro
 			}
 		}
 
-		if hiddenAt != nil && !reply.CreatedAt.After(*hiddenAt) {
-			isJumpable = false
-		}
-
 		replyPreview = &model.ReplyPreviewDTO{
 			ID:         reply.ID,
 			SenderName: replySenderName,
@@ -92,7 +86,7 @@ func ToMessageResponse(msg *ent.Message, storageMode, appURL, cdnURL, storagePro
 			Content:    replyContent,
 			ActionData: replyActionData,
 			DeletedAt:  replyDeletedAt,
-			IsJumpable: isJumpable,
+			CreatedAt:  reply.CreatedAt.Format(time.RFC3339),
 		}
 	}
 
