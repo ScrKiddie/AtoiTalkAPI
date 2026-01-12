@@ -19,6 +19,7 @@ import (
 
 	"github.com/go-playground/validator/v10"
 	"github.com/google/uuid"
+	"github.com/redis/go-redis/v9"
 )
 
 type ChatService struct {
@@ -28,9 +29,10 @@ type ChatService struct {
 	validator      *validator.Validate
 	wsHub          *websocket.Hub
 	storageAdapter *adapter.StorageAdapter
+	redisAdapter   *adapter.RedisAdapter
 }
 
-func NewChatService(client *ent.Client, repo *repository.Repository, cfg *config.AppConfig, validator *validator.Validate, wsHub *websocket.Hub, storageAdapter *adapter.StorageAdapter) *ChatService {
+func NewChatService(client *ent.Client, repo *repository.Repository, cfg *config.AppConfig, validator *validator.Validate, wsHub *websocket.Hub, storageAdapter *adapter.StorageAdapter, redisAdapter *adapter.RedisAdapter) *ChatService {
 	return &ChatService{
 		client:         client,
 		repo:           repo,
@@ -38,6 +40,7 @@ func NewChatService(client *ent.Client, repo *repository.Repository, cfg *config
 		validator:      validator,
 		wsHub:          wsHub,
 		storageAdapter: storageAdapter,
+		redisAdapter:   redisAdapter,
 	}
 }
 
@@ -83,7 +86,13 @@ func (s *ChatService) GetChatByID(ctx context.Context, userID, chatID uuid.UUID)
 		}
 	}
 
-	resp := helper.MapChatToResponse(userID, c, blockedMap, s.cfg.StorageMode, s.cfg.AppURL, s.cfg.StorageCDNURL, s.cfg.StorageProfile, s.cfg.StorageAttachment)
+	onlineMap := make(map[uuid.UUID]bool)
+	if otherUserID != uuid.Nil {
+		isOnline, _ := s.redisAdapter.Client().SIsMember(ctx, "online_users", otherUserID.String()).Result()
+		onlineMap[otherUserID] = isOnline
+	}
+
+	resp := helper.MapChatToResponse(userID, c, blockedMap, onlineMap, s.cfg.StorageMode, s.cfg.AppURL, s.cfg.StorageCDNURL, s.cfg.StorageProfile, s.cfg.StorageAttachment)
 
 	if resp != nil {
 
@@ -170,6 +179,23 @@ func (s *ChatService) GetChats(ctx context.Context, userID uuid.UUID, req model.
 		}
 	}
 
+	onlineMap := make(map[uuid.UUID]bool)
+	if len(otherUserIDs) > 0 {
+		results, err := s.redisAdapter.Client().Pipelined(ctx, func(pipe redis.Pipeliner) error {
+			for _, id := range otherUserIDs {
+				pipe.SIsMember(ctx, "online_users", id.String())
+			}
+			return nil
+		})
+		if err == nil {
+			for i, res := range results {
+				if boolCmd, ok := res.(*redis.BoolCmd); ok {
+					onlineMap[otherUserIDs[i]] = boolCmd.Val()
+				}
+			}
+		}
+	}
+
 	userIDsToResolve := make(map[uuid.UUID]bool)
 	for _, c := range chats {
 		if c.Edges.LastMessage != nil && c.Edges.LastMessage.ActionData != nil {
@@ -202,7 +228,7 @@ func (s *ChatService) GetChats(ctx context.Context, userID uuid.UUID, req model.
 
 	response := make([]model.ChatListResponse, 0)
 	for _, c := range chats {
-		resp := helper.MapChatToResponse(userID, c, blockedMap, s.cfg.StorageMode, s.cfg.AppURL, s.cfg.StorageCDNURL, s.cfg.StorageProfile, s.cfg.StorageAttachment)
+		resp := helper.MapChatToResponse(userID, c, blockedMap, onlineMap, s.cfg.StorageMode, s.cfg.AppURL, s.cfg.StorageCDNURL, s.cfg.StorageProfile, s.cfg.StorageAttachment)
 		if resp != nil {
 
 			if resp.LastMessage != nil && resp.LastMessage.ActionData != nil {

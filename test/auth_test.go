@@ -2,7 +2,6 @@ package test
 
 import (
 	"AtoiTalkAPI/ent/media"
-	"AtoiTalkAPI/ent/otp"
 	"AtoiTalkAPI/ent/user"
 	"AtoiTalkAPI/ent/useridentity"
 	"AtoiTalkAPI/internal/helper"
@@ -523,12 +522,9 @@ func TestResetPassword(t *testing.T) {
 
 		createOTP(validEmail, validCode, time.Now().UTC().Add(5*time.Minute))
 
+		key := fmt.Sprintf("otp:%s:%s", "reset", validEmail)
 		hashedCode := helper.HashOTP(validCode, testConfig.OTPSecret)
-		testClient.OTP.Update().
-			Where(otp.Email(validEmail)).
-			SetMode(otp.Mode(otp.ModeReset)).
-			SetCode(hashedCode).
-			Exec(context.Background())
+		redisAdapter.Set(context.Background(), key, hashedCode, 5*time.Minute)
 
 		reqBody := model.ResetPasswordRequest{
 			Email:           validEmail,
@@ -561,12 +557,9 @@ func TestResetPassword(t *testing.T) {
 		defer func() { testConfig.TurnstileSecretKey = originalSecret }()
 
 		createOTP(validEmail, validCode, time.Now().UTC().Add(5*time.Minute))
+		key := fmt.Sprintf("otp:%s:%s", "reset", validEmail)
 		hashedCode := helper.HashOTP(validCode, testConfig.OTPSecret)
-		testClient.OTP.Update().
-			Where(otp.Email(validEmail)).
-			SetMode(otp.Mode(otp.ModeReset)).
-			SetCode(hashedCode).
-			Exec(context.Background())
+		redisAdapter.Set(context.Background(), key, hashedCode, 5*time.Minute)
 
 		reqBody := model.ResetPasswordRequest{
 			Email:           validEmail,
@@ -596,12 +589,9 @@ func TestResetPassword(t *testing.T) {
 		defer func() { testConfig.TurnstileSecretKey = originalSecret }()
 
 		createOTP(validEmail, validCode, time.Now().UTC().Add(5*time.Minute))
+		key := fmt.Sprintf("otp:%s:%s", "reset", validEmail)
 		hashedCode := helper.HashOTP(validCode, testConfig.OTPSecret)
-		testClient.OTP.Update().
-			Where(otp.Email(validEmail)).
-			SetMode(otp.Mode(otp.ModeReset)).
-			SetCode(hashedCode).
-			Exec(context.Background())
+		redisAdapter.Set(context.Background(), key, hashedCode, 5*time.Minute)
 
 		reqBody := model.ResetPasswordRequest{
 			Email:           validEmail,

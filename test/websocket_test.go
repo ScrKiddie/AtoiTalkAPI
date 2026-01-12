@@ -77,20 +77,28 @@ func TestWebSocketBroadcastMessage(t *testing.T) {
 	assert.Equal(t, http.StatusOK, rr.Code)
 
 	conn2.SetReadDeadline(time.Now().UTC().Add(2 * time.Second))
-	_, message, err := conn2.ReadMessage()
-	assert.NoError(t, err)
 
-	var event websocket.Event
-	err = json.Unmarshal(message, &event)
-	assert.NoError(t, err)
+	foundEvent := false
+	for i := 0; i < 5; i++ {
+		_, message, err := conn2.ReadMessage()
+		if err != nil {
+			break
+		}
+		var event websocket.Event
+		json.Unmarshal(message, &event)
 
-	assert.Equal(t, websocket.EventMessageNew, event.Type)
-	payloadMap, ok := event.Payload.(map[string]interface{})
-	assert.True(t, ok)
-	assert.Equal(t, "Hello WebSocket", payloadMap["content"])
-	assert.Equal(t, "regular", payloadMap["type"])
-	assert.NotNil(t, event.Meta)
-	assert.Equal(t, 1, int(event.Meta.UnreadCount))
+		if event.Type == websocket.EventMessageNew {
+			foundEvent = true
+			payloadMap, ok := event.Payload.(map[string]interface{})
+			assert.True(t, ok)
+			assert.Equal(t, "Hello WebSocket", payloadMap["content"])
+			assert.Equal(t, "regular", payloadMap["type"])
+			assert.NotNil(t, event.Meta)
+			assert.Equal(t, 1, int(event.Meta.UnreadCount))
+			break
+		}
+	}
+	assert.True(t, foundEvent, "Should have received message.new event")
 }
 
 func TestWebSocketTypingStatus(t *testing.T) {
@@ -127,7 +135,8 @@ func TestWebSocketTypingStatus(t *testing.T) {
 	typingEvent := websocket.Event{
 		Type: websocket.EventTyping,
 		Meta: &websocket.EventMeta{
-			ChatID: chatID,
+			ChatID:   chatID,
+			SenderID: user1.ID,
 		},
 	}
 	err = conn1.WriteJSON(typingEvent)
@@ -261,21 +270,8 @@ func TestWebSocketMultiDevice(t *testing.T) {
 	req.Header.Set("Content-Type", "application/json")
 	executeRequest(req)
 
-	conn2A.SetReadDeadline(time.Now().UTC().Add(2 * time.Second))
-	_, msgA, err := conn2A.ReadMessage()
-	assert.NoError(t, err)
-	var eventA websocket.Event
-	json.Unmarshal(msgA, &eventA)
-	assert.Equal(t, websocket.EventMessageNew, eventA.Type)
-	assert.Equal(t, 1, int(eventA.Meta.UnreadCount))
-
-	conn2B.SetReadDeadline(time.Now().UTC().Add(2 * time.Second))
-	_, msgB, err := conn2B.ReadMessage()
-	assert.NoError(t, err)
-	var eventB websocket.Event
-	json.Unmarshal(msgB, &eventB)
-	assert.Equal(t, websocket.EventMessageNew, eventB.Type)
-	assert.Equal(t, 1, int(eventB.Meta.UnreadCount))
+	verifyEvent(t, conn2A, websocket.EventMessageNew, user1.ID, uuid.Nil)
+	verifyEvent(t, conn2B, websocket.EventMessageNew, user1.ID, uuid.Nil)
 }
 
 func TestWebSocketReadStatusSync(t *testing.T) {

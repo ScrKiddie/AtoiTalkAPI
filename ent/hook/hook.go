@@ -68,18 +68,6 @@ func (f MessageFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, err
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.MessageMutation", m)
 }
 
-// The OTPFunc type is an adapter to allow the use of ordinary
-// function as OTP mutator.
-type OTPFunc func(context.Context, *ent.OTPMutation) (ent.Value, error)
-
-// Mutate calls f(ctx, m).
-func (f OTPFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
-	if mv, ok := m.(*ent.OTPMutation); ok {
-		return f(ctx, mv)
-	}
-	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.OTPMutation", m)
-}
-
 // The PrivateChatFunc type is an adapter to allow the use of ordinary
 // function as PrivateChat mutator.
 type PrivateChatFunc func(context.Context, *ent.PrivateChatMutation) (ent.Value, error)

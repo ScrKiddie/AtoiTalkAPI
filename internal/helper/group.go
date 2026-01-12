@@ -4,9 +4,11 @@ import (
 	"AtoiTalkAPI/ent"
 	"AtoiTalkAPI/internal/model"
 	"time"
+
+	"github.com/google/uuid"
 )
 
-func ToGroupMemberDTO(m *ent.GroupMember, storageMode, appURL, cdnURL, storageProfile string) model.GroupMemberDTO {
+func ToGroupMemberDTO(m *ent.GroupMember, onlineMap map[uuid.UUID]bool, storageMode, appURL, cdnURL, storageProfile string) model.GroupMemberDTO {
 	if m == nil || m.Edges.User == nil {
 		return model.GroupMemberDTO{}
 	}
@@ -28,6 +30,11 @@ func ToGroupMemberDTO(m *ent.GroupMember, storageMode, appURL, cdnURL, storagePr
 		isBanned = false
 	}
 
+	isOnline := false
+	if onlineMap != nil {
+		isOnline = onlineMap[user.ID]
+	}
+
 	return model.GroupMemberDTO{
 		ID:       m.ID,
 		UserID:   user.ID,
@@ -35,7 +42,7 @@ func ToGroupMemberDTO(m *ent.GroupMember, storageMode, appURL, cdnURL, storagePr
 		Avatar:   avatarURL,
 		Role:     string(m.Role),
 		JoinedAt: m.JoinedAt.String(),
-		IsOnline: user.IsOnline,
+		IsOnline: isOnline,
 		IsBanned: isBanned,
 	}
 }

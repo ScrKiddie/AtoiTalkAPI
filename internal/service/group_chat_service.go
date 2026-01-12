@@ -16,6 +16,7 @@ import (
 	"AtoiTalkAPI/internal/repository"
 	"AtoiTalkAPI/internal/websocket"
 	"context"
+	"fmt"
 	"log/slog"
 	"mime/multipart"
 	"path/filepath"
@@ -33,9 +34,10 @@ type GroupChatService struct {
 	validator      *validator.Validate
 	wsHub          *websocket.Hub
 	storageAdapter *adapter.StorageAdapter
+	redisAdapter   *adapter.RedisAdapter
 }
 
-func NewGroupChatService(client *ent.Client, repo *repository.Repository, cfg *config.AppConfig, validator *validator.Validate, wsHub *websocket.Hub, storageAdapter *adapter.StorageAdapter) *GroupChatService {
+func NewGroupChatService(client *ent.Client, repo *repository.Repository, cfg *config.AppConfig, validator *validator.Validate, wsHub *websocket.Hub, storageAdapter *adapter.StorageAdapter, redisAdapter *adapter.RedisAdapter) *GroupChatService {
 	return &GroupChatService{
 		client:         client,
 		repo:           repo,
@@ -43,6 +45,7 @@ func NewGroupChatService(client *ent.Client, repo *repository.Repository, cfg *c
 		validator:      validator,
 		wsHub:          wsHub,
 		storageAdapter: storageAdapter,
+		redisAdapter:   redisAdapter,
 	}
 }
 
@@ -483,13 +486,18 @@ func (s *GroupChatService) UpdateGroupChat(ctx context.Context, requestorID uuid
 				},
 			})
 
-			updatedGroupWithAvatar, _ := s.client.GroupChat.Query().
+			updatedGroupWithAvatar, err := s.client.GroupChat.Query().
 				Where(groupchat.ID(updatedGroup.ID)).
 				WithAvatar().
 				Only(context.Background())
 
+			if err != nil {
+				slog.Error("Failed to fetch updated group for broadcast", "error", err)
+				return
+			}
+
 			avatarURL := ""
-			if updatedGroupWithAvatar.Edges.Avatar != nil {
+			if updatedGroupWithAvatar != nil && updatedGroupWithAvatar.Edges.Avatar != nil {
 				avatarURL = helper.BuildImageURL(s.cfg.StorageMode, s.cfg.AppURL, s.cfg.StorageCDNURL, s.cfg.StorageProfile, updatedGroupWithAvatar.Edges.Avatar.FileName)
 			}
 
@@ -586,6 +594,10 @@ func (s *GroupChatService) DeleteGroup(ctx context.Context, userID, groupID uuid
 	if err := tx.Commit(); err != nil {
 		slog.Error("Failed to commit transaction", "error", err)
 		return helper.NewInternalServerError("")
+	}
+
+	if s.redisAdapter != nil {
+		s.redisAdapter.Del(context.Background(), fmt.Sprintf("chat_members:%s", groupID))
 	}
 
 	members, _ := s.client.GroupMember.Query().

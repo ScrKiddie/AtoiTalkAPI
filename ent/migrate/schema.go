@@ -214,44 +214,6 @@ var (
 			},
 		},
 	}
-	// OtpsColumns holds the columns for the "otps" table.
-	OtpsColumns = []*schema.Column{
-		{Name: "id", Type: field.TypeUUID},
-		{Name: "created_at", Type: field.TypeTime, Default: "CURRENT_TIMESTAMP"},
-		{Name: "updated_at", Type: field.TypeTime, Default: "CURRENT_TIMESTAMP"},
-		{Name: "email", Type: field.TypeString, Unique: true, Size: 255},
-		{Name: "code", Type: field.TypeString, Size: 255},
-		{Name: "mode", Type: field.TypeEnum, Enums: []string{"register", "reset", "change_email"}, Default: "register"},
-		{Name: "expires_at", Type: field.TypeTime},
-	}
-	// OtpsTable holds the schema information for the "otps" table.
-	OtpsTable = &schema.Table{
-		Name:       "otps",
-		Columns:    OtpsColumns,
-		PrimaryKey: []*schema.Column{OtpsColumns[0]},
-		Indexes: []*schema.Index{
-			{
-				Name:    "idx_otp_email",
-				Unique:  false,
-				Columns: []*schema.Column{OtpsColumns[3]},
-			},
-			{
-				Name:    "idx_otp_mode_time",
-				Unique:  false,
-				Columns: []*schema.Column{OtpsColumns[5], OtpsColumns[1]},
-				Annotation: &entsql.IndexAnnotation{
-					DescColumns: map[string]bool{
-						OtpsColumns[1].Name: true,
-					},
-				},
-			},
-			{
-				Name:    "otp_expires_at",
-				Unique:  false,
-				Columns: []*schema.Column{OtpsColumns[6]},
-			},
-		},
-	}
 	// PrivateChatsColumns holds the columns for the "private_chats" table.
 	PrivateChatsColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeUUID},
@@ -384,7 +346,6 @@ var (
 		{Name: "password_hash", Type: field.TypeString, Nullable: true, Size: 255},
 		{Name: "full_name", Type: field.TypeString, Nullable: true, Size: 100},
 		{Name: "bio", Type: field.TypeString, Nullable: true, Size: 255},
-		{Name: "is_online", Type: field.TypeBool, Default: false},
 		{Name: "last_seen_at", Type: field.TypeTime, Nullable: true},
 		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
 		{Name: "role", Type: field.TypeEnum, Enums: []string{"user", "admin"}, Default: "user"},
@@ -401,7 +362,7 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "users_media_user_avatar",
-				Columns:    []*schema.Column{UsersColumns[15]},
+				Columns:    []*schema.Column{UsersColumns[14]},
 				RefColumns: []*schema.Column{MediaColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
@@ -517,7 +478,6 @@ var (
 		GroupMembersTable,
 		MediaTable,
 		MessagesTable,
-		OtpsTable,
 		PrivateChatsTable,
 		ReportsTable,
 		UsersTable,
@@ -539,9 +499,6 @@ func init() {
 	MessagesTable.ForeignKeys[0].RefTable = ChatsTable
 	MessagesTable.ForeignKeys[1].RefTable = MessagesTable
 	MessagesTable.ForeignKeys[2].RefTable = UsersTable
-	OtpsTable.Annotation = &entsql.Annotation{
-		Table: "otps",
-	}
 	PrivateChatsTable.ForeignKeys[0].RefTable = ChatsTable
 	PrivateChatsTable.ForeignKeys[1].RefTable = UsersTable
 	PrivateChatsTable.ForeignKeys[2].RefTable = UsersTable

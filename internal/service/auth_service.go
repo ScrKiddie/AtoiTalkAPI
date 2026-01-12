@@ -3,12 +3,12 @@ package service
 import (
 	"AtoiTalkAPI/ent"
 	"AtoiTalkAPI/ent/media"
-	"AtoiTalkAPI/ent/otp"
 	_ "AtoiTalkAPI/ent/runtime"
 	"AtoiTalkAPI/ent/user"
 	"AtoiTalkAPI/ent/useridentity"
 	"AtoiTalkAPI/internal/adapter"
 	"AtoiTalkAPI/internal/config"
+	"AtoiTalkAPI/internal/constant"
 	"AtoiTalkAPI/internal/helper"
 	"AtoiTalkAPI/internal/model"
 	"bytes"
@@ -35,15 +35,17 @@ type AuthService struct {
 	validator      *validator.Validate
 	storageAdapter *adapter.StorageAdapter
 	captchaAdapter *adapter.CaptchaAdapter
+	otpService     *OTPService
 }
 
-func NewAuthService(client *ent.Client, cfg *config.AppConfig, validator *validator.Validate, storageAdapter *adapter.StorageAdapter, captchaAdapter *adapter.CaptchaAdapter) *AuthService {
+func NewAuthService(client *ent.Client, cfg *config.AppConfig, validator *validator.Validate, storageAdapter *adapter.StorageAdapter, captchaAdapter *adapter.CaptchaAdapter, otpService *OTPService) *AuthService {
 	return &AuthService{
 		client:         client,
 		cfg:            cfg,
 		validator:      validator,
 		storageAdapter: storageAdapter,
 		captchaAdapter: captchaAdapter,
+		otpService:     otpService,
 	}
 }
 
@@ -489,6 +491,10 @@ func (s *AuthService) Register(ctx context.Context, req model.RegisterUserReques
 		return nil, helper.NewBadRequestError("")
 	}
 
+	if err := s.otpService.VerifyOTP(ctx, req.Email, req.Code, string(constant.ModeRegister)); err != nil {
+		return nil, err
+	}
+
 	tx, err := s.client.Tx(ctx)
 	if err != nil {
 		slog.Error("Failed to start transaction", "error", err)
@@ -501,32 +507,6 @@ func (s *AuthService) Register(ctx context.Context, req model.RegisterUserReques
 			panic(v)
 		}
 	}()
-
-	hashedCode := helper.HashOTP(req.Code, s.cfg.OTPSecret)
-
-	otpRecord, err := tx.OTP.Query().
-		Where(
-			otp.EmailEQ(req.Email),
-			otp.CodeEQ(hashedCode),
-			otp.ModeEQ(otp.ModeRegister),
-			otp.ExpiresAtGT(time.Now().UTC()),
-		).
-		ForUpdate().
-		Only(ctx)
-
-	if err != nil {
-		if ent.IsNotFound(err) {
-			return nil, helper.NewBadRequestError("Invalid or expired OTP")
-		}
-		slog.Error("Failed to query OTP", "error", err)
-		return nil, helper.NewInternalServerError("")
-	}
-
-	err = tx.OTP.DeleteOne(otpRecord).Exec(ctx)
-	if err != nil {
-		slog.Error("Failed to delete OTP", "error", err)
-		return nil, helper.NewInternalServerError("")
-	}
 
 	exists, err := tx.User.Query().
 		Where(
@@ -614,6 +594,10 @@ func (s *AuthService) ResetPassword(ctx context.Context, req model.ResetPassword
 		return helper.NewBadRequestError("")
 	}
 
+	if err := s.otpService.VerifyOTP(ctx, req.Email, req.Code, string(constant.ModeReset)); err != nil {
+		return err
+	}
+
 	tx, err := s.client.Tx(ctx)
 	if err != nil {
 		slog.Error("Failed to start transaction", "error", err)
@@ -626,32 +610,6 @@ func (s *AuthService) ResetPassword(ctx context.Context, req model.ResetPassword
 			panic(v)
 		}
 	}()
-
-	hashedCode := helper.HashOTP(req.Code, s.cfg.OTPSecret)
-
-	otpRecord, err := tx.OTP.Query().
-		Where(
-			otp.EmailEQ(req.Email),
-			otp.CodeEQ(hashedCode),
-			otp.ModeEQ(otp.ModeReset),
-			otp.ExpiresAtGT(time.Now().UTC()),
-		).
-		ForUpdate().
-		Only(ctx)
-
-	if err != nil {
-		if ent.IsNotFound(err) {
-			return helper.NewBadRequestError("Invalid or expired OTP")
-		}
-		slog.Error("Failed to query OTP", "error", err)
-		return helper.NewInternalServerError("")
-	}
-
-	err = tx.OTP.DeleteOne(otpRecord).Exec(ctx)
-	if err != nil {
-		slog.Error("Failed to delete OTP", "error", err)
-		return helper.NewInternalServerError("")
-	}
 
 	u, err := tx.User.Query().
 		Where(

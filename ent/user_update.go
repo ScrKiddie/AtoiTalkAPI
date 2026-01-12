@@ -164,20 +164,6 @@ func (_u *UserUpdate) ClearAvatarID() *UserUpdate {
 	return _u
 }
 
-// SetIsOnline sets the "is_online" field.
-func (_u *UserUpdate) SetIsOnline(v bool) *UserUpdate {
-	_u.mutation.SetIsOnline(v)
-	return _u
-}
-
-// SetNillableIsOnline sets the "is_online" field if the given value is not nil.
-func (_u *UserUpdate) SetNillableIsOnline(v *bool) *UserUpdate {
-	if v != nil {
-		_u.SetIsOnline(*v)
-	}
-	return _u
-}
-
 // SetLastSeenAt sets the "last_seen_at" field.
 func (_u *UserUpdate) SetLastSeenAt(v time.Time) *UserUpdate {
 	_u.mutation.SetLastSeenAt(v)
@@ -819,9 +805,6 @@ func (_u *UserUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	}
 	if _u.mutation.BioCleared() {
 		_spec.ClearField(user.FieldBio, field.TypeString)
-	}
-	if value, ok := _u.mutation.IsOnline(); ok {
-		_spec.SetField(user.FieldIsOnline, field.TypeBool, value)
 	}
 	if value, ok := _u.mutation.LastSeenAt(); ok {
 		_spec.SetField(user.FieldLastSeenAt, field.TypeTime, value)
@@ -1525,20 +1508,6 @@ func (_u *UserUpdateOne) ClearAvatarID() *UserUpdateOne {
 	return _u
 }
 
-// SetIsOnline sets the "is_online" field.
-func (_u *UserUpdateOne) SetIsOnline(v bool) *UserUpdateOne {
-	_u.mutation.SetIsOnline(v)
-	return _u
-}
-
-// SetNillableIsOnline sets the "is_online" field if the given value is not nil.
-func (_u *UserUpdateOne) SetNillableIsOnline(v *bool) *UserUpdateOne {
-	if v != nil {
-		_u.SetIsOnline(*v)
-	}
-	return _u
-}
-
 // SetLastSeenAt sets the "last_seen_at" field.
 func (_u *UserUpdateOne) SetLastSeenAt(v time.Time) *UserUpdateOne {
 	_u.mutation.SetLastSeenAt(v)
@@ -2210,9 +2179,6 @@ func (_u *UserUpdateOne) sqlSave(ctx context.Context) (_node *User, err error) {
 	}
 	if _u.mutation.BioCleared() {
 		_spec.ClearField(user.FieldBio, field.TypeString)
-	}
-	if value, ok := _u.mutation.IsOnline(); ok {
-		_spec.SetField(user.FieldIsOnline, field.TypeBool, value)
 	}
 	if value, ok := _u.mutation.LastSeenAt(); ok {
 		_spec.SetField(user.FieldLastSeenAt, field.TypeTime, value)

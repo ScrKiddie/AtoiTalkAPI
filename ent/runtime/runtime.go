@@ -8,7 +8,6 @@ import (
 	"AtoiTalkAPI/ent/groupmember"
 	"AtoiTalkAPI/ent/media"
 	"AtoiTalkAPI/ent/message"
-	"AtoiTalkAPI/ent/otp"
 	"AtoiTalkAPI/ent/privatechat"
 	"AtoiTalkAPI/ent/report"
 	"AtoiTalkAPI/ent/schema"
@@ -177,61 +176,6 @@ func init() {
 	messageDescID := messageFields[0].Descriptor()
 	// message.DefaultID holds the default value on creation for the id field.
 	message.DefaultID = messageDescID.Default.(func() uuid.UUID)
-	otpMixin := schema.OTP{}.Mixin()
-	otpMixinFields0 := otpMixin[0].Fields()
-	_ = otpMixinFields0
-	otpFields := schema.OTP{}.Fields()
-	_ = otpFields
-	// otpDescCreatedAt is the schema descriptor for created_at field.
-	otpDescCreatedAt := otpMixinFields0[0].Descriptor()
-	// otp.DefaultCreatedAt holds the default value on creation for the created_at field.
-	otp.DefaultCreatedAt = otpDescCreatedAt.Default.(func() time.Time)
-	// otpDescUpdatedAt is the schema descriptor for updated_at field.
-	otpDescUpdatedAt := otpMixinFields0[1].Descriptor()
-	// otp.DefaultUpdatedAt holds the default value on creation for the updated_at field.
-	otp.DefaultUpdatedAt = otpDescUpdatedAt.Default.(func() time.Time)
-	// otp.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
-	otp.UpdateDefaultUpdatedAt = otpDescUpdatedAt.UpdateDefault.(func() time.Time)
-	// otpDescEmail is the schema descriptor for email field.
-	otpDescEmail := otpFields[1].Descriptor()
-	// otp.EmailValidator is a validator for the "email" field. It is called by the builders before save.
-	otp.EmailValidator = func() func(string) error {
-		validators := otpDescEmail.Validators
-		fns := [...]func(string) error{
-			validators[0].(func(string) error),
-			validators[1].(func(string) error),
-		}
-		return func(email string) error {
-			for _, fn := range fns {
-				if err := fn(email); err != nil {
-					return err
-				}
-			}
-			return nil
-		}
-	}()
-	// otpDescCode is the schema descriptor for code field.
-	otpDescCode := otpFields[2].Descriptor()
-	// otp.CodeValidator is a validator for the "code" field. It is called by the builders before save.
-	otp.CodeValidator = func() func(string) error {
-		validators := otpDescCode.Validators
-		fns := [...]func(string) error{
-			validators[0].(func(string) error),
-			validators[1].(func(string) error),
-		}
-		return func(code string) error {
-			for _, fn := range fns {
-				if err := fn(code); err != nil {
-					return err
-				}
-			}
-			return nil
-		}
-	}()
-	// otpDescID is the schema descriptor for id field.
-	otpDescID := otpFields[0].Descriptor()
-	// otp.DefaultID holds the default value on creation for the id field.
-	otp.DefaultID = otpDescID.Default.(func() uuid.UUID)
 	privatechatHooks := schema.PrivateChat{}.Hooks()
 	privatechat.Hooks[0] = privatechatHooks[0]
 	privatechatFields := schema.PrivateChat{}.Fields()
@@ -303,12 +247,8 @@ func init() {
 	userDescBio := userFields[5].Descriptor()
 	// user.BioValidator is a validator for the "bio" field. It is called by the builders before save.
 	user.BioValidator = userDescBio.Validators[0].(func(string) error)
-	// userDescIsOnline is the schema descriptor for is_online field.
-	userDescIsOnline := userFields[7].Descriptor()
-	// user.DefaultIsOnline holds the default value on creation for the is_online field.
-	user.DefaultIsOnline = userDescIsOnline.Default.(bool)
 	// userDescIsBanned is the schema descriptor for is_banned field.
-	userDescIsBanned := userFields[11].Descriptor()
+	userDescIsBanned := userFields[10].Descriptor()
 	// user.DefaultIsBanned holds the default value on creation for the is_banned field.
 	user.DefaultIsBanned = userDescIsBanned.Default.(bool)
 	// userDescID is the schema descriptor for id field.
