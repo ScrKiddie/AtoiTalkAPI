@@ -5,10 +5,10 @@ import (
 	"AtoiTalkAPI/ent/chat"
 	"AtoiTalkAPI/ent/groupchat"
 	"AtoiTalkAPI/ent/groupmember"
-	"AtoiTalkAPI/ent/otp"
 	"AtoiTalkAPI/ent/user"
 	"AtoiTalkAPI/ent/useridentity"
 	"AtoiTalkAPI/internal/config"
+	"AtoiTalkAPI/internal/constant"
 	"AtoiTalkAPI/internal/helper"
 	"AtoiTalkAPI/internal/model"
 	"AtoiTalkAPI/internal/websocket"
@@ -21,18 +21,20 @@ import (
 )
 
 type AccountService struct {
-	client    *ent.Client
-	cfg       *config.AppConfig
-	validator *validator.Validate
-	wsHub     *websocket.Hub
+	client     *ent.Client
+	cfg        *config.AppConfig
+	validator  *validator.Validate
+	wsHub      *websocket.Hub
+	otpService *OTPService
 }
 
-func NewAccountService(client *ent.Client, cfg *config.AppConfig, validator *validator.Validate, wsHub *websocket.Hub) *AccountService {
+func NewAccountService(client *ent.Client, cfg *config.AppConfig, validator *validator.Validate, wsHub *websocket.Hub, otpService *OTPService) *AccountService {
 	return &AccountService{
-		client:    client,
-		cfg:       cfg,
-		validator: validator,
-		wsHub:     wsHub,
+		client:     client,
+		cfg:        cfg,
+		validator:  validator,
+		wsHub:      wsHub,
+		otpService: otpService,
 	}
 }
 
@@ -101,6 +103,10 @@ func (s *AccountService) ChangeEmail(ctx context.Context, userID uuid.UUID, req 
 		return helper.NewBadRequestError("")
 	}
 
+	if err := s.otpService.VerifyOTP(ctx, req.Email, req.Code, string(constant.ModeChangeEmail)); err != nil {
+		return err
+	}
+
 	tx, err := s.client.Tx(ctx)
 	if err != nil {
 		slog.Error("Failed to start transaction", "error", err)
@@ -123,32 +129,6 @@ func (s *AccountService) ChangeEmail(ctx context.Context, userID uuid.UUID, req 
 	}
 	if exists {
 		return helper.NewConflictError("Email already registered")
-	}
-
-	hashedCode := helper.HashOTP(req.Code, s.cfg.OTPSecret)
-
-	otpRecord, err := tx.OTP.Query().
-		Where(
-			otp.EmailEQ(req.Email),
-			otp.CodeEQ(hashedCode),
-			otp.ModeEQ(otp.ModeChangeEmail),
-			otp.ExpiresAtGT(time.Now().UTC()),
-		).
-		ForUpdate().
-		Only(ctx)
-
-	if err != nil {
-		if ent.IsNotFound(err) {
-			return helper.NewBadRequestError("")
-		}
-		slog.Error("Failed to query OTP", "error", err)
-		return helper.NewInternalServerError("")
-	}
-
-	err = tx.OTP.DeleteOne(otpRecord).Exec(ctx)
-	if err != nil {
-		slog.Error("Failed to delete OTP", "error", err)
-		return helper.NewInternalServerError("")
 	}
 
 	err = tx.User.UpdateOneID(userID).SetEmail(req.Email).Exec(ctx)

@@ -3,7 +3,6 @@ package test
 import (
 	"AtoiTalkAPI/ent/chat"
 	"AtoiTalkAPI/ent/groupmember"
-	"AtoiTalkAPI/ent/otp"
 	"AtoiTalkAPI/ent/user"
 	"AtoiTalkAPI/ent/useridentity"
 	"AtoiTalkAPI/internal/helper"
@@ -232,13 +231,9 @@ func TestChangeEmail(t *testing.T) {
 	}
 
 	createEmailOTP := func(email, code string) {
+		key := fmt.Sprintf("otp:%s:%s", "change_email", email)
 		hashedCode := helper.HashOTP(code, testConfig.OTPSecret)
-		testClient.OTP.Create().
-			SetEmail(email).
-			SetCode(hashedCode).
-			SetMode(otp.ModeChangeEmail).
-			SetExpiresAt(time.Now().UTC().Add(5 * time.Minute)).
-			Exec(context.Background())
+		redisAdapter.Set(context.Background(), key, hashedCode, 5*time.Minute)
 	}
 
 	t.Run("Success", func(t *testing.T) {

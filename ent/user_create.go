@@ -144,20 +144,6 @@ func (_c *UserCreate) SetNillableAvatarID(v *uuid.UUID) *UserCreate {
 	return _c
 }
 
-// SetIsOnline sets the "is_online" field.
-func (_c *UserCreate) SetIsOnline(v bool) *UserCreate {
-	_c.mutation.SetIsOnline(v)
-	return _c
-}
-
-// SetNillableIsOnline sets the "is_online" field if the given value is not nil.
-func (_c *UserCreate) SetNillableIsOnline(v *bool) *UserCreate {
-	if v != nil {
-		_c.SetIsOnline(*v)
-	}
-	return _c
-}
-
 // SetLastSeenAt sets the "last_seen_at" field.
 func (_c *UserCreate) SetLastSeenAt(v time.Time) *UserCreate {
 	_c.mutation.SetLastSeenAt(v)
@@ -469,10 +455,6 @@ func (_c *UserCreate) defaults() {
 		v := user.DefaultUpdatedAt()
 		_c.mutation.SetUpdatedAt(v)
 	}
-	if _, ok := _c.mutation.IsOnline(); !ok {
-		v := user.DefaultIsOnline
-		_c.mutation.SetIsOnline(v)
-	}
 	if _, ok := _c.mutation.Role(); !ok {
 		v := user.DefaultRole
 		_c.mutation.SetRole(v)
@@ -519,9 +501,6 @@ func (_c *UserCreate) check() error {
 		if err := user.BioValidator(v); err != nil {
 			return &ValidationError{Name: "bio", err: fmt.Errorf(`ent: validator failed for field "User.bio": %w`, err)}
 		}
-	}
-	if _, ok := _c.mutation.IsOnline(); !ok {
-		return &ValidationError{Name: "is_online", err: errors.New(`ent: missing required field "User.is_online"`)}
 	}
 	if _, ok := _c.mutation.Role(); !ok {
 		return &ValidationError{Name: "role", err: errors.New(`ent: missing required field "User.role"`)}
@@ -597,10 +576,6 @@ func (_c *UserCreate) createSpec() (*User, *sqlgraph.CreateSpec) {
 	if value, ok := _c.mutation.Bio(); ok {
 		_spec.SetField(user.FieldBio, field.TypeString, value)
 		_node.Bio = &value
-	}
-	if value, ok := _c.mutation.IsOnline(); ok {
-		_spec.SetField(user.FieldIsOnline, field.TypeBool, value)
-		_node.IsOnline = value
 	}
 	if value, ok := _c.mutation.LastSeenAt(); ok {
 		_spec.SetField(user.FieldLastSeenAt, field.TypeTime, value)
@@ -991,18 +966,6 @@ func (u *UserUpsert) ClearAvatarID() *UserUpsert {
 	return u
 }
 
-// SetIsOnline sets the "is_online" field.
-func (u *UserUpsert) SetIsOnline(v bool) *UserUpsert {
-	u.Set(user.FieldIsOnline, v)
-	return u
-}
-
-// UpdateIsOnline sets the "is_online" field to the value that was provided on create.
-func (u *UserUpsert) UpdateIsOnline() *UserUpsert {
-	u.SetExcluded(user.FieldIsOnline)
-	return u
-}
-
 // SetLastSeenAt sets the "last_seen_at" field.
 func (u *UserUpsert) SetLastSeenAt(v time.Time) *UserUpsert {
 	u.Set(user.FieldLastSeenAt, v)
@@ -1287,20 +1250,6 @@ func (u *UserUpsertOne) UpdateAvatarID() *UserUpsertOne {
 func (u *UserUpsertOne) ClearAvatarID() *UserUpsertOne {
 	return u.Update(func(s *UserUpsert) {
 		s.ClearAvatarID()
-	})
-}
-
-// SetIsOnline sets the "is_online" field.
-func (u *UserUpsertOne) SetIsOnline(v bool) *UserUpsertOne {
-	return u.Update(func(s *UserUpsert) {
-		s.SetIsOnline(v)
-	})
-}
-
-// UpdateIsOnline sets the "is_online" field to the value that was provided on create.
-func (u *UserUpsertOne) UpdateIsOnline() *UserUpsertOne {
-	return u.Update(func(s *UserUpsert) {
-		s.UpdateIsOnline()
 	})
 }
 
@@ -1771,20 +1720,6 @@ func (u *UserUpsertBulk) UpdateAvatarID() *UserUpsertBulk {
 func (u *UserUpsertBulk) ClearAvatarID() *UserUpsertBulk {
 	return u.Update(func(s *UserUpsert) {
 		s.ClearAvatarID()
-	})
-}
-
-// SetIsOnline sets the "is_online" field.
-func (u *UserUpsertBulk) SetIsOnline(v bool) *UserUpsertBulk {
-	return u.Update(func(s *UserUpsert) {
-		s.SetIsOnline(v)
-	})
-}
-
-// UpdateIsOnline sets the "is_online" field to the value that was provided on create.
-func (u *UserUpsertBulk) UpdateIsOnline() *UserUpsertBulk {
-	return u.Update(func(s *UserUpsert) {
-		s.UpdateIsOnline()
 	})
 }
 

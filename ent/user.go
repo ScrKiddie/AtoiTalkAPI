@@ -35,8 +35,6 @@ type User struct {
 	Bio *string `json:"bio,omitempty"`
 	// AvatarID holds the value of the "avatar_id" field.
 	AvatarID *uuid.UUID `json:"avatar_id,omitempty"`
-	// IsOnline holds the value of the "is_online" field.
-	IsOnline bool `json:"is_online,omitempty"`
 	// LastSeenAt holds the value of the "last_seen_at" field.
 	LastSeenAt *time.Time `json:"last_seen_at,omitempty"`
 	// DeletedAt holds the value of the "deleted_at" field.
@@ -203,7 +201,7 @@ func (*User) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case user.FieldAvatarID:
 			values[i] = &sql.NullScanner{S: new(uuid.UUID)}
-		case user.FieldIsOnline, user.FieldIsBanned:
+		case user.FieldIsBanned:
 			values[i] = new(sql.NullBool)
 		case user.FieldEmail, user.FieldUsername, user.FieldPasswordHash, user.FieldFullName, user.FieldBio, user.FieldRole, user.FieldBanReason:
 			values[i] = new(sql.NullString)
@@ -285,12 +283,6 @@ func (_m *User) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				_m.AvatarID = new(uuid.UUID)
 				*_m.AvatarID = *value.S.(*uuid.UUID)
-			}
-		case user.FieldIsOnline:
-			if value, ok := values[i].(*sql.NullBool); !ok {
-				return fmt.Errorf("unexpected type %T for field is_online", values[i])
-			} else if value.Valid {
-				_m.IsOnline = value.Bool
 			}
 		case user.FieldLastSeenAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
@@ -460,9 +452,6 @@ func (_m *User) String() string {
 		builder.WriteString("avatar_id=")
 		builder.WriteString(fmt.Sprintf("%v", *v))
 	}
-	builder.WriteString(", ")
-	builder.WriteString("is_online=")
-	builder.WriteString(fmt.Sprintf("%v", _m.IsOnline))
 	builder.WriteString(", ")
 	if v := _m.LastSeenAt; v != nil {
 		builder.WriteString("last_seen_at=")

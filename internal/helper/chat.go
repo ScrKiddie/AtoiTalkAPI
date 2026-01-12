@@ -14,7 +14,7 @@ type BlockStatus struct {
 	BlockedByOther bool
 }
 
-func MapChatToResponse(userID uuid.UUID, c *ent.Chat, blockedMap map[uuid.UUID]BlockStatus, storageMode, appURL, cdnURL, storageProfile, storageAttachment string) *model.ChatListResponse {
+func MapChatToResponse(userID uuid.UUID, c *ent.Chat, blockedMap map[uuid.UUID]BlockStatus, onlineMap map[uuid.UUID]bool, storageMode, appURL, cdnURL, storageProfile, storageAttachment string) *model.ChatListResponse {
 	var name, avatar string
 	var lastReadAt *string
 	var otherLastReadAt *string
@@ -76,7 +76,7 @@ func MapChatToResponse(userID uuid.UUID, c *ent.Chat, blockedMap map[uuid.UUID]B
 					}
 				} else {
 					if !otherUserIsBanned {
-						isOnline = otherUser.IsOnline
+						isOnline = onlineMap[otherUser.ID]
 					}
 					if otherUser.Edges.Avatar != nil {
 						avatar = BuildImageURL(storageMode, appURL, cdnURL, storageProfile, otherUser.Edges.Avatar.FileName)

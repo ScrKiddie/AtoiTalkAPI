@@ -24,7 +24,7 @@ func (User) Fields() []ent.Field {
 		field.String("full_name").MaxLen(100).Optional().Nillable(),
 		field.String("bio").MaxLen(255).Optional().Nillable(),
 		field.UUID("avatar_id", uuid.UUID{}).Optional().Nillable(),
-		field.Bool("is_online").Default(false),
+
 		field.Time("last_seen_at").Optional().Nillable(),
 		field.Time("deleted_at").Optional().Nillable(),
 

@@ -1,7 +1,6 @@
 package config
 
 import (
-	"AtoiTalkAPI/ent/otp"
 	"image"
 	_ "image/jpeg"
 	_ "image/png"
@@ -18,16 +17,9 @@ import (
 
 func NewValidator() *validator.Validate {
 	v := validator.New()
-	_ = v.RegisterValidation("otp_mode", validateOTPMode)
 	_ = v.RegisterValidation("password_complexity", validatePasswordComplexity)
 	_ = v.RegisterValidation("imagevalid", validateImage)
-	_ = v.RegisterValidation("filesize", validateFileSize)
 	return v
-}
-
-func validateOTPMode(fl validator.FieldLevel) bool {
-	mode := otp.Mode(fl.Field().String())
-	return mode == otp.ModeRegister || mode == otp.ModeReset || mode == otp.ModeChangeEmail
 }
 
 func validatePasswordComplexity(fl validator.FieldLevel) bool {
@@ -153,40 +145,6 @@ func validateImage(fl validator.FieldLevel) bool {
 		slog.Info("Image validation failed: dimensions too large",
 			"width", img.Width, "height", img.Height,
 			"maxW", maxWidth, "maxH", maxHeight)
-		return false
-	}
-
-	return true
-}
-
-func validateFileSize(fl validator.FieldLevel) bool {
-	param := fl.Param()
-	if param == "" {
-		return true
-	}
-
-	maxSizeMB, err := strconv.ParseInt(param, 10, 64)
-	if err != nil {
-		slog.Error("Invalid filesize param", "param", param, "error", err)
-		return false
-	}
-
-	var file *multipart.FileHeader
-	fieldInterface := fl.Field().Interface()
-
-	if f, ok := fieldInterface.(*multipart.FileHeader); ok {
-		file = f
-	} else if f, ok := fieldInterface.(multipart.FileHeader); ok {
-		file = &f
-	}
-
-	if file == nil {
-		return true
-	}
-
-	maxSizeBytes := maxSizeMB * 1024 * 1024
-	if file.Size > maxSizeBytes {
-		slog.Info("File size validation failed", "size", file.Size, "max", maxSizeBytes)
 		return false
 	}
 

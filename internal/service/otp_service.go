@@ -2,10 +2,10 @@ package service
 
 import (
 	"AtoiTalkAPI/ent"
-	"AtoiTalkAPI/ent/otp"
 	"AtoiTalkAPI/ent/user"
 	"AtoiTalkAPI/internal/adapter"
 	"AtoiTalkAPI/internal/config"
+	"AtoiTalkAPI/internal/constant"
 	"AtoiTalkAPI/internal/helper"
 	"AtoiTalkAPI/internal/model"
 	"context"
@@ -30,9 +30,10 @@ type OTPService struct {
 	emailAdapter   *adapter.EmailAdapter
 	rateLimiter    *config.RateLimiter
 	captchaAdapter *adapter.CaptchaAdapter
+	redisAdapter   *adapter.RedisAdapter
 }
 
-func NewOTPService(client *ent.Client, cfg *config.AppConfig, validator *validator.Validate, emailAdapter *adapter.EmailAdapter, rateLimiter *config.RateLimiter, captchaAdapter *adapter.CaptchaAdapter) *OTPService {
+func NewOTPService(client *ent.Client, cfg *config.AppConfig, validator *validator.Validate, emailAdapter *adapter.EmailAdapter, rateLimiter *config.RateLimiter, captchaAdapter *adapter.CaptchaAdapter, redisAdapter *adapter.RedisAdapter) *OTPService {
 	return &OTPService{
 		client:         client,
 		cfg:            cfg,
@@ -40,6 +41,7 @@ func NewOTPService(client *ent.Client, cfg *config.AppConfig, validator *validat
 		emailAdapter:   emailAdapter,
 		rateLimiter:    rateLimiter,
 		captchaAdapter: captchaAdapter,
+		redisAdapter:   redisAdapter,
 	}
 }
 
@@ -70,35 +72,23 @@ func (s *OTPService) SendOTP(ctx context.Context, req model.SendOTPRequest) erro
 		return helper.NewInternalServerError("")
 	}
 
-	mode := otp.Mode(req.Mode)
+	mode := constant.OTPMode(req.Mode)
 
 	shouldSend := true
 
-	if (mode == otp.ModeRegister || mode == otp.ModeChangeEmail) && userExists {
+	if (mode == constant.ModeRegister || mode == constant.ModeChangeEmail) && userExists {
 		shouldSend = false
 		slog.Info("OTP request suppressed: Email already registered", "email", req.Email, "mode", mode)
 	}
 
-	if mode == otp.ModeReset && !userExists {
+	if mode == constant.ModeReset && !userExists {
 		shouldSend = false
 		slog.Info("OTP request suppressed: Email not found for reset", "email", req.Email)
 	}
 
 	if !shouldSend {
-
 		return nil
 	}
-
-	existing, err := s.client.OTP.Query().
-		Where(otp.Email(req.Email)).
-		Only(ctx)
-
-	if err != nil && !ent.IsNotFound(err) {
-		slog.Error("Failed to query OTP", "error", err)
-		return helper.NewInternalServerError("")
-	}
-
-	expiresAt := time.Now().UTC().Add(time.Duration(s.cfg.OTPExp) * time.Second)
 
 	n, err := rand.Int(rand.Reader, big.NewInt(1000000))
 	if err != nil {
@@ -109,23 +99,10 @@ func (s *OTPService) SendOTP(ctx context.Context, req model.SendOTPRequest) erro
 	code := fmt.Sprintf("%06d", n.Int64())
 	hashedCode := helper.HashOTP(code, s.cfg.OTPSecret)
 
-	if existing != nil {
-		err = s.client.OTP.UpdateOne(existing).
-			SetCode(hashedCode).
-			SetMode(mode).
-			SetExpiresAt(expiresAt).
-			Exec(ctx)
-	} else {
-		err = s.client.OTP.Create().
-			SetEmail(req.Email).
-			SetCode(hashedCode).
-			SetMode(mode).
-			SetExpiresAt(expiresAt).
-			Exec(ctx)
-	}
-
+	key := fmt.Sprintf("otp:%s:%s", req.Mode, req.Email)
+	err = s.redisAdapter.Set(ctx, key, hashedCode, time.Duration(s.cfg.OTPExp)*time.Second)
 	if err != nil {
-		slog.Error("Failed to save OTP", "error", err)
+		slog.Error("Failed to save OTP to Redis", "error", err)
 		return helper.NewInternalServerError("")
 	}
 
@@ -150,10 +127,7 @@ func (s *OTPService) SendOTP(ctx context.Context, req model.SendOTPRequest) erro
 		if err != nil {
 			slog.Error("Failed to send OTP email", "error", err)
 
-			_, delErr := s.client.OTP.Delete().Where(otp.Email(req.Email)).Exec(context.TODO())
-			if delErr != nil {
-				slog.Error("Failed to delete OTP after email failure", "error", delErr)
-			}
+			s.redisAdapter.Del(context.Background(), key)
 		}
 	}
 
@@ -163,5 +137,20 @@ func (s *OTPService) SendOTP(ctx context.Context, req model.SendOTPRequest) erro
 		sendEmail()
 	}
 
+	return nil
+}
+
+func (s *OTPService) VerifyOTP(ctx context.Context, email, code, mode string) error {
+	key := fmt.Sprintf("otp:%s:%s", mode, email)
+	hashedCode, err := s.redisAdapter.Get(ctx, key)
+	if err != nil {
+		return helper.NewBadRequestError("Invalid or expired OTP")
+	}
+
+	if hashedCode != helper.HashOTP(code, s.cfg.OTPSecret) {
+		return helper.NewBadRequestError("Invalid OTP code")
+	}
+
+	s.redisAdapter.Del(ctx, key)
 	return nil
 }

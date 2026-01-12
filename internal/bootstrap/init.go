@@ -17,47 +17,40 @@ import (
 )
 
 func Init(appConfig *config.AppConfig, client *ent.Client, validator *validator.Validate, s3Client *s3.Client, httpClient *http.Client, chiMux *chi.Mux, rateLimiter *config.RateLimiter) {
-	wsHub := websocket.NewHub(client)
-	go wsHub.Run()
-
-	repo := repository.NewRepository(client)
 
 	storageAdapter := adapter.NewStorageAdapter(appConfig, s3Client, httpClient)
 	emailAdapter := adapter.NewEmailAdapter(appConfig)
 	captchaAdapter := adapter.NewCaptchaAdapter(appConfig, httpClient)
+	redisAdapter := adapter.NewRedisAdapter(appConfig)
 
-	authService := service.NewAuthService(client, appConfig, validator, storageAdapter, captchaAdapter)
+	wsHub := websocket.NewHub(client, redisAdapter)
+	go wsHub.Run()
+
+	repo := repository.NewRepository(client)
+
+	otpService := service.NewOTPService(client, appConfig, validator, emailAdapter, rateLimiter, captchaAdapter, redisAdapter)
+	authService := service.NewAuthService(client, appConfig, validator, storageAdapter, captchaAdapter, otpService)
+	accountService := service.NewAccountService(client, appConfig, validator, wsHub, otpService)
+	userService := service.NewUserService(client, repo, appConfig, validator, storageAdapter, wsHub, redisAdapter)
+	chatService := service.NewChatService(client, repo, appConfig, validator, wsHub, storageAdapter, redisAdapter)
+	privateChatService := service.NewPrivateChatService(client, appConfig, validator, wsHub, redisAdapter)
+	groupChatService := service.NewGroupChatService(client, repo, appConfig, validator, wsHub, storageAdapter, redisAdapter)
+	messageService := service.NewMessageService(client, repo, appConfig, validator, storageAdapter, wsHub)
+	mediaService := service.NewMediaService(client, appConfig, validator, storageAdapter)
+	reportService := service.NewReportService(client, appConfig, validator)
+	adminService := service.NewAdminService(client, appConfig, validator, wsHub)
+
 	authController := controller.NewAuthController(authService)
-
-	otpService := service.NewOTPService(client, appConfig, validator, emailAdapter, rateLimiter, captchaAdapter)
 	otpController := controller.NewOTPController(otpService)
-
-	userService := service.NewUserService(client, repo, appConfig, validator, storageAdapter, wsHub)
 	userController := controller.NewUserController(userService)
-
-	accountService := service.NewAccountService(client, appConfig, validator, wsHub)
 	accountController := controller.NewAccountController(accountService)
-
-	chatService := service.NewChatService(client, repo, appConfig, validator, wsHub, storageAdapter)
-	privateChatService := service.NewPrivateChatService(client, appConfig, validator, wsHub)
-	groupChatService := service.NewGroupChatService(client, repo, appConfig, validator, wsHub, storageAdapter)
-
 	chatController := controller.NewChatController(chatService)
 	privateChatController := controller.NewPrivateChatController(privateChatService)
 	groupChatController := controller.NewGroupChatController(groupChatService)
-
-	messageService := service.NewMessageService(client, repo, appConfig, validator, storageAdapter, wsHub)
 	messageController := controller.NewMessageController(messageService)
-
-	mediaService := service.NewMediaService(client, appConfig, validator, storageAdapter)
 	mediaController := controller.NewMediaController(mediaService)
-
-	reportService := service.NewReportService(client, appConfig, validator)
 	reportController := controller.NewReportController(reportService)
-
-	adminService := service.NewAdminService(client, appConfig, validator, wsHub)
 	adminController := controller.NewAdminController(adminService)
-
 	wsController := controller.NewWebSocketController(wsHub)
 
 	authMiddleware := middleware.NewAuthMiddleware(authService)

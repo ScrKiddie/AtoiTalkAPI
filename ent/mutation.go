@@ -8,7 +8,6 @@ import (
 	"AtoiTalkAPI/ent/groupmember"
 	"AtoiTalkAPI/ent/media"
 	"AtoiTalkAPI/ent/message"
-	"AtoiTalkAPI/ent/otp"
 	"AtoiTalkAPI/ent/predicate"
 	"AtoiTalkAPI/ent/privatechat"
 	"AtoiTalkAPI/ent/report"
@@ -40,7 +39,6 @@ const (
 	TypeGroupMember  = "GroupMember"
 	TypeMedia        = "Media"
 	TypeMessage      = "Message"
-	TypeOTP          = "OTP"
 	TypePrivateChat  = "PrivateChat"
 	TypeReport       = "Report"
 	TypeUser         = "User"
@@ -5132,608 +5130,6 @@ func (m *MessageMutation) ResetEdge(name string) error {
 	return fmt.Errorf("unknown Message edge %s", name)
 }
 
-// OTPMutation represents an operation that mutates the OTP nodes in the graph.
-type OTPMutation struct {
-	config
-	op            Op
-	typ           string
-	id            *uuid.UUID
-	created_at    *time.Time
-	updated_at    *time.Time
-	email         *string
-	code          *string
-	mode          *otp.Mode
-	expires_at    *time.Time
-	clearedFields map[string]struct{}
-	done          bool
-	oldValue      func(context.Context) (*OTP, error)
-	predicates    []predicate.OTP
-}
-
-var _ ent.Mutation = (*OTPMutation)(nil)
-
-// otpOption allows management of the mutation configuration using functional options.
-type otpOption func(*OTPMutation)
-
-// newOTPMutation creates new mutation for the OTP entity.
-func newOTPMutation(c config, op Op, opts ...otpOption) *OTPMutation {
-	m := &OTPMutation{
-		config:        c,
-		op:            op,
-		typ:           TypeOTP,
-		clearedFields: make(map[string]struct{}),
-	}
-	for _, opt := range opts {
-		opt(m)
-	}
-	return m
-}
-
-// withOTPID sets the ID field of the mutation.
-func withOTPID(id uuid.UUID) otpOption {
-	return func(m *OTPMutation) {
-		var (
-			err   error
-			once  sync.Once
-			value *OTP
-		)
-		m.oldValue = func(ctx context.Context) (*OTP, error) {
-			once.Do(func() {
-				if m.done {
-					err = errors.New("querying old values post mutation is not allowed")
-				} else {
-					value, err = m.Client().OTP.Get(ctx, id)
-				}
-			})
-			return value, err
-		}
-		m.id = &id
-	}
-}
-
-// withOTP sets the old OTP of the mutation.
-func withOTP(node *OTP) otpOption {
-	return func(m *OTPMutation) {
-		m.oldValue = func(context.Context) (*OTP, error) {
-			return node, nil
-		}
-		m.id = &node.ID
-	}
-}
-
-// Client returns a new `ent.Client` from the mutation. If the mutation was
-// executed in a transaction (ent.Tx), a transactional client is returned.
-func (m OTPMutation) Client() *Client {
-	client := &Client{config: m.config}
-	client.init()
-	return client
-}
-
-// Tx returns an `ent.Tx` for mutations that were executed in transactions;
-// it returns an error otherwise.
-func (m OTPMutation) Tx() (*Tx, error) {
-	if _, ok := m.driver.(*txDriver); !ok {
-		return nil, errors.New("ent: mutation is not running in a transaction")
-	}
-	tx := &Tx{config: m.config}
-	tx.init()
-	return tx, nil
-}
-
-// SetID sets the value of the id field. Note that this
-// operation is only accepted on creation of OTP entities.
-func (m *OTPMutation) SetID(id uuid.UUID) {
-	m.id = &id
-}
-
-// ID returns the ID value in the mutation. Note that the ID is only available
-// if it was provided to the builder or after it was returned from the database.
-func (m *OTPMutation) ID() (id uuid.UUID, exists bool) {
-	if m.id == nil {
-		return
-	}
-	return *m.id, true
-}
-
-// IDs queries the database and returns the entity ids that match the mutation's predicate.
-// That means, if the mutation is applied within a transaction with an isolation level such
-// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
-// or updated by the mutation.
-func (m *OTPMutation) IDs(ctx context.Context) ([]uuid.UUID, error) {
-	switch {
-	case m.op.Is(OpUpdateOne | OpDeleteOne):
-		id, exists := m.ID()
-		if exists {
-			return []uuid.UUID{id}, nil
-		}
-		fallthrough
-	case m.op.Is(OpUpdate | OpDelete):
-		return m.Client().OTP.Query().Where(m.predicates...).IDs(ctx)
-	default:
-		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
-	}
-}
-
-// SetCreatedAt sets the "created_at" field.
-func (m *OTPMutation) SetCreatedAt(t time.Time) {
-	m.created_at = &t
-}
-
-// CreatedAt returns the value of the "created_at" field in the mutation.
-func (m *OTPMutation) CreatedAt() (r time.Time, exists bool) {
-	v := m.created_at
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldCreatedAt returns the old "created_at" field's value of the OTP entity.
-// If the OTP object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *OTPMutation) OldCreatedAt(ctx context.Context) (v time.Time, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldCreatedAt is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldCreatedAt requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldCreatedAt: %w", err)
-	}
-	return oldValue.CreatedAt, nil
-}
-
-// ResetCreatedAt resets all changes to the "created_at" field.
-func (m *OTPMutation) ResetCreatedAt() {
-	m.created_at = nil
-}
-
-// SetUpdatedAt sets the "updated_at" field.
-func (m *OTPMutation) SetUpdatedAt(t time.Time) {
-	m.updated_at = &t
-}
-
-// UpdatedAt returns the value of the "updated_at" field in the mutation.
-func (m *OTPMutation) UpdatedAt() (r time.Time, exists bool) {
-	v := m.updated_at
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldUpdatedAt returns the old "updated_at" field's value of the OTP entity.
-// If the OTP object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *OTPMutation) OldUpdatedAt(ctx context.Context) (v time.Time, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldUpdatedAt is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldUpdatedAt requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldUpdatedAt: %w", err)
-	}
-	return oldValue.UpdatedAt, nil
-}
-
-// ResetUpdatedAt resets all changes to the "updated_at" field.
-func (m *OTPMutation) ResetUpdatedAt() {
-	m.updated_at = nil
-}
-
-// SetEmail sets the "email" field.
-func (m *OTPMutation) SetEmail(s string) {
-	m.email = &s
-}
-
-// Email returns the value of the "email" field in the mutation.
-func (m *OTPMutation) Email() (r string, exists bool) {
-	v := m.email
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldEmail returns the old "email" field's value of the OTP entity.
-// If the OTP object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *OTPMutation) OldEmail(ctx context.Context) (v string, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldEmail is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldEmail requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldEmail: %w", err)
-	}
-	return oldValue.Email, nil
-}
-
-// ResetEmail resets all changes to the "email" field.
-func (m *OTPMutation) ResetEmail() {
-	m.email = nil
-}
-
-// SetCode sets the "code" field.
-func (m *OTPMutation) SetCode(s string) {
-	m.code = &s
-}
-
-// Code returns the value of the "code" field in the mutation.
-func (m *OTPMutation) Code() (r string, exists bool) {
-	v := m.code
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldCode returns the old "code" field's value of the OTP entity.
-// If the OTP object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *OTPMutation) OldCode(ctx context.Context) (v string, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldCode is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldCode requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldCode: %w", err)
-	}
-	return oldValue.Code, nil
-}
-
-// ResetCode resets all changes to the "code" field.
-func (m *OTPMutation) ResetCode() {
-	m.code = nil
-}
-
-// SetMode sets the "mode" field.
-func (m *OTPMutation) SetMode(o otp.Mode) {
-	m.mode = &o
-}
-
-// Mode returns the value of the "mode" field in the mutation.
-func (m *OTPMutation) Mode() (r otp.Mode, exists bool) {
-	v := m.mode
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldMode returns the old "mode" field's value of the OTP entity.
-// If the OTP object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *OTPMutation) OldMode(ctx context.Context) (v otp.Mode, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldMode is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldMode requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldMode: %w", err)
-	}
-	return oldValue.Mode, nil
-}
-
-// ResetMode resets all changes to the "mode" field.
-func (m *OTPMutation) ResetMode() {
-	m.mode = nil
-}
-
-// SetExpiresAt sets the "expires_at" field.
-func (m *OTPMutation) SetExpiresAt(t time.Time) {
-	m.expires_at = &t
-}
-
-// ExpiresAt returns the value of the "expires_at" field in the mutation.
-func (m *OTPMutation) ExpiresAt() (r time.Time, exists bool) {
-	v := m.expires_at
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldExpiresAt returns the old "expires_at" field's value of the OTP entity.
-// If the OTP object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *OTPMutation) OldExpiresAt(ctx context.Context) (v time.Time, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldExpiresAt is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldExpiresAt requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldExpiresAt: %w", err)
-	}
-	return oldValue.ExpiresAt, nil
-}
-
-// ResetExpiresAt resets all changes to the "expires_at" field.
-func (m *OTPMutation) ResetExpiresAt() {
-	m.expires_at = nil
-}
-
-// Where appends a list predicates to the OTPMutation builder.
-func (m *OTPMutation) Where(ps ...predicate.OTP) {
-	m.predicates = append(m.predicates, ps...)
-}
-
-// WhereP appends storage-level predicates to the OTPMutation builder. Using this method,
-// users can use type-assertion to append predicates that do not depend on any generated package.
-func (m *OTPMutation) WhereP(ps ...func(*sql.Selector)) {
-	p := make([]predicate.OTP, len(ps))
-	for i := range ps {
-		p[i] = ps[i]
-	}
-	m.Where(p...)
-}
-
-// Op returns the operation name.
-func (m *OTPMutation) Op() Op {
-	return m.op
-}
-
-// SetOp allows setting the mutation operation.
-func (m *OTPMutation) SetOp(op Op) {
-	m.op = op
-}
-
-// Type returns the node type of this mutation (OTP).
-func (m *OTPMutation) Type() string {
-	return m.typ
-}
-
-// Fields returns all fields that were changed during this mutation. Note that in
-// order to get all numeric fields that were incremented/decremented, call
-// AddedFields().
-func (m *OTPMutation) Fields() []string {
-	fields := make([]string, 0, 6)
-	if m.created_at != nil {
-		fields = append(fields, otp.FieldCreatedAt)
-	}
-	if m.updated_at != nil {
-		fields = append(fields, otp.FieldUpdatedAt)
-	}
-	if m.email != nil {
-		fields = append(fields, otp.FieldEmail)
-	}
-	if m.code != nil {
-		fields = append(fields, otp.FieldCode)
-	}
-	if m.mode != nil {
-		fields = append(fields, otp.FieldMode)
-	}
-	if m.expires_at != nil {
-		fields = append(fields, otp.FieldExpiresAt)
-	}
-	return fields
-}
-
-// Field returns the value of a field with the given name. The second boolean
-// return value indicates that this field was not set, or was not defined in the
-// schema.
-func (m *OTPMutation) Field(name string) (ent.Value, bool) {
-	switch name {
-	case otp.FieldCreatedAt:
-		return m.CreatedAt()
-	case otp.FieldUpdatedAt:
-		return m.UpdatedAt()
-	case otp.FieldEmail:
-		return m.Email()
-	case otp.FieldCode:
-		return m.Code()
-	case otp.FieldMode:
-		return m.Mode()
-	case otp.FieldExpiresAt:
-		return m.ExpiresAt()
-	}
-	return nil, false
-}
-
-// OldField returns the old value of the field from the database. An error is
-// returned if the mutation operation is not UpdateOne, or the query to the
-// database failed.
-func (m *OTPMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
-	switch name {
-	case otp.FieldCreatedAt:
-		return m.OldCreatedAt(ctx)
-	case otp.FieldUpdatedAt:
-		return m.OldUpdatedAt(ctx)
-	case otp.FieldEmail:
-		return m.OldEmail(ctx)
-	case otp.FieldCode:
-		return m.OldCode(ctx)
-	case otp.FieldMode:
-		return m.OldMode(ctx)
-	case otp.FieldExpiresAt:
-		return m.OldExpiresAt(ctx)
-	}
-	return nil, fmt.Errorf("unknown OTP field %s", name)
-}
-
-// SetField sets the value of a field with the given name. It returns an error if
-// the field is not defined in the schema, or if the type mismatched the field
-// type.
-func (m *OTPMutation) SetField(name string, value ent.Value) error {
-	switch name {
-	case otp.FieldCreatedAt:
-		v, ok := value.(time.Time)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetCreatedAt(v)
-		return nil
-	case otp.FieldUpdatedAt:
-		v, ok := value.(time.Time)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetUpdatedAt(v)
-		return nil
-	case otp.FieldEmail:
-		v, ok := value.(string)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetEmail(v)
-		return nil
-	case otp.FieldCode:
-		v, ok := value.(string)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetCode(v)
-		return nil
-	case otp.FieldMode:
-		v, ok := value.(otp.Mode)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetMode(v)
-		return nil
-	case otp.FieldExpiresAt:
-		v, ok := value.(time.Time)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetExpiresAt(v)
-		return nil
-	}
-	return fmt.Errorf("unknown OTP field %s", name)
-}
-
-// AddedFields returns all numeric fields that were incremented/decremented during
-// this mutation.
-func (m *OTPMutation) AddedFields() []string {
-	return nil
-}
-
-// AddedField returns the numeric value that was incremented/decremented on a field
-// with the given name. The second boolean return value indicates that this field
-// was not set, or was not defined in the schema.
-func (m *OTPMutation) AddedField(name string) (ent.Value, bool) {
-	return nil, false
-}
-
-// AddField adds the value to the field with the given name. It returns an error if
-// the field is not defined in the schema, or if the type mismatched the field
-// type.
-func (m *OTPMutation) AddField(name string, value ent.Value) error {
-	switch name {
-	}
-	return fmt.Errorf("unknown OTP numeric field %s", name)
-}
-
-// ClearedFields returns all nullable fields that were cleared during this
-// mutation.
-func (m *OTPMutation) ClearedFields() []string {
-	return nil
-}
-
-// FieldCleared returns a boolean indicating if a field with the given name was
-// cleared in this mutation.
-func (m *OTPMutation) FieldCleared(name string) bool {
-	_, ok := m.clearedFields[name]
-	return ok
-}
-
-// ClearField clears the value of the field with the given name. It returns an
-// error if the field is not defined in the schema.
-func (m *OTPMutation) ClearField(name string) error {
-	return fmt.Errorf("unknown OTP nullable field %s", name)
-}
-
-// ResetField resets all changes in the mutation for the field with the given name.
-// It returns an error if the field is not defined in the schema.
-func (m *OTPMutation) ResetField(name string) error {
-	switch name {
-	case otp.FieldCreatedAt:
-		m.ResetCreatedAt()
-		return nil
-	case otp.FieldUpdatedAt:
-		m.ResetUpdatedAt()
-		return nil
-	case otp.FieldEmail:
-		m.ResetEmail()
-		return nil
-	case otp.FieldCode:
-		m.ResetCode()
-		return nil
-	case otp.FieldMode:
-		m.ResetMode()
-		return nil
-	case otp.FieldExpiresAt:
-		m.ResetExpiresAt()
-		return nil
-	}
-	return fmt.Errorf("unknown OTP field %s", name)
-}
-
-// AddedEdges returns all edge names that were set/added in this mutation.
-func (m *OTPMutation) AddedEdges() []string {
-	edges := make([]string, 0, 0)
-	return edges
-}
-
-// AddedIDs returns all IDs (to other nodes) that were added for the given edge
-// name in this mutation.
-func (m *OTPMutation) AddedIDs(name string) []ent.Value {
-	return nil
-}
-
-// RemovedEdges returns all edge names that were removed in this mutation.
-func (m *OTPMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 0)
-	return edges
-}
-
-// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
-// the given name in this mutation.
-func (m *OTPMutation) RemovedIDs(name string) []ent.Value {
-	return nil
-}
-
-// ClearedEdges returns all edge names that were cleared in this mutation.
-func (m *OTPMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 0)
-	return edges
-}
-
-// EdgeCleared returns a boolean which indicates if the edge with the given name
-// was cleared in this mutation.
-func (m *OTPMutation) EdgeCleared(name string) bool {
-	return false
-}
-
-// ClearEdge clears the value of the edge with the given name. It returns an error
-// if that edge is not defined in the schema.
-func (m *OTPMutation) ClearEdge(name string) error {
-	return fmt.Errorf("unknown OTP unique edge %s", name)
-}
-
-// ResetEdge resets all changes to the edge with the given name in this mutation.
-// It returns an error if the edge is not defined in the schema.
-func (m *OTPMutation) ResetEdge(name string) error {
-	return fmt.Errorf("unknown OTP edge %s", name)
-}
-
 // PrivateChatMutation represents an operation that mutates the PrivateChat nodes in the graph.
 type PrivateChatMutation struct {
 	config
@@ -8052,7 +7448,6 @@ type UserMutation struct {
 	password_hash                 *string
 	full_name                     *string
 	bio                           *string
-	is_online                     *bool
 	last_seen_at                  *time.Time
 	deleted_at                    *time.Time
 	role                          *user.Role
@@ -8568,42 +7963,6 @@ func (m *UserMutation) AvatarIDCleared() bool {
 func (m *UserMutation) ResetAvatarID() {
 	m.avatar = nil
 	delete(m.clearedFields, user.FieldAvatarID)
-}
-
-// SetIsOnline sets the "is_online" field.
-func (m *UserMutation) SetIsOnline(b bool) {
-	m.is_online = &b
-}
-
-// IsOnline returns the value of the "is_online" field in the mutation.
-func (m *UserMutation) IsOnline() (r bool, exists bool) {
-	v := m.is_online
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldIsOnline returns the old "is_online" field's value of the User entity.
-// If the User object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *UserMutation) OldIsOnline(ctx context.Context) (v bool, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldIsOnline is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldIsOnline requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldIsOnline: %w", err)
-	}
-	return oldValue.IsOnline, nil
-}
-
-// ResetIsOnline resets all changes to the "is_online" field.
-func (m *UserMutation) ResetIsOnline() {
-	m.is_online = nil
 }
 
 // SetLastSeenAt sets the "last_seen_at" field.
@@ -9529,7 +8888,7 @@ func (m *UserMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *UserMutation) Fields() []string {
-	fields := make([]string, 0, 15)
+	fields := make([]string, 0, 14)
 	if m.created_at != nil {
 		fields = append(fields, user.FieldCreatedAt)
 	}
@@ -9553,9 +8912,6 @@ func (m *UserMutation) Fields() []string {
 	}
 	if m.avatar != nil {
 		fields = append(fields, user.FieldAvatarID)
-	}
-	if m.is_online != nil {
-		fields = append(fields, user.FieldIsOnline)
 	}
 	if m.last_seen_at != nil {
 		fields = append(fields, user.FieldLastSeenAt)
@@ -9599,8 +8955,6 @@ func (m *UserMutation) Field(name string) (ent.Value, bool) {
 		return m.Bio()
 	case user.FieldAvatarID:
 		return m.AvatarID()
-	case user.FieldIsOnline:
-		return m.IsOnline()
 	case user.FieldLastSeenAt:
 		return m.LastSeenAt()
 	case user.FieldDeletedAt:
@@ -9638,8 +8992,6 @@ func (m *UserMutation) OldField(ctx context.Context, name string) (ent.Value, er
 		return m.OldBio(ctx)
 	case user.FieldAvatarID:
 		return m.OldAvatarID(ctx)
-	case user.FieldIsOnline:
-		return m.OldIsOnline(ctx)
 	case user.FieldLastSeenAt:
 		return m.OldLastSeenAt(ctx)
 	case user.FieldDeletedAt:
@@ -9716,13 +9068,6 @@ func (m *UserMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetAvatarID(v)
-		return nil
-	case user.FieldIsOnline:
-		v, ok := value.(bool)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetIsOnline(v)
 		return nil
 	case user.FieldLastSeenAt:
 		v, ok := value.(time.Time)
@@ -9901,9 +9246,6 @@ func (m *UserMutation) ResetField(name string) error {
 		return nil
 	case user.FieldAvatarID:
 		m.ResetAvatarID()
-		return nil
-	case user.FieldIsOnline:
-		m.ResetIsOnline()
 		return nil
 	case user.FieldLastSeenAt:
 		m.ResetLastSeenAt()

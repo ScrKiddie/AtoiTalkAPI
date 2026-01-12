@@ -16,7 +16,6 @@ import (
 	"AtoiTalkAPI/ent/groupmember"
 	"AtoiTalkAPI/ent/media"
 	"AtoiTalkAPI/ent/message"
-	"AtoiTalkAPI/ent/otp"
 	"AtoiTalkAPI/ent/privatechat"
 	"AtoiTalkAPI/ent/report"
 	"AtoiTalkAPI/ent/user"
@@ -45,8 +44,6 @@ type Client struct {
 	Media *MediaClient
 	// Message is the client for interacting with the Message builders.
 	Message *MessageClient
-	// OTP is the client for interacting with the OTP builders.
-	OTP *OTPClient
 	// PrivateChat is the client for interacting with the PrivateChat builders.
 	PrivateChat *PrivateChatClient
 	// Report is the client for interacting with the Report builders.
@@ -73,7 +70,6 @@ func (c *Client) init() {
 	c.GroupMember = NewGroupMemberClient(c.config)
 	c.Media = NewMediaClient(c.config)
 	c.Message = NewMessageClient(c.config)
-	c.OTP = NewOTPClient(c.config)
 	c.PrivateChat = NewPrivateChatClient(c.config)
 	c.Report = NewReportClient(c.config)
 	c.User = NewUserClient(c.config)
@@ -176,7 +172,6 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 		GroupMember:  NewGroupMemberClient(cfg),
 		Media:        NewMediaClient(cfg),
 		Message:      NewMessageClient(cfg),
-		OTP:          NewOTPClient(cfg),
 		PrivateChat:  NewPrivateChatClient(cfg),
 		Report:       NewReportClient(cfg),
 		User:         NewUserClient(cfg),
@@ -206,7 +201,6 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 		GroupMember:  NewGroupMemberClient(cfg),
 		Media:        NewMediaClient(cfg),
 		Message:      NewMessageClient(cfg),
-		OTP:          NewOTPClient(cfg),
 		PrivateChat:  NewPrivateChatClient(cfg),
 		Report:       NewReportClient(cfg),
 		User:         NewUserClient(cfg),
@@ -241,8 +235,8 @@ func (c *Client) Close() error {
 // In order to add hooks to a specific client, call: `client.Node.Use(...)`.
 func (c *Client) Use(hooks ...Hook) {
 	for _, n := range []interface{ Use(...Hook) }{
-		c.Chat, c.GroupChat, c.GroupMember, c.Media, c.Message, c.OTP, c.PrivateChat,
-		c.Report, c.User, c.UserBlock, c.UserIdentity,
+		c.Chat, c.GroupChat, c.GroupMember, c.Media, c.Message, c.PrivateChat, c.Report,
+		c.User, c.UserBlock, c.UserIdentity,
 	} {
 		n.Use(hooks...)
 	}
@@ -252,8 +246,8 @@ func (c *Client) Use(hooks ...Hook) {
 // In order to add interceptors to a specific client, call: `client.Node.Intercept(...)`.
 func (c *Client) Intercept(interceptors ...Interceptor) {
 	for _, n := range []interface{ Intercept(...Interceptor) }{
-		c.Chat, c.GroupChat, c.GroupMember, c.Media, c.Message, c.OTP, c.PrivateChat,
-		c.Report, c.User, c.UserBlock, c.UserIdentity,
+		c.Chat, c.GroupChat, c.GroupMember, c.Media, c.Message, c.PrivateChat, c.Report,
+		c.User, c.UserBlock, c.UserIdentity,
 	} {
 		n.Intercept(interceptors...)
 	}
@@ -272,8 +266,6 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.Media.mutate(ctx, m)
 	case *MessageMutation:
 		return c.Message.mutate(ctx, m)
-	case *OTPMutation:
-		return c.OTP.mutate(ctx, m)
 	case *PrivateChatMutation:
 		return c.PrivateChat.mutate(ctx, m)
 	case *ReportMutation:
@@ -1303,139 +1295,6 @@ func (c *MessageClient) mutate(ctx context.Context, m *MessageMutation) (Value, 
 		return (&MessageDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
 	default:
 		return nil, fmt.Errorf("ent: unknown Message mutation op: %q", m.Op())
-	}
-}
-
-// OTPClient is a client for the OTP schema.
-type OTPClient struct {
-	config
-}
-
-// NewOTPClient returns a client for the OTP from the given config.
-func NewOTPClient(c config) *OTPClient {
-	return &OTPClient{config: c}
-}
-
-// Use adds a list of mutation hooks to the hooks stack.
-// A call to `Use(f, g, h)` equals to `otp.Hooks(f(g(h())))`.
-func (c *OTPClient) Use(hooks ...Hook) {
-	c.hooks.OTP = append(c.hooks.OTP, hooks...)
-}
-
-// Intercept adds a list of query interceptors to the interceptors stack.
-// A call to `Intercept(f, g, h)` equals to `otp.Intercept(f(g(h())))`.
-func (c *OTPClient) Intercept(interceptors ...Interceptor) {
-	c.inters.OTP = append(c.inters.OTP, interceptors...)
-}
-
-// Create returns a builder for creating a OTP entity.
-func (c *OTPClient) Create() *OTPCreate {
-	mutation := newOTPMutation(c.config, OpCreate)
-	return &OTPCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
-}
-
-// CreateBulk returns a builder for creating a bulk of OTP entities.
-func (c *OTPClient) CreateBulk(builders ...*OTPCreate) *OTPCreateBulk {
-	return &OTPCreateBulk{config: c.config, builders: builders}
-}
-
-// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
-// a builder and applies setFunc on it.
-func (c *OTPClient) MapCreateBulk(slice any, setFunc func(*OTPCreate, int)) *OTPCreateBulk {
-	rv := reflect.ValueOf(slice)
-	if rv.Kind() != reflect.Slice {
-		return &OTPCreateBulk{err: fmt.Errorf("calling to OTPClient.MapCreateBulk with wrong type %T, need slice", slice)}
-	}
-	builders := make([]*OTPCreate, rv.Len())
-	for i := 0; i < rv.Len(); i++ {
-		builders[i] = c.Create()
-		setFunc(builders[i], i)
-	}
-	return &OTPCreateBulk{config: c.config, builders: builders}
-}
-
-// Update returns an update builder for OTP.
-func (c *OTPClient) Update() *OTPUpdate {
-	mutation := newOTPMutation(c.config, OpUpdate)
-	return &OTPUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
-}
-
-// UpdateOne returns an update builder for the given entity.
-func (c *OTPClient) UpdateOne(_m *OTP) *OTPUpdateOne {
-	mutation := newOTPMutation(c.config, OpUpdateOne, withOTP(_m))
-	return &OTPUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
-}
-
-// UpdateOneID returns an update builder for the given id.
-func (c *OTPClient) UpdateOneID(id uuid.UUID) *OTPUpdateOne {
-	mutation := newOTPMutation(c.config, OpUpdateOne, withOTPID(id))
-	return &OTPUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
-}
-
-// Delete returns a delete builder for OTP.
-func (c *OTPClient) Delete() *OTPDelete {
-	mutation := newOTPMutation(c.config, OpDelete)
-	return &OTPDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
-}
-
-// DeleteOne returns a builder for deleting the given entity.
-func (c *OTPClient) DeleteOne(_m *OTP) *OTPDeleteOne {
-	return c.DeleteOneID(_m.ID)
-}
-
-// DeleteOneID returns a builder for deleting the given entity by its id.
-func (c *OTPClient) DeleteOneID(id uuid.UUID) *OTPDeleteOne {
-	builder := c.Delete().Where(otp.ID(id))
-	builder.mutation.id = &id
-	builder.mutation.op = OpDeleteOne
-	return &OTPDeleteOne{builder}
-}
-
-// Query returns a query builder for OTP.
-func (c *OTPClient) Query() *OTPQuery {
-	return &OTPQuery{
-		config: c.config,
-		ctx:    &QueryContext{Type: TypeOTP},
-		inters: c.Interceptors(),
-	}
-}
-
-// Get returns a OTP entity by its id.
-func (c *OTPClient) Get(ctx context.Context, id uuid.UUID) (*OTP, error) {
-	return c.Query().Where(otp.ID(id)).Only(ctx)
-}
-
-// GetX is like Get, but panics if an error occurs.
-func (c *OTPClient) GetX(ctx context.Context, id uuid.UUID) *OTP {
-	obj, err := c.Get(ctx, id)
-	if err != nil {
-		panic(err)
-	}
-	return obj
-}
-
-// Hooks returns the client hooks.
-func (c *OTPClient) Hooks() []Hook {
-	return c.hooks.OTP
-}
-
-// Interceptors returns the client interceptors.
-func (c *OTPClient) Interceptors() []Interceptor {
-	return c.inters.OTP
-}
-
-func (c *OTPClient) mutate(ctx context.Context, m *OTPMutation) (Value, error) {
-	switch m.Op() {
-	case OpCreate:
-		return (&OTPCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
-	case OpUpdate:
-		return (&OTPUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
-	case OpUpdateOne:
-		return (&OTPUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
-	case OpDelete, OpDeleteOne:
-		return (&OTPDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
-	default:
-		return nil, fmt.Errorf("ent: unknown OTP mutation op: %q", m.Op())
 	}
 }
 
@@ -2476,11 +2335,11 @@ func (c *UserIdentityClient) mutate(ctx context.Context, m *UserIdentityMutation
 // hooks and interceptors per client, for fast access.
 type (
 	hooks struct {
-		Chat, GroupChat, GroupMember, Media, Message, OTP, PrivateChat, Report, User,
+		Chat, GroupChat, GroupMember, Media, Message, PrivateChat, Report, User,
 		UserBlock, UserIdentity []ent.Hook
 	}
 	inters struct {
-		Chat, GroupChat, GroupMember, Media, Message, OTP, PrivateChat, Report, User,
+		Chat, GroupChat, GroupMember, Media, Message, PrivateChat, Report, User,
 		UserBlock, UserIdentity []ent.Interceptor
 	}
 )

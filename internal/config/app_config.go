@@ -24,6 +24,11 @@ type AppConfig struct {
 	DBSSLMode  string
 	DBMigrate  bool
 
+	RedisHost     string
+	RedisPort     string
+	RedisPassword string
+	RedisDB       int
+
 	GoogleClientID     string
 	GoogleClientSecret string
 	GoogleRedirectURL  string
@@ -75,6 +80,11 @@ func LoadAppConfig() *AppConfig {
 		DBName:     mustGetEnv("DB_NAME"),
 		DBSSLMode:  mustGetEnv("DB_SSLMODE"),
 		DBMigrate:  mustGetEnvAsBool("DB_MIGRATE"),
+
+		RedisHost:     getEnv("REDIS_HOST", "localhost"),
+		RedisPort:     getEnv("REDIS_PORT", "6379"),
+		RedisPassword: getEnv("REDIS_PASSWORD", ""),
+		RedisDB:       getEnvAsInt("REDIS_DB", 0),
 
 		GoogleClientID:     mustGetEnv("GOOGLE_CLIENT_ID"),
 		GoogleClientSecret: mustGetEnv("GOOGLE_CLIENT_SECRET"),

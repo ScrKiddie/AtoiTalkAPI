@@ -21,9 +21,6 @@ type Media func(*sql.Selector)
 // Message is the predicate function for message builders.
 type Message func(*sql.Selector)
 
-// OTP is the predicate function for otp builders.
-type OTP func(*sql.Selector)
-
 // PrivateChat is the predicate function for privatechat builders.
 type PrivateChat func(*sql.Selector)
 

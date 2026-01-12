@@ -12,10 +12,12 @@ import (
 	"AtoiTalkAPI/internal/model"
 	"AtoiTalkAPI/internal/websocket"
 	"context"
+	"fmt"
 	"log/slog"
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/redis/go-redis/v9"
 )
 
 func (s *GroupChatService) SearchGroupMembers(ctx context.Context, userID uuid.UUID, req model.SearchGroupMembersRequest) ([]model.GroupMemberDTO, string, bool, error) {
@@ -61,13 +63,30 @@ func (s *GroupChatService) SearchGroupMembers(ctx context.Context, userID uuid.U
 		return nil, "", false, helper.NewInternalServerError("")
 	}
 
+	onlineMap := make(map[uuid.UUID]bool)
+	if len(members) > 0 {
+		results, err := s.redisAdapter.Client().Pipelined(ctx, func(pipe redis.Pipeliner) error {
+			for _, m := range members {
+				pipe.SIsMember(ctx, "online_users", m.UserID.String())
+			}
+			return nil
+		})
+		if err == nil {
+			for i, res := range results {
+				if boolCmd, ok := res.(*redis.BoolCmd); ok {
+					onlineMap[members[i].UserID] = boolCmd.Val()
+				}
+			}
+		}
+	}
+
 	var memberDTOs []model.GroupMemberDTO
 	for _, m := range members {
 
 		if m.Edges.User != nil && m.Edges.User.DeletedAt != nil {
 			continue
 		}
-		memberDTOs = append(memberDTOs, helper.ToGroupMemberDTO(m, s.cfg.StorageMode, s.cfg.AppURL, s.cfg.StorageCDNURL, s.cfg.StorageProfile))
+		memberDTOs = append(memberDTOs, helper.ToGroupMemberDTO(m, onlineMap, s.cfg.StorageMode, s.cfg.AppURL, s.cfg.StorageCDNURL, s.cfg.StorageProfile))
 	}
 
 	return memberDTOs, nextCursor, hasNext, nil
@@ -233,6 +252,8 @@ func (s *GroupChatService) AddMember(ctx context.Context, requestorID uuid.UUID,
 		return helper.NewInternalServerError("")
 	}
 
+	s.redisAdapter.Del(context.Background(), fmt.Sprintf("chat_members:%s", groupID))
+
 	if s.wsHub != nil {
 		go func() {
 			avatarURL := ""
@@ -354,6 +375,8 @@ func (s *GroupChatService) LeaveGroup(ctx context.Context, userID uuid.UUID, gro
 		return helper.NewInternalServerError("")
 	}
 
+	s.redisAdapter.Del(context.Background(), fmt.Sprintf("chat_members:%s", groupID))
+
 	if s.wsHub != nil {
 		go func() {
 			fullMsg, _ := s.client.Message.Query().
@@ -469,6 +492,8 @@ func (s *GroupChatService) KickMember(ctx context.Context, requestorID uuid.UUID
 		slog.Error("Failed to commit transaction", "error", err)
 		return helper.NewInternalServerError("")
 	}
+
+	s.redisAdapter.Del(context.Background(), fmt.Sprintf("chat_members:%s", groupID))
 
 	if s.wsHub != nil {
 		go func() {

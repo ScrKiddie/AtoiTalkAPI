@@ -1,12 +1,12 @@
 package test
 
 import (
-	"AtoiTalkAPI/ent/otp"
 	"AtoiTalkAPI/internal/helper"
 	"AtoiTalkAPI/internal/model"
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"testing"
 	"time"
@@ -25,7 +25,7 @@ func TestSendOTP(t *testing.T) {
 
 		reqBody := model.SendOTPRequest{
 			Email:        "test-new@example.com",
-			Mode:         string(otp.ModeRegister),
+			Mode:         "register",
 			CaptchaToken: dummyTurnstileToken,
 		}
 		body, _ := json.Marshal(reqBody)
@@ -38,10 +38,10 @@ func TestSendOTP(t *testing.T) {
 			printBody(t, rr)
 		}
 
-		otpRecord, err := testClient.OTP.Query().Where(otp.Email(reqBody.Email)).Only(ctx)
+		key := fmt.Sprintf("otp:%s:%s", reqBody.Mode, reqBody.Email)
+		val, err := redisAdapter.Get(ctx, key)
 		assert.NoError(t, err)
-		assert.Equal(t, reqBody.Email, otpRecord.Email)
-		assert.True(t, time.Now().UTC().Before(otpRecord.ExpiresAt))
+		assert.NotEmpty(t, val)
 	})
 
 	t.Run("Success - Update Existing OTP", func(t *testing.T) {
@@ -62,7 +62,7 @@ func TestSendOTP(t *testing.T) {
 
 		reqBody1 := model.SendOTPRequest{
 			Email:        email,
-			Mode:         string(otp.ModeReset),
+			Mode:         "reset",
 			CaptchaToken: dummyTurnstileToken,
 		}
 		body1, _ := json.Marshal(reqBody1)
@@ -70,7 +70,8 @@ func TestSendOTP(t *testing.T) {
 		req1.Header.Set("Content-Type", "application/json")
 		executeRequest(req1)
 
-		firstCode, err := testClient.OTP.Query().Where(otp.Email(email)).Only(ctx)
+		key := fmt.Sprintf("otp:%s:%s", reqBody1.Mode, email)
+		firstCode, err := redisAdapter.Get(ctx, key)
 		if !assert.NoError(t, err) {
 			return
 		}
@@ -79,7 +80,7 @@ func TestSendOTP(t *testing.T) {
 
 		reqBody2 := model.SendOTPRequest{
 			Email:        email,
-			Mode:         string(otp.ModeReset),
+			Mode:         "reset",
 			CaptchaToken: dummyTurnstileToken,
 		}
 		body2, _ := json.Marshal(reqBody2)
@@ -96,18 +97,17 @@ func TestSendOTP(t *testing.T) {
 			printBody(t, rr)
 		}
 
-		secondCode, err := testClient.OTP.Query().Where(otp.Email(email)).Only(ctx)
+		secondCode, err := redisAdapter.Get(ctx, key)
 		if !assert.NoError(t, err) {
 			return
 		}
-		assert.NotEqual(t, firstCode.Code, secondCode.Code)
-		assert.Equal(t, otp.ModeReset, secondCode.Mode)
+		assert.NotEqual(t, firstCode, secondCode)
 	})
 
 	t.Run("Validation Error - Missing Email", func(t *testing.T) {
 		clearDatabase(ctx)
 		reqBody := model.SendOTPRequest{
-			Mode:         string(otp.ModeRegister),
+			Mode:         "register",
 			CaptchaToken: dummyTurnstileToken,
 		}
 		body, _ := json.Marshal(reqBody)
@@ -145,7 +145,7 @@ func TestSendOTP(t *testing.T) {
 
 		reqBody := model.SendOTPRequest{
 			Email:        "ratelimit@example.com",
-			Mode:         string(otp.ModeRegister),
+			Mode:         "register",
 			CaptchaToken: dummyTurnstileToken,
 		}
 		body, _ := json.Marshal(reqBody)
@@ -176,7 +176,7 @@ func TestSendOTP(t *testing.T) {
 
 		reqBody := model.SendOTPRequest{
 			Email:        "test-invalid-captcha@example.com",
-			Mode:         string(otp.ModeRegister),
+			Mode:         "register",
 			CaptchaToken: dummyTurnstileToken,
 		}
 		body, _ := json.Marshal(reqBody)
@@ -201,7 +201,7 @@ func TestSendOTP(t *testing.T) {
 
 		reqBody := model.SendOTPRequest{
 			Email:        "test-already-spent@example.com",
-			Mode:         string(otp.ModeRegister),
+			Mode:         "register",
 			CaptchaToken: dummyTurnstileToken,
 		}
 		body, _ := json.Marshal(reqBody)
@@ -235,7 +235,7 @@ func TestSendOTP(t *testing.T) {
 
 		reqBody := model.SendOTPRequest{
 			Email:        email,
-			Mode:         string(otp.ModeRegister),
+			Mode:         "register",
 			CaptchaToken: dummyTurnstileToken,
 		}
 		body, _ := json.Marshal(reqBody)
@@ -248,8 +248,9 @@ func TestSendOTP(t *testing.T) {
 			printBody(t, rr)
 		}
 
-		exists, _ := testClient.OTP.Query().Where(otp.Email(email)).Exist(ctx)
-		assert.False(t, exists, "OTP should NOT be created for existing user registration")
+		key := fmt.Sprintf("otp:%s:%s", reqBody.Mode, reqBody.Email)
+		_, err := redisAdapter.Get(ctx, key)
+		assert.Error(t, err, "OTP should NOT be created for existing user registration")
 	})
 
 	t.Run("Silent Fail - Reset Non-Existent Email", func(t *testing.T) {
@@ -260,7 +261,7 @@ func TestSendOTP(t *testing.T) {
 
 		reqBody := model.SendOTPRequest{
 			Email:        "non-existent@example.com",
-			Mode:         string(otp.ModeReset),
+			Mode:         "reset",
 			CaptchaToken: dummyTurnstileToken,
 		}
 		body, _ := json.Marshal(reqBody)
@@ -273,8 +274,9 @@ func TestSendOTP(t *testing.T) {
 			printBody(t, rr)
 		}
 
-		exists, _ := testClient.OTP.Query().Where(otp.Email("non-existent@example.com")).Exist(ctx)
-		assert.False(t, exists, "OTP should NOT be created for non-existent user reset")
+		key := fmt.Sprintf("otp:%s:%s", reqBody.Mode, reqBody.Email)
+		_, err := redisAdapter.Get(ctx, key)
+		assert.Error(t, err, "OTP should NOT be created for non-existent user reset")
 	})
 
 	t.Run("Silent Fail - ChangeEmail to Existing Email", func(t *testing.T) {
@@ -293,7 +295,7 @@ func TestSendOTP(t *testing.T) {
 
 		reqBody := model.SendOTPRequest{
 			Email:        "existing@example.com",
-			Mode:         string(otp.ModeChangeEmail),
+			Mode:         "change_email",
 			CaptchaToken: dummyTurnstileToken,
 		}
 		body, _ := json.Marshal(reqBody)
@@ -306,8 +308,9 @@ func TestSendOTP(t *testing.T) {
 			printBody(t, rr)
 		}
 
-		exists, _ := testClient.OTP.Query().Where(otp.Email("existing@example.com")).Exist(ctx)
-		assert.False(t, exists, "OTP should NOT be created if email already exists")
+		key := fmt.Sprintf("otp:%s:%s", reqBody.Mode, reqBody.Email)
+		_, err := redisAdapter.Get(ctx, key)
+		assert.Error(t, err, "OTP should NOT be created if email already exists")
 	})
 
 	t.Run("Success - Rate Limit Recovery", func(t *testing.T) {
@@ -318,7 +321,7 @@ func TestSendOTP(t *testing.T) {
 
 		reqBody := model.SendOTPRequest{
 			Email:        "recovery@example.com",
-			Mode:         string(otp.ModeRegister),
+			Mode:         "register",
 			CaptchaToken: dummyTurnstileToken,
 		}
 		body, _ := json.Marshal(reqBody)

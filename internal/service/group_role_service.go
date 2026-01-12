@@ -10,6 +10,7 @@ import (
 	"AtoiTalkAPI/internal/model"
 	"AtoiTalkAPI/internal/websocket"
 	"context"
+	"fmt"
 	"log/slog"
 	"time"
 
@@ -122,6 +123,8 @@ func (s *GroupChatService) UpdateMemberRole(ctx context.Context, requestorID uui
 		slog.Error("Failed to commit transaction", "error", err)
 		return helper.NewInternalServerError("")
 	}
+
+	s.redisAdapter.Del(context.Background(), fmt.Sprintf("chat_members:%s", groupID))
 
 	if s.wsHub != nil {
 		go func() {
@@ -254,6 +257,8 @@ func (s *GroupChatService) TransferOwnership(ctx context.Context, requestorID uu
 		slog.Error("Failed to commit transaction", "error", err)
 		return helper.NewInternalServerError("")
 	}
+
+	s.redisAdapter.Del(context.Background(), fmt.Sprintf("chat_members:%s", groupID))
 
 	if s.wsHub != nil {
 		go func() {

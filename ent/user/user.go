@@ -32,8 +32,6 @@ const (
 	FieldBio = "bio"
 	// FieldAvatarID holds the string denoting the avatar_id field in the database.
 	FieldAvatarID = "avatar_id"
-	// FieldIsOnline holds the string denoting the is_online field in the database.
-	FieldIsOnline = "is_online"
 	// FieldLastSeenAt holds the string denoting the last_seen_at field in the database.
 	FieldLastSeenAt = "last_seen_at"
 	// FieldDeletedAt holds the string denoting the deleted_at field in the database.
@@ -169,7 +167,6 @@ var Columns = []string{
 	FieldFullName,
 	FieldBio,
 	FieldAvatarID,
-	FieldIsOnline,
 	FieldLastSeenAt,
 	FieldDeletedAt,
 	FieldRole,
@@ -205,8 +202,6 @@ var (
 	FullNameValidator func(string) error
 	// BioValidator is a validator for the "bio" field. It is called by the builders before save.
 	BioValidator func(string) error
-	// DefaultIsOnline holds the default value on creation for the "is_online" field.
-	DefaultIsOnline bool
 	// DefaultIsBanned holds the default value on creation for the "is_banned" field.
 	DefaultIsBanned bool
 	// DefaultID holds the default value on creation for the "id" field.
@@ -285,11 +280,6 @@ func ByBio(opts ...sql.OrderTermOption) OrderOption {
 // ByAvatarID orders the results by the avatar_id field.
 func ByAvatarID(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldAvatarID, opts...).ToFunc()
-}
-
-// ByIsOnline orders the results by the is_online field.
-func ByIsOnline(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldIsOnline, opts...).ToFunc()
 }
 
 // ByLastSeenAt orders the results by the last_seen_at field.

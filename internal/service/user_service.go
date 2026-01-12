@@ -23,6 +23,8 @@ import (
 	"github.com/google/uuid"
 )
 
+const onlineUsersSet = "online_users"
+
 type UserService struct {
 	client         *ent.Client
 	repo           *repository.Repository
@@ -30,9 +32,10 @@ type UserService struct {
 	validator      *validator.Validate
 	storageAdapter *adapter.StorageAdapter
 	wsHub          *websocket.Hub
+	redisAdapter   *adapter.RedisAdapter
 }
 
-func NewUserService(client *ent.Client, repo *repository.Repository, cfg *config.AppConfig, validator *validator.Validate, storageAdapter *adapter.StorageAdapter, wsHub *websocket.Hub) *UserService {
+func NewUserService(client *ent.Client, repo *repository.Repository, cfg *config.AppConfig, validator *validator.Validate, storageAdapter *adapter.StorageAdapter, wsHub *websocket.Hub, redisAdapter *adapter.RedisAdapter) *UserService {
 	return &UserService{
 		client:         client,
 		repo:           repo,
@@ -40,6 +43,7 @@ func NewUserService(client *ent.Client, repo *repository.Repository, cfg *config
 		validator:      validator,
 		storageAdapter: storageAdapter,
 		wsHub:          wsHub,
+		redisAdapter:   redisAdapter,
 	}
 }
 
@@ -84,6 +88,8 @@ func (s *UserService) GetCurrentUser(ctx context.Context, userID uuid.UUID) (*mo
 		fullName = *u.FullName
 	}
 
+	isOnline, _ := s.redisAdapter.Client().SIsMember(ctx, onlineUsersSet, u.ID.String()).Result()
+
 	return &model.UserDTO{
 		ID:          u.ID,
 		Email:       email,
@@ -92,6 +98,7 @@ func (s *UserService) GetCurrentUser(ctx context.Context, userID uuid.UUID) (*mo
 		Avatar:      avatarURL,
 		Bio:         bio,
 		HasPassword: u.PasswordHash != nil,
+		IsOnline:    &isOnline,
 	}, nil
 }
 
@@ -133,7 +140,7 @@ func (s *UserService) GetUserProfile(ctx context.Context, currentUserID uuid.UUI
 			user.ID(targetUserID),
 			user.DeletedAtIsNil(),
 		).
-		Select(user.FieldID, user.FieldUsername, user.FieldFullName, user.FieldBio, user.FieldIsOnline, user.FieldLastSeenAt, user.FieldAvatarID, user.FieldIsBanned, user.FieldBannedUntil).
+		Select(user.FieldID, user.FieldUsername, user.FieldFullName, user.FieldBio, user.FieldLastSeenAt, user.FieldAvatarID, user.FieldIsBanned, user.FieldBannedUntil).
 		WithAvatar().
 		Only(ctx)
 
@@ -156,7 +163,9 @@ func (s *UserService) GetUserProfile(ctx context.Context, currentUserID uuid.UUI
 	}
 
 	var lastSeenAt *string
-	isOnline := u.IsOnline
+
+	isOnline, _ := s.redisAdapter.Client().SIsMember(ctx, onlineUsersSet, u.ID.String()).Result()
+
 	username := ""
 	if u.Username != nil {
 		username = *u.Username
@@ -289,6 +298,8 @@ func (s *UserService) UpdateProfile(ctx context.Context, userID uuid.UUID, req m
 		hasChanges = true
 	}
 
+	isOnline, _ := s.redisAdapter.Client().SIsMember(ctx, onlineUsersSet, u.ID.String()).Result()
+
 	if !hasChanges {
 		avatarURL := ""
 		if u.Edges.Avatar != nil {
@@ -322,7 +333,7 @@ func (s *UserService) UpdateProfile(ctx context.Context, userID uuid.UUID, req m
 			Avatar:      avatarURL,
 			Bio:         bio,
 			HasPassword: u.PasswordHash != nil,
-			IsOnline:    &u.IsOnline,
+			IsOnline:    &isOnline,
 		}
 		if u.LastSeenAt != nil {
 			t := u.LastSeenAt.Format(time.RFC3339)
@@ -454,7 +465,7 @@ func (s *UserService) UpdateProfile(ctx context.Context, userID uuid.UUID, req m
 		Avatar:      avatarURL,
 		Bio:         bio,
 		HasPassword: updatedUser.PasswordHash != nil,
-		IsOnline:    &updatedUser.IsOnline,
+		IsOnline:    &isOnline,
 	}
 	if updatedUser.LastSeenAt != nil {
 		t := updatedUser.LastSeenAt.Format(time.RFC3339)
@@ -575,6 +586,8 @@ func (s *UserService) SearchUsers(ctx context.Context, currentUserID uuid.UUID, 
 			fullName = *u.FullName
 		}
 
+		isOnline, _ := s.redisAdapter.Client().SIsMember(ctx, onlineUsersSet, u.ID.String()).Result()
+
 		dto := model.UserDTO{
 			ID:          u.ID,
 			Username:    username,
@@ -582,6 +595,7 @@ func (s *UserService) SearchUsers(ctx context.Context, currentUserID uuid.UUID, 
 			Avatar:      avatarURL,
 			Bio:         bio,
 			HasPassword: false,
+			IsOnline:    &isOnline,
 		}
 
 		if chatID, exists := privateChatMap[u.ID]; exists {

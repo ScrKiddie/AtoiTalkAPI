@@ -73,7 +73,6 @@ func (s *MessageService) SendMessage(ctx context.Context, userID uuid.UUID, req 
 			chat.ID(req.ChatID),
 			chat.DeletedAtIsNil(),
 		).
-		ForUpdate().
 		WithPrivateChat(func(q *ent.PrivateChatQuery) {
 			q.WithUser1()
 			q.WithUser2()
@@ -89,7 +88,7 @@ func (s *MessageService) SendMessage(ctx context.Context, userID uuid.UUID, req 
 		if ent.IsNotFound(err) {
 			return nil, helper.NewNotFoundError("Chat not found or deleted")
 		}
-		slog.Error("Failed to query chat info with lock", "error", err, "chatID", req.ChatID)
+		slog.Error("Failed to query chat info", "error", err, "chatID", req.ChatID)
 		return nil, helper.NewInternalServerError("")
 	}
 

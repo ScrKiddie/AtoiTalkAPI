@@ -6,11 +6,13 @@ import (
 	"AtoiTalkAPI/ent/privatechat"
 	"AtoiTalkAPI/ent/user"
 	"AtoiTalkAPI/ent/userblock"
+	"AtoiTalkAPI/internal/adapter"
 	"AtoiTalkAPI/internal/config"
 	"AtoiTalkAPI/internal/helper"
 	"AtoiTalkAPI/internal/model"
 	"AtoiTalkAPI/internal/websocket"
 	"context"
+	"fmt"
 	"log/slog"
 	"time"
 
@@ -19,18 +21,20 @@ import (
 )
 
 type PrivateChatService struct {
-	client    *ent.Client
-	cfg       *config.AppConfig
-	validator *validator.Validate
-	wsHub     *websocket.Hub
+	client       *ent.Client
+	cfg          *config.AppConfig
+	validator    *validator.Validate
+	wsHub        *websocket.Hub
+	redisAdapter *adapter.RedisAdapter
 }
 
-func NewPrivateChatService(client *ent.Client, cfg *config.AppConfig, validator *validator.Validate, wsHub *websocket.Hub) *PrivateChatService {
+func NewPrivateChatService(client *ent.Client, cfg *config.AppConfig, validator *validator.Validate, wsHub *websocket.Hub, redisAdapter *adapter.RedisAdapter) *PrivateChatService {
 	return &PrivateChatService{
-		client:    client,
-		cfg:       cfg,
-		validator: validator,
-		wsHub:     wsHub,
+		client:       client,
+		cfg:          cfg,
+		validator:    validator,
+		wsHub:        wsHub,
+		redisAdapter: redisAdapter,
 	}
 }
 
@@ -159,6 +163,9 @@ func (s *PrivateChatService) CreatePrivateChat(ctx context.Context, userID uuid.
 		return nil, helper.NewInternalServerError("")
 	}
 
+	s.redisAdapter.Del(context.Background(), fmt.Sprintf("contacts:%s", userID))
+	s.redisAdapter.Del(context.Background(), fmt.Sprintf("contacts:%s", req.TargetUserID))
+
 	if s.wsHub != nil {
 		go func() {
 			creatorAvatarURL := ""
@@ -171,6 +178,8 @@ func (s *PrivateChatService) CreatePrivateChat(ctx context.Context, userID uuid.
 				creatorName = *creator.FullName
 			}
 
+			creatorIsOnline, _ := s.redisAdapter.Client().SIsMember(context.Background(), "online_users", creator.ID.String()).Result()
+
 			payloadForTarget := model.ChatListResponse{
 				ID:          newChat.ID,
 				Type:        string(newChat.Type),
@@ -178,7 +187,7 @@ func (s *PrivateChatService) CreatePrivateChat(ctx context.Context, userID uuid.
 				Avatar:      creatorAvatarURL,
 				LastMessage: nil,
 				UnreadCount: 0,
-				IsOnline:    creator.IsOnline,
+				IsOnline:    creatorIsOnline,
 				OtherUserID: &creator.ID,
 			}
 			s.wsHub.BroadcastToUser(targetUser.ID, websocket.Event{
@@ -197,6 +206,8 @@ func (s *PrivateChatService) CreatePrivateChat(ctx context.Context, userID uuid.
 				targetName = *targetUser.FullName
 			}
 
+			targetUserIsOnline, _ := s.redisAdapter.Client().SIsMember(context.Background(), "online_users", targetUser.ID.String()).Result()
+
 			payloadForCreator := model.ChatListResponse{
 				ID:          newChat.ID,
 				Type:        string(newChat.Type),
@@ -204,7 +215,7 @@ func (s *PrivateChatService) CreatePrivateChat(ctx context.Context, userID uuid.
 				Avatar:      targetAvatarURL,
 				LastMessage: nil,
 				UnreadCount: 0,
-				IsOnline:    targetUser.IsOnline,
+				IsOnline:    targetUserIsOnline,
 				OtherUserID: &targetUser.ID,
 			}
 			s.wsHub.BroadcastToUser(creator.ID, websocket.Event{

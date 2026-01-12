@@ -96,11 +96,6 @@ func AvatarID(v uuid.UUID) predicate.User {
 	return predicate.User(sql.FieldEQ(FieldAvatarID, v))
 }
 
-// IsOnline applies equality check predicate on the "is_online" field. It's identical to IsOnlineEQ.
-func IsOnline(v bool) predicate.User {
-	return predicate.User(sql.FieldEQ(FieldIsOnline, v))
-}
-
 // LastSeenAt applies equality check predicate on the "last_seen_at" field. It's identical to LastSeenAtEQ.
 func LastSeenAt(v time.Time) predicate.User {
 	return predicate.User(sql.FieldEQ(FieldLastSeenAt, v))
@@ -609,16 +604,6 @@ func AvatarIDIsNil() predicate.User {
 // AvatarIDNotNil applies the NotNil predicate on the "avatar_id" field.
 func AvatarIDNotNil() predicate.User {
 	return predicate.User(sql.FieldNotNull(FieldAvatarID))
-}
-
-// IsOnlineEQ applies the EQ predicate on the "is_online" field.
-func IsOnlineEQ(v bool) predicate.User {
-	return predicate.User(sql.FieldEQ(FieldIsOnline, v))
-}
-
-// IsOnlineNEQ applies the NEQ predicate on the "is_online" field.
-func IsOnlineNEQ(v bool) predicate.User {
-	return predicate.User(sql.FieldNEQ(FieldIsOnline, v))
 }
 
 // LastSeenAtEQ applies the EQ predicate on the "last_seen_at" field.

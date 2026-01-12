@@ -17,7 +17,7 @@ type AuthResponse struct {
 
 type SendOTPRequest struct {
 	Email        string `json:"email" validate:"required,email"`
-	Mode         string `json:"mode" validate:"required,otp_mode"`
+	Mode         string `json:"mode" validate:"required,oneof=register reset change_email"`
 	CaptchaToken string `json:"captcha_token" validate:"required"`
 }
 
