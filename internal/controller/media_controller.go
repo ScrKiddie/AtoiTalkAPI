@@ -29,6 +29,7 @@ func NewMediaController(mediaService *service.MediaService) *MediaController {
 // @Success      200  {object}  helper.ResponseSuccess{data=model.MediaDTO}
 // @Failure      400  {object}  helper.ResponseError
 // @Failure      401  {object}  helper.ResponseError
+// @Failure      429  {object}  helper.ResponseError
 // @Failure      500  {object}  helper.ResponseError
 // @Security     BearerAuth
 // @Router       /api/media/upload [post]

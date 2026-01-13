@@ -30,6 +30,7 @@ func NewAuthController(authService *service.AuthService) *AuthController {
 // @Success      200  {object}  helper.ResponseSuccess{data=model.AuthResponse}
 // @Failure      400  {object}  helper.ResponseError
 // @Failure      401  {object}  helper.ResponseError
+// @Failure      429  {object}  helper.ResponseError
 // @Failure      500  {object}  helper.ResponseError
 // @Router       /api/auth/login [post]
 func (c *AuthController) Login(w http.ResponseWriter, r *http.Request) {
@@ -57,6 +58,7 @@ func (c *AuthController) Login(w http.ResponseWriter, r *http.Request) {
 // @Produce      json
 // @Success      200  {object}  helper.ResponseSuccess
 // @Failure      401  {object}  helper.ResponseError
+// @Failure      429  {object}  helper.ResponseError
 // @Failure      500  {object}  helper.ResponseError
 // @Security     BearerAuth
 // @Router       /api/auth/logout [post]
@@ -91,6 +93,7 @@ func (c *AuthController) Logout(w http.ResponseWriter, r *http.Request) {
 // @Param        request body model.GoogleLoginRequest true "Google Login Request"
 // @Success      200  {object}  helper.ResponseSuccess{data=model.AuthResponse}
 // @Failure      400  {object}  helper.ResponseError
+// @Failure      429  {object}  helper.ResponseError
 // @Failure      500  {object}  helper.ResponseError
 // @Router       /api/auth/google [post]
 func (c *AuthController) GoogleExchange(w http.ResponseWriter, r *http.Request) {
@@ -120,6 +123,7 @@ func (c *AuthController) GoogleExchange(w http.ResponseWriter, r *http.Request) 
 // @Success      200  {object}  helper.ResponseSuccess{data=model.AuthResponse}
 // @Failure      400  {object}  helper.ResponseError
 // @Failure      409  {object}  helper.ResponseError
+// @Failure      429  {object}  helper.ResponseError
 // @Failure      500  {object}  helper.ResponseError
 // @Router       /api/auth/register [post]
 func (c *AuthController) Register(w http.ResponseWriter, r *http.Request) {
@@ -149,6 +153,7 @@ func (c *AuthController) Register(w http.ResponseWriter, r *http.Request) {
 // @Success      200  {object}  helper.ResponseSuccess
 // @Failure      400  {object}  helper.ResponseError
 // @Failure      404  {object}  helper.ResponseError
+// @Failure      429  {object}  helper.ResponseError
 // @Failure      500  {object}  helper.ResponseError
 // @Router       /api/auth/reset-password [post]
 func (c *AuthController) ResetPassword(w http.ResponseWriter, r *http.Request) {

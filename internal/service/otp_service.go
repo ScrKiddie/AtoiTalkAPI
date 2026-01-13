@@ -8,6 +8,7 @@ import (
 	"AtoiTalkAPI/internal/constant"
 	"AtoiTalkAPI/internal/helper"
 	"AtoiTalkAPI/internal/model"
+	"AtoiTalkAPI/internal/repository"
 	"context"
 	"crypto/rand"
 	"embed"
@@ -28,20 +29,20 @@ type OTPService struct {
 	cfg            *config.AppConfig
 	validator      *validator.Validate
 	emailAdapter   *adapter.EmailAdapter
-	rateLimiter    *config.RateLimiter
 	captchaAdapter *adapter.CaptchaAdapter
 	redisAdapter   *adapter.RedisAdapter
+	rateLimitRepo  *repository.RateLimitRepository
 }
 
-func NewOTPService(client *ent.Client, cfg *config.AppConfig, validator *validator.Validate, emailAdapter *adapter.EmailAdapter, rateLimiter *config.RateLimiter, captchaAdapter *adapter.CaptchaAdapter, redisAdapter *adapter.RedisAdapter) *OTPService {
+func NewOTPService(client *ent.Client, cfg *config.AppConfig, validator *validator.Validate, emailAdapter *adapter.EmailAdapter, captchaAdapter *adapter.CaptchaAdapter, redisAdapter *adapter.RedisAdapter, rateLimitRepo *repository.RateLimitRepository) *OTPService {
 	return &OTPService{
 		client:         client,
 		cfg:            cfg,
 		validator:      validator,
 		emailAdapter:   emailAdapter,
-		rateLimiter:    rateLimiter,
 		captchaAdapter: captchaAdapter,
 		redisAdapter:   redisAdapter,
+		rateLimitRepo:  rateLimitRepo,
 	}
 }
 
@@ -58,10 +59,24 @@ func (s *OTPService) SendOTP(ctx context.Context, req model.SendOTPRequest) erro
 		return helper.NewBadRequestError("")
 	}
 
-	allowed, retryAfter := s.rateLimiter.Allow(req.Email)
+	rateLimitKey := fmt.Sprintf("ratelimit:otp:%s", req.Email)
+
+	limit := 1
+	window := time.Duration(s.cfg.OTPRateLimitSeconds) * time.Second
+	if window == 0 {
+		window = 60 * time.Second
+	}
+
+	allowed, ttl, err := s.rateLimitRepo.Allow(ctx, rateLimitKey, limit, window)
+	if err != nil {
+		slog.Error("Failed to check rate limit", "error", err)
+
+		return helper.NewInternalServerError("")
+	}
+
 	if !allowed {
-		minutes := int(math.Ceil(retryAfter.Minutes()))
-		return helper.NewTooManyRequestsError(fmt.Sprintf("Please try again in %d minutes", minutes))
+		seconds := int(math.Ceil(ttl.Seconds()))
+		return helper.NewTooManyRequestsError(fmt.Sprintf("Please try again in %d seconds", seconds))
 	}
 
 	userExists, err := s.client.User.Query().

@@ -34,6 +34,7 @@ func NewChatController(chatService *service.ChatService) *ChatController {
 // @Success      200  {object}  helper.ResponseWithPagination{data=[]model.ChatListResponse}
 // @Failure      400  {object}  helper.ResponseError
 // @Failure      401  {object}  helper.ResponseError
+// @Failure      429  {object}  helper.ResponseError
 // @Failure      500  {object}  helper.ResponseError
 // @Security     BearerAuth
 // @Router       /api/chats [get]
@@ -81,6 +82,7 @@ func (c *ChatController) GetChats(w http.ResponseWriter, r *http.Request) {
 // @Failure      400  {object}  helper.ResponseError
 // @Failure      401  {object}  helper.ResponseError
 // @Failure      404  {object}  helper.ResponseError
+// @Failure      429  {object}  helper.ResponseError
 // @Failure      500  {object}  helper.ResponseError
 // @Security     BearerAuth
 // @Router       /api/chats/{id} [get]
@@ -118,6 +120,7 @@ func (c *ChatController) GetChat(w http.ResponseWriter, r *http.Request) {
 // @Failure      400  {object}  helper.ResponseError
 // @Failure      401  {object}  helper.ResponseError
 // @Failure      404  {object}  helper.ResponseError
+// @Failure      429  {object}  helper.ResponseError
 // @Failure      500  {object}  helper.ResponseError
 // @Security     BearerAuth
 // @Router       /api/chats/{id}/read [post]
@@ -155,6 +158,7 @@ func (c *ChatController) MarkAsRead(w http.ResponseWriter, r *http.Request) {
 // @Failure      400  {object}  helper.ResponseError
 // @Failure      401  {object}  helper.ResponseError
 // @Failure      404  {object}  helper.ResponseError
+// @Failure      429  {object}  helper.ResponseError
 // @Failure      500  {object}  helper.ResponseError
 // @Security     BearerAuth
 // @Router       /api/chats/{id}/hide [post]
