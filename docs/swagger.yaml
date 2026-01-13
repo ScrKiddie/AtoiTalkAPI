@@ -514,6 +514,10 @@ paths:
           description: Forbidden
           schema:
             $ref: '#/definitions/helper.ResponseError'
+        "429":
+          description: Too Many Requests
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
         "500":
           description: Internal Server Error
           schema:
@@ -554,6 +558,10 @@ paths:
           description: Conflict
           schema:
             $ref: '#/definitions/helper.ResponseError'
+        "429":
+          description: Too Many Requests
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
         "500":
           description: Internal Server Error
           schema:
@@ -592,6 +600,10 @@ paths:
             $ref: '#/definitions/helper.ResponseError'
         "404":
           description: Not Found
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
+        "429":
+          description: Too Many Requests
           schema:
             $ref: '#/definitions/helper.ResponseError'
         "500":
@@ -643,6 +655,10 @@ paths:
           description: Forbidden
           schema:
             $ref: '#/definitions/helper.ResponseError'
+        "429":
+          description: Too Many Requests
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
         "500":
           description: Internal Server Error
           schema:
@@ -686,6 +702,10 @@ paths:
             $ref: '#/definitions/helper.ResponseError'
         "404":
           description: Not Found
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
+        "429":
+          description: Too Many Requests
           schema:
             $ref: '#/definitions/helper.ResponseError'
         "500":
@@ -734,6 +754,10 @@ paths:
           description: Not Found
           schema:
             $ref: '#/definitions/helper.ResponseError'
+        "429":
+          description: Too Many Requests
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
         "500":
           description: Internal Server Error
           schema:
@@ -771,6 +795,10 @@ paths:
             $ref: '#/definitions/helper.ResponseError'
         "404":
           description: Not Found
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
+        "429":
+          description: Too Many Requests
           schema:
             $ref: '#/definitions/helper.ResponseError'
         "500":
@@ -813,6 +841,10 @@ paths:
           description: Not Found
           schema:
             $ref: '#/definitions/helper.ResponseError'
+        "429":
+          description: Too Many Requests
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
         "500":
           description: Internal Server Error
           schema:
@@ -848,6 +880,10 @@ paths:
               type: object
         "400":
           description: Bad Request
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
+        "429":
+          description: Too Many Requests
           schema:
             $ref: '#/definitions/helper.ResponseError'
         "500":
@@ -889,6 +925,10 @@ paths:
           description: Unauthorized
           schema:
             $ref: '#/definitions/helper.ResponseError'
+        "429":
+          description: Too Many Requests
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
         "500":
           description: Internal Server Error
           schema:
@@ -910,6 +950,10 @@ paths:
             $ref: '#/definitions/helper.ResponseSuccess'
         "401":
           description: Unauthorized
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
+        "429":
+          description: Too Many Requests
           schema:
             $ref: '#/definitions/helper.ResponseError'
         "500":
@@ -953,6 +997,10 @@ paths:
           description: Conflict
           schema:
             $ref: '#/definitions/helper.ResponseError'
+        "429":
+          description: Too Many Requests
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
         "500":
           description: Internal Server Error
           schema:
@@ -985,6 +1033,10 @@ paths:
             $ref: '#/definitions/helper.ResponseError'
         "404":
           description: Not Found
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
+        "429":
+          description: Too Many Requests
           schema:
             $ref: '#/definitions/helper.ResponseError'
         "500":
@@ -1033,6 +1085,10 @@ paths:
             $ref: '#/definitions/helper.ResponseError'
         "401":
           description: Unauthorized
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
+        "429":
+          description: Too Many Requests
           schema:
             $ref: '#/definitions/helper.ResponseError'
         "500":
@@ -1098,6 +1154,10 @@ paths:
           description: Forbidden
           schema:
             $ref: '#/definitions/helper.ResponseError'
+        "429":
+          description: Too Many Requests
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
         "500":
           description: Internal Server Error
           schema:
@@ -1142,6 +1202,10 @@ paths:
           description: Not Found
           schema:
             $ref: '#/definitions/helper.ResponseError'
+        "429":
+          description: Too Many Requests
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
         "500":
           description: Internal Server Error
           schema:
@@ -1182,6 +1246,10 @@ paths:
           description: Not Found
           schema:
             $ref: '#/definitions/helper.ResponseError'
+        "429":
+          description: Too Many Requests
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
         "500":
           description: Internal Server Error
           schema:
@@ -1219,6 +1287,10 @@ paths:
             $ref: '#/definitions/helper.ResponseError'
         "404":
           description: Not Found
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
+        "429":
+          description: Too Many Requests
           schema:
             $ref: '#/definitions/helper.ResponseError'
         "500":
@@ -1278,6 +1350,10 @@ paths:
           description: Forbidden
           schema:
             $ref: '#/definitions/helper.ResponseError'
+        "429":
+          description: Too Many Requests
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
         "500":
           description: Internal Server Error
           schema:
@@ -1319,6 +1395,10 @@ paths:
             $ref: '#/definitions/helper.ResponseError'
         "404":
           description: Not Found
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
+        "429":
+          description: Too Many Requests
           schema:
             $ref: '#/definitions/helper.ResponseError'
         "500":
@@ -1381,6 +1461,10 @@ paths:
           description: Not Found
           schema:
             $ref: '#/definitions/helper.ResponseError'
+        "429":
+          description: Too Many Requests
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
         "500":
           description: Internal Server Error
           schema:
@@ -1419,6 +1503,10 @@ paths:
             $ref: '#/definitions/helper.ResponseError'
         "404":
           description: Not Found
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
+        "429":
+          description: Too Many Requests
           schema:
             $ref: '#/definitions/helper.ResponseError'
         "500":
@@ -1483,6 +1571,10 @@ paths:
           description: Not Found
           schema:
             $ref: '#/definitions/helper.ResponseError'
+        "429":
+          description: Too Many Requests
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
         "500":
           description: Internal Server Error
           schema:
@@ -1536,6 +1628,10 @@ paths:
           description: Conflict
           schema:
             $ref: '#/definitions/helper.ResponseError'
+        "429":
+          description: Too Many Requests
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
         "500":
           description: Internal Server Error
           schema:
@@ -1583,6 +1679,10 @@ paths:
             $ref: '#/definitions/helper.ResponseError'
         "404":
           description: Not Found
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
+        "429":
+          description: Too Many Requests
           schema:
             $ref: '#/definitions/helper.ResponseError'
         "500":
@@ -1639,6 +1739,10 @@ paths:
           description: Not Found
           schema:
             $ref: '#/definitions/helper.ResponseError'
+        "429":
+          description: Too Many Requests
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
         "500":
           description: Internal Server Error
           schema:
@@ -1689,6 +1793,10 @@ paths:
           description: Not Found
           schema:
             $ref: '#/definitions/helper.ResponseError'
+        "429":
+          description: Too Many Requests
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
         "500":
           description: Internal Server Error
           schema:
@@ -1735,6 +1843,10 @@ paths:
           description: Not Found
           schema:
             $ref: '#/definitions/helper.ResponseError'
+        "429":
+          description: Too Many Requests
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
         "500":
           description: Internal Server Error
           schema:
@@ -1773,6 +1885,10 @@ paths:
             $ref: '#/definitions/helper.ResponseError'
         "401":
           description: Unauthorized
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
+        "429":
+          description: Too Many Requests
           schema:
             $ref: '#/definitions/helper.ResponseError'
         "500":
@@ -1821,6 +1937,10 @@ paths:
           description: Not Found
           schema:
             $ref: '#/definitions/helper.ResponseError'
+        "429":
+          description: Too Many Requests
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
         "500":
           description: Internal Server Error
           schema:
@@ -1862,6 +1982,10 @@ paths:
             $ref: '#/definitions/helper.ResponseError'
         "404":
           description: Not Found
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
+        "429":
+          description: Too Many Requests
           schema:
             $ref: '#/definitions/helper.ResponseError'
         "500":
@@ -1915,6 +2039,10 @@ paths:
             $ref: '#/definitions/helper.ResponseError'
         "404":
           description: Not Found
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
+        "429":
+          description: Too Many Requests
           schema:
             $ref: '#/definitions/helper.ResponseError'
         "500":
@@ -2001,6 +2129,10 @@ paths:
           description: Not Found
           schema:
             $ref: '#/definitions/helper.ResponseError'
+        "429":
+          description: Too Many Requests
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
         "500":
           description: Internal Server Error
           schema:
@@ -2029,6 +2161,10 @@ paths:
               type: object
         "401":
           description: Unauthorized
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
+        "429":
+          description: Too Many Requests
           schema:
             $ref: '#/definitions/helper.ResponseError'
         "500":
@@ -2091,6 +2227,10 @@ paths:
           description: Not Found
           schema:
             $ref: '#/definitions/helper.ResponseError'
+        "429":
+          description: Too Many Requests
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
         "500":
           description: Internal Server Error
           schema:
@@ -2144,6 +2284,10 @@ paths:
           description: Unauthorized
           schema:
             $ref: '#/definitions/helper.ResponseError'
+        "429":
+          description: Too Many Requests
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
         "500":
           description: Internal Server Error
           schema:
@@ -2188,6 +2332,10 @@ paths:
           description: Not Found
           schema:
             $ref: '#/definitions/helper.ResponseError'
+        "429":
+          description: Too Many Requests
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
         "500":
           description: Internal Server Error
           schema:
@@ -2227,6 +2375,10 @@ paths:
           description: Not Found
           schema:
             $ref: '#/definitions/helper.ResponseError'
+        "429":
+          description: Too Many Requests
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
         "500":
           description: Internal Server Error
           schema:
@@ -2260,6 +2412,10 @@ paths:
             $ref: '#/definitions/helper.ResponseError'
         "401":
           description: Unauthorized
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
+        "429":
+          description: Too Many Requests
           schema:
             $ref: '#/definitions/helper.ResponseError'
         "500":
@@ -2309,6 +2465,10 @@ paths:
             $ref: '#/definitions/helper.ResponseError'
         "401":
           description: Unauthorized
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
+        "429":
+          description: Too Many Requests
           schema:
             $ref: '#/definitions/helper.ResponseError'
         "500":

@@ -35,6 +35,7 @@ func NewMessageController(messageService *service.MessageService) *MessageContro
 // @Failure      400  {object}  helper.ResponseError
 // @Failure      401  {object}  helper.ResponseError
 // @Failure      404  {object}  helper.ResponseError
+// @Failure      429  {object}  helper.ResponseError
 // @Failure      500  {object}  helper.ResponseError
 // @Security     BearerAuth
 // @Router       /api/messages [post]
@@ -74,6 +75,7 @@ func (c *MessageController) SendMessage(w http.ResponseWriter, r *http.Request) 
 // @Failure      401  {object}  helper.ResponseError
 // @Failure      403  {object}  helper.ResponseError
 // @Failure      404  {object}  helper.ResponseError
+// @Failure      429  {object}  helper.ResponseError
 // @Failure      500  {object}  helper.ResponseError
 // @Security     BearerAuth
 // @Router       /api/messages/{messageID} [put]
@@ -122,6 +124,7 @@ func (c *MessageController) EditMessage(w http.ResponseWriter, r *http.Request) 
 // @Failure      400  {object}  helper.ResponseError
 // @Failure      401  {object}  helper.ResponseError
 // @Failure      403  {object}  helper.ResponseError
+// @Failure      429  {object}  helper.ResponseError
 // @Failure      500  {object}  helper.ResponseError
 // @Security     BearerAuth
 // @Router       /api/chats/{chatID}/messages [get]
@@ -183,6 +186,7 @@ func (c *MessageController) GetMessages(w http.ResponseWriter, r *http.Request) 
 // @Failure      401  {object}  helper.ResponseError
 // @Failure      403  {object}  helper.ResponseError
 // @Failure      404  {object}  helper.ResponseError
+// @Failure      429  {object}  helper.ResponseError
 // @Failure      500  {object}  helper.ResponseError
 // @Security     BearerAuth
 // @Router       /api/messages/{messageID} [delete]

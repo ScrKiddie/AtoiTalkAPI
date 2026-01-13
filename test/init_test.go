@@ -117,10 +117,9 @@ func TestMain(m *testing.M) {
 
 	s3Client := &s3.Client{}
 	captchaAdapter := adapter.NewCaptchaAdapter(testConfig, httpClient)
-	rateLimiter := config.NewRateLimiter(testConfig)
 	storageAdapter := adapter.NewStorageAdapter(testConfig, s3Client, httpClient)
 
-	otpService := service.NewOTPService(testClient, testConfig, validator, emailAdapter, rateLimiter, captchaAdapter, redisAdapter)
+	otpService := service.NewOTPService(testClient, testConfig, validator, emailAdapter, captchaAdapter, redisAdapter, repo.RateLimit)
 	otpController := controller.NewOTPController(otpService)
 
 	authService := service.NewAuthService(testClient, testConfig, validator, storageAdapter, captchaAdapter, otpService, repo, testHub)
@@ -155,8 +154,9 @@ func TestMain(m *testing.M) {
 	wsController := controller.NewWebSocketController(testHub)
 
 	authMiddleware := middleware.NewAuthMiddleware(authService, repo.Session)
+	rateLimitMiddleware := middleware.NewRateLimitMiddleware(repo.RateLimit)
 
-	route := bootstrap.NewRoute(testConfig, testRouter, authController, otpController, userController, accountController, chatController, privateChatController, groupChatController, messageController, mediaController, wsController, reportController, adminController, authMiddleware)
+	route := bootstrap.NewRoute(testConfig, testRouter, authController, otpController, userController, accountController, chatController, privateChatController, groupChatController, messageController, mediaController, wsController, reportController, adminController, authMiddleware, rateLimitMiddleware)
 	route.Register()
 
 	code := m.Run()

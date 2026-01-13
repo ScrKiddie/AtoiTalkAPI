@@ -30,6 +30,7 @@ func NewPrivateChatController(privateChatService *service.PrivateChatService) *P
 // @Failure      400  {object}  helper.ResponseError
 // @Failure      401  {object}  helper.ResponseError
 // @Failure      404  {object}  helper.ResponseError
+// @Failure      429  {object}  helper.ResponseError
 // @Failure      500  {object}  helper.ResponseError
 // @Security     BearerAuth
 // @Router       /api/chats/private [post]

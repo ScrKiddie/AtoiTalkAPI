@@ -16,7 +16,7 @@ import (
 	"github.com/go-playground/validator/v10"
 )
 
-func Init(appConfig *config.AppConfig, client *ent.Client, validator *validator.Validate, s3Client *s3.Client, httpClient *http.Client, chiMux *chi.Mux, rateLimiter *config.RateLimiter) {
+func Init(appConfig *config.AppConfig, client *ent.Client, validator *validator.Validate, s3Client *s3.Client, httpClient *http.Client, chiMux *chi.Mux) {
 
 	storageAdapter := adapter.NewStorageAdapter(appConfig, s3Client, httpClient)
 	emailAdapter := adapter.NewEmailAdapter(appConfig)
@@ -28,7 +28,7 @@ func Init(appConfig *config.AppConfig, client *ent.Client, validator *validator.
 
 	repo := repository.NewRepository(client, redisAdapter, appConfig)
 
-	otpService := service.NewOTPService(client, appConfig, validator, emailAdapter, rateLimiter, captchaAdapter, redisAdapter)
+	otpService := service.NewOTPService(client, appConfig, validator, emailAdapter, captchaAdapter, redisAdapter, repo.RateLimit)
 
 	authService := service.NewAuthService(client, appConfig, validator, storageAdapter, captchaAdapter, otpService, repo, wsHub)
 
@@ -58,7 +58,8 @@ func Init(appConfig *config.AppConfig, client *ent.Client, validator *validator.
 	wsController := controller.NewWebSocketController(wsHub)
 
 	authMiddleware := middleware.NewAuthMiddleware(authService, repo.Session)
+	rateLimitMiddleware := middleware.NewRateLimitMiddleware(repo.RateLimit)
 
-	route := NewRoute(appConfig, chiMux, authController, otpController, userController, accountController, chatController, privateChatController, groupChatController, messageController, mediaController, wsController, reportController, adminController, authMiddleware)
+	route := NewRoute(appConfig, chiMux, authController, otpController, userController, accountController, chatController, privateChatController, groupChatController, messageController, mediaController, wsController, reportController, adminController, authMiddleware, rateLimitMiddleware)
 	route.Register()
 }

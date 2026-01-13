@@ -34,6 +34,7 @@ func NewAdminController(adminService *service.AdminService) *AdminController {
 // @Failure      400  {object}  helper.ResponseError
 // @Failure      403  {object}  helper.ResponseError
 // @Failure      404  {object}  helper.ResponseError
+// @Failure      429  {object}  helper.ResponseError
 // @Failure      500  {object}  helper.ResponseError
 // @Security     BearerAuth
 // @Router       /api/admin/users/ban [post]
@@ -69,6 +70,7 @@ func (c *AdminController) BanUser(w http.ResponseWriter, r *http.Request) {
 // @Failure      400  {object}  helper.ResponseError
 // @Failure      403  {object}  helper.ResponseError
 // @Failure      404  {object}  helper.ResponseError
+// @Failure      429  {object}  helper.ResponseError
 // @Failure      500  {object}  helper.ResponseError
 // @Security     BearerAuth
 // @Router       /api/admin/users/{userID}/unban [post]
@@ -106,6 +108,7 @@ func (c *AdminController) UnbanUser(w http.ResponseWriter, r *http.Request) {
 // @Success      200  {object}  helper.ResponseWithPagination{data=[]model.ReportListResponse}
 // @Failure      400  {object}  helper.ResponseError
 // @Failure      403  {object}  helper.ResponseError
+// @Failure      429  {object}  helper.ResponseError
 // @Failure      500  {object}  helper.ResponseError
 // @Security     BearerAuth
 // @Router       /api/admin/reports [get]
@@ -153,6 +156,7 @@ func (c *AdminController) GetReports(w http.ResponseWriter, r *http.Request) {
 // @Failure      400  {object}  helper.ResponseError
 // @Failure      403  {object}  helper.ResponseError
 // @Failure      404  {object}  helper.ResponseError
+// @Failure      429  {object}  helper.ResponseError
 // @Failure      500  {object}  helper.ResponseError
 // @Security     BearerAuth
 // @Router       /api/admin/reports/{reportID} [get]
@@ -191,6 +195,7 @@ func (c *AdminController) GetReportDetail(w http.ResponseWriter, r *http.Request
 // @Failure      400  {object}  helper.ResponseError
 // @Failure      403  {object}  helper.ResponseError
 // @Failure      404  {object}  helper.ResponseError
+// @Failure      429  {object}  helper.ResponseError
 // @Failure      500  {object}  helper.ResponseError
 // @Security     BearerAuth
 // @Router       /api/admin/reports/{reportID}/resolve [put]

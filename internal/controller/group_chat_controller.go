@@ -38,6 +38,7 @@ func NewGroupChatController(groupChatService *service.GroupChatService) *GroupCh
 // @Failure      400  {object}  helper.ResponseError
 // @Failure      401  {object}  helper.ResponseError
 // @Failure      403  {object}  helper.ResponseError
+// @Failure      429  {object}  helper.ResponseError
 // @Failure      500  {object}  helper.ResponseError
 // @Security     BearerAuth
 // @Router       /api/chats/group [post]
@@ -109,6 +110,7 @@ func (c *GroupChatController) CreateGroupChat(w http.ResponseWriter, r *http.Req
 // @Failure      401  {object}  helper.ResponseError
 // @Failure      403  {object}  helper.ResponseError
 // @Failure      404  {object}  helper.ResponseError
+// @Failure      429  {object}  helper.ResponseError
 // @Failure      500  {object}  helper.ResponseError
 // @Security     BearerAuth
 // @Router       /api/chats/group/{groupID} [put]
@@ -174,6 +176,7 @@ func (c *GroupChatController) UpdateGroupChat(w http.ResponseWriter, r *http.Req
 // @Failure      401  {object}  helper.ResponseError
 // @Failure      403  {object}  helper.ResponseError
 // @Failure      404  {object}  helper.ResponseError
+// @Failure      429  {object}  helper.ResponseError
 // @Failure      500  {object}  helper.ResponseError
 // @Security     BearerAuth
 // @Router       /api/chats/group/{groupID}/members [get]
@@ -232,6 +235,7 @@ func (c *GroupChatController) SearchGroupMembers(w http.ResponseWriter, r *http.
 // @Failure      403  {object}  helper.ResponseError
 // @Failure      404  {object}  helper.ResponseError
 // @Failure      409  {object}  helper.ResponseError
+// @Failure      429  {object}  helper.ResponseError
 // @Failure      500  {object}  helper.ResponseError
 // @Security     BearerAuth
 // @Router       /api/chats/group/{groupID}/members [post]
@@ -275,6 +279,7 @@ func (c *GroupChatController) AddMember(w http.ResponseWriter, r *http.Request) 
 // @Failure      400  {object}  helper.ResponseError
 // @Failure      401  {object}  helper.ResponseError
 // @Failure      404  {object}  helper.ResponseError
+// @Failure      429  {object}  helper.ResponseError
 // @Failure      500  {object}  helper.ResponseError
 // @Security     BearerAuth
 // @Router       /api/chats/group/{groupID}/leave [post]
@@ -314,6 +319,7 @@ func (c *GroupChatController) LeaveGroup(w http.ResponseWriter, r *http.Request)
 // @Failure      401  {object}  helper.ResponseError
 // @Failure      403  {object}  helper.ResponseError
 // @Failure      404  {object}  helper.ResponseError
+// @Failure      429  {object}  helper.ResponseError
 // @Failure      500  {object}  helper.ResponseError
 // @Security     BearerAuth
 // @Router       /api/chats/group/{groupID}/members/{userID}/kick [post]
@@ -361,6 +367,7 @@ func (c *GroupChatController) KickMember(w http.ResponseWriter, r *http.Request)
 // @Failure      401  {object}  helper.ResponseError
 // @Failure      403  {object}  helper.ResponseError
 // @Failure      404  {object}  helper.ResponseError
+// @Failure      429  {object}  helper.ResponseError
 // @Failure      500  {object}  helper.ResponseError
 // @Security     BearerAuth
 // @Router       /api/chats/group/{groupID}/members/{userID}/role [put]
@@ -413,6 +420,7 @@ func (c *GroupChatController) UpdateMemberRole(w http.ResponseWriter, r *http.Re
 // @Failure      401  {object}  helper.ResponseError
 // @Failure      403  {object}  helper.ResponseError
 // @Failure      404  {object}  helper.ResponseError
+// @Failure      429  {object}  helper.ResponseError
 // @Failure      500  {object}  helper.ResponseError
 // @Security     BearerAuth
 // @Router       /api/chats/group/{groupID}/transfer [post]
@@ -457,6 +465,7 @@ func (c *GroupChatController) TransferOwnership(w http.ResponseWriter, r *http.R
 // @Failure      401  {object}  helper.ResponseError
 // @Failure      403  {object}  helper.ResponseError
 // @Failure      404  {object}  helper.ResponseError
+// @Failure      429  {object}  helper.ResponseError
 // @Failure      500  {object}  helper.ResponseError
 // @Security     BearerAuth
 // @Router       /api/chats/group/{groupID} [delete]

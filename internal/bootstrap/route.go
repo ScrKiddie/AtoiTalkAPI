@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 )
@@ -28,9 +29,10 @@ type Route struct {
 	reportController      *controller.ReportController
 	adminController       *controller.AdminController
 	authMiddleware        *middleware.AuthMiddleware
+	rateLimitMiddleware   *middleware.RateLimitMiddleware
 }
 
-func NewRoute(cfg *config.AppConfig, chi *chi.Mux, authController *controller.AuthController, otpController *controller.OTPController, userController *controller.UserController, accountController *controller.AccountController, chatController *controller.ChatController, privateChatController *controller.PrivateChatController, groupChatController *controller.GroupChatController, messageController *controller.MessageController, mediaController *controller.MediaController, wsController *controller.WebSocketController, reportController *controller.ReportController, adminController *controller.AdminController, authMiddleware *middleware.AuthMiddleware) *Route {
+func NewRoute(cfg *config.AppConfig, chi *chi.Mux, authController *controller.AuthController, otpController *controller.OTPController, userController *controller.UserController, accountController *controller.AccountController, chatController *controller.ChatController, privateChatController *controller.PrivateChatController, groupChatController *controller.GroupChatController, messageController *controller.MessageController, mediaController *controller.MediaController, wsController *controller.WebSocketController, reportController *controller.ReportController, adminController *controller.AdminController, authMiddleware *middleware.AuthMiddleware, rateLimitMiddleware *middleware.RateLimitMiddleware) *Route {
 	return &Route{
 		cfg:                   cfg,
 		chi:                   chi,
@@ -47,6 +49,7 @@ func NewRoute(cfg *config.AppConfig, chi *chi.Mux, authController *controller.Au
 		reportController:      reportController,
 		adminController:       adminController,
 		authMiddleware:        authMiddleware,
+		rateLimitMiddleware:   rateLimitMiddleware,
 	}
 }
 
@@ -82,6 +85,7 @@ func (route *Route) Register() {
 
 		r.Group(func(r chi.Router) {
 			r.Use(middleware.MaxBodySize(100 * 1024))
+			r.Use(route.rateLimitMiddleware.Limit("auth_public", 10, time.Minute))
 
 			r.Post("/auth/login", route.authController.Login)
 			r.Post("/auth/google", route.authController.GoogleExchange)
@@ -95,16 +99,19 @@ func (route *Route) Register() {
 
 			r.Group(func(r chi.Router) {
 				r.Use(middleware.MaxBodySize(100 * 1024))
+				r.Use(route.rateLimitMiddleware.Limit("auth_logout", 20, time.Minute))
 				r.Post("/auth/logout", route.authController.Logout)
 			})
 
 			r.Group(func(r chi.Router) {
 				r.Use(middleware.MaxBodySize(20 * 1024 * 1024))
+				r.Use(route.rateLimitMiddleware.Limit("media_upload", 20, time.Minute))
 				r.Post("/media/upload", route.mediaController.UploadMedia)
 			})
 
 			r.Group(func(r chi.Router) {
 				r.Use(middleware.MaxBodySize(5 * 1024 * 1024))
+				r.Use(route.rateLimitMiddleware.Limit("user_management", 30, time.Minute))
 
 				r.Put("/user/profile", route.userController.UpdateProfile)
 				r.Post("/chats/group", route.groupChatController.CreateGroupChat)
@@ -112,7 +119,19 @@ func (route *Route) Register() {
 			})
 
 			r.Group(func(r chi.Router) {
+				r.Use(route.authMiddleware.AdminOnly)
+				r.Use(route.rateLimitMiddleware.Limit("admin_action", 1000, time.Minute))
+
+				r.Post("/admin/users/ban", route.adminController.BanUser)
+				r.Post("/admin/users/{userID}/unban", route.adminController.UnbanUser)
+				r.Get("/admin/reports", route.adminController.GetReports)
+				r.Get("/admin/reports/{reportID}", route.adminController.GetReportDetail)
+				r.Put("/admin/reports/{reportID}/resolve", route.adminController.ResolveReport)
+			})
+
+			r.Group(func(r chi.Router) {
 				r.Use(middleware.MaxBodySize(100 * 1024))
+				r.Use(route.rateLimitMiddleware.Limit("general_read", 200, time.Minute))
 
 				r.Get("/user/current", route.userController.GetCurrentUser)
 				r.Get("/users/blocked", route.userController.GetBlockedUsers)
@@ -146,15 +165,6 @@ func (route *Route) Register() {
 				r.Delete("/messages/{messageID}", route.messageController.DeleteMessage)
 
 				r.Post("/reports", route.reportController.CreateReport)
-
-				r.Group(func(r chi.Router) {
-					r.Use(route.authMiddleware.AdminOnly)
-					r.Post("/admin/users/ban", route.adminController.BanUser)
-					r.Post("/admin/users/{userID}/unban", route.adminController.UnbanUser)
-					r.Get("/admin/reports", route.adminController.GetReports)
-					r.Get("/admin/reports/{reportID}", route.adminController.GetReportDetail)
-					r.Put("/admin/reports/{reportID}/resolve", route.adminController.ResolveReport)
-				})
 			})
 		})
 	})
