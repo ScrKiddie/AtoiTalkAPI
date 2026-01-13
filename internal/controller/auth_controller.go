@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"log/slog"
 	"net/http"
+	"strings"
 )
 
 type AuthController struct {
@@ -46,6 +47,39 @@ func (c *AuthController) Login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	helper.WriteSuccess(w, resp)
+}
+
+// Logout godoc
+// @Summary      Logout
+// @Description  Invalidate the current access token and disconnect WebSocket.
+// @Tags         auth
+// @Accept       json
+// @Produce      json
+// @Success      200  {object}  helper.ResponseSuccess
+// @Failure      401  {object}  helper.ResponseError
+// @Failure      500  {object}  helper.ResponseError
+// @Security     BearerAuth
+// @Router       /api/auth/logout [post]
+func (c *AuthController) Logout(w http.ResponseWriter, r *http.Request) {
+	authHeader := r.Header.Get("Authorization")
+	if authHeader == "" {
+		helper.WriteError(w, helper.NewUnauthorizedError(""))
+		return
+	}
+	parts := strings.Split(authHeader, " ")
+	if len(parts) != 2 || parts[0] != "Bearer" {
+		helper.WriteError(w, helper.NewUnauthorizedError(""))
+		return
+	}
+	tokenString := parts[1]
+
+	err := c.authService.Logout(r.Context(), tokenString)
+	if err != nil {
+		helper.WriteError(w, err)
+		return
+	}
+
+	helper.WriteSuccess(w, nil)
 }
 
 // GoogleExchange godoc

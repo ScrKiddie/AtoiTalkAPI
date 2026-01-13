@@ -423,6 +423,10 @@ definitions:
       email:
         type: string
       mode:
+        enum:
+        - register
+        - reset
+        - change_email
         type: string
     required:
     - captcha_token
@@ -890,6 +894,31 @@ paths:
           schema:
             $ref: '#/definitions/helper.ResponseError'
       summary: Login
+      tags:
+      - auth
+  /api/auth/logout:
+    post:
+      consumes:
+      - application/json
+      description: Invalidate the current access token and disconnect WebSocket.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/helper.ResponseSuccess'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
+      security:
+      - BearerAuth: []
+      summary: Logout
       tags:
       - auth
   /api/auth/register:

@@ -7,10 +7,12 @@ import (
 	"AtoiTalkAPI/ent/groupmember"
 	"AtoiTalkAPI/ent/user"
 	"AtoiTalkAPI/ent/useridentity"
+	"AtoiTalkAPI/internal/adapter"
 	"AtoiTalkAPI/internal/config"
 	"AtoiTalkAPI/internal/constant"
 	"AtoiTalkAPI/internal/helper"
 	"AtoiTalkAPI/internal/model"
+	"AtoiTalkAPI/internal/repository"
 	"AtoiTalkAPI/internal/websocket"
 	"context"
 	"log/slog"
@@ -21,20 +23,24 @@ import (
 )
 
 type AccountService struct {
-	client     *ent.Client
-	cfg        *config.AppConfig
-	validator  *validator.Validate
-	wsHub      *websocket.Hub
-	otpService *OTPService
+	client       *ent.Client
+	cfg          *config.AppConfig
+	validator    *validator.Validate
+	wsHub        *websocket.Hub
+	otpService   *OTPService
+	redisAdapter *adapter.RedisAdapter
+	repo         *repository.Repository
 }
 
-func NewAccountService(client *ent.Client, cfg *config.AppConfig, validator *validator.Validate, wsHub *websocket.Hub, otpService *OTPService) *AccountService {
+func NewAccountService(client *ent.Client, cfg *config.AppConfig, validator *validator.Validate, wsHub *websocket.Hub, otpService *OTPService, redisAdapter *adapter.RedisAdapter, repo *repository.Repository) *AccountService {
 	return &AccountService{
-		client:     client,
-		cfg:        cfg,
-		validator:  validator,
-		wsHub:      wsHub,
-		otpService: otpService,
+		client:       client,
+		cfg:          cfg,
+		validator:    validator,
+		wsHub:        wsHub,
+		otpService:   otpService,
+		redisAdapter: redisAdapter,
+		repo:         repo,
 	}
 }
 
@@ -73,6 +79,10 @@ func (s *AccountService) ChangePassword(ctx context.Context, userID uuid.UUID, r
 	if err != nil {
 		slog.Error("Failed to update password", "error", err, "userID", userID)
 		return helper.NewInternalServerError("")
+	}
+
+	if err := s.repo.Session.RevokeAllSessions(ctx, userID); err != nil {
+		slog.Error("Failed to revoke sessions after password change", "error", err, "userID", userID)
 	}
 
 	return nil
@@ -148,6 +158,10 @@ func (s *AccountService) ChangeEmail(ctx context.Context, userID uuid.UUID, req 
 	if err := tx.Commit(); err != nil {
 		slog.Error("Failed to commit transaction", "error", err)
 		return helper.NewInternalServerError("")
+	}
+
+	if err := s.repo.Session.RevokeAllSessions(ctx, userID); err != nil {
+		slog.Error("Failed to revoke sessions after email change", "error", err, "userID", userID)
 	}
 
 	return nil
@@ -232,9 +246,12 @@ func (s *AccountService) DeleteAccount(ctx context.Context, userID uuid.UUID, re
 		return helper.NewInternalServerError("")
 	}
 
+	if err := s.repo.Session.RevokeAllSessions(ctx, userID); err != nil {
+		slog.Error("Failed to revoke sessions after account deletion", "error", err, "userID", userID)
+	}
+
 	if s.wsHub != nil {
 		go func() {
-
 			event := websocket.Event{
 				Type:    websocket.EventUserDeleted,
 				Payload: map[string]uuid.UUID{"user_id": userID},
@@ -245,6 +262,7 @@ func (s *AccountService) DeleteAccount(ctx context.Context, userID uuid.UUID, re
 			}
 
 			s.wsHub.BroadcastToContacts(userID, event)
+			s.wsHub.DisconnectUser(userID)
 		}()
 	}
 

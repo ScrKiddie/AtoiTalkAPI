@@ -55,6 +55,9 @@ func TestBannedUserRestrictions(t *testing.T) {
 	}
 
 	normalUser, _ := createUser("normal", false, nil)
+	adminUser, _ := createUser("admin", false, nil)
+
+	testClient.User.UpdateOne(adminUser).SetRole(user.RoleAdmin).ExecX(context.Background())
 
 	bannedUser, bannedEmail := createUser("banned", true, nil)
 
@@ -65,6 +68,7 @@ func TestBannedUserRestrictions(t *testing.T) {
 	expiredBanUser, expiredBanEmail := createUser("expired", true, &expired)
 
 	normalToken, _ := helper.GenerateJWT(testConfig.JWTSecret, testConfig.JWTExp, normalUser.ID)
+	adminToken, _ := helper.GenerateJWT(testConfig.JWTSecret, testConfig.JWTExp, adminUser.ID)
 
 	t.Run("Login - Banned User Cannot Login", func(t *testing.T) {
 		reqBody := model.LoginRequest{
@@ -203,6 +207,33 @@ func TestBannedUserRestrictions(t *testing.T) {
 
 		rr := executeRequest(req)
 		assert.Equal(t, http.StatusForbidden, rr.Code)
+	})
+
+	t.Run("Ban Revokes Existing Token", func(t *testing.T) {
+
+		victim, _ := createUser("victim", false, nil)
+		victimToken, _ := helper.GenerateJWT(testConfig.JWTSecret, testConfig.JWTExp, victim.ID)
+
+		req, _ := http.NewRequest("GET", "/api/user/current", nil)
+		req.Header.Set("Authorization", "Bearer "+victimToken)
+		rr := executeRequest(req)
+		assert.Equal(t, http.StatusOK, rr.Code, "Token should be valid initially")
+
+		reqBody := model.BanUserRequest{
+			TargetUserID: victim.ID,
+			Reason:       "You are banned",
+		}
+		body, _ := json.Marshal(reqBody)
+		reqBan, _ := http.NewRequest("POST", "/api/admin/users/ban", bytes.NewBuffer(body))
+		reqBan.Header.Set("Content-Type", "application/json")
+		reqBan.Header.Set("Authorization", "Bearer "+adminToken)
+		rrBan := executeRequest(reqBan)
+		assert.Equal(t, http.StatusOK, rrBan.Code, "Admin should be able to ban user")
+
+		reqCheck, _ := http.NewRequest("GET", "/api/user/current", nil)
+		reqCheck.Header.Set("Authorization", "Bearer "+victimToken)
+		rrCheck := executeRequest(reqCheck)
+		assert.Equal(t, http.StatusUnauthorized, rrCheck.Code, "Token should be revoked immediately after ban")
 	})
 }
 

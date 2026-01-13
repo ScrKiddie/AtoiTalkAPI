@@ -2,6 +2,7 @@ package test
 
 import (
 	"AtoiTalkAPI/ent"
+	"AtoiTalkAPI/ent/user"
 	"AtoiTalkAPI/internal/helper"
 	"AtoiTalkAPI/internal/model"
 	"AtoiTalkAPI/internal/websocket"
@@ -935,6 +936,38 @@ func TestWebSocketAccountDeletion(t *testing.T) {
 	executeRequest(req)
 
 	verifyEvent(t, conn2, websocket.EventUserDeleted, u1.ID, uuid.Nil)
+}
+
+func TestWebSocketUnbanEvent(t *testing.T) {
+	clearDatabase(context.Background())
+
+	admin := createWSUser(t, "admin", "admin@test.com")
+	testClient.User.UpdateOne(admin).SetRole(user.RoleAdmin).ExecX(context.Background())
+	adminToken, _ := helper.GenerateJWT(testConfig.JWTSecret, testConfig.JWTExp, admin.ID)
+
+	user1 := createWSUser(t, "user1", "user1@test.com")
+	user2 := createWSUser(t, "user2", "user2@test.com")
+	token2, _ := helper.GenerateJWT(testConfig.JWTSecret, testConfig.JWTExp, user2.ID)
+
+	createWSPrivateChat(t, user1.ID, token2)
+
+	testClient.User.UpdateOne(user1).SetIsBanned(true).ExecX(context.Background())
+
+	server := httptest.NewServer(testRouter)
+	defer server.Close()
+	wsURL2 := "ws" + strings.TrimPrefix(server.URL, "http") + "/ws?token=" + token2
+
+	conn2, _, err := ws.DefaultDialer.Dial(wsURL2, nil)
+	assert.NoError(t, err)
+	defer conn2.Close()
+
+	time.Sleep(100 * time.Millisecond)
+
+	reqUnban, _ := http.NewRequest("POST", fmt.Sprintf("/api/admin/users/%s/unban", user1.ID), nil)
+	reqUnban.Header.Set("Authorization", "Bearer "+adminToken)
+	executeRequest(reqUnban)
+
+	verifyEvent(t, conn2, websocket.EventUserUnbanned, admin.ID, uuid.Nil)
 }
 
 func createWSUser(t *testing.T, username, email string) *ent.User {

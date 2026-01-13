@@ -15,13 +15,14 @@ const (
 	EventChatDelete EventType = "chat.delete"
 	EventTyping     EventType = "chat.typing"
 
-	EventUserOnline  EventType = "user.online"
-	EventUserOffline EventType = "user.offline"
-	EventUserUpdate  EventType = "user.update"
-	EventUserBlock   EventType = "user.block"
-	EventUserUnblock EventType = "user.unblock"
-	EventUserBanned  EventType = "user.banned"
-	EventUserDeleted EventType = "user.deleted"
+	EventUserOnline   EventType = "user.online"
+	EventUserOffline  EventType = "user.offline"
+	EventUserUpdate   EventType = "user.update"
+	EventUserBlock    EventType = "user.block"
+	EventUserUnblock  EventType = "user.unblock"
+	EventUserBanned   EventType = "user.banned"
+	EventUserUnbanned EventType = "user.unbanned"
+	EventUserDeleted  EventType = "user.deleted"
 )
 
 type Event struct {

@@ -65,6 +65,8 @@ channels:
         $ref: '#/components/messages/ServerUserUnblock'
       serverUserBanned:
         $ref: '#/components/messages/ServerUserBanned'
+      serverUserUnbanned:
+        $ref: '#/components/messages/ServerUserUnbanned'
       serverUserDeleted:
         $ref: '#/components/messages/ServerUserDeleted'
       serverTyping:
@@ -96,6 +98,7 @@ operations:
       - $ref: '#/channels/chat/messages/serverUserBlock'
       - $ref: '#/channels/chat/messages/serverUserUnblock'
       - $ref: '#/channels/chat/messages/serverUserBanned'
+      - $ref: '#/channels/chat/messages/serverUserUnbanned'
       - $ref: '#/channels/chat/messages/serverUserDeleted'
       - $ref: '#/channels/chat/messages/serverTyping'
 
@@ -610,6 +613,24 @@ components:
                     format: uuid
                   reason:
                     type: string
+
+    ServerUserUnbanned:
+      name: user.unbanned
+      title: User Unbanned
+      summary: Sent to the unbanned user and their contacts immediately
+      payload:
+        allOf:
+          - $ref: '#/components/schemas/BaseEvent'
+          - type: object
+            properties:
+              type:
+                const: user.unbanned
+              payload:
+                type: object
+                properties:
+                  user_id:
+                    type: string
+                    format: uuid
 
     ServerUserDeleted:
       name: user.deleted

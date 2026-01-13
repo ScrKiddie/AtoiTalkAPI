@@ -7,6 +7,7 @@ import (
 	"AtoiTalkAPI/internal/config"
 	"AtoiTalkAPI/internal/helper"
 	"AtoiTalkAPI/internal/model"
+	"AtoiTalkAPI/internal/repository"
 	"AtoiTalkAPI/internal/websocket"
 	"context"
 	"encoding/base64"
@@ -23,14 +24,16 @@ type AdminService struct {
 	cfg       *config.AppConfig
 	validator *validator.Validate
 	wsHub     *websocket.Hub
+	repo      *repository.Repository
 }
 
-func NewAdminService(client *ent.Client, cfg *config.AppConfig, validator *validator.Validate, wsHub *websocket.Hub) *AdminService {
+func NewAdminService(client *ent.Client, cfg *config.AppConfig, validator *validator.Validate, wsHub *websocket.Hub, repo *repository.Repository) *AdminService {
 	return &AdminService{
 		client:    client,
 		cfg:       cfg,
 		validator: validator,
 		wsHub:     wsHub,
+		repo:      repo,
 	}
 }
 
@@ -83,6 +86,10 @@ func (s *AdminService) BanUser(ctx context.Context, adminID uuid.UUID, req model
 		return helper.NewInternalServerError("")
 	}
 
+	if err := s.repo.Session.RevokeAllSessions(ctx, req.TargetUserID); err != nil {
+		slog.Error("Failed to revoke sessions for banned user", "error", err)
+	}
+
 	if s.wsHub != nil {
 		event := websocket.Event{
 			Type: websocket.EventUserBanned,
@@ -129,6 +136,22 @@ func (s *AdminService) UnbanUser(ctx context.Context, adminID uuid.UUID, targetU
 	if err != nil {
 		slog.Error("Failed to unban user", "error", err)
 		return helper.NewInternalServerError("")
+	}
+
+	if s.wsHub != nil {
+		event := websocket.Event{
+			Type: websocket.EventUserUnbanned,
+			Payload: map[string]interface{}{
+				"user_id": targetUserID,
+			},
+			Meta: &websocket.EventMeta{
+				Timestamp: time.Now().UTC().UnixMilli(),
+				SenderID:  adminID,
+			},
+		}
+
+		s.wsHub.BroadcastToUser(targetUserID, event)
+		s.wsHub.BroadcastToContacts(targetUserID, event)
 	}
 
 	return nil
