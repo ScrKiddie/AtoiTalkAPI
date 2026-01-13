@@ -75,6 +75,11 @@ func TestChangePassword(t *testing.T) {
 
 		u, _ := testClient.User.Query().Where(user.ID(userID)).Only(context.Background())
 		assert.True(t, helper.CheckPasswordHash(newPassword, *u.PasswordHash))
+
+		req2, _ := http.NewRequest("GET", "/api/user/current", nil)
+		req2.Header.Set("Authorization", "Bearer "+token)
+		rr2 := executeRequest(req2)
+		assert.Equal(t, http.StatusUnauthorized, rr2.Code, "Old token should be revoked")
 	})
 
 	t.Run("Success without Old Password (DB password is null)", func(t *testing.T) {
@@ -99,6 +104,11 @@ func TestChangePassword(t *testing.T) {
 		u, _ := testClient.User.Query().Where(user.ID(userID)).Only(context.Background())
 		assert.NotNil(t, u.PasswordHash)
 		assert.True(t, helper.CheckPasswordHash(newPassword, *u.PasswordHash))
+
+		req2, _ := http.NewRequest("GET", "/api/user/current", nil)
+		req2.Header.Set("Authorization", "Bearer "+token)
+		rr2 := executeRequest(req2)
+		assert.Equal(t, http.StatusUnauthorized, rr2.Code, "Old token should be revoked")
 	})
 
 	t.Run("Fail: Old Password Required but Missing", func(t *testing.T) {
@@ -268,6 +278,11 @@ func TestChangeEmail(t *testing.T) {
 
 		count, _ := testClient.UserIdentity.Query().Where(useridentity.UserID(userID)).Count(context.Background())
 		assert.Equal(t, 0, count)
+
+		req2, _ := http.NewRequest("GET", "/api/user/current", nil)
+		req2.Header.Set("Authorization", "Bearer "+token)
+		rr2 := executeRequest(req2)
+		assert.Equal(t, http.StatusUnauthorized, rr2.Code, "Old token should be revoked")
 	})
 
 	t.Run("Success - Change Email with Whitespace", func(t *testing.T) {
@@ -455,6 +470,11 @@ func TestDeleteAccount(t *testing.T) {
 
 		count, _ := testClient.UserIdentity.Query().Where(useridentity.UserID(userID)).Count(context.Background())
 		assert.Equal(t, 0, count)
+
+		req2, _ := http.NewRequest("GET", "/api/user/current", nil)
+		req2.Header.Set("Authorization", "Bearer "+token)
+		rr2 := executeRequest(req2)
+		assert.Equal(t, http.StatusUnauthorized, rr2.Code, "Old token should be revoked")
 	})
 
 	t.Run("Success - Delete Account (With Password)", func(t *testing.T) {
@@ -471,6 +491,11 @@ func TestDeleteAccount(t *testing.T) {
 
 		u, _ := testClient.User.Query().Where(user.ID(userID)).Only(context.Background())
 		assert.NotNil(t, u.DeletedAt)
+
+		req2, _ := http.NewRequest("GET", "/api/user/current", nil)
+		req2.Header.Set("Authorization", "Bearer "+token)
+		rr2 := executeRequest(req2)
+		assert.Equal(t, http.StatusUnauthorized, rr2.Code, "Old token should be revoked")
 	})
 
 	t.Run("Fail - Wrong Password", func(t *testing.T) {

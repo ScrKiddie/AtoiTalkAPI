@@ -26,11 +26,14 @@ func Init(appConfig *config.AppConfig, client *ent.Client, validator *validator.
 	wsHub := websocket.NewHub(client, redisAdapter)
 	go wsHub.Run()
 
-	repo := repository.NewRepository(client)
+	repo := repository.NewRepository(client, redisAdapter, appConfig)
 
 	otpService := service.NewOTPService(client, appConfig, validator, emailAdapter, rateLimiter, captchaAdapter, redisAdapter)
-	authService := service.NewAuthService(client, appConfig, validator, storageAdapter, captchaAdapter, otpService)
-	accountService := service.NewAccountService(client, appConfig, validator, wsHub, otpService)
+
+	authService := service.NewAuthService(client, appConfig, validator, storageAdapter, captchaAdapter, otpService, repo, wsHub)
+
+	accountService := service.NewAccountService(client, appConfig, validator, wsHub, otpService, redisAdapter, repo)
+
 	userService := service.NewUserService(client, repo, appConfig, validator, storageAdapter, wsHub, redisAdapter)
 	chatService := service.NewChatService(client, repo, appConfig, validator, wsHub, storageAdapter, redisAdapter)
 	privateChatService := service.NewPrivateChatService(client, appConfig, validator, wsHub, redisAdapter)
@@ -38,7 +41,8 @@ func Init(appConfig *config.AppConfig, client *ent.Client, validator *validator.
 	messageService := service.NewMessageService(client, repo, appConfig, validator, storageAdapter, wsHub)
 	mediaService := service.NewMediaService(client, appConfig, validator, storageAdapter)
 	reportService := service.NewReportService(client, appConfig, validator)
-	adminService := service.NewAdminService(client, appConfig, validator, wsHub)
+
+	adminService := service.NewAdminService(client, appConfig, validator, wsHub, repo)
 
 	authController := controller.NewAuthController(authService)
 	otpController := controller.NewOTPController(otpService)
@@ -53,7 +57,7 @@ func Init(appConfig *config.AppConfig, client *ent.Client, validator *validator.
 	adminController := controller.NewAdminController(adminService)
 	wsController := controller.NewWebSocketController(wsHub)
 
-	authMiddleware := middleware.NewAuthMiddleware(authService)
+	authMiddleware := middleware.NewAuthMiddleware(authService, repo.Session)
 
 	route := NewRoute(appConfig, chiMux, authController, otpController, userController, accountController, chatController, privateChatController, groupChatController, messageController, mediaController, wsController, reportController, adminController, authMiddleware)
 	route.Register()

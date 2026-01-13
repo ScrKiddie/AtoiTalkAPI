@@ -169,6 +169,30 @@ func TestLogin(t *testing.T) {
 	})
 }
 
+func TestLogout(t *testing.T) {
+	clearDatabase(context.Background())
+	u := createTestUser(t, "logoutuser")
+	token, _ := helper.GenerateJWT(testConfig.JWTSecret, testConfig.JWTExp, u.ID)
+
+	t.Run("Success Logout", func(t *testing.T) {
+		req, _ := http.NewRequest("POST", "/api/auth/logout", nil)
+		req.Header.Set("Authorization", "Bearer "+token)
+
+		rr := executeRequest(req)
+		assert.Equal(t, http.StatusOK, rr.Code)
+
+		key := fmt.Sprintf("blacklist:%s", token)
+		val, err := redisAdapter.Get(context.Background(), key)
+		assert.NoError(t, err, "Redis should contain the blacklisted token")
+		assert.Equal(t, "revoked", val, "Token value in Redis should be 'revoked'")
+
+		req2, _ := http.NewRequest("GET", "/api/user/current", nil)
+		req2.Header.Set("Authorization", "Bearer "+token)
+		rr2 := executeRequest(req2)
+		assert.Equal(t, http.StatusUnauthorized, rr2.Code)
+	})
+}
+
 func TestGoogleExchange(t *testing.T) {
 	clearDatabase(context.Background())
 

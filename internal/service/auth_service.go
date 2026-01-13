@@ -11,6 +11,8 @@ import (
 	"AtoiTalkAPI/internal/constant"
 	"AtoiTalkAPI/internal/helper"
 	"AtoiTalkAPI/internal/model"
+	"AtoiTalkAPI/internal/repository"
+	"AtoiTalkAPI/internal/websocket"
 	"bytes"
 	"context"
 	"fmt"
@@ -36,9 +38,11 @@ type AuthService struct {
 	storageAdapter *adapter.StorageAdapter
 	captchaAdapter *adapter.CaptchaAdapter
 	otpService     *OTPService
+	repo           *repository.Repository
+	wsHub          *websocket.Hub
 }
 
-func NewAuthService(client *ent.Client, cfg *config.AppConfig, validator *validator.Validate, storageAdapter *adapter.StorageAdapter, captchaAdapter *adapter.CaptchaAdapter, otpService *OTPService) *AuthService {
+func NewAuthService(client *ent.Client, cfg *config.AppConfig, validator *validator.Validate, storageAdapter *adapter.StorageAdapter, captchaAdapter *adapter.CaptchaAdapter, otpService *OTPService, repo *repository.Repository, wsHub *websocket.Hub) *AuthService {
 	return &AuthService{
 		client:         client,
 		cfg:            cfg,
@@ -46,7 +50,45 @@ func NewAuthService(client *ent.Client, cfg *config.AppConfig, validator *valida
 		storageAdapter: storageAdapter,
 		captchaAdapter: captchaAdapter,
 		otpService:     otpService,
+		repo:           repo,
+		wsHub:          wsHub,
 	}
+}
+
+func (s *AuthService) Logout(ctx context.Context, tokenString string) error {
+	token, _ := jwt.ParseWithClaims(tokenString, &helper.JWTClaims{}, func(token *jwt.Token) (interface{}, error) {
+		return []byte(s.cfg.JWTSecret), nil
+	})
+
+	var ttl time.Duration
+	var userID uuid.UUID
+
+	if claims, ok := token.Claims.(*helper.JWTClaims); ok {
+		userID = claims.UserID
+		if claims.ExpiresAt != nil {
+			ttl = time.Until(claims.ExpiresAt.Time)
+		}
+	}
+
+	if ttl <= 0 {
+		ttl = time.Duration(s.cfg.JWTExp) * time.Second
+	}
+
+	err := s.repo.Session.BlacklistToken(ctx, tokenString, ttl)
+	if err != nil {
+		slog.Error("Failed to blacklist token on logout", "error", err)
+		return helper.NewInternalServerError("")
+	}
+
+	if s.wsHub != nil && userID != uuid.Nil {
+		go s.wsHub.DisconnectUser(userID)
+	}
+
+	return nil
+}
+
+func (s *AuthService) RevokeAllSessions(ctx context.Context, userID uuid.UUID) error {
+	return s.repo.Session.RevokeAllSessions(ctx, userID)
 }
 
 func (s *AuthService) VerifyUser(ctx context.Context, tokenString string) (*model.UserDTO, error) {
@@ -643,6 +685,8 @@ func (s *AuthService) ResetPassword(ctx context.Context, req model.ResetPassword
 		slog.Error("Failed to commit transaction", "error", err)
 		return helper.NewInternalServerError("")
 	}
+
+	s.RevokeAllSessions(ctx, u.ID)
 
 	return nil
 }

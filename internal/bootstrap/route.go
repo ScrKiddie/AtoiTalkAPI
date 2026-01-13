@@ -94,6 +94,11 @@ func (route *Route) Register() {
 			r.Use(route.authMiddleware.VerifyToken)
 
 			r.Group(func(r chi.Router) {
+				r.Use(middleware.MaxBodySize(100 * 1024))
+				r.Post("/auth/logout", route.authController.Logout)
+			})
+
+			r.Group(func(r chi.Router) {
 				r.Use(middleware.MaxBodySize(20 * 1024 * 1024))
 				r.Post("/media/upload", route.mediaController.UploadMedia)
 			})

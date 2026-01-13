@@ -107,7 +107,7 @@ func TestMain(m *testing.M) {
 	testHub = websocket.NewHub(testClient, redisAdapter)
 	go testHub.Run()
 
-	repo := repository.NewRepository(testClient)
+	repo := repository.NewRepository(testClient, redisAdapter, testConfig)
 
 	validator := config.NewValidator()
 	httpClient := config.NewHTTPClient()
@@ -123,13 +123,13 @@ func TestMain(m *testing.M) {
 	otpService := service.NewOTPService(testClient, testConfig, validator, emailAdapter, rateLimiter, captchaAdapter, redisAdapter)
 	otpController := controller.NewOTPController(otpService)
 
-	authService := service.NewAuthService(testClient, testConfig, validator, storageAdapter, captchaAdapter, otpService)
+	authService := service.NewAuthService(testClient, testConfig, validator, storageAdapter, captchaAdapter, otpService, repo, testHub)
 	authController := controller.NewAuthController(authService)
 
 	userService := service.NewUserService(testClient, repo, testConfig, validator, storageAdapter, testHub, redisAdapter)
 	userController := controller.NewUserController(userService)
 
-	accountService := service.NewAccountService(testClient, testConfig, validator, testHub, otpService)
+	accountService := service.NewAccountService(testClient, testConfig, validator, testHub, otpService, redisAdapter, repo)
 	accountController := controller.NewAccountController(accountService)
 
 	chatService := service.NewChatService(testClient, repo, testConfig, validator, testHub, storageAdapter, redisAdapter)
@@ -149,12 +149,12 @@ func TestMain(m *testing.M) {
 	reportService := service.NewReportService(testClient, testConfig, validator)
 	reportController := controller.NewReportController(reportService)
 
-	adminService := service.NewAdminService(testClient, testConfig, validator, testHub)
+	adminService := service.NewAdminService(testClient, testConfig, validator, testHub, repo)
 	adminController := controller.NewAdminController(adminService)
 
 	wsController := controller.NewWebSocketController(testHub)
 
-	authMiddleware := middleware.NewAuthMiddleware(authService)
+	authMiddleware := middleware.NewAuthMiddleware(authService, repo.Session)
 
 	route := bootstrap.NewRoute(testConfig, testRouter, authController, otpController, userController, accountController, chatController, privateChatController, groupChatController, messageController, mediaController, wsController, reportController, adminController, authMiddleware)
 	route.Register()
