@@ -133,7 +133,7 @@ func (s *GroupChatService) UpdateMemberRole(ctx context.Context, requestorID uui
 				WithSender().
 				Only(context.Background())
 
-			msgResponse := helper.ToMessageResponse(fullMsg, s.cfg.StorageMode, s.cfg.AppURL, s.cfg.StorageCDNURL, s.cfg.StorageProfile, s.cfg.StorageAttachment, nil)
+			msgResponse := helper.ToMessageResponse(fullMsg, s.storageAdapter, nil)
 
 			s.wsHub.BroadcastToChat(gc.ChatID, websocket.Event{
 				Type:    websocket.EventMessageNew,
@@ -267,7 +267,7 @@ func (s *GroupChatService) TransferOwnership(ctx context.Context, requestorID uu
 				WithSender().
 				Only(context.Background())
 
-			msgResponse := helper.ToMessageResponse(fullMsg, s.cfg.StorageMode, s.cfg.AppURL, s.cfg.StorageCDNURL, s.cfg.StorageProfile, s.cfg.StorageAttachment, nil)
+			msgResponse := helper.ToMessageResponse(fullMsg, s.storageAdapter, nil)
 
 			s.wsHub.BroadcastToChat(gc.ChatID, websocket.Event{
 				Type:    websocket.EventMessageNew,

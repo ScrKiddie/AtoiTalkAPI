@@ -28,6 +28,8 @@ const (
 	FieldFileSize = "file_size"
 	// FieldMimeType holds the string denoting the mime_type field in the database.
 	FieldMimeType = "mime_type"
+	// FieldCategory holds the string denoting the category field in the database.
+	FieldCategory = "category"
 	// FieldStatus holds the string denoting the status field in the database.
 	FieldStatus = "status"
 	// FieldMessageID holds the string denoting the message_id field in the database.
@@ -90,6 +92,7 @@ var Columns = []string{
 	FieldOriginalName,
 	FieldFileSize,
 	FieldMimeType,
+	FieldCategory,
 	FieldStatus,
 	FieldMessageID,
 	FieldUploadedByID,
@@ -129,6 +132,33 @@ var (
 	// DefaultID holds the default value on creation for the "id" field.
 	DefaultID func() uuid.UUID
 )
+
+// Category defines the type for the "category" enum field.
+type Category string
+
+// CategoryMessageAttachment is the default value of the Category enum.
+const DefaultCategory = CategoryMessageAttachment
+
+// Category values.
+const (
+	CategoryUserAvatar        Category = "user_avatar"
+	CategoryGroupAvatar       Category = "group_avatar"
+	CategoryMessageAttachment Category = "message_attachment"
+)
+
+func (c Category) String() string {
+	return string(c)
+}
+
+// CategoryValidator is a validator for the "category" field enum values. It is called by the builders before save.
+func CategoryValidator(c Category) error {
+	switch c {
+	case CategoryUserAvatar, CategoryGroupAvatar, CategoryMessageAttachment:
+		return nil
+	default:
+		return fmt.Errorf("media: invalid enum value for category field: %q", c)
+	}
+}
 
 // Status defines the type for the "status" enum field.
 type Status string
@@ -193,6 +223,11 @@ func ByFileSize(opts ...sql.OrderTermOption) OrderOption {
 // ByMimeType orders the results by the mime_type field.
 func ByMimeType(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldMimeType, opts...).ToFunc()
+}
+
+// ByCategory orders the results by the category field.
+func ByCategory(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldCategory, opts...).ToFunc()
 }
 
 // ByStatus orders the results by the status field.

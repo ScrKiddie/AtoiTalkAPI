@@ -92,7 +92,7 @@ func (s *ChatService) GetChatByID(ctx context.Context, userID, chatID uuid.UUID)
 		onlineMap[otherUserID] = isOnline
 	}
 
-	resp := helper.MapChatToResponse(userID, c, blockedMap, onlineMap, s.cfg.StorageMode, s.cfg.AppURL, s.cfg.StorageCDNURL, s.cfg.StorageProfile, s.cfg.StorageAttachment)
+	resp := helper.MapChatToResponse(userID, c, blockedMap, onlineMap, s.storageAdapter)
 
 	if resp != nil {
 
@@ -228,7 +228,7 @@ func (s *ChatService) GetChats(ctx context.Context, userID uuid.UUID, req model.
 
 	response := make([]model.ChatListResponse, 0)
 	for _, c := range chats {
-		resp := helper.MapChatToResponse(userID, c, blockedMap, onlineMap, s.cfg.StorageMode, s.cfg.AppURL, s.cfg.StorageCDNURL, s.cfg.StorageProfile, s.cfg.StorageAttachment)
+		resp := helper.MapChatToResponse(userID, c, blockedMap, onlineMap, s.storageAdapter)
 		if resp != nil {
 
 			if resp.LastMessage != nil && resp.LastMessage.ActionData != nil {

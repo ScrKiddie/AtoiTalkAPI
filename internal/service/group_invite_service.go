@@ -99,7 +99,7 @@ func (s *GroupChatService) JoinGroupByInvite(ctx context.Context, userID uuid.UU
 		go func() {
 			avatarURL := ""
 			if gc.Edges.Avatar != nil {
-				avatarURL = helper.BuildImageURL(s.cfg.StorageMode, s.cfg.AppURL, s.cfg.StorageCDNURL, s.cfg.StorageProfile, gc.Edges.Avatar.FileName)
+				avatarURL = s.storageAdapter.GetPublicURL(gc.Edges.Avatar.FileName)
 			}
 
 			fullMsg, _ := s.client.Message.Query().
@@ -107,7 +107,7 @@ func (s *GroupChatService) JoinGroupByInvite(ctx context.Context, userID uuid.UU
 				WithSender().
 				Only(context.Background())
 
-			msgResponse := helper.ToMessageResponse(fullMsg, s.cfg.StorageMode, s.cfg.AppURL, s.cfg.StorageCDNURL, s.cfg.StorageProfile, s.cfg.StorageAttachment, nil)
+			msgResponse := helper.ToMessageResponse(fullMsg, s.storageAdapter, nil)
 
 			chatPayload := model.ChatListResponse{
 				ID:          gc.Edges.Chat.ID,
@@ -175,7 +175,7 @@ func (s *GroupChatService) GetGroupByInviteCode(ctx context.Context, inviteCode 
 
 	avatarURL := ""
 	if gc.Edges.Avatar != nil {
-		avatarURL = helper.BuildImageURL(s.cfg.StorageMode, s.cfg.AppURL, s.cfg.StorageCDNURL, s.cfg.StorageProfile, gc.Edges.Avatar.FileName)
+		avatarURL = s.storageAdapter.GetPublicURL(gc.Edges.Avatar.FileName)
 	}
 
 	description := ""

@@ -411,6 +411,26 @@ func MimeTypeContainsFold(v string) predicate.Media {
 	return predicate.Media(sql.FieldContainsFold(FieldMimeType, v))
 }
 
+// CategoryEQ applies the EQ predicate on the "category" field.
+func CategoryEQ(v Category) predicate.Media {
+	return predicate.Media(sql.FieldEQ(FieldCategory, v))
+}
+
+// CategoryNEQ applies the NEQ predicate on the "category" field.
+func CategoryNEQ(v Category) predicate.Media {
+	return predicate.Media(sql.FieldNEQ(FieldCategory, v))
+}
+
+// CategoryIn applies the In predicate on the "category" field.
+func CategoryIn(vs ...Category) predicate.Media {
+	return predicate.Media(sql.FieldIn(FieldCategory, vs...))
+}
+
+// CategoryNotIn applies the NotIn predicate on the "category" field.
+func CategoryNotIn(vs ...Category) predicate.Media {
+	return predicate.Media(sql.FieldNotIn(FieldCategory, vs...))
+}
+
 // StatusEQ applies the EQ predicate on the "status" field.
 func StatusEQ(v Status) predicate.Media {
 	return predicate.Media(sql.FieldEQ(FieldStatus, v))

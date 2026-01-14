@@ -2,6 +2,8 @@ package service
 
 import (
 	"AtoiTalkAPI/ent"
+	"AtoiTalkAPI/ent/chat"
+	"AtoiTalkAPI/ent/groupmember"
 	"AtoiTalkAPI/ent/media"
 	"AtoiTalkAPI/internal/adapter"
 	"AtoiTalkAPI/internal/config"
@@ -9,7 +11,7 @@ import (
 	"AtoiTalkAPI/internal/model"
 	"context"
 	"log/slog"
-	"path/filepath"
+	"time"
 
 	"github.com/go-playground/validator/v10"
 	"github.com/google/uuid"
@@ -58,6 +60,7 @@ func (s *MediaService) UploadMedia(ctx context.Context, userID uuid.UUID, req mo
 		SetFileSize(req.File.Size).
 		SetMimeType(contentType).
 		SetStatus(media.StatusActive).
+		SetCategory(media.CategoryMessageAttachment).
 		SetUploaderID(userID).
 		Save(ctx)
 
@@ -66,8 +69,9 @@ func (s *MediaService) UploadMedia(ctx context.Context, userID uuid.UUID, req mo
 		return nil, helper.NewInternalServerError("")
 	}
 
-	filePath := filepath.Join(s.cfg.StorageAttachment, finalFileName)
-	if err := s.storageAdapter.StoreFromReader(file, contentType, filePath); err != nil {
+	filePath := finalFileName
+
+	if err := s.storageAdapter.StoreFromReader(file, contentType, filePath, false); err != nil {
 		slog.Error("Failed to upload file to storage", "error", err)
 
 		if delErr := s.client.Media.DeleteOneID(mediaRecord.ID).Exec(context.Background()); delErr != nil {
@@ -77,7 +81,12 @@ func (s *MediaService) UploadMedia(ctx context.Context, userID uuid.UUID, req mo
 		return nil, helper.NewInternalServerError("")
 	}
 
-	mediaURL := helper.BuildImageURL(s.cfg.StorageMode, s.cfg.AppURL, s.cfg.StorageCDNURL, s.cfg.StorageAttachment, finalFileName)
+	mediaURL, err := s.storageAdapter.GetPresignedURL(finalFileName, 15*time.Minute)
+	if err != nil {
+		slog.Error("Failed to generate presigned URL", "error", err)
+
+		mediaURL = ""
+	}
 
 	return &model.MediaDTO{
 		ID:           mediaRecord.ID,
@@ -86,5 +95,60 @@ func (s *MediaService) UploadMedia(ctx context.Context, userID uuid.UUID, req mo
 		FileSize:     mediaRecord.FileSize,
 		MimeType:     mediaRecord.MimeType,
 		URL:          mediaURL,
+	}, nil
+}
+
+func (s *MediaService) GetMediaURL(ctx context.Context, userID, mediaID uuid.UUID) (*model.MediaURLResponse, error) {
+	m, err := s.client.Media.Query().
+		Where(media.ID(mediaID)).
+		WithMessage(func(q *ent.MessageQuery) {
+			q.WithChat(func(cq *ent.ChatQuery) {
+				cq.WithPrivateChat()
+				cq.WithGroupChat()
+			})
+		}).
+		Only(ctx)
+
+	if err != nil {
+		if ent.IsNotFound(err) {
+			return nil, helper.NewNotFoundError("Media not found")
+		}
+		slog.Error("Failed to query media", "error", err)
+		return nil, helper.NewInternalServerError("")
+	}
+
+	if m.Edges.Message == nil || m.Edges.Message.Edges.Chat == nil {
+		return nil, helper.NewForbiddenError("Media is not associated with a chat")
+	}
+
+	c := m.Edges.Message.Edges.Chat
+	isMember := false
+	if c.Type == chat.TypePrivate && c.Edges.PrivateChat != nil {
+		if c.Edges.PrivateChat.User1ID == userID || c.Edges.PrivateChat.User2ID == userID {
+			isMember = true
+		}
+	} else if c.Type == chat.TypeGroup && c.Edges.GroupChat != nil {
+		exists, err := s.client.GroupMember.Query().
+			Where(
+				groupmember.GroupChatID(c.Edges.GroupChat.ID),
+				groupmember.UserID(userID),
+			).Exist(ctx)
+		if err == nil && exists {
+			isMember = true
+		}
+	}
+
+	if !isMember {
+		return nil, helper.NewForbiddenError("You do not have access to this media")
+	}
+
+	url, err := s.storageAdapter.GetPresignedURL(m.FileName, 15*time.Minute)
+	if err != nil {
+		slog.Error("Failed to generate presigned URL for refresh", "error", err)
+		return nil, helper.NewInternalServerError("")
+	}
+
+	return &model.MediaURLResponse{
+		URL: url,
 	}, nil
 }

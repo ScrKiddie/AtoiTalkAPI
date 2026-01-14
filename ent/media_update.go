@@ -103,6 +103,20 @@ func (_u *MediaUpdate) SetNillableMimeType(v *string) *MediaUpdate {
 	return _u
 }
 
+// SetCategory sets the "category" field.
+func (_u *MediaUpdate) SetCategory(v media.Category) *MediaUpdate {
+	_u.mutation.SetCategory(v)
+	return _u
+}
+
+// SetNillableCategory sets the "category" field if the given value is not nil.
+func (_u *MediaUpdate) SetNillableCategory(v *media.Category) *MediaUpdate {
+	if v != nil {
+		_u.SetCategory(*v)
+	}
+	return _u
+}
+
 // SetStatus sets the "status" field.
 func (_u *MediaUpdate) SetStatus(v media.Status) *MediaUpdate {
 	_u.mutation.SetStatus(v)
@@ -328,6 +342,11 @@ func (_u *MediaUpdate) check() error {
 			return &ValidationError{Name: "mime_type", err: fmt.Errorf(`ent: validator failed for field "Media.mime_type": %w`, err)}
 		}
 	}
+	if v, ok := _u.mutation.Category(); ok {
+		if err := media.CategoryValidator(v); err != nil {
+			return &ValidationError{Name: "category", err: fmt.Errorf(`ent: validator failed for field "Media.category": %w`, err)}
+		}
+	}
 	if v, ok := _u.mutation.Status(); ok {
 		if err := media.StatusValidator(v); err != nil {
 			return &ValidationError{Name: "status", err: fmt.Errorf(`ent: validator failed for field "Media.status": %w`, err)}
@@ -374,6 +393,9 @@ func (_u *MediaUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	}
 	if value, ok := _u.mutation.MimeType(); ok {
 		_spec.SetField(media.FieldMimeType, field.TypeString, value)
+	}
+	if value, ok := _u.mutation.Category(); ok {
+		_spec.SetField(media.FieldCategory, field.TypeEnum, value)
 	}
 	if value, ok := _u.mutation.Status(); ok {
 		_spec.SetField(media.FieldStatus, field.TypeEnum, value)
@@ -630,6 +652,20 @@ func (_u *MediaUpdateOne) SetNillableMimeType(v *string) *MediaUpdateOne {
 	return _u
 }
 
+// SetCategory sets the "category" field.
+func (_u *MediaUpdateOne) SetCategory(v media.Category) *MediaUpdateOne {
+	_u.mutation.SetCategory(v)
+	return _u
+}
+
+// SetNillableCategory sets the "category" field if the given value is not nil.
+func (_u *MediaUpdateOne) SetNillableCategory(v *media.Category) *MediaUpdateOne {
+	if v != nil {
+		_u.SetCategory(*v)
+	}
+	return _u
+}
+
 // SetStatus sets the "status" field.
 func (_u *MediaUpdateOne) SetStatus(v media.Status) *MediaUpdateOne {
 	_u.mutation.SetStatus(v)
@@ -868,6 +904,11 @@ func (_u *MediaUpdateOne) check() error {
 			return &ValidationError{Name: "mime_type", err: fmt.Errorf(`ent: validator failed for field "Media.mime_type": %w`, err)}
 		}
 	}
+	if v, ok := _u.mutation.Category(); ok {
+		if err := media.CategoryValidator(v); err != nil {
+			return &ValidationError{Name: "category", err: fmt.Errorf(`ent: validator failed for field "Media.category": %w`, err)}
+		}
+	}
 	if v, ok := _u.mutation.Status(); ok {
 		if err := media.StatusValidator(v); err != nil {
 			return &ValidationError{Name: "status", err: fmt.Errorf(`ent: validator failed for field "Media.status": %w`, err)}
@@ -931,6 +972,9 @@ func (_u *MediaUpdateOne) sqlSave(ctx context.Context) (_node *Media, err error)
 	}
 	if value, ok := _u.mutation.MimeType(); ok {
 		_spec.SetField(media.FieldMimeType, field.TypeString, value)
+	}
+	if value, ok := _u.mutation.Category(); ok {
+		_spec.SetField(media.FieldCategory, field.TypeEnum, value)
 	}
 	if value, ok := _u.mutation.Status(); ok {
 		_spec.SetField(media.FieldStatus, field.TypeEnum, value)

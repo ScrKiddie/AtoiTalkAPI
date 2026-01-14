@@ -21,20 +21,22 @@ import (
 )
 
 type PrivateChatService struct {
-	client       *ent.Client
-	cfg          *config.AppConfig
-	validator    *validator.Validate
-	wsHub        *websocket.Hub
-	redisAdapter *adapter.RedisAdapter
+	client         *ent.Client
+	cfg            *config.AppConfig
+	validator      *validator.Validate
+	wsHub          *websocket.Hub
+	redisAdapter   *adapter.RedisAdapter
+	storageAdapter *adapter.StorageAdapter
 }
 
-func NewPrivateChatService(client *ent.Client, cfg *config.AppConfig, validator *validator.Validate, wsHub *websocket.Hub, redisAdapter *adapter.RedisAdapter) *PrivateChatService {
+func NewPrivateChatService(client *ent.Client, cfg *config.AppConfig, validator *validator.Validate, wsHub *websocket.Hub, redisAdapter *adapter.RedisAdapter, storageAdapter *adapter.StorageAdapter) *PrivateChatService {
 	return &PrivateChatService{
-		client:       client,
-		cfg:          cfg,
-		validator:    validator,
-		wsHub:        wsHub,
-		redisAdapter: redisAdapter,
+		client:         client,
+		cfg:            cfg,
+		validator:      validator,
+		wsHub:          wsHub,
+		redisAdapter:   redisAdapter,
+		storageAdapter: storageAdapter,
 	}
 }
 
@@ -67,9 +69,13 @@ func (s *PrivateChatService) CreatePrivateChat(ctx context.Context, userID uuid.
 	for _, u := range users {
 		if u.ID == userID {
 			creator = u
-		} else {
+		} else if u.ID == req.TargetUserID {
 			targetUser = u
 		}
+	}
+
+	if creator == nil || targetUser == nil {
+		return nil, helper.NewNotFoundError("User not found")
 	}
 
 	if targetUser.IsBanned {
@@ -170,7 +176,7 @@ func (s *PrivateChatService) CreatePrivateChat(ctx context.Context, userID uuid.
 		go func() {
 			creatorAvatarURL := ""
 			if creator.Edges.Avatar != nil {
-				creatorAvatarURL = helper.BuildImageURL(s.cfg.StorageMode, s.cfg.AppURL, s.cfg.StorageCDNURL, s.cfg.StorageProfile, creator.Edges.Avatar.FileName)
+				creatorAvatarURL = s.storageAdapter.GetPublicURL(creator.Edges.Avatar.FileName)
 			}
 
 			creatorName := ""
@@ -198,7 +204,7 @@ func (s *PrivateChatService) CreatePrivateChat(ctx context.Context, userID uuid.
 
 			targetAvatarURL := ""
 			if targetUser.Edges.Avatar != nil {
-				targetAvatarURL = helper.BuildImageURL(s.cfg.StorageMode, s.cfg.AppURL, s.cfg.StorageCDNURL, s.cfg.StorageProfile, targetUser.Edges.Avatar.FileName)
+				targetAvatarURL = s.storageAdapter.GetPublicURL(targetUser.Edges.Avatar.FileName)
 			}
 
 			targetName := ""

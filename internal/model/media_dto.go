@@ -18,3 +18,7 @@ type MediaDTO struct {
 	MimeType     string    `json:"mime_type"`
 	URL          string    `json:"url"`
 }
+
+type MediaURLResponse struct {
+	URL string `json:"url"`
+}

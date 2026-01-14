@@ -55,12 +55,8 @@ func TestRateLimit_Public(t *testing.T) {
 }
 
 func TestRateLimit_Authenticated(t *testing.T) {
-	if testConfig.StorageMode != "local" {
-		t.Skip("Skipping Authenticated Rate Limit test: Storage mode is not local")
-	}
 
 	clearDatabase(context.Background())
-	cleanupStorage(true)
 
 	u := createTestUser(t, "ratelimituser")
 	token, _ := helper.GenerateJWT(testConfig.JWTSecret, testConfig.JWTExp, u.ID)

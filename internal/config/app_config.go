@@ -36,16 +36,13 @@ type AppConfig struct {
 	JWTSecret string
 	JWTExp    int
 
-	StorageCDNURL     string
-	StorageMode       string
-	StorageAttachment string
-	StorageProfile    string
-
-	S3Bucket    string
-	S3Region    string
-	S3AccessKey string
-	S3SecretKey string
-	S3Endpoint  string
+	S3BucketPublic  string
+	S3BucketPrivate string
+	S3Region        string
+	S3AccessKey     string
+	S3SecretKey     string
+	S3Endpoint      string
+	S3PublicDomain  string
 
 	SMTPHost      string
 	SMTPPort      int
@@ -93,16 +90,13 @@ func LoadAppConfig() *AppConfig {
 		JWTSecret: mustGetEnv("JWT_SECRET"),
 		JWTExp:    mustGetEnvAsInt("JWT_EXP"),
 
-		StorageCDNURL:     getEnv("STORAGE_CDN_URL", ""),
-		StorageMode:       mustGetEnv("STORAGE_MODE"),
-		StorageAttachment: mustGetEnv("STORAGE_ATTACHMENT"),
-		StorageProfile:    mustGetEnv("STORAGE_PROFILE"),
-
-		S3Bucket:    getEnv("S3_BUCKET", ""),
-		S3Region:    getEnv("S3_REGION", ""),
-		S3AccessKey: getEnv("S3_ACCESS_KEY", ""),
-		S3SecretKey: getEnv("S3_SECRET_KEY", ""),
-		S3Endpoint:  getEnv("S3_ENDPOINT", ""),
+		S3BucketPublic:  mustGetEnv("S3_BUCKET_PUBLIC"),
+		S3BucketPrivate: mustGetEnv("S3_BUCKET_PRIVATE"),
+		S3Region:        getEnv("S3_REGION", ""),
+		S3AccessKey:     getEnv("S3_ACCESS_KEY", ""),
+		S3SecretKey:     getEnv("S3_SECRET_KEY", ""),
+		S3Endpoint:      getEnv("S3_ENDPOINT", ""),
+		S3PublicDomain:  getEnv("S3_PUBLIC_DOMAIN", ""),
 
 		SMTPHost:      getEnv("SMTP_HOST", ""),
 		SMTPPort:      getEnvAsInt("SMTP_PORT", 587),

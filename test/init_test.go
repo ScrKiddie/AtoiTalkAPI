@@ -23,6 +23,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/go-chi/chi/v5"
 	"github.com/joho/godotenv"
@@ -35,6 +36,7 @@ var (
 	testRouter   *chi.Mux
 	testHub      *websocket.Hub
 	redisAdapter *adapter.RedisAdapter
+	s3Client     *s3.Client
 )
 
 const (
@@ -87,15 +89,18 @@ func TestMain(m *testing.M) {
 		os.Setenv("TURNSTILE_SECRET_KEY", "1x0000000000000000000000000000000AA")
 	}
 
-	os.Setenv("STORAGE_MODE", "local")
-	os.Setenv("STORAGE_PROFILE", "test_profiles")
-	os.Setenv("STORAGE_ATTACHMENT", "test_attachments")
+	os.Setenv("S3_BUCKET_PUBLIC", "test-public-bucket")
+	os.Setenv("S3_BUCKET_PRIVATE", "test-private-bucket")
+	os.Setenv("S3_REGION", "us-east-1")
+	os.Setenv("S3_ACCESS_KEY", "test")
+	os.Setenv("S3_SECRET_KEY", "test")
+	os.Setenv("S3_ENDPOINT", "http://localhost:9090")
+
+	os.Setenv("S3_PUBLIC_DOMAIN", "http://localhost:9090/test-public-bucket")
 
 	os.Setenv("SMTP_ASYNC", "false")
 
 	testConfig = config.LoadAppConfig()
-
-	cleanupStorage(true)
 
 	testClient = config.InitEnt(testConfig)
 
@@ -115,7 +120,9 @@ func TestMain(m *testing.M) {
 
 	emailAdapter := adapter.NewEmailAdapter(testConfig)
 
-	s3Client := &s3.Client{}
+	s3Client = config.NewS3Client(testConfig)
+	initS3Buckets(s3Client, testConfig.S3BucketPublic, testConfig.S3BucketPrivate)
+
 	captchaAdapter := adapter.NewCaptchaAdapter(testConfig, httpClient)
 	storageAdapter := adapter.NewStorageAdapter(testConfig, s3Client, httpClient)
 
@@ -132,7 +139,7 @@ func TestMain(m *testing.M) {
 	accountController := controller.NewAccountController(accountService)
 
 	chatService := service.NewChatService(testClient, repo, testConfig, validator, testHub, storageAdapter, redisAdapter)
-	privateChatService := service.NewPrivateChatService(testClient, testConfig, validator, testHub, redisAdapter)
+	privateChatService := service.NewPrivateChatService(testClient, testConfig, validator, testHub, redisAdapter, storageAdapter)
 	groupChatService := service.NewGroupChatService(testClient, repo, testConfig, validator, testHub, storageAdapter, redisAdapter)
 
 	chatController := controller.NewChatController(chatService)
@@ -145,10 +152,10 @@ func TestMain(m *testing.M) {
 	mediaService := service.NewMediaService(testClient, testConfig, validator, storageAdapter)
 	mediaController := controller.NewMediaController(mediaService)
 
-	reportService := service.NewReportService(testClient, testConfig, validator)
+	reportService := service.NewReportService(testClient, testConfig, validator, storageAdapter)
 	reportController := controller.NewReportController(reportService)
 
-	adminService := service.NewAdminService(testClient, testConfig, validator, testHub, repo)
+	adminService := service.NewAdminService(testClient, testConfig, validator, testHub, repo, storageAdapter)
 	adminController := controller.NewAdminController(adminService)
 
 	wsController := controller.NewWebSocketController(testHub)
@@ -161,9 +168,21 @@ func TestMain(m *testing.M) {
 
 	code := m.Run()
 
-	cleanupStorage(false)
 	testClient.Close()
 	os.Exit(code)
+}
+
+func initS3Buckets(client *s3.Client, buckets ...string) {
+	ctx := context.Background()
+	for _, bucket := range buckets {
+		_, err := client.CreateBucket(ctx, &s3.CreateBucketInput{
+			Bucket: aws.String(bucket),
+		})
+		if err != nil {
+
+			log.Printf("Warning: Failed to create bucket %s: %v", bucket, err)
+		}
+	}
 }
 
 func executeRequest(req *http.Request) *httptest.ResponseRecorder {
@@ -186,23 +205,6 @@ func clearDatabase(ctx context.Context) {
 
 	if redisAdapter != nil {
 		redisAdapter.Client().FlushDB(ctx)
-	}
-}
-
-func cleanupStorage(create bool) {
-
-	_, b, _, _ := runtime.Caller(0)
-	testDir := filepath.Dir(b)
-
-	profilePath := filepath.Join(testDir, testConfig.StorageProfile)
-	attachmentPath := filepath.Join(testDir, testConfig.StorageAttachment)
-
-	os.RemoveAll(profilePath)
-	os.RemoveAll(attachmentPath)
-
-	if create {
-		os.MkdirAll(profilePath, 0755)
-		os.MkdirAll(attachmentPath, 0755)
 	}
 }
 

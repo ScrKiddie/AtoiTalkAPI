@@ -6,7 +6,7 @@ import (
 	"time"
 )
 
-func ToMessageResponse(msg *ent.Message, storageMode, appURL, cdnURL, storageProfile, storageAttachment string, hiddenAt *time.Time) *model.MessageResponse {
+func ToMessageResponse(msg *ent.Message, urlGen URLGenerator, hiddenAt *time.Time) *model.MessageResponse {
 	if msg == nil {
 		return nil
 	}
@@ -33,13 +33,15 @@ func ToMessageResponse(msg *ent.Message, storageMode, appURL, cdnURL, storagePro
 			actionData = msg.ActionData
 		}
 		for _, att := range msg.Edges.Attachments {
+
+			url, _ := urlGen.GetPresignedURL(att.FileName, 15*time.Minute)
 			attachments = append(attachments, model.MediaDTO{
 				ID:           att.ID,
 				FileName:     att.FileName,
 				OriginalName: att.OriginalName,
 				FileSize:     att.FileSize,
 				MimeType:     att.MimeType,
-				URL:          BuildImageURL(storageMode, appURL, cdnURL, storageAttachment, att.FileName),
+				URL:          url,
 			})
 		}
 	}
@@ -52,7 +54,7 @@ func ToMessageResponse(msg *ent.Message, storageMode, appURL, cdnURL, storagePro
 			senderName = *msg.Edges.Sender.FullName
 		}
 		if msg.Edges.Sender.Edges.Avatar != nil {
-			senderAvatar = BuildImageURL(storageMode, appURL, cdnURL, storageProfile, msg.Edges.Sender.Edges.Avatar.FileName)
+			senderAvatar = urlGen.GetPublicURL(msg.Edges.Sender.Edges.Avatar.FileName)
 		}
 	}
 

@@ -8,7 +8,7 @@ import (
 	"github.com/google/uuid"
 )
 
-func ToGroupMemberDTO(m *ent.GroupMember, onlineMap map[uuid.UUID]bool, storageMode, appURL, cdnURL, storageProfile string) model.GroupMemberDTO {
+func ToGroupMemberDTO(m *ent.GroupMember, onlineMap map[uuid.UUID]bool, urlGen URLGenerator) model.GroupMemberDTO {
 	if m == nil || m.Edges.User == nil {
 		return model.GroupMemberDTO{}
 	}
@@ -16,7 +16,7 @@ func ToGroupMemberDTO(m *ent.GroupMember, onlineMap map[uuid.UUID]bool, storageM
 	user := m.Edges.User
 	avatarURL := ""
 	if user.Edges.Avatar != nil {
-		avatarURL = BuildImageURL(storageMode, appURL, cdnURL, storageProfile, user.Edges.Avatar.FileName)
+		avatarURL = urlGen.GetPublicURL(user.Edges.Avatar.FileName)
 	}
 
 	fullName := ""

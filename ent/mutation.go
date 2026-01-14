@@ -2854,6 +2854,7 @@ type MediaMutation struct {
 	file_size           *int64
 	addfile_size        *int64
 	mime_type           *string
+	category            *media.Category
 	status              *media.Status
 	clearedFields       map[string]struct{}
 	message             *uuid.UUID
@@ -3212,6 +3213,42 @@ func (m *MediaMutation) ResetMimeType() {
 	m.mime_type = nil
 }
 
+// SetCategory sets the "category" field.
+func (m *MediaMutation) SetCategory(value media.Category) {
+	m.category = &value
+}
+
+// Category returns the value of the "category" field in the mutation.
+func (m *MediaMutation) Category() (r media.Category, exists bool) {
+	v := m.category
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCategory returns the old "category" field's value of the Media entity.
+// If the Media object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *MediaMutation) OldCategory(ctx context.Context) (v media.Category, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCategory is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCategory requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCategory: %w", err)
+	}
+	return oldValue.Category, nil
+}
+
+// ResetCategory resets all changes to the "category" field.
+func (m *MediaMutation) ResetCategory() {
+	m.category = nil
+}
+
 // SetStatus sets the "status" field.
 func (m *MediaMutation) SetStatus(value media.Status) {
 	m.status = &value
@@ -3566,7 +3603,7 @@ func (m *MediaMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *MediaMutation) Fields() []string {
-	fields := make([]string, 0, 9)
+	fields := make([]string, 0, 10)
 	if m.created_at != nil {
 		fields = append(fields, media.FieldCreatedAt)
 	}
@@ -3584,6 +3621,9 @@ func (m *MediaMutation) Fields() []string {
 	}
 	if m.mime_type != nil {
 		fields = append(fields, media.FieldMimeType)
+	}
+	if m.category != nil {
+		fields = append(fields, media.FieldCategory)
 	}
 	if m.status != nil {
 		fields = append(fields, media.FieldStatus)
@@ -3614,6 +3654,8 @@ func (m *MediaMutation) Field(name string) (ent.Value, bool) {
 		return m.FileSize()
 	case media.FieldMimeType:
 		return m.MimeType()
+	case media.FieldCategory:
+		return m.Category()
 	case media.FieldStatus:
 		return m.Status()
 	case media.FieldMessageID:
@@ -3641,6 +3683,8 @@ func (m *MediaMutation) OldField(ctx context.Context, name string) (ent.Value, e
 		return m.OldFileSize(ctx)
 	case media.FieldMimeType:
 		return m.OldMimeType(ctx)
+	case media.FieldCategory:
+		return m.OldCategory(ctx)
 	case media.FieldStatus:
 		return m.OldStatus(ctx)
 	case media.FieldMessageID:
@@ -3697,6 +3741,13 @@ func (m *MediaMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetMimeType(v)
+		return nil
+	case media.FieldCategory:
+		v, ok := value.(media.Category)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCategory(v)
 		return nil
 	case media.FieldStatus:
 		v, ok := value.(media.Status)
@@ -3809,6 +3860,9 @@ func (m *MediaMutation) ResetField(name string) error {
 		return nil
 	case media.FieldMimeType:
 		m.ResetMimeType()
+		return nil
+	case media.FieldCategory:
+		m.ResetCategory()
 		return nil
 	case media.FieldStatus:
 		m.ResetStatus()

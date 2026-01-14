@@ -258,7 +258,7 @@ func TestReportSystem(t *testing.T) {
 
 	t.Run("Report Message - Success with Snapshot", func(t *testing.T) {
 		clearDatabase(context.Background())
-		cleanupStorage(true)
+
 		reporter := createUser("reporter1")
 		offender := createUser("offender1")
 		token, _ := helper.GenerateJWT(testConfig.JWTSecret, testConfig.JWTExp, reporter.ID)
@@ -310,7 +310,7 @@ func TestReportSystem(t *testing.T) {
 
 	t.Run("Report User - Success with Snapshot", func(t *testing.T) {
 		clearDatabase(context.Background())
-		cleanupStorage(true)
+
 		reporter := createUser("reporter2")
 		offender := createUser("offender2")
 		token, _ := helper.GenerateJWT(testConfig.JWTSecret, testConfig.JWTExp, reporter.ID)
@@ -350,7 +350,7 @@ func TestReportSystem(t *testing.T) {
 
 	t.Run("Report Group - Success", func(t *testing.T) {
 		clearDatabase(context.Background())
-		cleanupStorage(true)
+
 		reporter := createUser("reporter3")
 		offender := createUser("offender3")
 		token, _ := helper.GenerateJWT(testConfig.JWTSecret, testConfig.JWTExp, reporter.ID)
@@ -384,7 +384,7 @@ func TestReportSystem(t *testing.T) {
 
 	t.Run("Report Group - Fail Not Member", func(t *testing.T) {
 		clearDatabase(context.Background())
-		cleanupStorage(true)
+
 		reporter := createUser("reporter4")
 		offender := createUser("offender4")
 		token, _ := helper.GenerateJWT(testConfig.JWTSecret, testConfig.JWTExp, reporter.ID)
@@ -408,7 +408,7 @@ func TestReportSystem(t *testing.T) {
 
 	t.Run("Evidence Integrity - Delete Message After Report", func(t *testing.T) {
 		clearDatabase(context.Background())
-		cleanupStorage(true)
+
 		reporter := createUser("reporter5")
 		offender := createUser("offender5")
 		token, _ := helper.GenerateJWT(testConfig.JWTSecret, testConfig.JWTExp, reporter.ID)

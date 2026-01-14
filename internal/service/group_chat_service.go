@@ -19,7 +19,6 @@ import (
 	"fmt"
 	"log/slog"
 	"mime/multipart"
-	"path/filepath"
 	"strings"
 	"time"
 
@@ -131,7 +130,7 @@ func (s *GroupChatService) CreateGroupChat(ctx context.Context, creatorID uuid.U
 		}
 
 		fileName := helper.GenerateUniqueFileName(req.Avatar.Filename)
-		filePath := filepath.Join(s.cfg.StorageProfile, fileName)
+		filePath := fileName
 
 		fileUploadPath = filePath
 		fileContentType = contentType
@@ -142,6 +141,7 @@ func (s *GroupChatService) CreateGroupChat(ctx context.Context, creatorID uuid.U
 			SetFileSize(req.Avatar.Size).
 			SetMimeType(contentType).
 			SetStatus(media.StatusActive).
+			SetCategory(media.CategoryGroupAvatar).
 			SetUploaderID(creatorID).
 			Save(ctx)
 		if err != nil {
@@ -222,7 +222,8 @@ func (s *GroupChatService) CreateGroupChat(ctx context.Context, creatorID uuid.U
 	}
 
 	if fileToUpload != nil {
-		if err := s.storageAdapter.StoreFromReader(fileToUpload, fileContentType, fileUploadPath); err != nil {
+
+		if err := s.storageAdapter.StoreFromReader(fileToUpload, fileContentType, fileUploadPath, true); err != nil {
 			slog.Error("Failed to store group avatar after db commit", "error", err)
 
 		}
@@ -232,7 +233,7 @@ func (s *GroupChatService) CreateGroupChat(ctx context.Context, creatorID uuid.U
 		go func() {
 			avatarURL := ""
 			if avatarMedia != nil {
-				avatarURL = helper.BuildImageURL(s.cfg.StorageMode, s.cfg.AppURL, s.cfg.StorageCDNURL, s.cfg.StorageProfile, avatarMedia.FileName)
+				avatarURL = s.storageAdapter.GetPublicURL(avatarMedia.FileName)
 			}
 
 			fullMsg, err := s.client.Message.Query().
@@ -242,7 +243,7 @@ func (s *GroupChatService) CreateGroupChat(ctx context.Context, creatorID uuid.U
 
 			var lastMsgResp *model.MessageResponse
 			if err == nil {
-				lastMsgResp = helper.ToMessageResponse(fullMsg, s.cfg.StorageMode, s.cfg.AppURL, s.cfg.StorageCDNURL, s.cfg.StorageProfile, s.cfg.StorageAttachment, nil)
+				lastMsgResp = helper.ToMessageResponse(fullMsg, s.storageAdapter, nil)
 			}
 
 			payload := model.ChatListResponse{
@@ -393,7 +394,7 @@ func (s *GroupChatService) UpdateGroupChat(ctx context.Context, requestorID uuid
 		}
 
 		fileName := helper.GenerateUniqueFileName(req.Avatar.Filename)
-		filePath := filepath.Join(s.cfg.StorageProfile, fileName)
+		filePath := fileName
 
 		fileUploadPath = filePath
 		fileContentType = contentType
@@ -404,6 +405,7 @@ func (s *GroupChatService) UpdateGroupChat(ctx context.Context, requestorID uuid
 			SetFileSize(req.Avatar.Size).
 			SetMimeType(contentType).
 			SetStatus(media.StatusActive).
+			SetCategory(media.CategoryGroupAvatar).
 			SetUploaderID(requestorID).
 			Save(ctx)
 		if err != nil {
@@ -426,7 +428,7 @@ func (s *GroupChatService) UpdateGroupChat(ctx context.Context, requestorID uuid
 	if !hasChanges {
 		avatarURL := ""
 		if gc.Edges.Avatar != nil {
-			avatarURL = helper.BuildImageURL(s.cfg.StorageMode, s.cfg.AppURL, s.cfg.StorageCDNURL, s.cfg.StorageProfile, gc.Edges.Avatar.FileName)
+			avatarURL = s.storageAdapter.GetPublicURL(gc.Edges.Avatar.FileName)
 		}
 		myRole := string(requestorMember.Role)
 		return &model.ChatListResponse{
@@ -469,7 +471,8 @@ func (s *GroupChatService) UpdateGroupChat(ctx context.Context, requestorID uuid
 	}
 
 	if fileToUpload != nil {
-		if err := s.storageAdapter.StoreFromReader(fileToUpload, fileContentType, fileUploadPath); err != nil {
+
+		if err := s.storageAdapter.StoreFromReader(fileToUpload, fileContentType, fileUploadPath, true); err != nil {
 			slog.Error("Failed to store group avatar after db commit", "error", err)
 
 		}
@@ -483,7 +486,7 @@ func (s *GroupChatService) UpdateGroupChat(ctx context.Context, requestorID uuid
 				WithSender().
 				Only(context.Background())
 
-			msgResponse := helper.ToMessageResponse(fullMsg, s.cfg.StorageMode, s.cfg.AppURL, s.cfg.StorageCDNURL, s.cfg.StorageProfile, s.cfg.StorageAttachment, nil)
+			msgResponse := helper.ToMessageResponse(fullMsg, s.storageAdapter, nil)
 
 			s.wsHub.BroadcastToChat(gc.ChatID, websocket.Event{
 				Type:    websocket.EventMessageNew,
@@ -507,7 +510,7 @@ func (s *GroupChatService) UpdateGroupChat(ctx context.Context, requestorID uuid
 
 			avatarURL := ""
 			if updatedGroupWithAvatar != nil && updatedGroupWithAvatar.Edges.Avatar != nil {
-				avatarURL = helper.BuildImageURL(s.cfg.StorageMode, s.cfg.AppURL, s.cfg.StorageCDNURL, s.cfg.StorageProfile, updatedGroupWithAvatar.Edges.Avatar.FileName)
+				avatarURL = s.storageAdapter.GetPublicURL(updatedGroupWithAvatar.Edges.Avatar.FileName)
 			}
 
 			chatPayload := model.ChatListResponse{
@@ -533,12 +536,12 @@ func (s *GroupChatService) UpdateGroupChat(ctx context.Context, requestorID uuid
 	avatarURL := ""
 
 	if req.Avatar == nil && gc.Edges.Avatar != nil {
-		avatarURL = helper.BuildImageURL(s.cfg.StorageMode, s.cfg.AppURL, s.cfg.StorageCDNURL, s.cfg.StorageProfile, gc.Edges.Avatar.FileName)
+		avatarURL = s.storageAdapter.GetPublicURL(gc.Edges.Avatar.FileName)
 	} else if req.Avatar != nil {
 
 		updatedGroupWithAvatar, _ := s.client.GroupChat.Query().Where(groupchat.ID(updatedGroup.ID)).WithAvatar().Only(context.Background())
 		if updatedGroupWithAvatar.Edges.Avatar != nil {
-			avatarURL = helper.BuildImageURL(s.cfg.StorageMode, s.cfg.AppURL, s.cfg.StorageCDNURL, s.cfg.StorageProfile, updatedGroupWithAvatar.Edges.Avatar.FileName)
+			avatarURL = s.storageAdapter.GetPublicURL(updatedGroupWithAvatar.Edges.Avatar.FileName)
 		}
 	}
 

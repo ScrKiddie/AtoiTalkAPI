@@ -7,6 +7,9 @@ import (
 	"AtoiTalkAPI/internal/service"
 	"log/slog"
 	"net/http"
+
+	"github.com/go-chi/chi/v5"
+	"github.com/google/uuid"
 )
 
 type MediaController struct {
@@ -53,6 +56,44 @@ func (c *MediaController) UploadMedia(w http.ResponseWriter, r *http.Request) {
 	}
 
 	resp, err := c.mediaService.UploadMedia(r.Context(), user.ID, req)
+	if err != nil {
+		helper.WriteError(w, err)
+		return
+	}
+
+	helper.WriteSuccess(w, resp)
+}
+
+// GetMediaURL godoc
+// @Summary      Refresh Media URL
+// @Description  Get a new presigned URL for a media file if the previous one has expired.
+// @Tags         media
+// @Accept       json
+// @Produce      json
+// @Param        mediaID path string true "Media ID (UUID)"
+// @Success      200  {object}  helper.ResponseSuccess{data=model.MediaURLResponse}
+// @Failure      400  {object}  helper.ResponseError
+// @Failure      401  {object}  helper.ResponseError
+// @Failure      403  {object}  helper.ResponseError
+// @Failure      404  {object}  helper.ResponseError
+// @Failure      500  {object}  helper.ResponseError
+// @Security     BearerAuth
+// @Router       /api/media/{mediaID}/url [get]
+func (c *MediaController) GetMediaURL(w http.ResponseWriter, r *http.Request) {
+	user, ok := r.Context().Value(middleware.UserContextKey).(*model.UserDTO)
+	if !ok {
+		helper.WriteError(w, helper.NewUnauthorizedError(""))
+		return
+	}
+
+	mediaIDStr := chi.URLParam(r, "mediaID")
+	mediaID, err := uuid.Parse(mediaIDStr)
+	if err != nil {
+		helper.WriteError(w, helper.NewBadRequestError("Invalid Media ID"))
+		return
+	}
+
+	resp, err := c.mediaService.GetMediaURL(r.Context(), user.ID, mediaID)
 	if err != nil {
 		helper.WriteError(w, err)
 		return
