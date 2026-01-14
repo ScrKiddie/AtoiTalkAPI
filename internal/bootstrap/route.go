@@ -92,6 +92,8 @@ func (route *Route) Register() {
 			r.Post("/auth/register", route.authController.Register)
 			r.Post("/auth/reset-password", route.authController.ResetPassword)
 			r.Post("/otp/send", route.otpController.SendOTP)
+
+			r.Get("/chats/group/invite/{inviteCode}", route.groupChatController.GetGroupByInviteCode)
 		})
 
 		r.Group(func(r chi.Router) {
@@ -152,9 +154,14 @@ func (route *Route) Register() {
 
 				r.Post("/chats/private", route.privateChatController.CreatePrivateChat)
 
+				r.Get("/chats/group/public", route.groupChatController.SearchPublicGroups)
 				r.Get("/chats/group/{groupID}/members", route.groupChatController.SearchGroupMembers)
 				r.Post("/chats/group/{groupID}/members", route.groupChatController.AddMember)
 				r.Post("/chats/group/{groupID}/leave", route.groupChatController.LeaveGroup)
+				r.Post("/chats/group/{groupID}/join", route.groupChatController.JoinPublicGroup)
+				r.Post("/chats/group/join/invite", route.groupChatController.JoinGroupByInvite)
+				r.Get("/chats/group/{groupID}/invite", route.groupChatController.GetInviteCode)
+				r.Put("/chats/group/{groupID}/invite", route.groupChatController.ResetInviteCode)
 				r.Post("/chats/group/{groupID}/members/{userID}/kick", route.groupChatController.KickMember)
 				r.Put("/chats/group/{groupID}/members/{userID}/role", route.groupChatController.UpdateMemberRole)
 				r.Post("/chats/group/{groupID}/transfer", route.groupChatController.TransferOwnership)

@@ -34,8 +34,15 @@ func (r *ChatRepository) GetChatByID(ctx context.Context, userID, chatID uuid.UU
 			chat.ID(chatID),
 			chat.DeletedAtIsNil(),
 			chat.Or(
+
 				chat.HasPrivateChatWith(privatechat.Or(privatechat.User1ID(userID), privatechat.User2ID(userID))),
-				chat.HasGroupChatWith(groupchat.HasMembersWith(groupmember.UserID(userID))),
+
+				chat.HasGroupChatWith(
+					groupchat.Or(
+						groupchat.HasMembersWith(groupmember.UserID(userID)),
+						groupchat.IsPublic(true),
+					),
+				),
 			),
 		).
 		WithPrivateChat(func(q *ent.PrivateChatQuery) {
@@ -44,6 +51,7 @@ func (r *ChatRepository) GetChatByID(ctx context.Context, userID, chatID uuid.UU
 		}).
 		WithGroupChat(func(q *ent.GroupChatQuery) {
 			q.WithAvatar()
+
 			q.WithMembers(func(mq *ent.GroupMemberQuery) {
 				mq.Where(groupmember.UserID(userID))
 			})

@@ -156,11 +156,15 @@ func (s *GroupChatService) CreateGroupChat(ctx context.Context, creatorID uuid.U
 		return nil, helper.NewInternalServerError("")
 	}
 
+	inviteCode, _ := helper.GenerateRandomString(12)
+
 	groupCreate := tx.GroupChat.Create().
 		SetChat(newChat).
 		SetCreatorID(creatorID).
 		SetName(req.Name).
-		SetNillableDescription(&req.Description)
+		SetNillableDescription(&req.Description).
+		SetIsPublic(req.IsPublic).
+		SetInviteCode(inviteCode)
 
 	if avatarMedia != nil {
 		groupCreate.SetAvatar(avatarMedia)
@@ -362,6 +366,11 @@ func (s *GroupChatService) UpdateGroupChat(ctx context.Context, requestorID uuid
 				}))
 			hasChanges = true
 		}
+	}
+
+	if req.IsPublic != nil && *req.IsPublic != gc.IsPublic {
+		update.SetIsPublic(*req.IsPublic)
+		hasChanges = true
 	}
 
 	var fileToUpload multipart.File

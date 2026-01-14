@@ -34,6 +34,7 @@ func NewGroupChatController(groupChatService *service.GroupChatService) *GroupCh
 // @Param        description formData string false "Group Description"
 // @Param        member_ids formData string true "JSON Array of Member IDs (UUIDs)"
 // @Param        avatar formData file false "Group Avatar Image"
+// @Param        is_public formData boolean false "Is Public Group"
 // @Success      200  {object}  helper.ResponseSuccess{data=model.ChatResponse}
 // @Failure      400  {object}  helper.ResponseError
 // @Failure      401  {object}  helper.ResponseError
@@ -52,6 +53,7 @@ func (c *GroupChatController) CreateGroupChat(w http.ResponseWriter, r *http.Req
 	name := r.FormValue("name")
 	description := r.FormValue("description")
 	memberIDsStr := r.FormValue("member_ids")
+	isPublicStr := r.FormValue("is_public")
 
 	var memberIDs []uuid.UUID
 	if memberIDsStr != "" {
@@ -73,6 +75,11 @@ func (c *GroupChatController) CreateGroupChat(w http.ResponseWriter, r *http.Req
 		}
 	}
 
+	isPublic := false
+	if isPublicStr != "" {
+		isPublic, _ = strconv.ParseBool(isPublicStr)
+	}
+
 	_, header, err := r.FormFile("avatar")
 	if err != nil && err != http.ErrMissingFile {
 		helper.WriteError(w, helper.NewBadRequestError("Failed to process avatar file"))
@@ -84,6 +91,7 @@ func (c *GroupChatController) CreateGroupChat(w http.ResponseWriter, r *http.Req
 		Description: description,
 		MemberIDs:   memberIDs,
 		Avatar:      header,
+		IsPublic:    isPublic,
 	}
 
 	resp, err := c.groupChatService.CreateGroupChat(r.Context(), userContext.ID, req)
@@ -105,6 +113,7 @@ func (c *GroupChatController) CreateGroupChat(w http.ResponseWriter, r *http.Req
 // @Param        name formData string false "Group Name"
 // @Param        description formData string false "Group Description"
 // @Param        avatar formData file false "Group Avatar Image"
+// @Param        is_public formData boolean false "Is Public Group"
 // @Success      200  {object}  helper.ResponseSuccess{data=model.ChatListResponse}
 // @Failure      400  {object}  helper.ResponseError
 // @Failure      401  {object}  helper.ResponseError
@@ -142,6 +151,10 @@ func (c *GroupChatController) UpdateGroupChat(w http.ResponseWriter, r *http.Req
 	if _, ok := r.MultipartForm.Value["description"]; ok {
 		desc := r.FormValue("description")
 		req.Description = &desc
+	}
+	if _, ok := r.MultipartForm.Value["is_public"]; ok {
+		isPublic, _ := strconv.ParseBool(r.FormValue("is_public"))
+		req.IsPublic = &isPublic
 	}
 
 	_, header, err := r.FormFile("avatar")
@@ -490,4 +503,237 @@ func (c *GroupChatController) DeleteGroup(w http.ResponseWriter, r *http.Request
 	}
 
 	helper.WriteSuccess(w, nil)
+}
+
+// SearchPublicGroups godoc
+// @Summary      Search Public Groups
+// @Description  Search for public groups by name or description.
+// @Tags         chat
+// @Accept       json
+// @Produce      json
+// @Param        query query string false "Search query"
+// @Param        cursor query string false "Pagination cursor"
+// @Param        limit query int false "Number of items per page (default 20, max 50)"
+// @Success      200  {object}  helper.ResponseWithPagination{data=[]model.PublicGroupDTO}
+// @Failure      400  {object}  helper.ResponseError
+// @Failure      401  {object}  helper.ResponseError
+// @Failure      429  {object}  helper.ResponseError
+// @Failure      500  {object}  helper.ResponseError
+// @Security     BearerAuth
+// @Router       /api/chats/group/public [get]
+func (c *GroupChatController) SearchPublicGroups(w http.ResponseWriter, r *http.Request) {
+	userContext, ok := r.Context().Value(middleware.UserContextKey).(*model.UserDTO)
+	if !ok {
+		helper.WriteError(w, helper.NewUnauthorizedError(""))
+		return
+	}
+
+	query := r.URL.Query().Get("query")
+	cursor := r.URL.Query().Get("cursor")
+	limitStr := r.URL.Query().Get("limit")
+
+	limit := 20
+	if limitStr != "" {
+		if l, err := strconv.Atoi(limitStr); err == nil {
+			limit = l
+		}
+	}
+
+	req := model.SearchPublicGroupsRequest{
+		Query:  query,
+		Cursor: cursor,
+		Limit:  limit,
+	}
+
+	groups, nextCursor, hasNext, err := c.groupChatService.SearchPublicGroups(r.Context(), userContext.ID, req)
+	if err != nil {
+		helper.WriteError(w, err)
+		return
+	}
+
+	helper.WriteSuccessWithPagination(w, groups, nextCursor, hasNext)
+}
+
+// JoinPublicGroup godoc
+// @Summary      Join Public Group
+// @Description  Join a public group chat.
+// @Tags         chat
+// @Accept       json
+// @Produce      json
+// @Param        groupID path string true "Group Chat ID (UUID)"
+// @Success      200  {object}  helper.ResponseSuccess
+// @Failure      400  {object}  helper.ResponseError
+// @Failure      401  {object}  helper.ResponseError
+// @Failure      403  {object}  helper.ResponseError
+// @Failure      404  {object}  helper.ResponseError
+// @Failure      409  {object}  helper.ResponseError
+// @Failure      429  {object}  helper.ResponseError
+// @Failure      500  {object}  helper.ResponseError
+// @Security     BearerAuth
+// @Router       /api/chats/group/{groupID}/join [post]
+func (c *GroupChatController) JoinPublicGroup(w http.ResponseWriter, r *http.Request) {
+	userContext, ok := r.Context().Value(middleware.UserContextKey).(*model.UserDTO)
+	if !ok {
+		helper.WriteError(w, helper.NewUnauthorizedError(""))
+		return
+	}
+
+	groupIDStr := chi.URLParam(r, "groupID")
+	groupID, err := uuid.Parse(groupIDStr)
+	if err != nil {
+		helper.WriteError(w, helper.NewBadRequestError("Invalid Group ID"))
+		return
+	}
+
+	err = c.groupChatService.JoinPublicGroup(r.Context(), userContext.ID, groupID)
+	if err != nil {
+		helper.WriteError(w, err)
+		return
+	}
+
+	helper.WriteSuccess(w, nil)
+}
+
+// JoinGroupByInvite godoc
+// @Summary      Join Group by Invite Code
+// @Description  Join a private or public group using an invite code.
+// @Tags         chat
+// @Accept       json
+// @Produce      json
+// @Param        request body model.JoinGroupByInviteRequest true "Join Request"
+// @Success      200  {object}  helper.ResponseSuccess{data=model.ChatResponse}
+// @Failure      400  {object}  helper.ResponseError
+// @Failure      401  {object}  helper.ResponseError
+// @Failure      404  {object}  helper.ResponseError
+// @Failure      429  {object}  helper.ResponseError
+// @Failure      500  {object}  helper.ResponseError
+// @Security     BearerAuth
+// @Router       /api/chats/group/join/invite [post]
+func (c *GroupChatController) JoinGroupByInvite(w http.ResponseWriter, r *http.Request) {
+	userContext, ok := r.Context().Value(middleware.UserContextKey).(*model.UserDTO)
+	if !ok {
+		helper.WriteError(w, helper.NewUnauthorizedError(""))
+		return
+	}
+
+	var req model.JoinGroupByInviteRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		helper.WriteError(w, helper.NewBadRequestError(""))
+		return
+	}
+
+	resp, err := c.groupChatService.JoinGroupByInvite(r.Context(), userContext.ID, req.InviteCode)
+	if err != nil {
+		helper.WriteError(w, err)
+		return
+	}
+
+	helper.WriteSuccess(w, resp)
+}
+
+// GetGroupByInviteCode godoc
+// @Summary      Get Group Preview by Invite Code
+// @Description  Get basic group info using an invite code. Useful for previewing before joining.
+// @Tags         chat
+// @Accept       json
+// @Produce      json
+// @Param        inviteCode path string true "Invite Code"
+// @Success      200  {object}  helper.ResponseSuccess{data=model.GroupPreviewDTO}
+// @Failure      400  {object}  helper.ResponseError
+// @Failure      404  {object}  helper.ResponseError
+// @Failure      429  {object}  helper.ResponseError
+// @Failure      500  {object}  helper.ResponseError
+// @Router       /api/chats/group/invite/{inviteCode} [get]
+func (c *GroupChatController) GetGroupByInviteCode(w http.ResponseWriter, r *http.Request) {
+	inviteCode := chi.URLParam(r, "inviteCode")
+	if inviteCode == "" {
+		helper.WriteError(w, helper.NewBadRequestError("Invite code is required"))
+		return
+	}
+
+	resp, err := c.groupChatService.GetGroupByInviteCode(r.Context(), inviteCode)
+	if err != nil {
+		helper.WriteError(w, err)
+		return
+	}
+
+	helper.WriteSuccess(w, resp)
+}
+
+// GetInviteCode godoc
+// @Summary      Get Group Invite Code
+// @Description  Get the invite code for a group. Only admins or owners can view it.
+// @Tags         chat
+// @Accept       json
+// @Produce      json
+// @Param        groupID path string true "Group Chat ID (UUID)"
+// @Success      200  {object}  helper.ResponseSuccess{data=model.GroupInviteResponse}
+// @Failure      400  {object}  helper.ResponseError
+// @Failure      401  {object}  helper.ResponseError
+// @Failure      403  {object}  helper.ResponseError
+// @Failure      404  {object}  helper.ResponseError
+// @Failure      429  {object}  helper.ResponseError
+// @Failure      500  {object}  helper.ResponseError
+// @Security     BearerAuth
+// @Router       /api/chats/group/{groupID}/invite [get]
+func (c *GroupChatController) GetInviteCode(w http.ResponseWriter, r *http.Request) {
+	userContext, ok := r.Context().Value(middleware.UserContextKey).(*model.UserDTO)
+	if !ok {
+		helper.WriteError(w, helper.NewUnauthorizedError(""))
+		return
+	}
+
+	groupIDStr := chi.URLParam(r, "groupID")
+	groupID, err := uuid.Parse(groupIDStr)
+	if err != nil {
+		helper.WriteError(w, helper.NewBadRequestError("Invalid Group ID"))
+		return
+	}
+
+	resp, err := c.groupChatService.GetInviteCode(r.Context(), userContext.ID, groupID)
+	if err != nil {
+		helper.WriteError(w, err)
+		return
+	}
+
+	helper.WriteSuccess(w, resp)
+}
+
+// ResetInviteCode godoc
+// @Summary      Reset Group Invite Code
+// @Description  Reset the invite code for a group. Only admins or owners can perform this action.
+// @Tags         chat
+// @Accept       json
+// @Produce      json
+// @Param        groupID path string true "Group Chat ID (UUID)"
+// @Success      200  {object}  helper.ResponseSuccess{data=model.GroupInviteResponse}
+// @Failure      400  {object}  helper.ResponseError
+// @Failure      401  {object}  helper.ResponseError
+// @Failure      403  {object}  helper.ResponseError
+// @Failure      404  {object}  helper.ResponseError
+// @Failure      429  {object}  helper.ResponseError
+// @Failure      500  {object}  helper.ResponseError
+// @Security     BearerAuth
+// @Router       /api/chats/group/{groupID}/invite [put]
+func (c *GroupChatController) ResetInviteCode(w http.ResponseWriter, r *http.Request) {
+	userContext, ok := r.Context().Value(middleware.UserContextKey).(*model.UserDTO)
+	if !ok {
+		helper.WriteError(w, helper.NewUnauthorizedError(""))
+		return
+	}
+
+	groupIDStr := chi.URLParam(r, "groupID")
+	groupID, err := uuid.Parse(groupIDStr)
+	if err != nil {
+		helper.WriteError(w, helper.NewBadRequestError("Invalid Group ID"))
+		return
+	}
+
+	resp, err := c.groupChatService.ResetInviteCode(r.Context(), userContext.ID, groupID)
+	if err != nil {
+		helper.WriteError(w, err)
+		return
+	}
+
+	helper.WriteSuccess(w, resp)
 }

@@ -50,6 +50,9 @@ var (
 		{Name: "id", Type: field.TypeUUID},
 		{Name: "name", Type: field.TypeString, Size: 100},
 		{Name: "description", Type: field.TypeString, Nullable: true, Size: 2147483647},
+		{Name: "is_public", Type: field.TypeBool, Default: false},
+		{Name: "invite_code", Type: field.TypeString, Unique: true, Size: 50},
+		{Name: "invite_expires_at", Type: field.TypeTime, Nullable: true},
 		{Name: "chat_id", Type: field.TypeUUID, Unique: true},
 		{Name: "avatar_id", Type: field.TypeUUID, Unique: true, Nullable: true},
 		{Name: "created_by", Type: field.TypeUUID, Nullable: true},
@@ -62,19 +65,19 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "group_chats_chats_group_chat",
-				Columns:    []*schema.Column{GroupChatsColumns[3]},
+				Columns:    []*schema.Column{GroupChatsColumns[6]},
 				RefColumns: []*schema.Column{ChatsColumns[0]},
 				OnDelete:   schema.Cascade,
 			},
 			{
 				Symbol:     "group_chats_media_group_avatar",
-				Columns:    []*schema.Column{GroupChatsColumns[4]},
+				Columns:    []*schema.Column{GroupChatsColumns[7]},
 				RefColumns: []*schema.Column{MediaColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
 			{
 				Symbol:     "group_chats_users_created_groups",
-				Columns:    []*schema.Column{GroupChatsColumns[5]},
+				Columns:    []*schema.Column{GroupChatsColumns[8]},
 				RefColumns: []*schema.Column{UsersColumns[0]},
 				OnDelete:   schema.SetNull,
 			},

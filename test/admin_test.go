@@ -175,7 +175,7 @@ func TestBannedUserRestrictions(t *testing.T) {
 	t.Run("Group Chat - Cannot Add Banned User", func(t *testing.T) {
 
 		chatEntity := testClient.Chat.Create().SetType(chat.TypeGroup).SaveX(context.Background())
-		gc := testClient.GroupChat.Create().SetChat(chatEntity).SetCreator(normalUser).SetName("Test Group").SaveX(context.Background())
+		gc := testClient.GroupChat.Create().SetChat(chatEntity).SetCreator(normalUser).SetName("Test Group").SetInviteCode("dummy_code_admin").SaveX(context.Background())
 		testClient.GroupMember.Create().SetGroupChat(gc).SetUser(normalUser).SetRole(groupmember.RoleOwner).SaveX(context.Background())
 
 		reqBody := model.AddGroupMemberRequest{UserIDs: []uuid.UUID{bannedUser.ID}}
@@ -356,7 +356,7 @@ func TestReportSystem(t *testing.T) {
 		token, _ := helper.GenerateJWT(testConfig.JWTSecret, testConfig.JWTExp, reporter.ID)
 
 		chatEntity := testClient.Chat.Create().SetType(chat.TypeGroup).SaveX(context.Background())
-		gc := testClient.GroupChat.Create().SetChat(chatEntity).SetCreator(offender).SetName("Bad Group").SaveX(context.Background())
+		gc := testClient.GroupChat.Create().SetChat(chatEntity).SetCreator(offender).SetName("Bad Group").SetInviteCode("badgroup").SaveX(context.Background())
 		testClient.GroupMember.Create().SetGroupChat(gc).SetUser(offender).SetRole(groupmember.RoleOwner).SaveX(context.Background())
 		testClient.GroupMember.Create().SetGroupChat(gc).SetUser(reporter).SetRole(groupmember.RoleMember).SaveX(context.Background())
 
@@ -390,7 +390,7 @@ func TestReportSystem(t *testing.T) {
 		token, _ := helper.GenerateJWT(testConfig.JWTSecret, testConfig.JWTExp, reporter.ID)
 
 		chatEntity := testClient.Chat.Create().SetType(chat.TypeGroup).SaveX(context.Background())
-		testClient.GroupChat.Create().SetChat(chatEntity).SetCreator(offender).SetName("Secret Bad Group").SaveX(context.Background())
+		testClient.GroupChat.Create().SetChat(chatEntity).SetCreator(offender).SetName("Secret Bad Group").SetInviteCode("secretbad").SaveX(context.Background())
 
 		reqBody := model.CreateReportRequest{
 			TargetType: "group",

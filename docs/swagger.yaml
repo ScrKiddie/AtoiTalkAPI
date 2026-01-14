@@ -175,6 +175,13 @@ definitions:
     required:
     - code
     type: object
+  model.GroupInviteResponse:
+    properties:
+      expires_at:
+        type: string
+      invite_code:
+        type: string
+    type: object
   model.GroupMemberDTO:
     properties:
       avatar:
@@ -193,6 +200,28 @@ definitions:
         type: string
       user_id:
         type: string
+    type: object
+  model.GroupPreviewDTO:
+    properties:
+      avatar:
+        type: string
+      description:
+        type: string
+      id:
+        type: string
+      is_public:
+        type: boolean
+      member_count:
+        type: integer
+      name:
+        type: string
+    type: object
+  model.JoinGroupByInviteRequest:
+    properties:
+      invite_code:
+        type: string
+    required:
+    - invite_code
     type: object
   model.LoginRequest:
     properties:
@@ -270,6 +299,23 @@ definitions:
       sender_name:
         type: string
       type:
+        type: string
+    type: object
+  model.PublicGroupDTO:
+    properties:
+      avatar:
+        type: string
+      chat_id:
+        type: string
+      description:
+        type: string
+      id:
+        type: string
+      is_member:
+        type: boolean
+      member_count:
+        type: integer
+      name:
         type: string
     type: object
   model.RegisterUserRequest:
@@ -1326,6 +1372,10 @@ paths:
         in: formData
         name: avatar
         type: file
+      - description: Is Public Group
+        in: formData
+        name: is_public
+        type: boolean
       produces:
       - application/json
       responses:
@@ -1433,6 +1483,10 @@ paths:
         in: formData
         name: avatar
         type: file
+      - description: Is Public Group
+        in: formData
+        name: is_public
+        type: boolean
       produces:
       - application/json
       responses:
@@ -1472,6 +1526,162 @@ paths:
       security:
       - BearerAuth: []
       summary: Update Group Chat Info
+      tags:
+      - chat
+  /api/chats/group/{groupID}/invite:
+    get:
+      consumes:
+      - application/json
+      description: Get the invite code for a group. Only admins or owners can view
+        it.
+      parameters:
+      - description: Group Chat ID (UUID)
+        in: path
+        name: groupID
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/helper.ResponseSuccess'
+            - properties:
+                data:
+                  $ref: '#/definitions/model.GroupInviteResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
+        "429":
+          description: Too Many Requests
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
+      security:
+      - BearerAuth: []
+      summary: Get Group Invite Code
+      tags:
+      - chat
+    put:
+      consumes:
+      - application/json
+      description: Reset the invite code for a group. Only admins or owners can perform
+        this action.
+      parameters:
+      - description: Group Chat ID (UUID)
+        in: path
+        name: groupID
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/helper.ResponseSuccess'
+            - properties:
+                data:
+                  $ref: '#/definitions/model.GroupInviteResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
+        "429":
+          description: Too Many Requests
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
+      security:
+      - BearerAuth: []
+      summary: Reset Group Invite Code
+      tags:
+      - chat
+  /api/chats/group/{groupID}/join:
+    post:
+      consumes:
+      - application/json
+      description: Join a public group chat.
+      parameters:
+      - description: Group Chat ID (UUID)
+        in: path
+        name: groupID
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/helper.ResponseSuccess'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
+        "429":
+          description: Too Many Requests
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
+      security:
+      - BearerAuth: []
+      summary: Join Public Group
       tags:
       - chat
   /api/chats/group/{groupID}/leave:
@@ -1804,6 +2014,151 @@ paths:
       security:
       - BearerAuth: []
       summary: Transfer Ownership
+      tags:
+      - chat
+  /api/chats/group/invite/{inviteCode}:
+    get:
+      consumes:
+      - application/json
+      description: Get basic group info using an invite code. Useful for previewing
+        before joining.
+      parameters:
+      - description: Invite Code
+        in: path
+        name: inviteCode
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/helper.ResponseSuccess'
+            - properties:
+                data:
+                  $ref: '#/definitions/model.GroupPreviewDTO'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
+        "429":
+          description: Too Many Requests
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
+      summary: Get Group Preview by Invite Code
+      tags:
+      - chat
+  /api/chats/group/join/invite:
+    post:
+      consumes:
+      - application/json
+      description: Join a private or public group using an invite code.
+      parameters:
+      - description: Join Request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.JoinGroupByInviteRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/helper.ResponseSuccess'
+            - properties:
+                data:
+                  $ref: '#/definitions/model.ChatResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
+        "429":
+          description: Too Many Requests
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
+      security:
+      - BearerAuth: []
+      summary: Join Group by Invite Code
+      tags:
+      - chat
+  /api/chats/group/public:
+    get:
+      consumes:
+      - application/json
+      description: Search for public groups by name or description.
+      parameters:
+      - description: Search query
+        in: query
+        name: query
+        type: string
+      - description: Pagination cursor
+        in: query
+        name: cursor
+        type: string
+      - description: Number of items per page (default 20, max 50)
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/helper.ResponseWithPagination'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/model.PublicGroupDTO'
+                  type: array
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
+        "429":
+          description: Too Many Requests
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
+      security:
+      - BearerAuth: []
+      summary: Search Public Groups
       tags:
       - chat
   /api/chats/private:

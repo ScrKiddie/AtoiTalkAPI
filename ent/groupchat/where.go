@@ -4,6 +4,7 @@ package groupchat
 
 import (
 	"AtoiTalkAPI/ent/predicate"
+	"time"
 
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
@@ -78,6 +79,21 @@ func Description(v string) predicate.GroupChat {
 // AvatarID applies equality check predicate on the "avatar_id" field. It's identical to AvatarIDEQ.
 func AvatarID(v uuid.UUID) predicate.GroupChat {
 	return predicate.GroupChat(sql.FieldEQ(FieldAvatarID, v))
+}
+
+// IsPublic applies equality check predicate on the "is_public" field. It's identical to IsPublicEQ.
+func IsPublic(v bool) predicate.GroupChat {
+	return predicate.GroupChat(sql.FieldEQ(FieldIsPublic, v))
+}
+
+// InviteCode applies equality check predicate on the "invite_code" field. It's identical to InviteCodeEQ.
+func InviteCode(v string) predicate.GroupChat {
+	return predicate.GroupChat(sql.FieldEQ(FieldInviteCode, v))
+}
+
+// InviteExpiresAt applies equality check predicate on the "invite_expires_at" field. It's identical to InviteExpiresAtEQ.
+func InviteExpiresAt(v time.Time) predicate.GroupChat {
+	return predicate.GroupChat(sql.FieldEQ(FieldInviteExpiresAt, v))
 }
 
 // ChatIDEQ applies the EQ predicate on the "chat_id" field.
@@ -298,6 +314,131 @@ func AvatarIDIsNil() predicate.GroupChat {
 // AvatarIDNotNil applies the NotNil predicate on the "avatar_id" field.
 func AvatarIDNotNil() predicate.GroupChat {
 	return predicate.GroupChat(sql.FieldNotNull(FieldAvatarID))
+}
+
+// IsPublicEQ applies the EQ predicate on the "is_public" field.
+func IsPublicEQ(v bool) predicate.GroupChat {
+	return predicate.GroupChat(sql.FieldEQ(FieldIsPublic, v))
+}
+
+// IsPublicNEQ applies the NEQ predicate on the "is_public" field.
+func IsPublicNEQ(v bool) predicate.GroupChat {
+	return predicate.GroupChat(sql.FieldNEQ(FieldIsPublic, v))
+}
+
+// InviteCodeEQ applies the EQ predicate on the "invite_code" field.
+func InviteCodeEQ(v string) predicate.GroupChat {
+	return predicate.GroupChat(sql.FieldEQ(FieldInviteCode, v))
+}
+
+// InviteCodeNEQ applies the NEQ predicate on the "invite_code" field.
+func InviteCodeNEQ(v string) predicate.GroupChat {
+	return predicate.GroupChat(sql.FieldNEQ(FieldInviteCode, v))
+}
+
+// InviteCodeIn applies the In predicate on the "invite_code" field.
+func InviteCodeIn(vs ...string) predicate.GroupChat {
+	return predicate.GroupChat(sql.FieldIn(FieldInviteCode, vs...))
+}
+
+// InviteCodeNotIn applies the NotIn predicate on the "invite_code" field.
+func InviteCodeNotIn(vs ...string) predicate.GroupChat {
+	return predicate.GroupChat(sql.FieldNotIn(FieldInviteCode, vs...))
+}
+
+// InviteCodeGT applies the GT predicate on the "invite_code" field.
+func InviteCodeGT(v string) predicate.GroupChat {
+	return predicate.GroupChat(sql.FieldGT(FieldInviteCode, v))
+}
+
+// InviteCodeGTE applies the GTE predicate on the "invite_code" field.
+func InviteCodeGTE(v string) predicate.GroupChat {
+	return predicate.GroupChat(sql.FieldGTE(FieldInviteCode, v))
+}
+
+// InviteCodeLT applies the LT predicate on the "invite_code" field.
+func InviteCodeLT(v string) predicate.GroupChat {
+	return predicate.GroupChat(sql.FieldLT(FieldInviteCode, v))
+}
+
+// InviteCodeLTE applies the LTE predicate on the "invite_code" field.
+func InviteCodeLTE(v string) predicate.GroupChat {
+	return predicate.GroupChat(sql.FieldLTE(FieldInviteCode, v))
+}
+
+// InviteCodeContains applies the Contains predicate on the "invite_code" field.
+func InviteCodeContains(v string) predicate.GroupChat {
+	return predicate.GroupChat(sql.FieldContains(FieldInviteCode, v))
+}
+
+// InviteCodeHasPrefix applies the HasPrefix predicate on the "invite_code" field.
+func InviteCodeHasPrefix(v string) predicate.GroupChat {
+	return predicate.GroupChat(sql.FieldHasPrefix(FieldInviteCode, v))
+}
+
+// InviteCodeHasSuffix applies the HasSuffix predicate on the "invite_code" field.
+func InviteCodeHasSuffix(v string) predicate.GroupChat {
+	return predicate.GroupChat(sql.FieldHasSuffix(FieldInviteCode, v))
+}
+
+// InviteCodeEqualFold applies the EqualFold predicate on the "invite_code" field.
+func InviteCodeEqualFold(v string) predicate.GroupChat {
+	return predicate.GroupChat(sql.FieldEqualFold(FieldInviteCode, v))
+}
+
+// InviteCodeContainsFold applies the ContainsFold predicate on the "invite_code" field.
+func InviteCodeContainsFold(v string) predicate.GroupChat {
+	return predicate.GroupChat(sql.FieldContainsFold(FieldInviteCode, v))
+}
+
+// InviteExpiresAtEQ applies the EQ predicate on the "invite_expires_at" field.
+func InviteExpiresAtEQ(v time.Time) predicate.GroupChat {
+	return predicate.GroupChat(sql.FieldEQ(FieldInviteExpiresAt, v))
+}
+
+// InviteExpiresAtNEQ applies the NEQ predicate on the "invite_expires_at" field.
+func InviteExpiresAtNEQ(v time.Time) predicate.GroupChat {
+	return predicate.GroupChat(sql.FieldNEQ(FieldInviteExpiresAt, v))
+}
+
+// InviteExpiresAtIn applies the In predicate on the "invite_expires_at" field.
+func InviteExpiresAtIn(vs ...time.Time) predicate.GroupChat {
+	return predicate.GroupChat(sql.FieldIn(FieldInviteExpiresAt, vs...))
+}
+
+// InviteExpiresAtNotIn applies the NotIn predicate on the "invite_expires_at" field.
+func InviteExpiresAtNotIn(vs ...time.Time) predicate.GroupChat {
+	return predicate.GroupChat(sql.FieldNotIn(FieldInviteExpiresAt, vs...))
+}
+
+// InviteExpiresAtGT applies the GT predicate on the "invite_expires_at" field.
+func InviteExpiresAtGT(v time.Time) predicate.GroupChat {
+	return predicate.GroupChat(sql.FieldGT(FieldInviteExpiresAt, v))
+}
+
+// InviteExpiresAtGTE applies the GTE predicate on the "invite_expires_at" field.
+func InviteExpiresAtGTE(v time.Time) predicate.GroupChat {
+	return predicate.GroupChat(sql.FieldGTE(FieldInviteExpiresAt, v))
+}
+
+// InviteExpiresAtLT applies the LT predicate on the "invite_expires_at" field.
+func InviteExpiresAtLT(v time.Time) predicate.GroupChat {
+	return predicate.GroupChat(sql.FieldLT(FieldInviteExpiresAt, v))
+}
+
+// InviteExpiresAtLTE applies the LTE predicate on the "invite_expires_at" field.
+func InviteExpiresAtLTE(v time.Time) predicate.GroupChat {
+	return predicate.GroupChat(sql.FieldLTE(FieldInviteExpiresAt, v))
+}
+
+// InviteExpiresAtIsNil applies the IsNil predicate on the "invite_expires_at" field.
+func InviteExpiresAtIsNil() predicate.GroupChat {
+	return predicate.GroupChat(sql.FieldIsNull(FieldInviteExpiresAt))
+}
+
+// InviteExpiresAtNotNil applies the NotNil predicate on the "invite_expires_at" field.
+func InviteExpiresAtNotNil() predicate.GroupChat {
+	return predicate.GroupChat(sql.FieldNotNull(FieldInviteExpiresAt))
 }
 
 // HasAvatar applies the HasEdge predicate on the "avatar" edge.

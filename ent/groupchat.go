@@ -9,6 +9,7 @@ import (
 	"AtoiTalkAPI/ent/user"
 	"fmt"
 	"strings"
+	"time"
 
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
@@ -30,6 +31,12 @@ type GroupChat struct {
 	Description *string `json:"description,omitempty"`
 	// AvatarID holds the value of the "avatar_id" field.
 	AvatarID *uuid.UUID `json:"avatar_id,omitempty"`
+	// IsPublic holds the value of the "is_public" field.
+	IsPublic bool `json:"is_public,omitempty"`
+	// InviteCode holds the value of the "invite_code" field.
+	InviteCode string `json:"invite_code,omitempty"`
+	// InviteExpiresAt holds the value of the "invite_expires_at" field.
+	InviteExpiresAt *time.Time `json:"invite_expires_at,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the GroupChatQuery when eager-loading is set.
 	Edges        GroupChatEdges `json:"edges"`
@@ -111,8 +118,12 @@ func (*GroupChat) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case groupchat.FieldCreatedBy, groupchat.FieldAvatarID:
 			values[i] = &sql.NullScanner{S: new(uuid.UUID)}
-		case groupchat.FieldName, groupchat.FieldDescription:
+		case groupchat.FieldIsPublic:
+			values[i] = new(sql.NullBool)
+		case groupchat.FieldName, groupchat.FieldDescription, groupchat.FieldInviteCode:
 			values[i] = new(sql.NullString)
+		case groupchat.FieldInviteExpiresAt:
+			values[i] = new(sql.NullTime)
 		case groupchat.FieldID, groupchat.FieldChatID:
 			values[i] = new(uuid.UUID)
 		default:
@@ -168,6 +179,25 @@ func (_m *GroupChat) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				_m.AvatarID = new(uuid.UUID)
 				*_m.AvatarID = *value.S.(*uuid.UUID)
+			}
+		case groupchat.FieldIsPublic:
+			if value, ok := values[i].(*sql.NullBool); !ok {
+				return fmt.Errorf("unexpected type %T for field is_public", values[i])
+			} else if value.Valid {
+				_m.IsPublic = value.Bool
+			}
+		case groupchat.FieldInviteCode:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field invite_code", values[i])
+			} else if value.Valid {
+				_m.InviteCode = value.String
+			}
+		case groupchat.FieldInviteExpiresAt:
+			if value, ok := values[i].(*sql.NullTime); !ok {
+				return fmt.Errorf("unexpected type %T for field invite_expires_at", values[i])
+			} else if value.Valid {
+				_m.InviteExpiresAt = new(time.Time)
+				*_m.InviteExpiresAt = value.Time
 			}
 		default:
 			_m.selectValues.Set(columns[i], values[i])
@@ -249,6 +279,17 @@ func (_m *GroupChat) String() string {
 	if v := _m.AvatarID; v != nil {
 		builder.WriteString("avatar_id=")
 		builder.WriteString(fmt.Sprintf("%v", *v))
+	}
+	builder.WriteString(", ")
+	builder.WriteString("is_public=")
+	builder.WriteString(fmt.Sprintf("%v", _m.IsPublic))
+	builder.WriteString(", ")
+	builder.WriteString("invite_code=")
+	builder.WriteString(_m.InviteCode)
+	builder.WriteString(", ")
+	if v := _m.InviteExpiresAt; v != nil {
+		builder.WriteString("invite_expires_at=")
+		builder.WriteString(v.Format(time.ANSIC))
 	}
 	builder.WriteByte(')')
 	return builder.String()

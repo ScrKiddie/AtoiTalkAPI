@@ -23,6 +23,12 @@ const (
 	FieldDescription = "description"
 	// FieldAvatarID holds the string denoting the avatar_id field in the database.
 	FieldAvatarID = "avatar_id"
+	// FieldIsPublic holds the string denoting the is_public field in the database.
+	FieldIsPublic = "is_public"
+	// FieldInviteCode holds the string denoting the invite_code field in the database.
+	FieldInviteCode = "invite_code"
+	// FieldInviteExpiresAt holds the string denoting the invite_expires_at field in the database.
+	FieldInviteExpiresAt = "invite_expires_at"
 	// EdgeAvatar holds the string denoting the avatar edge name in mutations.
 	EdgeAvatar = "avatar"
 	// EdgeChat holds the string denoting the chat edge name in mutations.
@@ -80,6 +86,9 @@ var Columns = []string{
 	FieldName,
 	FieldDescription,
 	FieldAvatarID,
+	FieldIsPublic,
+	FieldInviteCode,
+	FieldInviteExpiresAt,
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
@@ -95,6 +104,10 @@ func ValidColumn(column string) bool {
 var (
 	// NameValidator is a validator for the "name" field. It is called by the builders before save.
 	NameValidator func(string) error
+	// DefaultIsPublic holds the default value on creation for the "is_public" field.
+	DefaultIsPublic bool
+	// InviteCodeValidator is a validator for the "invite_code" field. It is called by the builders before save.
+	InviteCodeValidator func(string) error
 	// DefaultID holds the default value on creation for the "id" field.
 	DefaultID func() uuid.UUID
 )
@@ -130,6 +143,21 @@ func ByDescription(opts ...sql.OrderTermOption) OrderOption {
 // ByAvatarID orders the results by the avatar_id field.
 func ByAvatarID(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldAvatarID, opts...).ToFunc()
+}
+
+// ByIsPublic orders the results by the is_public field.
+func ByIsPublic(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldIsPublic, opts...).ToFunc()
+}
+
+// ByInviteCode orders the results by the invite_code field.
+func ByInviteCode(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldInviteCode, opts...).ToFunc()
+}
+
+// ByInviteExpiresAt orders the results by the invite_expires_at field.
+func ByInviteExpiresAt(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldInviteExpiresAt, opts...).ToFunc()
 }
 
 // ByAvatarField orders the results by avatar field.

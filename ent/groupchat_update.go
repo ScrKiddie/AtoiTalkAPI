@@ -13,6 +13,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
@@ -119,6 +120,54 @@ func (_u *GroupChatUpdate) SetNillableAvatarID(v *uuid.UUID) *GroupChatUpdate {
 // ClearAvatarID clears the value of the "avatar_id" field.
 func (_u *GroupChatUpdate) ClearAvatarID() *GroupChatUpdate {
 	_u.mutation.ClearAvatarID()
+	return _u
+}
+
+// SetIsPublic sets the "is_public" field.
+func (_u *GroupChatUpdate) SetIsPublic(v bool) *GroupChatUpdate {
+	_u.mutation.SetIsPublic(v)
+	return _u
+}
+
+// SetNillableIsPublic sets the "is_public" field if the given value is not nil.
+func (_u *GroupChatUpdate) SetNillableIsPublic(v *bool) *GroupChatUpdate {
+	if v != nil {
+		_u.SetIsPublic(*v)
+	}
+	return _u
+}
+
+// SetInviteCode sets the "invite_code" field.
+func (_u *GroupChatUpdate) SetInviteCode(v string) *GroupChatUpdate {
+	_u.mutation.SetInviteCode(v)
+	return _u
+}
+
+// SetNillableInviteCode sets the "invite_code" field if the given value is not nil.
+func (_u *GroupChatUpdate) SetNillableInviteCode(v *string) *GroupChatUpdate {
+	if v != nil {
+		_u.SetInviteCode(*v)
+	}
+	return _u
+}
+
+// SetInviteExpiresAt sets the "invite_expires_at" field.
+func (_u *GroupChatUpdate) SetInviteExpiresAt(v time.Time) *GroupChatUpdate {
+	_u.mutation.SetInviteExpiresAt(v)
+	return _u
+}
+
+// SetNillableInviteExpiresAt sets the "invite_expires_at" field if the given value is not nil.
+func (_u *GroupChatUpdate) SetNillableInviteExpiresAt(v *time.Time) *GroupChatUpdate {
+	if v != nil {
+		_u.SetInviteExpiresAt(*v)
+	}
+	return _u
+}
+
+// ClearInviteExpiresAt clears the value of the "invite_expires_at" field.
+func (_u *GroupChatUpdate) ClearInviteExpiresAt() *GroupChatUpdate {
+	_u.mutation.ClearInviteExpiresAt()
 	return _u
 }
 
@@ -280,6 +329,11 @@ func (_u *GroupChatUpdate) check() error {
 			return &ValidationError{Name: "name", err: fmt.Errorf(`ent: validator failed for field "GroupChat.name": %w`, err)}
 		}
 	}
+	if v, ok := _u.mutation.InviteCode(); ok {
+		if err := groupchat.InviteCodeValidator(v); err != nil {
+			return &ValidationError{Name: "invite_code", err: fmt.Errorf(`ent: validator failed for field "GroupChat.invite_code": %w`, err)}
+		}
+	}
 	if _u.mutation.ChatCleared() && len(_u.mutation.ChatIDs()) > 0 {
 		return errors.New(`ent: clearing a required unique edge "GroupChat.chat"`)
 	}
@@ -312,6 +366,18 @@ func (_u *GroupChatUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	}
 	if _u.mutation.DescriptionCleared() {
 		_spec.ClearField(groupchat.FieldDescription, field.TypeString)
+	}
+	if value, ok := _u.mutation.IsPublic(); ok {
+		_spec.SetField(groupchat.FieldIsPublic, field.TypeBool, value)
+	}
+	if value, ok := _u.mutation.InviteCode(); ok {
+		_spec.SetField(groupchat.FieldInviteCode, field.TypeString, value)
+	}
+	if value, ok := _u.mutation.InviteExpiresAt(); ok {
+		_spec.SetField(groupchat.FieldInviteExpiresAt, field.TypeTime, value)
+	}
+	if _u.mutation.InviteExpiresAtCleared() {
+		_spec.ClearField(groupchat.FieldInviteExpiresAt, field.TypeTime)
 	}
 	if _u.mutation.AvatarCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -600,6 +666,54 @@ func (_u *GroupChatUpdateOne) ClearAvatarID() *GroupChatUpdateOne {
 	return _u
 }
 
+// SetIsPublic sets the "is_public" field.
+func (_u *GroupChatUpdateOne) SetIsPublic(v bool) *GroupChatUpdateOne {
+	_u.mutation.SetIsPublic(v)
+	return _u
+}
+
+// SetNillableIsPublic sets the "is_public" field if the given value is not nil.
+func (_u *GroupChatUpdateOne) SetNillableIsPublic(v *bool) *GroupChatUpdateOne {
+	if v != nil {
+		_u.SetIsPublic(*v)
+	}
+	return _u
+}
+
+// SetInviteCode sets the "invite_code" field.
+func (_u *GroupChatUpdateOne) SetInviteCode(v string) *GroupChatUpdateOne {
+	_u.mutation.SetInviteCode(v)
+	return _u
+}
+
+// SetNillableInviteCode sets the "invite_code" field if the given value is not nil.
+func (_u *GroupChatUpdateOne) SetNillableInviteCode(v *string) *GroupChatUpdateOne {
+	if v != nil {
+		_u.SetInviteCode(*v)
+	}
+	return _u
+}
+
+// SetInviteExpiresAt sets the "invite_expires_at" field.
+func (_u *GroupChatUpdateOne) SetInviteExpiresAt(v time.Time) *GroupChatUpdateOne {
+	_u.mutation.SetInviteExpiresAt(v)
+	return _u
+}
+
+// SetNillableInviteExpiresAt sets the "invite_expires_at" field if the given value is not nil.
+func (_u *GroupChatUpdateOne) SetNillableInviteExpiresAt(v *time.Time) *GroupChatUpdateOne {
+	if v != nil {
+		_u.SetInviteExpiresAt(*v)
+	}
+	return _u
+}
+
+// ClearInviteExpiresAt clears the value of the "invite_expires_at" field.
+func (_u *GroupChatUpdateOne) ClearInviteExpiresAt() *GroupChatUpdateOne {
+	_u.mutation.ClearInviteExpiresAt()
+	return _u
+}
+
 // SetAvatar sets the "avatar" edge to the Media entity.
 func (_u *GroupChatUpdateOne) SetAvatar(v *Media) *GroupChatUpdateOne {
 	return _u.SetAvatarID(v.ID)
@@ -771,6 +885,11 @@ func (_u *GroupChatUpdateOne) check() error {
 			return &ValidationError{Name: "name", err: fmt.Errorf(`ent: validator failed for field "GroupChat.name": %w`, err)}
 		}
 	}
+	if v, ok := _u.mutation.InviteCode(); ok {
+		if err := groupchat.InviteCodeValidator(v); err != nil {
+			return &ValidationError{Name: "invite_code", err: fmt.Errorf(`ent: validator failed for field "GroupChat.invite_code": %w`, err)}
+		}
+	}
 	if _u.mutation.ChatCleared() && len(_u.mutation.ChatIDs()) > 0 {
 		return errors.New(`ent: clearing a required unique edge "GroupChat.chat"`)
 	}
@@ -820,6 +939,18 @@ func (_u *GroupChatUpdateOne) sqlSave(ctx context.Context) (_node *GroupChat, er
 	}
 	if _u.mutation.DescriptionCleared() {
 		_spec.ClearField(groupchat.FieldDescription, field.TypeString)
+	}
+	if value, ok := _u.mutation.IsPublic(); ok {
+		_spec.SetField(groupchat.FieldIsPublic, field.TypeBool, value)
+	}
+	if value, ok := _u.mutation.InviteCode(); ok {
+		_spec.SetField(groupchat.FieldInviteCode, field.TypeString, value)
+	}
+	if value, ok := _u.mutation.InviteExpiresAt(); ok {
+		_spec.SetField(groupchat.FieldInviteExpiresAt, field.TypeTime, value)
+	}
+	if _u.mutation.InviteExpiresAtCleared() {
+		_spec.ClearField(groupchat.FieldInviteExpiresAt, field.TypeTime)
 	}
 	if _u.mutation.AvatarCleared() {
 		edge := &sqlgraph.EdgeSpec{

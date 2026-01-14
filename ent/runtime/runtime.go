@@ -62,6 +62,28 @@ func init() {
 			return nil
 		}
 	}()
+	// groupchatDescIsPublic is the schema descriptor for is_public field.
+	groupchatDescIsPublic := groupchatFields[6].Descriptor()
+	// groupchat.DefaultIsPublic holds the default value on creation for the is_public field.
+	groupchat.DefaultIsPublic = groupchatDescIsPublic.Default.(bool)
+	// groupchatDescInviteCode is the schema descriptor for invite_code field.
+	groupchatDescInviteCode := groupchatFields[7].Descriptor()
+	// groupchat.InviteCodeValidator is a validator for the "invite_code" field. It is called by the builders before save.
+	groupchat.InviteCodeValidator = func() func(string) error {
+		validators := groupchatDescInviteCode.Validators
+		fns := [...]func(string) error{
+			validators[0].(func(string) error),
+			validators[1].(func(string) error),
+		}
+		return func(invite_code string) error {
+			for _, fn := range fns {
+				if err := fn(invite_code); err != nil {
+					return err
+				}
+			}
+			return nil
+		}
+	}()
 	// groupchatDescID is the schema descriptor for id field.
 	groupchatDescID := groupchatFields[0].Descriptor()
 	// groupchat.DefaultID holds the default value on creation for the id field.

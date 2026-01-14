@@ -62,6 +62,7 @@ func TestCreateGroupChat(t *testing.T) {
 		gc, err := testClient.GroupChat.Query().Where(groupchat.Name("Test Group 1")).WithChat().Only(context.Background())
 		assert.NoError(t, err)
 		assert.Equal(t, u1.ID, *gc.CreatedBy)
+		assert.NotEmpty(t, gc.InviteCode, "Invite code should be generated automatically")
 
 		members, err := gc.QueryMembers().All(context.Background())
 		assert.NoError(t, err)
@@ -86,6 +87,29 @@ func TestCreateGroupChat(t *testing.T) {
 		assert.Equal(t, u1.ID, *sysMsg.SenderID)
 		assert.Equal(t, "Test Group 1", sysMsg.ActionData["initial_name"])
 		assert.Equal(t, sysMsg.ID, *gc.Edges.Chat.LastMessageID)
+	})
+
+	t.Run("Success - Create Public Group", func(t *testing.T) {
+		body := &bytes.Buffer{}
+		writer := multipart.NewWriter(body)
+		_ = writer.WriteField("name", "Public Group")
+		_ = writer.WriteField("is_public", "true")
+
+		idsJSON, _ := json.Marshal([]string{u2.ID.String()})
+		_ = writer.WriteField("member_ids", string(idsJSON))
+
+		writer.Close()
+
+		req, _ := http.NewRequest("POST", "/api/chats/group", body)
+		req.Header.Set("Content-Type", writer.FormDataContentType())
+		req.Header.Set("Authorization", "Bearer "+token1)
+
+		rr := executeRequest(req)
+		assert.Equal(t, http.StatusOK, rr.Code)
+
+		gc, err := testClient.GroupChat.Query().Where(groupchat.Name("Public Group")).Only(context.Background())
+		assert.NoError(t, err)
+		assert.True(t, gc.IsPublic)
 	})
 
 	t.Run("Success - Create Group with Whitespace", func(t *testing.T) {
@@ -256,7 +280,7 @@ func TestCreateGroupChat(t *testing.T) {
 		member, _ := testClient.User.Create().SetEmail("member@test.com").SetUsername("member").SetFullName("Member").Save(context.Background())
 
 		chatEntity := testClient.Chat.Create().SetType("group").SaveX(context.Background())
-		gc := testClient.GroupChat.Create().SetChat(chatEntity).SetCreator(creator).SetName("Survivor Group").SaveX(context.Background())
+		gc := testClient.GroupChat.Create().SetChat(chatEntity).SetCreator(creator).SetName("Survivor Group").SetInviteCode("survivor").SaveX(context.Background())
 		testClient.GroupMember.Create().SetGroupChat(gc).SetUser(creator).SetRole(groupmember.RoleOwner).SaveX(context.Background())
 		testClient.GroupMember.Create().SetGroupChat(gc).SetUser(member).SetRole(groupmember.RoleMember).SaveX(context.Background())
 
@@ -312,7 +336,7 @@ func TestUpdateGroupChat(t *testing.T) {
 	token4, _ := helper.GenerateJWT(testConfig.JWTSecret, testConfig.JWTExp, u4.ID)
 
 	chatEntity := testClient.Chat.Create().SetType("group").SaveX(context.Background())
-	gc := testClient.GroupChat.Create().SetChat(chatEntity).SetCreator(u1).SetName("Original Name").SetDescription("Original Desc").SaveX(context.Background())
+	gc := testClient.GroupChat.Create().SetChat(chatEntity).SetCreator(u1).SetName("Original Name").SetDescription("Original Desc").SetInviteCode("original").SaveX(context.Background())
 
 	testClient.GroupMember.Create().SetGroupChat(gc).SetUser(u1).SetRole(groupmember.RoleOwner).SaveX(context.Background())
 	testClient.GroupMember.Create().SetGroupChat(gc).SetUser(u2).SetRole(groupmember.RoleAdmin).SaveX(context.Background())
@@ -361,6 +385,23 @@ func TestUpdateGroupChat(t *testing.T) {
 
 		gcReload, _ := testClient.GroupChat.Query().Where(groupchat.ID(gc.ID)).Only(context.Background())
 		assert.Equal(t, "New Description", *gcReload.Description)
+	})
+
+	t.Run("Success - Update IsPublic (Owner)", func(t *testing.T) {
+		body := &bytes.Buffer{}
+		writer := multipart.NewWriter(body)
+		_ = writer.WriteField("is_public", "true")
+		writer.Close()
+
+		req, _ := http.NewRequest("PUT", fmt.Sprintf("/api/chats/group/%s", gc.ChatID), body)
+		req.Header.Set("Content-Type", writer.FormDataContentType())
+		req.Header.Set("Authorization", "Bearer "+token1)
+
+		rr := executeRequest(req)
+		assert.Equal(t, http.StatusOK, rr.Code)
+
+		gcReload, _ := testClient.GroupChat.Query().Where(groupchat.ID(gc.ID)).Only(context.Background())
+		assert.True(t, gcReload.IsPublic)
 	})
 
 	t.Run("Success - Update Avatar (Owner)", func(t *testing.T) {
@@ -457,7 +498,7 @@ func TestSearchGroupMembers(t *testing.T) {
 	token4, _ := helper.GenerateJWT(testConfig.JWTSecret, testConfig.JWTExp, u4.ID)
 
 	chatEntity := testClient.Chat.Create().SetType("group").SaveX(context.Background())
-	gc := testClient.GroupChat.Create().SetChat(chatEntity).SetCreator(u1).SetName("Search Test Group").SaveX(context.Background())
+	gc := testClient.GroupChat.Create().SetChat(chatEntity).SetCreator(u1).SetName("Search Test Group").SetInviteCode("search").SaveX(context.Background())
 	testClient.GroupMember.Create().SetGroupChat(gc).SetUser(u1).SetRole(groupmember.RoleOwner).SaveX(context.Background())
 	testClient.GroupMember.Create().SetGroupChat(gc).SetUser(u2).SetRole(groupmember.RoleMember).SaveX(context.Background())
 	testClient.GroupMember.Create().SetGroupChat(gc).SetUser(u3).SetRole(groupmember.RoleMember).SaveX(context.Background())
@@ -576,7 +617,7 @@ func TestAddGroupMember(t *testing.T) {
 	token3, _ := helper.GenerateJWT(testConfig.JWTSecret, testConfig.JWTExp, u3.ID)
 
 	chatEntity := testClient.Chat.Create().SetType("group").SaveX(context.Background())
-	gc := testClient.GroupChat.Create().SetChat(chatEntity).SetCreator(u1).SetName("Add Member Test").SaveX(context.Background())
+	gc := testClient.GroupChat.Create().SetChat(chatEntity).SetCreator(u1).SetName("Add Member Test").SetInviteCode("add").SaveX(context.Background())
 	testClient.GroupMember.Create().SetGroupChat(gc).SetUser(u1).SetRole(groupmember.RoleOwner).SaveX(context.Background())
 	testClient.GroupMember.Create().SetGroupChat(gc).SetUser(u2).SetRole(groupmember.RoleAdmin).SaveX(context.Background())
 	testClient.GroupMember.Create().SetGroupChat(gc).SetUser(u3).SetRole(groupmember.RoleMember).SaveX(context.Background())
@@ -693,7 +734,7 @@ func TestLeaveGroup(t *testing.T) {
 	token3, _ := helper.GenerateJWT(testConfig.JWTSecret, testConfig.JWTExp, u3.ID)
 
 	chatEntity := testClient.Chat.Create().SetType("group").SaveX(context.Background())
-	gc := testClient.GroupChat.Create().SetChat(chatEntity).SetCreator(u1).SetName("Leave Test").SaveX(context.Background())
+	gc := testClient.GroupChat.Create().SetChat(chatEntity).SetCreator(u1).SetName("Leave Test").SetInviteCode("leave").SaveX(context.Background())
 	testClient.GroupMember.Create().SetGroupChat(gc).SetUser(u1).SetRole(groupmember.RoleOwner).SaveX(context.Background())
 	testClient.GroupMember.Create().SetGroupChat(gc).SetUser(u2).SetRole(groupmember.RoleMember).SaveX(context.Background())
 
@@ -742,7 +783,7 @@ func TestKickMember(t *testing.T) {
 	token4, _ := helper.GenerateJWT(testConfig.JWTSecret, testConfig.JWTExp, u4.ID)
 
 	chatEntity := testClient.Chat.Create().SetType("group").SaveX(context.Background())
-	gc := testClient.GroupChat.Create().SetChat(chatEntity).SetCreator(u1).SetName("Kick Test").SaveX(context.Background())
+	gc := testClient.GroupChat.Create().SetChat(chatEntity).SetCreator(u1).SetName("Kick Test").SetInviteCode("kick").SaveX(context.Background())
 	testClient.GroupMember.Create().SetGroupChat(gc).SetUser(u1).SetRole(groupmember.RoleOwner).SaveX(context.Background())
 	testClient.GroupMember.Create().SetGroupChat(gc).SetUser(u2).SetRole(groupmember.RoleAdmin).SaveX(context.Background())
 	testClient.GroupMember.Create().SetGroupChat(gc).SetUser(u3).SetRole(groupmember.RoleMember).SaveX(context.Background())
@@ -838,7 +879,7 @@ func TestUpdateMemberRole(t *testing.T) {
 	token2, _ := helper.GenerateJWT(testConfig.JWTSecret, testConfig.JWTExp, u2.ID)
 
 	chatEntity := testClient.Chat.Create().SetType("group").SaveX(context.Background())
-	gc := testClient.GroupChat.Create().SetChat(chatEntity).SetCreator(u1).SetName("Role Test").SaveX(context.Background())
+	gc := testClient.GroupChat.Create().SetChat(chatEntity).SetCreator(u1).SetName("Role Test").SetInviteCode("role").SaveX(context.Background())
 	testClient.GroupMember.Create().SetGroupChat(gc).SetUser(u1).SetRole(groupmember.RoleOwner).SaveX(context.Background())
 	testClient.GroupMember.Create().SetGroupChat(gc).SetUser(u2).SetRole(groupmember.RoleMember).SaveX(context.Background())
 	testClient.GroupMember.Create().SetGroupChat(gc).SetUser(u3).SetRole(groupmember.RoleAdmin).SaveX(context.Background())
@@ -914,7 +955,7 @@ func TestTransferOwnership(t *testing.T) {
 	token2, _ := helper.GenerateJWT(testConfig.JWTSecret, testConfig.JWTExp, u2.ID)
 
 	chatEntity := testClient.Chat.Create().SetType("group").SaveX(context.Background())
-	gc := testClient.GroupChat.Create().SetChat(chatEntity).SetCreator(u1).SetName("Transfer Test").SaveX(context.Background())
+	gc := testClient.GroupChat.Create().SetChat(chatEntity).SetCreator(u1).SetName("Transfer Test").SetInviteCode("transfer").SaveX(context.Background())
 	testClient.GroupMember.Create().SetGroupChat(gc).SetUser(u1).SetRole(groupmember.RoleOwner).SaveX(context.Background())
 	testClient.GroupMember.Create().SetGroupChat(gc).SetUser(u2).SetRole(groupmember.RoleAdmin).SaveX(context.Background())
 	testClient.GroupMember.Create().SetGroupChat(gc).SetUser(u3).SetRole(groupmember.RoleMember).SaveX(context.Background())
@@ -979,7 +1020,7 @@ func TestDeleteGroup(t *testing.T) {
 	token2, _ := helper.GenerateJWT(testConfig.JWTSecret, testConfig.JWTExp, u2.ID)
 
 	chatEntity := testClient.Chat.Create().SetType("group").SaveX(context.Background())
-	gc := testClient.GroupChat.Create().SetChat(chatEntity).SetCreator(u1).SetName("Delete Test").SaveX(context.Background())
+	gc := testClient.GroupChat.Create().SetChat(chatEntity).SetCreator(u1).SetName("Delete Test").SetInviteCode("delete").SaveX(context.Background())
 	testClient.GroupMember.Create().SetGroupChat(gc).SetUser(u1).SetRole(groupmember.RoleOwner).SaveX(context.Background())
 	testClient.GroupMember.Create().SetGroupChat(gc).SetUser(u2).SetRole(groupmember.RoleMember).SaveX(context.Background())
 
@@ -1013,7 +1054,7 @@ func TestDeleteGroup(t *testing.T) {
 	t.Run("Fail - Member Deletes Group", func(t *testing.T) {
 
 		chatEntity2 := testClient.Chat.Create().SetType("group").SaveX(context.Background())
-		gc2 := testClient.GroupChat.Create().SetChat(chatEntity2).SetCreator(u1).SetName("Delete Test 2").SaveX(context.Background())
+		gc2 := testClient.GroupChat.Create().SetChat(chatEntity2).SetCreator(u1).SetName("Delete Test 2").SetInviteCode("delete2").SaveX(context.Background())
 		testClient.GroupMember.Create().SetGroupChat(gc2).SetUser(u1).SetRole(groupmember.RoleOwner).SaveX(context.Background())
 		testClient.GroupMember.Create().SetGroupChat(gc2).SetUser(u2).SetRole(groupmember.RoleMember).SaveX(context.Background())
 
@@ -1039,7 +1080,7 @@ func TestDeleteGroup(t *testing.T) {
 	t.Run("Success - Member Deletes Account (Remains in Group)", func(t *testing.T) {
 
 		chatEntity3 := testClient.Chat.Create().SetType("group").SaveX(context.Background())
-		gc3 := testClient.GroupChat.Create().SetChat(chatEntity3).SetCreator(u1).SetName("Delete Account Test").SaveX(context.Background())
+		gc3 := testClient.GroupChat.Create().SetChat(chatEntity3).SetCreator(u1).SetName("Delete Account Test").SetInviteCode("delete3").SaveX(context.Background())
 		testClient.GroupMember.Create().SetGroupChat(gc3).SetUser(u1).SetRole(groupmember.RoleOwner).SaveX(context.Background())
 
 		u3 := testClient.User.Create().SetEmail("u3@test.com").SetUsername("member3").SetFullName("Member 3").SaveX(context.Background())
@@ -1062,5 +1103,263 @@ func TestDeleteGroup(t *testing.T) {
 		assert.Len(t, dataList, 1)
 		member := dataList[0].(map[string]interface{})
 		assert.Equal(t, u1.ID.String(), member["user_id"])
+	})
+}
+
+func TestSearchPublicGroups(t *testing.T) {
+	clearDatabase(context.Background())
+	u1 := testClient.User.Create().SetEmail("u1@test.com").SetUsername("user1").SetFullName("User 1").SaveX(context.Background())
+	token1, _ := helper.GenerateJWT(testConfig.JWTSecret, testConfig.JWTExp, u1.ID)
+
+	chat1 := testClient.Chat.Create().SetType("group").SaveX(context.Background())
+	testClient.GroupChat.Create().SetChat(chat1).SetCreator(u1).SetName("Public Group 1").SetIsPublic(true).SetInviteCode("pub1").SaveX(context.Background())
+
+	chat2 := testClient.Chat.Create().SetType("group").SaveX(context.Background())
+	testClient.GroupChat.Create().SetChat(chat2).SetCreator(u1).SetName("Private Group").SetIsPublic(false).SetInviteCode("priv1").SaveX(context.Background())
+
+	chat3 := testClient.Chat.Create().SetType("group").SaveX(context.Background())
+	testClient.GroupChat.Create().SetChat(chat3).SetCreator(u1).SetName("Public Group 2").SetIsPublic(true).SetInviteCode("pub2").SaveX(context.Background())
+
+	t.Run("Success - List Public Groups", func(t *testing.T) {
+		req, _ := http.NewRequest("GET", "/api/chats/group/public", nil)
+		req.Header.Set("Authorization", "Bearer "+token1)
+
+		rr := executeRequest(req)
+		assert.Equal(t, http.StatusOK, rr.Code)
+
+		var resp helper.ResponseWithPagination
+		json.Unmarshal(rr.Body.Bytes(), &resp)
+		dataList := resp.Data.([]interface{})
+
+		assert.Len(t, dataList, 2)
+		names := make(map[string]bool)
+		for _, item := range dataList {
+			g := item.(map[string]interface{})
+			names[g["name"].(string)] = true
+		}
+		assert.True(t, names["Public Group 1"])
+		assert.True(t, names["Public Group 2"])
+		assert.False(t, names["Private Group"])
+	})
+
+	t.Run("Success - Search Public Groups", func(t *testing.T) {
+		req, _ := http.NewRequest("GET", "/api/chats/group/public?query=Group%201", nil)
+		req.Header.Set("Authorization", "Bearer "+token1)
+
+		rr := executeRequest(req)
+		assert.Equal(t, http.StatusOK, rr.Code)
+
+		var resp helper.ResponseWithPagination
+		json.Unmarshal(rr.Body.Bytes(), &resp)
+
+		if resp.Data == nil {
+			assert.Fail(t, "Response data is nil")
+			return
+		}
+
+		dataList, ok := resp.Data.([]interface{})
+		if !ok {
+			assert.Fail(t, "Response data is not a list")
+			return
+		}
+
+		assert.Len(t, dataList, 1)
+		if len(dataList) > 0 {
+			g := dataList[0].(map[string]interface{})
+			assert.Equal(t, "Public Group 1", g["name"])
+		}
+	})
+}
+
+func TestJoinPublicGroup(t *testing.T) {
+	clearDatabase(context.Background())
+	u1 := testClient.User.Create().SetEmail("u1@test.com").SetUsername("user1").SetFullName("User 1").SaveX(context.Background())
+	u2 := testClient.User.Create().SetEmail("u2@test.com").SetUsername("user2").SetFullName("User 2").SaveX(context.Background())
+	token2, _ := helper.GenerateJWT(testConfig.JWTSecret, testConfig.JWTExp, u2.ID)
+
+	chat1 := testClient.Chat.Create().SetType("group").SaveX(context.Background())
+	gc1 := testClient.GroupChat.Create().SetChat(chat1).SetCreator(u1).SetName("Public Group").SetIsPublic(true).SetInviteCode("pubjoin").SaveX(context.Background())
+	testClient.GroupMember.Create().SetGroupChat(gc1).SetUser(u1).SetRole(groupmember.RoleOwner).SaveX(context.Background())
+
+	chat2 := testClient.Chat.Create().SetType("group").SaveX(context.Background())
+	gc2 := testClient.GroupChat.Create().SetChat(chat2).SetCreator(u1).SetName("Private Group").SetIsPublic(false).SetInviteCode("privjoin").SaveX(context.Background())
+	testClient.GroupMember.Create().SetGroupChat(gc2).SetUser(u1).SetRole(groupmember.RoleOwner).SaveX(context.Background())
+
+	t.Run("Success - Join Public Group", func(t *testing.T) {
+		req, _ := http.NewRequest("POST", fmt.Sprintf("/api/chats/group/%s/join", gc1.ChatID), nil)
+		req.Header.Set("Authorization", "Bearer "+token2)
+
+		rr := executeRequest(req)
+		assert.Equal(t, http.StatusOK, rr.Code)
+
+		isMember, _ := testClient.GroupMember.Query().Where(groupmember.GroupChatID(gc1.ID), groupmember.UserID(u2.ID)).Exist(context.Background())
+		assert.True(t, isMember)
+	})
+
+	t.Run("Fail - Join Private Group", func(t *testing.T) {
+		req, _ := http.NewRequest("POST", fmt.Sprintf("/api/chats/group/%s/join", gc2.ChatID), nil)
+		req.Header.Set("Authorization", "Bearer "+token2)
+
+		rr := executeRequest(req)
+		assert.Equal(t, http.StatusForbidden, rr.Code)
+	})
+
+	t.Run("Fail - Already Member", func(t *testing.T) {
+		req, _ := http.NewRequest("POST", fmt.Sprintf("/api/chats/group/%s/join", gc1.ChatID), nil)
+		req.Header.Set("Authorization", "Bearer "+token2)
+
+		rr := executeRequest(req)
+		assert.Equal(t, http.StatusConflict, rr.Code)
+	})
+
+	t.Run("Fail - Group Not Found", func(t *testing.T) {
+		req, _ := http.NewRequest("POST", fmt.Sprintf("/api/chats/group/%s/join", uuid.New()), nil)
+		req.Header.Set("Authorization", "Bearer "+token2)
+
+		rr := executeRequest(req)
+		assert.Equal(t, http.StatusNotFound, rr.Code)
+	})
+}
+
+func TestJoinGroupByInvite(t *testing.T) {
+	clearDatabase(context.Background())
+	u1 := testClient.User.Create().SetEmail("u1@test.com").SetUsername("user1").SetFullName("User 1").SaveX(context.Background())
+	u2 := testClient.User.Create().SetEmail("u2@test.com").SetUsername("user2").SetFullName("User 2").SaveX(context.Background())
+	token2, _ := helper.GenerateJWT(testConfig.JWTSecret, testConfig.JWTExp, u2.ID)
+
+	chat1 := testClient.Chat.Create().SetType("group").SaveX(context.Background())
+	gc1 := testClient.GroupChat.Create().SetChat(chat1).SetCreator(u1).SetName("Private Group").SetIsPublic(false).SetInviteCode("validcode").SaveX(context.Background())
+	testClient.GroupMember.Create().SetGroupChat(gc1).SetUser(u1).SetRole(groupmember.RoleOwner).SaveX(context.Background())
+
+	chat2 := testClient.Chat.Create().SetType("group").SaveX(context.Background())
+	testClient.GroupChat.Create().SetChat(chat2).SetCreator(u1).SetName("Expired Group").SetIsPublic(false).SetInviteCode("expiredcode").SetInviteExpiresAt(time.Now().UTC().Add(-1 * time.Hour)).SaveX(context.Background())
+
+	t.Run("Success - Join via Invite Code", func(t *testing.T) {
+		reqBody := model.JoinGroupByInviteRequest{InviteCode: "validcode"}
+		body, _ := json.Marshal(reqBody)
+		req, _ := http.NewRequest("POST", "/api/chats/group/join/invite", bytes.NewBuffer(body))
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Authorization", "Bearer "+token2)
+
+		rr := executeRequest(req)
+		assert.Equal(t, http.StatusOK, rr.Code)
+
+		isMember, _ := testClient.GroupMember.Query().Where(groupmember.GroupChatID(gc1.ID), groupmember.UserID(u2.ID)).Exist(context.Background())
+		assert.True(t, isMember)
+	})
+
+	t.Run("Fail - Expired Invite Code", func(t *testing.T) {
+		reqBody := model.JoinGroupByInviteRequest{InviteCode: "expiredcode"}
+		body, _ := json.Marshal(reqBody)
+		req, _ := http.NewRequest("POST", "/api/chats/group/join/invite", bytes.NewBuffer(body))
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Authorization", "Bearer "+token2)
+
+		rr := executeRequest(req)
+		assert.Equal(t, http.StatusBadRequest, rr.Code)
+	})
+
+	t.Run("Fail - Invalid Invite Code", func(t *testing.T) {
+		reqBody := model.JoinGroupByInviteRequest{InviteCode: "invalidcode"}
+		body, _ := json.Marshal(reqBody)
+		req, _ := http.NewRequest("POST", "/api/chats/group/join/invite", bytes.NewBuffer(body))
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Authorization", "Bearer "+token2)
+
+		rr := executeRequest(req)
+		assert.Equal(t, http.StatusNotFound, rr.Code)
+	})
+
+	t.Run("Fail - Already Member", func(t *testing.T) {
+		reqBody := model.JoinGroupByInviteRequest{InviteCode: "validcode"}
+		body, _ := json.Marshal(reqBody)
+		req, _ := http.NewRequest("POST", "/api/chats/group/join/invite", bytes.NewBuffer(body))
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Authorization", "Bearer "+token2)
+
+		rr := executeRequest(req)
+
+		assert.Equal(t, http.StatusConflict, rr.Code)
+	})
+}
+
+func TestGetGroupByInviteCode(t *testing.T) {
+	clearDatabase(context.Background())
+	u1 := testClient.User.Create().SetEmail("u1@test.com").SetUsername("user1").SetFullName("User 1").SaveX(context.Background())
+
+	chat1 := testClient.Chat.Create().SetType("group").SaveX(context.Background())
+	testClient.GroupChat.Create().SetChat(chat1).SetCreator(u1).SetName("Preview Group").SetIsPublic(false).SetInviteCode("previewcode").SaveX(context.Background())
+
+	chat2 := testClient.Chat.Create().SetType("group").SaveX(context.Background())
+	testClient.GroupChat.Create().SetChat(chat2).SetCreator(u1).SetName("Expired Preview").SetIsPublic(false).SetInviteCode("expiredprev").SetInviteExpiresAt(time.Now().UTC().Add(-1 * time.Hour)).SaveX(context.Background())
+
+	t.Run("Success - Preview Group", func(t *testing.T) {
+		req, _ := http.NewRequest("GET", "/api/chats/group/invite/previewcode", nil)
+
+		rr := executeRequest(req)
+		assert.Equal(t, http.StatusOK, rr.Code)
+
+		var resp helper.ResponseSuccess
+		json.Unmarshal(rr.Body.Bytes(), &resp)
+		data := resp.Data.(map[string]interface{})
+		assert.Equal(t, "Preview Group", data["name"])
+	})
+
+	t.Run("Fail - Expired Code", func(t *testing.T) {
+		req, _ := http.NewRequest("GET", "/api/chats/group/invite/expiredprev", nil)
+		rr := executeRequest(req)
+		assert.Equal(t, http.StatusBadRequest, rr.Code)
+	})
+
+	t.Run("Fail - Invalid Code", func(t *testing.T) {
+		req, _ := http.NewRequest("GET", "/api/chats/group/invite/invalid", nil)
+		rr := executeRequest(req)
+		assert.Equal(t, http.StatusNotFound, rr.Code)
+	})
+}
+
+func TestResetInviteCode(t *testing.T) {
+	clearDatabase(context.Background())
+	u1 := testClient.User.Create().SetEmail("u1@test.com").SetUsername("owner").SetFullName("Owner").SaveX(context.Background())
+	u2 := testClient.User.Create().SetEmail("u2@test.com").SetUsername("member").SetFullName("Member").SaveX(context.Background())
+
+	token1, _ := helper.GenerateJWT(testConfig.JWTSecret, testConfig.JWTExp, u1.ID)
+	token2, _ := helper.GenerateJWT(testConfig.JWTSecret, testConfig.JWTExp, u2.ID)
+
+	chatEntity := testClient.Chat.Create().SetType("group").SaveX(context.Background())
+	gc := testClient.GroupChat.Create().SetChat(chatEntity).SetCreator(u1).SetName("Reset Test").SetInviteCode("oldcode").SaveX(context.Background())
+	testClient.GroupMember.Create().SetGroupChat(gc).SetUser(u1).SetRole(groupmember.RoleOwner).SaveX(context.Background())
+	testClient.GroupMember.Create().SetGroupChat(gc).SetUser(u2).SetRole(groupmember.RoleMember).SaveX(context.Background())
+
+	t.Run("Success - Reset Code", func(t *testing.T) {
+		req, _ := http.NewRequest("PUT", fmt.Sprintf("/api/chats/group/%s/invite", gc.ChatID), nil)
+		req.Header.Set("Authorization", "Bearer "+token1)
+
+		rr := executeRequest(req)
+		assert.Equal(t, http.StatusOK, rr.Code)
+
+		var resp helper.ResponseSuccess
+		json.Unmarshal(rr.Body.Bytes(), &resp)
+		data := resp.Data.(map[string]interface{})
+		newCode := data["invite_code"].(string)
+
+		assert.NotEqual(t, "oldcode", newCode)
+		assert.NotEmpty(t, newCode)
+
+		reqOld, _ := http.NewRequest("GET", "/api/chats/group/invite/oldcode", nil)
+		rrOld := executeRequest(reqOld)
+		assert.Equal(t, http.StatusNotFound, rrOld.Code)
+
+		reqNew, _ := http.NewRequest("GET", fmt.Sprintf("/api/chats/group/invite/%s", newCode), nil)
+		rrNew := executeRequest(reqNew)
+		assert.Equal(t, http.StatusOK, rrNew.Code)
+	})
+
+	t.Run("Fail - Non-Admin", func(t *testing.T) {
+		req, _ := http.NewRequest("PUT", fmt.Sprintf("/api/chats/group/%s/invite", gc.ChatID), nil)
+		req.Header.Set("Authorization", "Bearer "+token2)
+
+		rr := executeRequest(req)
+		assert.Equal(t, http.StatusForbidden, rr.Code)
 	})
 }

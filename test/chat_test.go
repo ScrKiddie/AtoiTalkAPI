@@ -41,7 +41,7 @@ func TestGetChats(t *testing.T) {
 	chat2.Update().SetLastMessage(msg2).SetLastMessageAt(msg2.CreatedAt).ExecX(context.Background())
 
 	chat3 := testClient.Chat.Create().SetType(chat.TypeGroup).SetUpdatedAt(time.Now().UTC()).SaveX(context.Background())
-	gc := testClient.GroupChat.Create().SetChat(chat3).SetCreator(u1).SetName("My Group").SaveX(context.Background())
+	gc := testClient.GroupChat.Create().SetChat(chat3).SetCreator(u1).SetName("My Group").SetInviteCode("mygroup").SaveX(context.Background())
 	testClient.GroupMember.Create().SetGroupChat(gc).SetUser(u1).SetUnreadCount(5).SaveX(context.Background())
 	msg3 := testClient.Message.Create().SetChat(chat3).SetSender(u1).SetType(message.TypeRegular).SetContent("Group message").SetCreatedAt(time.Now().UTC()).SaveX(context.Background())
 	chat3.Update().SetLastMessage(msg3).SetLastMessageAt(msg3.CreatedAt).ExecX(context.Background())
@@ -409,7 +409,7 @@ func TestGetChatByID(t *testing.T) {
 
 	t.Run("Success - Get Group Chat with Member Count", func(t *testing.T) {
 		chatGroup := testClient.Chat.Create().SetType(chat.TypeGroup).SaveX(context.Background())
-		gc := testClient.GroupChat.Create().SetChat(chatGroup).SetCreator(u1).SetName("Count Test").SaveX(context.Background())
+		gc := testClient.GroupChat.Create().SetChat(chatGroup).SetCreator(u1).SetName("Count Test").SetInviteCode("counttest").SaveX(context.Background())
 		testClient.GroupMember.Create().SetGroupChat(gc).SetUser(u1).SaveX(context.Background())
 		testClient.GroupMember.Create().SetGroupChat(gc).SetUser(u2).SaveX(context.Background())
 		testClient.GroupMember.Create().SetGroupChat(gc).SetUser(u3).SaveX(context.Background())
@@ -425,6 +425,35 @@ func TestGetChatByID(t *testing.T) {
 		data := resp.Data.(map[string]interface{})
 
 		assert.Equal(t, float64(3), data["member_count"])
+	})
+
+	t.Run("Success - Get Public Group (Non-Member)", func(t *testing.T) {
+		chatPublic := testClient.Chat.Create().SetType(chat.TypeGroup).SaveX(context.Background())
+		testClient.GroupChat.Create().SetChat(chatPublic).SetCreator(u2).SetName("Public Group").SetIsPublic(true).SetInviteCode("publicgroup").SaveX(context.Background())
+
+		req, _ := http.NewRequest("GET", fmt.Sprintf("/api/chats/%s", chatPublic.ID), nil)
+		req.Header.Set("Authorization", "Bearer "+token1)
+
+		rr := executeRequest(req)
+		assert.Equal(t, http.StatusOK, rr.Code)
+
+		var resp helper.ResponseSuccess
+		json.Unmarshal(rr.Body.Bytes(), &resp)
+		data := resp.Data.(map[string]interface{})
+
+		assert.Equal(t, "Public Group", data["name"])
+		assert.Nil(t, data["my_role"], "Should not have a role")
+	})
+
+	t.Run("Fail - Get Private Group (Non-Member)", func(t *testing.T) {
+		chatPrivate := testClient.Chat.Create().SetType(chat.TypeGroup).SaveX(context.Background())
+		testClient.GroupChat.Create().SetChat(chatPrivate).SetCreator(u2).SetName("Private Group").SetIsPublic(false).SetInviteCode("privategroup").SaveX(context.Background())
+
+		req, _ := http.NewRequest("GET", fmt.Sprintf("/api/chats/%s", chatPrivate.ID), nil)
+		req.Header.Set("Authorization", "Bearer "+token1)
+
+		rr := executeRequest(req)
+		assert.Equal(t, http.StatusNotFound, rr.Code)
 	})
 
 	t.Run("Fail - Invalid ID", func(t *testing.T) {
@@ -469,7 +498,7 @@ func TestMarkAsRead(t *testing.T) {
 	testClient.PrivateChat.Create().SetChat(chat1).SetUser1(u1).SetUser2(u2).SetUser1UnreadCount(5).SaveX(context.Background())
 
 	chat2 := testClient.Chat.Create().SetType(chat.TypeGroup).SaveX(context.Background())
-	gc := testClient.GroupChat.Create().SetChat(chat2).SetCreator(u2).SetName("Test Group").SaveX(context.Background())
+	gc := testClient.GroupChat.Create().SetChat(chat2).SetCreator(u2).SetName("Test Group").SetInviteCode("testgroup").SaveX(context.Background())
 	testClient.GroupMember.Create().SetGroupChat(gc).SetUser(u1).SetUnreadCount(10).SaveX(context.Background())
 
 	t.Run("Success - Mark Private Chat Read", func(t *testing.T) {
@@ -567,7 +596,7 @@ func TestHideChat(t *testing.T) {
 
 	t.Run("Fail - Not Private Chat", func(t *testing.T) {
 		chatGroup := testClient.Chat.Create().SetType(chat.TypeGroup).SaveX(context.Background())
-		testClient.GroupChat.Create().SetChat(chatGroup).SetCreator(u1).SetName("Group").SaveX(context.Background())
+		testClient.GroupChat.Create().SetChat(chatGroup).SetCreator(u1).SetName("Group").SetInviteCode("group").SaveX(context.Background())
 
 		req, _ := http.NewRequest("POST", fmt.Sprintf("/api/chats/%s/hide", chatGroup.ID), nil)
 		req.Header.Set("Authorization", "Bearer "+token1)
@@ -588,7 +617,7 @@ func TestGroupUnreadConsistency(t *testing.T) {
 	token2, _ := helper.GenerateJWT(testConfig.JWTSecret, testConfig.JWTExp, u2.ID)
 
 	chatGroup := testClient.Chat.Create().SetType(chat.TypeGroup).SaveX(context.Background())
-	gc := testClient.GroupChat.Create().SetChat(chatGroup).SetCreator(u1).SetName("Test Group").SaveX(context.Background())
+	gc := testClient.GroupChat.Create().SetChat(chatGroup).SetCreator(u1).SetName("Test Group").SetInviteCode("testgroup2").SaveX(context.Background())
 	testClient.GroupMember.Create().SetGroupChat(gc).SetUser(u1).SaveX(context.Background())
 	testClient.GroupMember.Create().SetGroupChat(gc).SetUser(u2).SaveX(context.Background())
 	testClient.GroupMember.Create().SetGroupChat(gc).SetUser(u3).SaveX(context.Background())
