@@ -970,6 +970,61 @@ func TestWebSocketUnbanEvent(t *testing.T) {
 	verifyEvent(t, conn2, websocket.EventUserUnbanned, admin.ID, uuid.Nil)
 }
 
+func TestWebSocketJoinGroupEvents(t *testing.T) {
+	clearDatabase(context.Background())
+	u1 := createWSUser(t, "u1", "u1@test.com")
+	u2 := createWSUser(t, "u2", "u2@test.com")
+	token1, _ := helper.GenerateJWT(testConfig.JWTSecret, testConfig.JWTExp, u1.ID)
+	token2, _ := helper.GenerateJWT(testConfig.JWTSecret, testConfig.JWTExp, u2.ID)
+
+	body := &bytes.Buffer{}
+	writer := multipart.NewWriter(body)
+	_ = writer.WriteField("name", "Public Group WS")
+	_ = writer.WriteField("is_public", "true")
+
+	uDummy := createWSUser(t, "dummy", "dummy@test.com")
+	idsJSON, _ := json.Marshal([]string{uDummy.ID.String()})
+	_ = writer.WriteField("member_ids", string(idsJSON))
+	
+	writer.Close()
+
+	req, _ := http.NewRequest("POST", "/api/chats/group", body)
+	req.Header.Set("Content-Type", writer.FormDataContentType())
+	req.Header.Set("Authorization", "Bearer "+token1)
+	rr := executeRequest(req)
+
+	if !assert.Equal(t, http.StatusOK, rr.Code) {
+		return
+	}
+
+	var chatResp helper.ResponseSuccess
+	json.Unmarshal(rr.Body.Bytes(), &chatResp)
+	chatData := chatResp.Data.(map[string]interface{})
+	chatIDStr := chatData["id"].(string)
+	chatID, _ := uuid.Parse(chatIDStr)
+
+	server := httptest.NewServer(testRouter)
+	defer server.Close()
+	wsURL1 := "ws" + strings.TrimPrefix(server.URL, "http") + "/ws?token=" + token1
+	wsURL2 := "ws" + strings.TrimPrefix(server.URL, "http") + "/ws?token=" + token2
+
+	conn1, _, _ := ws.DefaultDialer.Dial(wsURL1, nil)
+	defer conn1.Close()
+	conn2, _, _ := ws.DefaultDialer.Dial(wsURL2, nil)
+	defer conn2.Close()
+
+	time.Sleep(100 * time.Millisecond)
+
+	joinReq, _ := http.NewRequest("POST", fmt.Sprintf("/api/chats/group/%s/join", chatID), nil)
+	joinReq.Header.Set("Authorization", "Bearer "+token2)
+	executeRequest(joinReq)
+
+	verifyEvent(t, conn2, websocket.EventChatNew, u2.ID, uuid.Nil)
+
+	verifyEvent(t, conn1, websocket.EventMessageNew, u2.ID, uuid.Nil)
+	verifyEvent(t, conn2, websocket.EventMessageNew, u2.ID, uuid.Nil)
+}
+
 func createWSUser(t *testing.T, username, email string) *ent.User {
 	hashedPassword, _ := helper.HashPassword("password123")
 

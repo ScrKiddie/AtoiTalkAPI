@@ -128,7 +128,7 @@ components:
         unread_count:
           type: integer
           description: Current unread count for the receiving user (specific to message.new)
-    
+
     BaseEvent:
       type: object
       required: [type, meta]
@@ -183,7 +183,7 @@ components:
         last_seen_at:
           type: string
           format: date-time
-          
+
     UserPresencePayload:
       type: object
       description: Payload for user.online and user.offline events
@@ -379,7 +379,7 @@ components:
               chat_id:
                 type: string
                 format: uuid
-                
+
     ServerTyping:
       name: chat.typing
       title: User is Typing (Server -> Client)

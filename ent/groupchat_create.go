@@ -12,6 +12,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
 	"entgo.io/ent/dialect"
 	"entgo.io/ent/dialect/sql"
@@ -78,6 +79,40 @@ func (_c *GroupChatCreate) SetAvatarID(v uuid.UUID) *GroupChatCreate {
 func (_c *GroupChatCreate) SetNillableAvatarID(v *uuid.UUID) *GroupChatCreate {
 	if v != nil {
 		_c.SetAvatarID(*v)
+	}
+	return _c
+}
+
+// SetIsPublic sets the "is_public" field.
+func (_c *GroupChatCreate) SetIsPublic(v bool) *GroupChatCreate {
+	_c.mutation.SetIsPublic(v)
+	return _c
+}
+
+// SetNillableIsPublic sets the "is_public" field if the given value is not nil.
+func (_c *GroupChatCreate) SetNillableIsPublic(v *bool) *GroupChatCreate {
+	if v != nil {
+		_c.SetIsPublic(*v)
+	}
+	return _c
+}
+
+// SetInviteCode sets the "invite_code" field.
+func (_c *GroupChatCreate) SetInviteCode(v string) *GroupChatCreate {
+	_c.mutation.SetInviteCode(v)
+	return _c
+}
+
+// SetInviteExpiresAt sets the "invite_expires_at" field.
+func (_c *GroupChatCreate) SetInviteExpiresAt(v time.Time) *GroupChatCreate {
+	_c.mutation.SetInviteExpiresAt(v)
+	return _c
+}
+
+// SetNillableInviteExpiresAt sets the "invite_expires_at" field if the given value is not nil.
+func (_c *GroupChatCreate) SetNillableInviteExpiresAt(v *time.Time) *GroupChatCreate {
+	if v != nil {
+		_c.SetInviteExpiresAt(*v)
 	}
 	return _c
 }
@@ -190,6 +225,10 @@ func (_c *GroupChatCreate) ExecX(ctx context.Context) {
 
 // defaults sets the default values of the builder before save.
 func (_c *GroupChatCreate) defaults() {
+	if _, ok := _c.mutation.IsPublic(); !ok {
+		v := groupchat.DefaultIsPublic
+		_c.mutation.SetIsPublic(v)
+	}
 	if _, ok := _c.mutation.ID(); !ok {
 		v := groupchat.DefaultID()
 		_c.mutation.SetID(v)
@@ -207,6 +246,17 @@ func (_c *GroupChatCreate) check() error {
 	if v, ok := _c.mutation.Name(); ok {
 		if err := groupchat.NameValidator(v); err != nil {
 			return &ValidationError{Name: "name", err: fmt.Errorf(`ent: validator failed for field "GroupChat.name": %w`, err)}
+		}
+	}
+	if _, ok := _c.mutation.IsPublic(); !ok {
+		return &ValidationError{Name: "is_public", err: errors.New(`ent: missing required field "GroupChat.is_public"`)}
+	}
+	if _, ok := _c.mutation.InviteCode(); !ok {
+		return &ValidationError{Name: "invite_code", err: errors.New(`ent: missing required field "GroupChat.invite_code"`)}
+	}
+	if v, ok := _c.mutation.InviteCode(); ok {
+		if err := groupchat.InviteCodeValidator(v); err != nil {
+			return &ValidationError{Name: "invite_code", err: fmt.Errorf(`ent: validator failed for field "GroupChat.invite_code": %w`, err)}
 		}
 	}
 	if len(_c.mutation.ChatIDs()) == 0 {
@@ -255,6 +305,18 @@ func (_c *GroupChatCreate) createSpec() (*GroupChat, *sqlgraph.CreateSpec) {
 	if value, ok := _c.mutation.Description(); ok {
 		_spec.SetField(groupchat.FieldDescription, field.TypeString, value)
 		_node.Description = &value
+	}
+	if value, ok := _c.mutation.IsPublic(); ok {
+		_spec.SetField(groupchat.FieldIsPublic, field.TypeBool, value)
+		_node.IsPublic = value
+	}
+	if value, ok := _c.mutation.InviteCode(); ok {
+		_spec.SetField(groupchat.FieldInviteCode, field.TypeString, value)
+		_node.InviteCode = value
+	}
+	if value, ok := _c.mutation.InviteExpiresAt(); ok {
+		_spec.SetField(groupchat.FieldInviteExpiresAt, field.TypeTime, value)
+		_node.InviteExpiresAt = &value
 	}
 	if nodes := _c.mutation.AvatarIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
@@ -469,6 +531,48 @@ func (u *GroupChatUpsert) ClearAvatarID() *GroupChatUpsert {
 	return u
 }
 
+// SetIsPublic sets the "is_public" field.
+func (u *GroupChatUpsert) SetIsPublic(v bool) *GroupChatUpsert {
+	u.Set(groupchat.FieldIsPublic, v)
+	return u
+}
+
+// UpdateIsPublic sets the "is_public" field to the value that was provided on create.
+func (u *GroupChatUpsert) UpdateIsPublic() *GroupChatUpsert {
+	u.SetExcluded(groupchat.FieldIsPublic)
+	return u
+}
+
+// SetInviteCode sets the "invite_code" field.
+func (u *GroupChatUpsert) SetInviteCode(v string) *GroupChatUpsert {
+	u.Set(groupchat.FieldInviteCode, v)
+	return u
+}
+
+// UpdateInviteCode sets the "invite_code" field to the value that was provided on create.
+func (u *GroupChatUpsert) UpdateInviteCode() *GroupChatUpsert {
+	u.SetExcluded(groupchat.FieldInviteCode)
+	return u
+}
+
+// SetInviteExpiresAt sets the "invite_expires_at" field.
+func (u *GroupChatUpsert) SetInviteExpiresAt(v time.Time) *GroupChatUpsert {
+	u.Set(groupchat.FieldInviteExpiresAt, v)
+	return u
+}
+
+// UpdateInviteExpiresAt sets the "invite_expires_at" field to the value that was provided on create.
+func (u *GroupChatUpsert) UpdateInviteExpiresAt() *GroupChatUpsert {
+	u.SetExcluded(groupchat.FieldInviteExpiresAt)
+	return u
+}
+
+// ClearInviteExpiresAt clears the value of the "invite_expires_at" field.
+func (u *GroupChatUpsert) ClearInviteExpiresAt() *GroupChatUpsert {
+	u.SetNull(groupchat.FieldInviteExpiresAt)
+	return u
+}
+
 // UpdateNewValues updates the mutable fields using the new values that were set on create except the ID field.
 // Using this option is equivalent to using:
 //
@@ -605,6 +709,55 @@ func (u *GroupChatUpsertOne) UpdateAvatarID() *GroupChatUpsertOne {
 func (u *GroupChatUpsertOne) ClearAvatarID() *GroupChatUpsertOne {
 	return u.Update(func(s *GroupChatUpsert) {
 		s.ClearAvatarID()
+	})
+}
+
+// SetIsPublic sets the "is_public" field.
+func (u *GroupChatUpsertOne) SetIsPublic(v bool) *GroupChatUpsertOne {
+	return u.Update(func(s *GroupChatUpsert) {
+		s.SetIsPublic(v)
+	})
+}
+
+// UpdateIsPublic sets the "is_public" field to the value that was provided on create.
+func (u *GroupChatUpsertOne) UpdateIsPublic() *GroupChatUpsertOne {
+	return u.Update(func(s *GroupChatUpsert) {
+		s.UpdateIsPublic()
+	})
+}
+
+// SetInviteCode sets the "invite_code" field.
+func (u *GroupChatUpsertOne) SetInviteCode(v string) *GroupChatUpsertOne {
+	return u.Update(func(s *GroupChatUpsert) {
+		s.SetInviteCode(v)
+	})
+}
+
+// UpdateInviteCode sets the "invite_code" field to the value that was provided on create.
+func (u *GroupChatUpsertOne) UpdateInviteCode() *GroupChatUpsertOne {
+	return u.Update(func(s *GroupChatUpsert) {
+		s.UpdateInviteCode()
+	})
+}
+
+// SetInviteExpiresAt sets the "invite_expires_at" field.
+func (u *GroupChatUpsertOne) SetInviteExpiresAt(v time.Time) *GroupChatUpsertOne {
+	return u.Update(func(s *GroupChatUpsert) {
+		s.SetInviteExpiresAt(v)
+	})
+}
+
+// UpdateInviteExpiresAt sets the "invite_expires_at" field to the value that was provided on create.
+func (u *GroupChatUpsertOne) UpdateInviteExpiresAt() *GroupChatUpsertOne {
+	return u.Update(func(s *GroupChatUpsert) {
+		s.UpdateInviteExpiresAt()
+	})
+}
+
+// ClearInviteExpiresAt clears the value of the "invite_expires_at" field.
+func (u *GroupChatUpsertOne) ClearInviteExpiresAt() *GroupChatUpsertOne {
+	return u.Update(func(s *GroupChatUpsert) {
+		s.ClearInviteExpiresAt()
 	})
 }
 
@@ -911,6 +1064,55 @@ func (u *GroupChatUpsertBulk) UpdateAvatarID() *GroupChatUpsertBulk {
 func (u *GroupChatUpsertBulk) ClearAvatarID() *GroupChatUpsertBulk {
 	return u.Update(func(s *GroupChatUpsert) {
 		s.ClearAvatarID()
+	})
+}
+
+// SetIsPublic sets the "is_public" field.
+func (u *GroupChatUpsertBulk) SetIsPublic(v bool) *GroupChatUpsertBulk {
+	return u.Update(func(s *GroupChatUpsert) {
+		s.SetIsPublic(v)
+	})
+}
+
+// UpdateIsPublic sets the "is_public" field to the value that was provided on create.
+func (u *GroupChatUpsertBulk) UpdateIsPublic() *GroupChatUpsertBulk {
+	return u.Update(func(s *GroupChatUpsert) {
+		s.UpdateIsPublic()
+	})
+}
+
+// SetInviteCode sets the "invite_code" field.
+func (u *GroupChatUpsertBulk) SetInviteCode(v string) *GroupChatUpsertBulk {
+	return u.Update(func(s *GroupChatUpsert) {
+		s.SetInviteCode(v)
+	})
+}
+
+// UpdateInviteCode sets the "invite_code" field to the value that was provided on create.
+func (u *GroupChatUpsertBulk) UpdateInviteCode() *GroupChatUpsertBulk {
+	return u.Update(func(s *GroupChatUpsert) {
+		s.UpdateInviteCode()
+	})
+}
+
+// SetInviteExpiresAt sets the "invite_expires_at" field.
+func (u *GroupChatUpsertBulk) SetInviteExpiresAt(v time.Time) *GroupChatUpsertBulk {
+	return u.Update(func(s *GroupChatUpsert) {
+		s.SetInviteExpiresAt(v)
+	})
+}
+
+// UpdateInviteExpiresAt sets the "invite_expires_at" field to the value that was provided on create.
+func (u *GroupChatUpsertBulk) UpdateInviteExpiresAt() *GroupChatUpsertBulk {
+	return u.Update(func(s *GroupChatUpsert) {
+		s.UpdateInviteExpiresAt()
+	})
+}
+
+// ClearInviteExpiresAt clears the value of the "invite_expires_at" field.
+func (u *GroupChatUpsertBulk) ClearInviteExpiresAt() *GroupChatUpsertBulk {
+	return u.Update(func(s *GroupChatUpsert) {
+		s.ClearInviteExpiresAt()
 	})
 }
 

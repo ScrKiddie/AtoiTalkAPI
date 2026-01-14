@@ -516,7 +516,7 @@ func TestDeleteAccount(t *testing.T) {
 		token, userID := setupUser("delete4", false)
 
 		chatEntity := testClient.Chat.Create().SetType(chat.TypeGroup).SaveX(context.Background())
-		gc := testClient.GroupChat.Create().SetChat(chatEntity).SetCreatorID(userID).SetName("My Group").SaveX(context.Background())
+		gc := testClient.GroupChat.Create().SetChat(chatEntity).SetCreatorID(userID).SetName("My Group").SetInviteCode("dummy_code_1").SaveX(context.Background())
 		testClient.GroupMember.Create().SetGroupChat(gc).SetUserID(userID).SetRole(groupmember.RoleOwner).SaveX(context.Background())
 
 		req, _ := http.NewRequest("DELETE", "/api/account", nil)
@@ -530,7 +530,7 @@ func TestDeleteAccount(t *testing.T) {
 		token, userID := setupUser("delete5", false)
 
 		chatEntity := testClient.Chat.Create().SetType(chat.TypeGroup).SetDeletedAt(time.Now().UTC()).SaveX(context.Background())
-		gc := testClient.GroupChat.Create().SetChat(chatEntity).SetCreatorID(userID).SetName("Deleted Group").SaveX(context.Background())
+		gc := testClient.GroupChat.Create().SetChat(chatEntity).SetCreatorID(userID).SetName("Deleted Group").SetInviteCode("dummy_code_2").SaveX(context.Background())
 		testClient.GroupMember.Create().SetGroupChat(gc).SetUserID(userID).SetRole(groupmember.RoleOwner).SaveX(context.Background())
 
 		req, _ := http.NewRequest("DELETE", "/api/account", nil)

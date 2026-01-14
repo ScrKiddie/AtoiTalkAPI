@@ -968,27 +968,30 @@ func (m *ChatMutation) ResetEdge(name string) error {
 // GroupChatMutation represents an operation that mutates the GroupChat nodes in the graph.
 type GroupChatMutation struct {
 	config
-	op             Op
-	typ            string
-	id             *uuid.UUID
-	name           *string
-	description    *string
-	clearedFields  map[string]struct{}
-	avatar         *uuid.UUID
-	clearedavatar  bool
-	chat           *uuid.UUID
-	clearedchat    bool
-	creator        *uuid.UUID
-	clearedcreator bool
-	members        map[uuid.UUID]struct{}
-	removedmembers map[uuid.UUID]struct{}
-	clearedmembers bool
-	reports        map[uuid.UUID]struct{}
-	removedreports map[uuid.UUID]struct{}
-	clearedreports bool
-	done           bool
-	oldValue       func(context.Context) (*GroupChat, error)
-	predicates     []predicate.GroupChat
+	op                Op
+	typ               string
+	id                *uuid.UUID
+	name              *string
+	description       *string
+	is_public         *bool
+	invite_code       *string
+	invite_expires_at *time.Time
+	clearedFields     map[string]struct{}
+	avatar            *uuid.UUID
+	clearedavatar     bool
+	chat              *uuid.UUID
+	clearedchat       bool
+	creator           *uuid.UUID
+	clearedcreator    bool
+	members           map[uuid.UUID]struct{}
+	removedmembers    map[uuid.UUID]struct{}
+	clearedmembers    bool
+	reports           map[uuid.UUID]struct{}
+	removedreports    map[uuid.UUID]struct{}
+	clearedreports    bool
+	done              bool
+	oldValue          func(context.Context) (*GroupChat, error)
+	predicates        []predicate.GroupChat
 }
 
 var _ ent.Mutation = (*GroupChatMutation)(nil)
@@ -1314,6 +1317,127 @@ func (m *GroupChatMutation) ResetAvatarID() {
 	delete(m.clearedFields, groupchat.FieldAvatarID)
 }
 
+// SetIsPublic sets the "is_public" field.
+func (m *GroupChatMutation) SetIsPublic(b bool) {
+	m.is_public = &b
+}
+
+// IsPublic returns the value of the "is_public" field in the mutation.
+func (m *GroupChatMutation) IsPublic() (r bool, exists bool) {
+	v := m.is_public
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldIsPublic returns the old "is_public" field's value of the GroupChat entity.
+// If the GroupChat object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *GroupChatMutation) OldIsPublic(ctx context.Context) (v bool, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldIsPublic is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldIsPublic requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldIsPublic: %w", err)
+	}
+	return oldValue.IsPublic, nil
+}
+
+// ResetIsPublic resets all changes to the "is_public" field.
+func (m *GroupChatMutation) ResetIsPublic() {
+	m.is_public = nil
+}
+
+// SetInviteCode sets the "invite_code" field.
+func (m *GroupChatMutation) SetInviteCode(s string) {
+	m.invite_code = &s
+}
+
+// InviteCode returns the value of the "invite_code" field in the mutation.
+func (m *GroupChatMutation) InviteCode() (r string, exists bool) {
+	v := m.invite_code
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldInviteCode returns the old "invite_code" field's value of the GroupChat entity.
+// If the GroupChat object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *GroupChatMutation) OldInviteCode(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldInviteCode is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldInviteCode requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldInviteCode: %w", err)
+	}
+	return oldValue.InviteCode, nil
+}
+
+// ResetInviteCode resets all changes to the "invite_code" field.
+func (m *GroupChatMutation) ResetInviteCode() {
+	m.invite_code = nil
+}
+
+// SetInviteExpiresAt sets the "invite_expires_at" field.
+func (m *GroupChatMutation) SetInviteExpiresAt(t time.Time) {
+	m.invite_expires_at = &t
+}
+
+// InviteExpiresAt returns the value of the "invite_expires_at" field in the mutation.
+func (m *GroupChatMutation) InviteExpiresAt() (r time.Time, exists bool) {
+	v := m.invite_expires_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldInviteExpiresAt returns the old "invite_expires_at" field's value of the GroupChat entity.
+// If the GroupChat object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *GroupChatMutation) OldInviteExpiresAt(ctx context.Context) (v *time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldInviteExpiresAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldInviteExpiresAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldInviteExpiresAt: %w", err)
+	}
+	return oldValue.InviteExpiresAt, nil
+}
+
+// ClearInviteExpiresAt clears the value of the "invite_expires_at" field.
+func (m *GroupChatMutation) ClearInviteExpiresAt() {
+	m.invite_expires_at = nil
+	m.clearedFields[groupchat.FieldInviteExpiresAt] = struct{}{}
+}
+
+// InviteExpiresAtCleared returns if the "invite_expires_at" field was cleared in this mutation.
+func (m *GroupChatMutation) InviteExpiresAtCleared() bool {
+	_, ok := m.clearedFields[groupchat.FieldInviteExpiresAt]
+	return ok
+}
+
+// ResetInviteExpiresAt resets all changes to the "invite_expires_at" field.
+func (m *GroupChatMutation) ResetInviteExpiresAt() {
+	m.invite_expires_at = nil
+	delete(m.clearedFields, groupchat.FieldInviteExpiresAt)
+}
+
 // ClearAvatar clears the "avatar" edge to the Media entity.
 func (m *GroupChatMutation) ClearAvatar() {
 	m.clearedavatar = true
@@ -1550,7 +1674,7 @@ func (m *GroupChatMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *GroupChatMutation) Fields() []string {
-	fields := make([]string, 0, 5)
+	fields := make([]string, 0, 8)
 	if m.chat != nil {
 		fields = append(fields, groupchat.FieldChatID)
 	}
@@ -1565,6 +1689,15 @@ func (m *GroupChatMutation) Fields() []string {
 	}
 	if m.avatar != nil {
 		fields = append(fields, groupchat.FieldAvatarID)
+	}
+	if m.is_public != nil {
+		fields = append(fields, groupchat.FieldIsPublic)
+	}
+	if m.invite_code != nil {
+		fields = append(fields, groupchat.FieldInviteCode)
+	}
+	if m.invite_expires_at != nil {
+		fields = append(fields, groupchat.FieldInviteExpiresAt)
 	}
 	return fields
 }
@@ -1584,6 +1717,12 @@ func (m *GroupChatMutation) Field(name string) (ent.Value, bool) {
 		return m.Description()
 	case groupchat.FieldAvatarID:
 		return m.AvatarID()
+	case groupchat.FieldIsPublic:
+		return m.IsPublic()
+	case groupchat.FieldInviteCode:
+		return m.InviteCode()
+	case groupchat.FieldInviteExpiresAt:
+		return m.InviteExpiresAt()
 	}
 	return nil, false
 }
@@ -1603,6 +1742,12 @@ func (m *GroupChatMutation) OldField(ctx context.Context, name string) (ent.Valu
 		return m.OldDescription(ctx)
 	case groupchat.FieldAvatarID:
 		return m.OldAvatarID(ctx)
+	case groupchat.FieldIsPublic:
+		return m.OldIsPublic(ctx)
+	case groupchat.FieldInviteCode:
+		return m.OldInviteCode(ctx)
+	case groupchat.FieldInviteExpiresAt:
+		return m.OldInviteExpiresAt(ctx)
 	}
 	return nil, fmt.Errorf("unknown GroupChat field %s", name)
 }
@@ -1647,6 +1792,27 @@ func (m *GroupChatMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetAvatarID(v)
 		return nil
+	case groupchat.FieldIsPublic:
+		v, ok := value.(bool)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetIsPublic(v)
+		return nil
+	case groupchat.FieldInviteCode:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetInviteCode(v)
+		return nil
+	case groupchat.FieldInviteExpiresAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetInviteExpiresAt(v)
+		return nil
 	}
 	return fmt.Errorf("unknown GroupChat field %s", name)
 }
@@ -1686,6 +1852,9 @@ func (m *GroupChatMutation) ClearedFields() []string {
 	if m.FieldCleared(groupchat.FieldAvatarID) {
 		fields = append(fields, groupchat.FieldAvatarID)
 	}
+	if m.FieldCleared(groupchat.FieldInviteExpiresAt) {
+		fields = append(fields, groupchat.FieldInviteExpiresAt)
+	}
 	return fields
 }
 
@@ -1709,6 +1878,9 @@ func (m *GroupChatMutation) ClearField(name string) error {
 	case groupchat.FieldAvatarID:
 		m.ClearAvatarID()
 		return nil
+	case groupchat.FieldInviteExpiresAt:
+		m.ClearInviteExpiresAt()
+		return nil
 	}
 	return fmt.Errorf("unknown GroupChat nullable field %s", name)
 }
@@ -1731,6 +1903,15 @@ func (m *GroupChatMutation) ResetField(name string) error {
 		return nil
 	case groupchat.FieldAvatarID:
 		m.ResetAvatarID()
+		return nil
+	case groupchat.FieldIsPublic:
+		m.ResetIsPublic()
+		return nil
+	case groupchat.FieldInviteCode:
+		m.ResetInviteCode()
+		return nil
+	case groupchat.FieldInviteExpiresAt:
+		m.ResetInviteExpiresAt()
 		return nil
 	}
 	return fmt.Errorf("unknown GroupChat field %s", name)

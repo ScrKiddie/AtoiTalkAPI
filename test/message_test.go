@@ -379,7 +379,7 @@ func TestSendMessage(t *testing.T) {
 	t.Run("Success - Group Chat (Multiple Recipients)", func(t *testing.T) {
 
 		groupChat, _ := testClient.Chat.Create().SetType(chat.TypeGroup).Save(context.Background())
-		gc, _ := testClient.GroupChat.Create().SetChat(groupChat).SetCreator(u1).SetName("Test Group").Save(context.Background())
+		gc, _ := testClient.GroupChat.Create().SetChat(groupChat).SetCreator(u1).SetName("Test Group").SetInviteCode("msgtest").Save(context.Background())
 		testClient.GroupMember.Create().SetGroupChat(gc).SetUser(u1).Save(context.Background())
 		testClient.GroupMember.Create().SetGroupChat(gc).SetUser(u2).Save(context.Background())
 		testClient.GroupMember.Create().SetGroupChat(gc).SetUser(u3).Save(context.Background())
@@ -410,7 +410,7 @@ func TestSendMessage(t *testing.T) {
 	t.Run("Fail - Group Non-Member", func(t *testing.T) {
 
 		groupChat, _ := testClient.Chat.Create().SetType(chat.TypeGroup).Save(context.Background())
-		gc, _ := testClient.GroupChat.Create().SetChat(groupChat).SetCreator(u1).SetName("Secret Group").Save(context.Background())
+		gc, _ := testClient.GroupChat.Create().SetChat(groupChat).SetCreator(u1).SetName("Secret Group").SetInviteCode("secret").Save(context.Background())
 		testClient.GroupMember.Create().SetGroupChat(gc).SetUser(u1).Save(context.Background())
 		testClient.GroupMember.Create().SetGroupChat(gc).SetUser(u2).Save(context.Background())
 
@@ -495,7 +495,7 @@ func TestSendMessage(t *testing.T) {
 	t.Run("Fail - Send Message to Deleted Group", func(t *testing.T) {
 
 		groupChat, _ := testClient.Chat.Create().SetType(chat.TypeGroup).Save(context.Background())
-		gc, _ := testClient.GroupChat.Create().SetChat(groupChat).SetCreator(u1).SetName("Deleted Group").Save(context.Background())
+		gc, _ := testClient.GroupChat.Create().SetChat(groupChat).SetCreator(u1).SetName("Deleted Group").SetInviteCode("deleted").Save(context.Background())
 		testClient.GroupMember.Create().SetGroupChat(gc).SetUser(u1).Save(context.Background())
 
 		groupChat.Update().SetDeletedAt(time.Now().UTC()).Exec(context.Background())
@@ -962,7 +962,7 @@ func TestGetMessages(t *testing.T) {
 		token1, _ := helper.GenerateJWT(testConfig.JWTSecret, testConfig.JWTExp, u1.ID)
 
 		groupChat, _ := testClient.Chat.Create().SetType(chat.TypeGroup).Save(context.Background())
-		gc, _ := testClient.GroupChat.Create().SetChat(groupChat).SetCreator(u1).SetName("Deleted Group").Save(context.Background())
+		gc, _ := testClient.GroupChat.Create().SetChat(groupChat).SetCreator(u1).SetName("Deleted Group").SetInviteCode("deleted").Save(context.Background())
 		testClient.GroupMember.Create().SetGroupChat(gc).SetUser(u1).Save(context.Background())
 
 		groupChat.Update().SetDeletedAt(time.Now().UTC()).Exec(context.Background())

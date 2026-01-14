@@ -11,6 +11,7 @@ type Repository struct {
 	User        *UserRepository
 	Message     *MessageRepository
 	GroupMember *GroupMemberRepository
+	GroupChat   *GroupChatRepository
 	Session     *SessionRepository
 	RateLimit   *RateLimitRepository
 }
@@ -21,6 +22,7 @@ func NewRepository(client *ent.Client, redisAdapter *adapter.RedisAdapter, cfg *
 		User:        NewUserRepository(client),
 		Message:     NewMessageRepository(client),
 		GroupMember: NewGroupMemberRepository(client),
+		GroupChat:   NewGroupChatRepository(client),
 		Session:     NewSessionRepository(redisAdapter, cfg),
 		RateLimit:   NewRateLimitRepository(redisAdapter),
 	}
