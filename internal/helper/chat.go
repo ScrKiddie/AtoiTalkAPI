@@ -14,7 +14,7 @@ type BlockStatus struct {
 	BlockedByOther bool
 }
 
-func MapChatToResponse(userID uuid.UUID, c *ent.Chat, blockedMap map[uuid.UUID]BlockStatus, onlineMap map[uuid.UUID]bool, storageMode, appURL, cdnURL, storageProfile, storageAttachment string) *model.ChatListResponse {
+func MapChatToResponse(userID uuid.UUID, c *ent.Chat, blockedMap map[uuid.UUID]BlockStatus, onlineMap map[uuid.UUID]bool, urlGen URLGenerator) *model.ChatListResponse {
 	var name, avatar string
 	var lastReadAt *string
 	var otherLastReadAt *string
@@ -72,14 +72,14 @@ func MapChatToResponse(userID uuid.UUID, c *ent.Chat, blockedMap map[uuid.UUID]B
 				if status.BlockedByMe || status.BlockedByOther {
 					isOnline = false
 					if otherUser.Edges.Avatar != nil {
-						avatar = BuildImageURL(storageMode, appURL, cdnURL, storageProfile, otherUser.Edges.Avatar.FileName)
+						avatar = urlGen.GetPublicURL(otherUser.Edges.Avatar.FileName)
 					}
 				} else {
 					if !otherUserIsBanned {
 						isOnline = onlineMap[otherUser.ID]
 					}
 					if otherUser.Edges.Avatar != nil {
-						avatar = BuildImageURL(storageMode, appURL, cdnURL, storageProfile, otherUser.Edges.Avatar.FileName)
+						avatar = urlGen.GetPublicURL(otherUser.Edges.Avatar.FileName)
 					}
 				}
 			}
@@ -100,7 +100,7 @@ func MapChatToResponse(userID uuid.UUID, c *ent.Chat, blockedMap map[uuid.UUID]B
 		gc := c.Edges.GroupChat
 		name = gc.Name
 		if gc.Edges.Avatar != nil {
-			avatar = BuildImageURL(storageMode, appURL, cdnURL, storageProfile, gc.Edges.Avatar.FileName)
+			avatar = urlGen.GetPublicURL(gc.Edges.Avatar.FileName)
 		}
 
 		if len(gc.Edges.Members) > 0 {
@@ -117,7 +117,7 @@ func MapChatToResponse(userID uuid.UUID, c *ent.Chat, blockedMap map[uuid.UUID]B
 
 	var lastMsgResp *model.MessageResponse
 	if c.Edges.LastMessage != nil {
-		lastMsgResp = ToMessageResponse(c.Edges.LastMessage, storageMode, appURL, cdnURL, storageProfile, storageAttachment, hiddenAt)
+		lastMsgResp = ToMessageResponse(c.Edges.LastMessage, urlGen, hiddenAt)
 	}
 
 	return &model.ChatListResponse{

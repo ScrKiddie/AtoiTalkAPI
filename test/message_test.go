@@ -17,13 +17,14 @@ import (
 	"testing"
 	"time"
 
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestSendMessage(t *testing.T) {
 	clearDatabase(context.Background())
-	cleanupStorage(true)
 
 	password := "Password123!"
 	hashedPassword, _ := helper.HashPassword(password)
@@ -242,6 +243,12 @@ func TestSendMessage(t *testing.T) {
 			SetStatus(media.StatusActive).
 			SetUploaderID(u1.ID).
 			Save(context.Background())
+
+		s3Client.PutObject(context.Background(), &s3.PutObjectInput{
+			Bucket: aws.String(testConfig.S3BucketPrivate),
+			Key:    aws.String(m.FileName),
+			Body:   bytes.NewReader([]byte("test content")),
+		})
 
 		reqBody := model.SendMessageRequest{
 			ChatID:        chatEntity.ID,
@@ -847,6 +854,12 @@ func TestGetMessages(t *testing.T) {
 			SetUploaderID(u1.ID).
 			Save(context.Background())
 
+		s3Client.PutObject(context.Background(), &s3.PutObjectInput{
+			Bucket: aws.String(testConfig.S3BucketPrivate),
+			Key:    aws.String(media.FileName),
+			Body:   bytes.NewReader([]byte("test content")),
+		})
+
 		msgWithMedia, _ := testClient.Message.Create().
 			SetChatID(chatEntity.ID).
 			SetSenderID(u1.ID).
@@ -1084,6 +1097,12 @@ func TestEditMessage(t *testing.T) {
 		att2, _ := testClient.Media.Create().
 			SetFileName("att2.jpg").SetOriginalName("att2.jpg").SetFileSize(100).SetMimeType("image/jpeg").
 			SetStatus(media.StatusActive).SetUploaderID(u1.ID).Save(context.Background())
+
+		s3Client.PutObject(context.Background(), &s3.PutObjectInput{
+			Bucket: aws.String(testConfig.S3BucketPrivate),
+			Key:    aws.String(att2.FileName),
+			Body:   bytes.NewReader([]byte("test content")),
+		})
 
 		reqBody := model.EditMessageRequest{
 			Content:       "Updated Attachments",

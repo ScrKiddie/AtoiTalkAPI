@@ -80,6 +80,20 @@ func (_c *MediaCreate) SetMimeType(v string) *MediaCreate {
 	return _c
 }
 
+// SetCategory sets the "category" field.
+func (_c *MediaCreate) SetCategory(v media.Category) *MediaCreate {
+	_c.mutation.SetCategory(v)
+	return _c
+}
+
+// SetNillableCategory sets the "category" field if the given value is not nil.
+func (_c *MediaCreate) SetNillableCategory(v *media.Category) *MediaCreate {
+	if v != nil {
+		_c.SetCategory(*v)
+	}
+	return _c
+}
+
 // SetStatus sets the "status" field.
 func (_c *MediaCreate) SetStatus(v media.Status) *MediaCreate {
 	_c.mutation.SetStatus(v)
@@ -240,6 +254,10 @@ func (_c *MediaCreate) defaults() {
 		v := media.DefaultUpdatedAt()
 		_c.mutation.SetUpdatedAt(v)
 	}
+	if _, ok := _c.mutation.Category(); !ok {
+		v := media.DefaultCategory
+		_c.mutation.SetCategory(v)
+	}
 	if _, ok := _c.mutation.Status(); !ok {
 		v := media.DefaultStatus
 		_c.mutation.SetStatus(v)
@@ -288,6 +306,14 @@ func (_c *MediaCreate) check() error {
 	if v, ok := _c.mutation.MimeType(); ok {
 		if err := media.MimeTypeValidator(v); err != nil {
 			return &ValidationError{Name: "mime_type", err: fmt.Errorf(`ent: validator failed for field "Media.mime_type": %w`, err)}
+		}
+	}
+	if _, ok := _c.mutation.Category(); !ok {
+		return &ValidationError{Name: "category", err: errors.New(`ent: missing required field "Media.category"`)}
+	}
+	if v, ok := _c.mutation.Category(); ok {
+		if err := media.CategoryValidator(v); err != nil {
+			return &ValidationError{Name: "category", err: fmt.Errorf(`ent: validator failed for field "Media.category": %w`, err)}
 		}
 	}
 	if _, ok := _c.mutation.Status(); !ok {
@@ -363,6 +389,10 @@ func (_c *MediaCreate) createSpec() (*Media, *sqlgraph.CreateSpec) {
 	if value, ok := _c.mutation.MimeType(); ok {
 		_spec.SetField(media.FieldMimeType, field.TypeString, value)
 		_node.MimeType = value
+	}
+	if value, ok := _c.mutation.Category(); ok {
+		_spec.SetField(media.FieldCategory, field.TypeEnum, value)
+		_node.Category = value
 	}
 	if value, ok := _c.mutation.Status(); ok {
 		_spec.SetField(media.FieldStatus, field.TypeEnum, value)
@@ -568,6 +598,18 @@ func (u *MediaUpsert) UpdateMimeType() *MediaUpsert {
 	return u
 }
 
+// SetCategory sets the "category" field.
+func (u *MediaUpsert) SetCategory(v media.Category) *MediaUpsert {
+	u.Set(media.FieldCategory, v)
+	return u
+}
+
+// UpdateCategory sets the "category" field to the value that was provided on create.
+func (u *MediaUpsert) UpdateCategory() *MediaUpsert {
+	u.SetExcluded(media.FieldCategory)
+	return u
+}
+
 // SetStatus sets the "status" field.
 func (u *MediaUpsert) SetStatus(v media.Status) *MediaUpsert {
 	u.Set(media.FieldStatus, v)
@@ -735,6 +777,20 @@ func (u *MediaUpsertOne) SetMimeType(v string) *MediaUpsertOne {
 func (u *MediaUpsertOne) UpdateMimeType() *MediaUpsertOne {
 	return u.Update(func(s *MediaUpsert) {
 		s.UpdateMimeType()
+	})
+}
+
+// SetCategory sets the "category" field.
+func (u *MediaUpsertOne) SetCategory(v media.Category) *MediaUpsertOne {
+	return u.Update(func(s *MediaUpsert) {
+		s.SetCategory(v)
+	})
+}
+
+// UpdateCategory sets the "category" field to the value that was provided on create.
+func (u *MediaUpsertOne) UpdateCategory() *MediaUpsertOne {
+	return u.Update(func(s *MediaUpsert) {
+		s.UpdateCategory()
 	})
 }
 
@@ -1079,6 +1135,20 @@ func (u *MediaUpsertBulk) SetMimeType(v string) *MediaUpsertBulk {
 func (u *MediaUpsertBulk) UpdateMimeType() *MediaUpsertBulk {
 	return u.Update(func(s *MediaUpsert) {
 		s.UpdateMimeType()
+	})
+}
+
+// SetCategory sets the "category" field.
+func (u *MediaUpsertBulk) SetCategory(v media.Category) *MediaUpsertBulk {
+	return u.Update(func(s *MediaUpsert) {
+		s.SetCategory(v)
+	})
+}
+
+// UpdateCategory sets the "category" field to the value that was provided on create.
+func (u *MediaUpsertBulk) UpdateCategory() *MediaUpsertBulk {
+	return u.Update(func(s *MediaUpsert) {
+		s.UpdateCategory()
 	})
 }
 

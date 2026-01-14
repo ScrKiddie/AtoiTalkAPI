@@ -15,7 +15,6 @@ import (
 	"context"
 	"log/slog"
 	"mime/multipart"
-	"path/filepath"
 	"strings"
 	"time"
 
@@ -66,7 +65,7 @@ func (s *UserService) GetCurrentUser(ctx context.Context, userID uuid.UUID) (*mo
 
 	avatarURL := ""
 	if u.Edges.Avatar != nil {
-		avatarURL = helper.BuildImageURL(s.cfg.StorageMode, s.cfg.AppURL, s.cfg.StorageCDNURL, s.cfg.StorageProfile, u.Edges.Avatar.FileName)
+		avatarURL = s.storageAdapter.GetPublicURL(u.Edges.Avatar.FileName)
 	}
 
 	bio := ""
@@ -154,7 +153,7 @@ func (s *UserService) GetUserProfile(ctx context.Context, currentUserID uuid.UUI
 
 	avatarURL := ""
 	if u.Edges.Avatar != nil {
-		avatarURL = helper.BuildImageURL(s.cfg.StorageMode, s.cfg.AppURL, s.cfg.StorageCDNURL, s.cfg.StorageProfile, u.Edges.Avatar.FileName)
+		avatarURL = s.storageAdapter.GetPublicURL(u.Edges.Avatar.FileName)
 	}
 
 	bio := ""
@@ -303,7 +302,7 @@ func (s *UserService) UpdateProfile(ctx context.Context, userID uuid.UUID, req m
 	if !hasChanges {
 		avatarURL := ""
 		if u.Edges.Avatar != nil {
-			avatarURL = helper.BuildImageURL(s.cfg.StorageMode, s.cfg.AppURL, s.cfg.StorageCDNURL, s.cfg.StorageProfile, u.Edges.Avatar.FileName)
+			avatarURL = s.storageAdapter.GetPublicURL(u.Edges.Avatar.FileName)
 		}
 
 		bio := ""
@@ -369,7 +368,7 @@ func (s *UserService) UpdateProfile(ctx context.Context, userID uuid.UUID, req m
 		}
 
 		fileName := helper.GenerateUniqueFileName(req.Avatar.Filename)
-		filePath := filepath.Join(s.cfg.StorageProfile, fileName)
+		filePath := fileName
 
 		fileUploadPath = filePath
 		fileContentType = contentType
@@ -378,6 +377,7 @@ func (s *UserService) UpdateProfile(ctx context.Context, userID uuid.UUID, req m
 			SetFileName(fileName).SetOriginalName(req.Avatar.Filename).
 			SetFileSize(req.Avatar.Size).SetMimeType(contentType).
 			SetStatus(media.StatusActive).
+			SetCategory(media.CategoryUserAvatar).
 			SetUploaderID(userID).
 			Save(ctx)
 
@@ -407,7 +407,8 @@ func (s *UserService) UpdateProfile(ctx context.Context, userID uuid.UUID, req m
 	}
 
 	if fileToUpload != nil {
-		if err := s.storageAdapter.StoreFromReader(fileToUpload, fileContentType, fileUploadPath); err != nil {
+
+		if err := s.storageAdapter.StoreFromReader(fileToUpload, fileContentType, fileUploadPath, true); err != nil {
 			slog.Error("Failed to store avatar to storage after db commit", "error", err, "userID", userID)
 
 			if mediaID != uuid.Nil {
@@ -435,7 +436,7 @@ func (s *UserService) UpdateProfile(ctx context.Context, userID uuid.UUID, req m
 
 	avatarURL := ""
 	if avatarFileName != "" {
-		avatarURL = helper.BuildImageURL(s.cfg.StorageMode, s.cfg.AppURL, s.cfg.StorageCDNURL, s.cfg.StorageProfile, avatarFileName)
+		avatarURL = s.storageAdapter.GetPublicURL(avatarFileName)
 	}
 
 	bio := ""
@@ -570,7 +571,7 @@ func (s *UserService) SearchUsers(ctx context.Context, currentUserID uuid.UUID, 
 
 		avatarURL := ""
 		if u.Edges.Avatar != nil {
-			avatarURL = helper.BuildImageURL(s.cfg.StorageMode, s.cfg.AppURL, s.cfg.StorageCDNURL, s.cfg.StorageProfile, u.Edges.Avatar.FileName)
+			avatarURL = s.storageAdapter.GetPublicURL(u.Edges.Avatar.FileName)
 		}
 		bio := ""
 		if u.Bio != nil {
@@ -636,7 +637,7 @@ func (s *UserService) GetBlockedUsers(ctx context.Context, currentUserID uuid.UU
 
 		avatarURL := ""
 		if u.Edges.Avatar != nil {
-			avatarURL = helper.BuildImageURL(s.cfg.StorageMode, s.cfg.AppURL, s.cfg.StorageCDNURL, s.cfg.StorageProfile, u.Edges.Avatar.FileName)
+			avatarURL = s.storageAdapter.GetPublicURL(u.Edges.Avatar.FileName)
 		}
 		bio := ""
 		if u.Bio != nil {

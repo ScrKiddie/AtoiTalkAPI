@@ -17,12 +17,12 @@ import (
 	"io"
 	"mime/multipart"
 	"net/http"
-	"path/filepath"
-	"runtime"
 	"strings"
 	"testing"
 	"time"
 
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -279,17 +279,12 @@ func TestGetUserProfile(t *testing.T) {
 }
 
 func TestUpdateProfile(t *testing.T) {
-	if testConfig.StorageMode != "local" {
-		t.Skip("Skipping Update Profile test: Storage mode is not local")
-	}
-
 	validEmail := "profile@example.com"
 	validUsername := "profileuser"
 	validPassword := "Password123!"
 
 	t.Run("Success Update Info Only", func(t *testing.T) {
 		clearDatabase(context.Background())
-		cleanupStorage(true)
 
 		hashedPassword, _ := helper.HashPassword(validPassword)
 		u, err := testClient.User.Create().
@@ -335,7 +330,6 @@ func TestUpdateProfile(t *testing.T) {
 
 	t.Run("Success Update Info with Whitespace", func(t *testing.T) {
 		clearDatabase(context.Background())
-		cleanupStorage(true)
 
 		hashedPassword, _ := helper.HashPassword(validPassword)
 		u, err := testClient.User.Create().
@@ -379,7 +373,6 @@ func TestUpdateProfile(t *testing.T) {
 
 	t.Run("Fail Update Username Taken", func(t *testing.T) {
 		clearDatabase(context.Background())
-		cleanupStorage(true)
 
 		u1, _ := testClient.User.Create().SetEmail("u1@test.com").SetUsername("user1").SetFullName("User 1").Save(context.Background())
 		testClient.User.Create().SetEmail("u2@test.com").SetUsername("user2").SetFullName("User 2").Save(context.Background())
@@ -402,7 +395,6 @@ func TestUpdateProfile(t *testing.T) {
 
 	t.Run("Success Update Avatar", func(t *testing.T) {
 		clearDatabase(context.Background())
-		cleanupStorage(true)
 
 		hashedPassword, _ := helper.HashPassword(validPassword)
 		u, err := testClient.User.Create().
@@ -442,22 +434,21 @@ func TestUpdateProfile(t *testing.T) {
 		assert.True(t, ok)
 		assert.NotEmpty(t, avatarURL)
 
-		parts := strings.Split(avatarURL, "/")
-		fileName := parts[len(parts)-1]
-		_, b, _, _ := runtime.Caller(0)
-		testDir := filepath.Dir(b)
-		physicalPath := filepath.Join(testDir, testConfig.StorageProfile, fileName)
-		assert.FileExists(t, physicalPath)
+		assert.Contains(t, avatarURL, testConfig.S3PublicDomain, "Avatar URL should contain the configured public domain")
 
 		updatedUser, err := testClient.User.Query().Where(user.ID(u.ID)).WithAvatar().Only(context.Background())
 		assert.NoError(t, err)
 		assert.NotNil(t, updatedUser.Edges.Avatar)
-		assert.Equal(t, fileName, updatedUser.Edges.Avatar.FileName)
+
+		_, err = s3Client.HeadObject(context.Background(), &s3.HeadObjectInput{
+			Bucket: aws.String(testConfig.S3BucketPublic),
+			Key:    aws.String(updatedUser.Edges.Avatar.FileName),
+		})
+		assert.NoError(t, err, "Avatar file should exist in S3")
 	})
 
 	t.Run("Delete Avatar", func(t *testing.T) {
 		clearDatabase(context.Background())
-		cleanupStorage(true)
 
 		u, err := testClient.User.Create().
 			SetEmail(validEmail).SetUsername(validUsername).SetFullName("User With Avatar").
@@ -498,7 +489,6 @@ func TestUpdateProfile(t *testing.T) {
 
 	t.Run("Invalid Image Format", func(t *testing.T) {
 		clearDatabase(context.Background())
-		cleanupStorage(true)
 
 		hashedPassword, _ := helper.HashPassword(validPassword)
 		u, err := testClient.User.Create().
@@ -532,7 +522,6 @@ func TestUpdateProfile(t *testing.T) {
 
 	t.Run("Image Too Large", func(t *testing.T) {
 		clearDatabase(context.Background())
-		cleanupStorage(true)
 
 		hashedPassword, _ := helper.HashPassword(validPassword)
 		u, err := testClient.User.Create().
@@ -567,7 +556,6 @@ func TestUpdateProfile(t *testing.T) {
 
 	t.Run("Image Dimensions Too Large", func(t *testing.T) {
 		clearDatabase(context.Background())
-		cleanupStorage(true)
 
 		hashedPassword, _ := helper.HashPassword(validPassword)
 		u, err := testClient.User.Create().

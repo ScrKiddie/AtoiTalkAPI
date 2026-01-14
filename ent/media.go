@@ -33,6 +33,8 @@ type Media struct {
 	FileSize int64 `json:"file_size,omitempty"`
 	// MimeType holds the value of the "mime_type" field.
 	MimeType string `json:"mime_type,omitempty"`
+	// Category holds the value of the "category" field.
+	Category media.Category `json:"category,omitempty"`
 	// Status holds the value of the "status" field.
 	Status media.Status `json:"status,omitempty"`
 	// MessageID holds the value of the "message_id" field.
@@ -124,7 +126,7 @@ func (*Media) scanValues(columns []string) ([]any, error) {
 			values[i] = &sql.NullScanner{S: new(uuid.UUID)}
 		case media.FieldFileSize:
 			values[i] = new(sql.NullInt64)
-		case media.FieldFileName, media.FieldOriginalName, media.FieldMimeType, media.FieldStatus:
+		case media.FieldFileName, media.FieldOriginalName, media.FieldMimeType, media.FieldCategory, media.FieldStatus:
 			values[i] = new(sql.NullString)
 		case media.FieldCreatedAt, media.FieldUpdatedAt:
 			values[i] = new(sql.NullTime)
@@ -186,6 +188,12 @@ func (_m *Media) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field mime_type", values[i])
 			} else if value.Valid {
 				_m.MimeType = value.String
+			}
+		case media.FieldCategory:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field category", values[i])
+			} else if value.Valid {
+				_m.Category = media.Category(value.String)
 			}
 		case media.FieldStatus:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -284,6 +292,9 @@ func (_m *Media) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("mime_type=")
 	builder.WriteString(_m.MimeType)
+	builder.WriteString(", ")
+	builder.WriteString("category=")
+	builder.WriteString(fmt.Sprintf("%v", _m.Category))
 	builder.WriteString(", ")
 	builder.WriteString("status=")
 	builder.WriteString(fmt.Sprintf("%v", _m.Status))

@@ -20,8 +20,8 @@ func (Media) Fields() []ent.Field {
 		field.String("original_name").MaxLen(255).NotEmpty(),
 		field.Int64("file_size").Positive(),
 		field.String("mime_type").MaxLen(100).NotEmpty(),
+		field.Enum("category").Values("user_avatar", "group_avatar", "message_attachment").Default("message_attachment"),
 		field.Enum("status").Values("pending", "active", "failed").Default("pending"),
-
 		field.UUID("message_id", uuid.UUID{}).Optional().Nillable(),
 		field.UUID("uploaded_by_id", uuid.UUID{}),
 	}

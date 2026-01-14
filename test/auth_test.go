@@ -13,8 +13,6 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
-	"path/filepath"
-	"runtime"
 	"strings"
 	"testing"
 	"time"
@@ -275,10 +273,6 @@ func TestGoogleExchange(t *testing.T) {
 			if avatarURL, ok := userMap["avatar"].(string); ok && avatarURL != "" {
 				parts := strings.Split(avatarURL, "/")
 				fileName := parts[len(parts)-1]
-				_, b, _, _ := runtime.Caller(0)
-				testDir := filepath.Dir(b)
-				physicalPath := filepath.Join(testDir, testConfig.StorageProfile, fileName)
-				assert.FileExists(t, physicalPath, "Profile picture file should be created")
 
 				m, err := testClient.Media.Query().Where(media.FileName(fileName)).Only(context.Background())
 				assert.NoError(t, err)

@@ -201,7 +201,7 @@ func (s *AuthService) Login(ctx context.Context, req model.LoginRequest) (*model
 
 	avatarURL := ""
 	if u.Edges.Avatar != nil {
-		avatarURL = helper.BuildImageURL(s.cfg.StorageMode, s.cfg.AppURL, s.cfg.StorageCDNURL, s.cfg.StorageProfile, u.Edges.Avatar.FileName)
+		avatarURL = s.storageAdapter.GetPublicURL(u.Edges.Avatar.FileName)
 	}
 
 	username := ""
@@ -338,7 +338,8 @@ func (s *AuthService) GoogleExchange(ctx context.Context, req model.GoogleLoginR
 				slog.Error("Failed to download profile picture", "error", err)
 			} else {
 				fileName := helper.GenerateUniqueFileName(picture)
-				filePath := filepath.Join(s.cfg.StorageProfile, fileName)
+
+				filePath := fileName
 				fileSize = int64(len(data))
 				mimeType = contentType
 
@@ -408,6 +409,7 @@ func (s *AuthService) GoogleExchange(ctx context.Context, req model.GoogleLoginR
 				SetFileSize(fileSize).
 				SetMimeType(mimeType).
 				SetStatus(media.StatusActive).
+				SetCategory(media.CategoryUserAvatar).
 				SetUploader(u).
 				Save(ctx)
 
@@ -442,7 +444,8 @@ func (s *AuthService) GoogleExchange(ctx context.Context, req model.GoogleLoginR
 		}
 
 		if fileData != nil {
-			err = s.storageAdapter.StoreFromReader(bytes.NewReader(fileData), fileContentType, fileUploadPath)
+
+			err = s.storageAdapter.StoreFromReader(bytes.NewReader(fileData), fileContentType, fileUploadPath, true)
 			if err != nil {
 				slog.Error("Failed to store profile picture after db commit", "error", err)
 
@@ -492,7 +495,7 @@ func (s *AuthService) GoogleExchange(ctx context.Context, req model.GoogleLoginR
 
 	avatarURL := ""
 	if avatarFileName != "" {
-		avatarURL = helper.BuildImageURL(s.cfg.StorageMode, s.cfg.AppURL, s.cfg.StorageCDNURL, s.cfg.StorageProfile, avatarFileName)
+		avatarURL = s.storageAdapter.GetPublicURL(avatarFileName)
 	}
 
 	username := ""

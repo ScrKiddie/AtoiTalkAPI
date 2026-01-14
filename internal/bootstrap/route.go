@@ -4,10 +4,7 @@ import (
 	"AtoiTalkAPI/internal/config"
 	"AtoiTalkAPI/internal/controller"
 	"AtoiTalkAPI/internal/middleware"
-	"fmt"
 	"net/http"
-	"path/filepath"
-	"strings"
 	"time"
 
 	"github.com/go-chi/chi/v5"
@@ -57,27 +54,6 @@ func (route *Route) Register() {
 	route.chi.Get("/", func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("Welcome to AtoiTalkAPI"))
 	})
-
-	if route.cfg.StorageMode == "local" {
-		serveStatic := func(pathFromConfig string) {
-			if pathFromConfig == "" {
-				return
-			}
-			cleanInput := strings.TrimLeft(pathFromConfig, "/\\.")
-
-			physicalPath := filepath.Join(".", cleanInput)
-
-			urlPath := filepath.ToSlash(physicalPath)
-
-			routePattern := fmt.Sprintf("/%s/*", urlPath)
-			prefix := fmt.Sprintf("/%s", urlPath)
-
-			route.chi.Handle(routePattern, http.StripPrefix(prefix, http.FileServer(http.Dir(physicalPath))))
-		}
-
-		serveStatic(route.cfg.StorageAttachment)
-		serveStatic(route.cfg.StorageProfile)
-	}
 
 	route.chi.With(route.authMiddleware.VerifyWSToken).Get("/ws", route.wsController.ServeWS)
 
@@ -172,6 +148,8 @@ func (route *Route) Register() {
 				r.Delete("/messages/{messageID}", route.messageController.DeleteMessage)
 
 				r.Post("/reports", route.reportController.CreateReport)
+
+				r.Get("/media/{mediaID}/url", route.mediaController.GetMediaURL)
 			})
 		})
 	})

@@ -8,28 +8,32 @@ import (
 	"AtoiTalkAPI/ent/message"
 	"AtoiTalkAPI/ent/report"
 	"AtoiTalkAPI/ent/user"
+	"AtoiTalkAPI/internal/adapter"
 	"AtoiTalkAPI/internal/config"
 	"AtoiTalkAPI/internal/helper"
 	"AtoiTalkAPI/internal/model"
 	"context"
 	"log/slog"
 	"strings"
+	"time"
 
 	"github.com/go-playground/validator/v10"
 	"github.com/google/uuid"
 )
 
 type ReportService struct {
-	client    *ent.Client
-	cfg       *config.AppConfig
-	validator *validator.Validate
+	client         *ent.Client
+	cfg            *config.AppConfig
+	validator      *validator.Validate
+	storageAdapter *adapter.StorageAdapter
 }
 
-func NewReportService(client *ent.Client, cfg *config.AppConfig, validator *validator.Validate) *ReportService {
+func NewReportService(client *ent.Client, cfg *config.AppConfig, validator *validator.Validate, storageAdapter *adapter.StorageAdapter) *ReportService {
 	return &ReportService{
-		client:    client,
-		cfg:       cfg,
-		validator: validator,
+		client:         client,
+		cfg:            cfg,
+		validator:      validator,
+		storageAdapter: storageAdapter,
 	}
 }
 
@@ -111,7 +115,8 @@ func (s *ReportService) CreateReport(ctx context.Context, reporterID uuid.UUID, 
 
 		attachments := make([]string, 0)
 		for _, att := range msg.Edges.Attachments {
-			url := helper.BuildImageURL(s.cfg.StorageMode, s.cfg.AppURL, s.cfg.StorageCDNURL, s.cfg.StorageAttachment, att.FileName)
+
+			url, _ := s.storageAdapter.GetPresignedURL(att.FileName, 15*time.Minute)
 			attachments = append(attachments, url)
 			mediaIDsToProtect = append(mediaIDsToProtect, att.ID)
 		}
@@ -156,7 +161,7 @@ func (s *ReportService) CreateReport(ctx context.Context, reporterID uuid.UUID, 
 
 		avatarURL := ""
 		if group.Edges.Avatar != nil {
-			avatarURL = helper.BuildImageURL(s.cfg.StorageMode, s.cfg.AppURL, s.cfg.StorageCDNURL, s.cfg.StorageProfile, group.Edges.Avatar.FileName)
+			avatarURL = s.storageAdapter.GetPublicURL(group.Edges.Avatar.FileName)
 			mediaIDsToProtect = append(mediaIDsToProtect, group.Edges.Avatar.ID)
 		}
 
@@ -190,7 +195,7 @@ func (s *ReportService) CreateReport(ctx context.Context, reporterID uuid.UUID, 
 
 		avatarURL := ""
 		if u.Edges.Avatar != nil {
-			avatarURL = helper.BuildImageURL(s.cfg.StorageMode, s.cfg.AppURL, s.cfg.StorageCDNURL, s.cfg.StorageProfile, u.Edges.Avatar.FileName)
+			avatarURL = s.storageAdapter.GetPublicURL(u.Edges.Avatar.FileName)
 			mediaIDsToProtect = append(mediaIDsToProtect, u.Edges.Avatar.ID)
 		}
 

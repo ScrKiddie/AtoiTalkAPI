@@ -289,7 +289,7 @@ func (s *MessageService) SendMessage(ctx context.Context, userID uuid.UUID, req 
 		return nil, helper.NewInternalServerError("")
 	}
 
-	resp := helper.ToMessageResponse(fullMsg, s.cfg.StorageMode, s.cfg.AppURL, s.cfg.StorageCDNURL, s.cfg.StorageProfile, s.cfg.StorageAttachment, nil)
+	resp := helper.ToMessageResponse(fullMsg, s.storageAdapter, nil)
 
 	if s.wsHub != nil && resp != nil {
 		go s.wsHub.BroadcastToChat(req.ChatID, websocket.Event{
@@ -410,7 +410,7 @@ func (s *MessageService) EditMessage(ctx context.Context, userID uuid.UUID, mess
 			return nil, helper.NewInternalServerError("")
 		}
 
-		return helper.ToMessageResponse(fullMsg, s.cfg.StorageMode, s.cfg.AppURL, s.cfg.StorageCDNURL, s.cfg.StorageProfile, s.cfg.StorageAttachment, nil), nil
+		return helper.ToMessageResponse(fullMsg, s.storageAdapter, nil), nil
 	}
 
 	if len(toLink) > 0 {
@@ -478,7 +478,7 @@ func (s *MessageService) EditMessage(ctx context.Context, userID uuid.UUID, mess
 		return nil, helper.NewInternalServerError("")
 	}
 
-	resp := helper.ToMessageResponse(fullMsg, s.cfg.StorageMode, s.cfg.AppURL, s.cfg.StorageCDNURL, s.cfg.StorageProfile, s.cfg.StorageAttachment, nil)
+	resp := helper.ToMessageResponse(fullMsg, s.storageAdapter, nil)
 
 	if s.wsHub != nil && resp != nil {
 		go s.wsHub.BroadcastToChat(msg.ChatID, websocket.Event{
@@ -662,7 +662,7 @@ func (s *MessageService) GetMessages(ctx context.Context, userID uuid.UUID, req 
 
 	var response []model.MessageResponse
 	for _, msg := range messages {
-		resp := helper.ToMessageResponse(msg, s.cfg.StorageMode, s.cfg.AppURL, s.cfg.StorageCDNURL, s.cfg.StorageProfile, s.cfg.StorageAttachment, hiddenAt)
+		resp := helper.ToMessageResponse(msg, s.storageAdapter, hiddenAt)
 		if resp != nil {
 
 			if resp.ActionData != nil {

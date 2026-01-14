@@ -4,6 +4,7 @@ import (
 	"AtoiTalkAPI/ent"
 	"AtoiTalkAPI/ent/report"
 	"AtoiTalkAPI/ent/user"
+	"AtoiTalkAPI/internal/adapter"
 	"AtoiTalkAPI/internal/config"
 	"AtoiTalkAPI/internal/helper"
 	"AtoiTalkAPI/internal/model"
@@ -20,20 +21,22 @@ import (
 )
 
 type AdminService struct {
-	client    *ent.Client
-	cfg       *config.AppConfig
-	validator *validator.Validate
-	wsHub     *websocket.Hub
-	repo      *repository.Repository
+	client         *ent.Client
+	cfg            *config.AppConfig
+	validator      *validator.Validate
+	wsHub          *websocket.Hub
+	repo           *repository.Repository
+	storageAdapter *adapter.StorageAdapter
 }
 
-func NewAdminService(client *ent.Client, cfg *config.AppConfig, validator *validator.Validate, wsHub *websocket.Hub, repo *repository.Repository) *AdminService {
+func NewAdminService(client *ent.Client, cfg *config.AppConfig, validator *validator.Validate, wsHub *websocket.Hub, repo *repository.Repository, storageAdapter *adapter.StorageAdapter) *AdminService {
 	return &AdminService{
-		client:    client,
-		cfg:       cfg,
-		validator: validator,
-		wsHub:     wsHub,
-		repo:      repo,
+		client:         client,
+		cfg:            cfg,
+		validator:      validator,
+		wsHub:          wsHub,
+		repo:           repo,
+		storageAdapter: storageAdapter,
 	}
 }
 
@@ -244,7 +247,7 @@ func (s *AdminService) GetReportDetail(ctx context.Context, reportID uuid.UUID) 
 			reporterName = *r.Edges.Reporter.FullName
 		}
 		if r.Edges.Reporter.Edges.Avatar != nil {
-			reporterAvatar = helper.BuildImageURL(s.cfg.StorageMode, s.cfg.AppURL, s.cfg.StorageCDNURL, s.cfg.StorageProfile, r.Edges.Reporter.Edges.Avatar.FileName)
+			reporterAvatar = s.storageAdapter.GetPublicURL(r.Edges.Reporter.Edges.Avatar.FileName)
 		}
 	}
 

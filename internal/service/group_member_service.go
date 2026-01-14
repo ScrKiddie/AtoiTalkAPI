@@ -80,7 +80,7 @@ func (s *GroupChatService) SearchGroupMembers(ctx context.Context, userID uuid.U
 		if m.Edges.User != nil && m.Edges.User.DeletedAt != nil {
 			continue
 		}
-		memberDTOs = append(memberDTOs, helper.ToGroupMemberDTO(m, onlineMap, s.cfg.StorageMode, s.cfg.AppURL, s.cfg.StorageCDNURL, s.cfg.StorageProfile))
+		memberDTOs = append(memberDTOs, helper.ToGroupMemberDTO(m, onlineMap, s.storageAdapter))
 	}
 
 	return memberDTOs, nextCursor, hasNext, nil

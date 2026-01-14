@@ -41,7 +41,7 @@ func (s *GroupChatService) SearchPublicGroups(ctx context.Context, userID uuid.U
 	for _, g := range groups {
 		avatarURL := ""
 		if g.Edges.Avatar != nil {
-			avatarURL = helper.BuildImageURL(s.cfg.StorageMode, s.cfg.AppURL, s.cfg.StorageCDNURL, s.cfg.StorageProfile, g.Edges.Avatar.FileName)
+			avatarURL = s.storageAdapter.GetPublicURL(g.Edges.Avatar.FileName)
 		}
 
 		isMember := false
@@ -153,7 +153,7 @@ func (s *GroupChatService) JoinPublicGroup(ctx context.Context, userID uuid.UUID
 		go func() {
 			avatarURL := ""
 			if gc.Edges.Avatar != nil {
-				avatarURL = helper.BuildImageURL(s.cfg.StorageMode, s.cfg.AppURL, s.cfg.StorageCDNURL, s.cfg.StorageProfile, gc.Edges.Avatar.FileName)
+				avatarURL = s.storageAdapter.GetPublicURL(gc.Edges.Avatar.FileName)
 			}
 
 			fullMsg, _ := s.client.Message.Query().
@@ -161,7 +161,7 @@ func (s *GroupChatService) JoinPublicGroup(ctx context.Context, userID uuid.UUID
 				WithSender().
 				Only(context.Background())
 
-			msgResponse := helper.ToMessageResponse(fullMsg, s.cfg.StorageMode, s.cfg.AppURL, s.cfg.StorageCDNURL, s.cfg.StorageProfile, s.cfg.StorageAttachment, nil)
+			msgResponse := helper.ToMessageResponse(fullMsg, s.storageAdapter, nil)
 
 			chatPayload := model.ChatListResponse{
 				ID:          gc.Edges.Chat.ID,

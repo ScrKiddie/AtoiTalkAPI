@@ -253,6 +253,11 @@ definitions:
       url:
         type: string
     type: object
+  model.MediaURLResponse:
+    properties:
+      url:
+        type: string
+    type: object
   model.MessageResponse:
     properties:
       action_data:
@@ -2211,6 +2216,55 @@ paths:
       summary: Create Private Chat
       tags:
       - chat
+  /api/media/{mediaID}/url:
+    get:
+      consumes:
+      - application/json
+      description: Get a new presigned URL for a media file if the previous one has
+        expired.
+      parameters:
+      - description: Media ID (UUID)
+        in: path
+        name: mediaID
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/helper.ResponseSuccess'
+            - properties:
+                data:
+                  $ref: '#/definitions/model.MediaURLResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
+      security:
+      - BearerAuth: []
+      summary: Refresh Media URL
+      tags:
+      - media
   /api/media/upload:
     post:
       consumes:

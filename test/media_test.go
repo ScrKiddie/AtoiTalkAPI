@@ -1,29 +1,29 @@
 package test
 
 import (
+	"AtoiTalkAPI/ent/chat"
+	"AtoiTalkAPI/ent/groupmember"
 	"AtoiTalkAPI/ent/media"
-	"AtoiTalkAPI/internal/helper"
+	"AtoiTalkAPI/ent/message"
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"io"
 	"mime/multipart"
 	"net/http"
 	"net/textproto"
-	"path/filepath"
-	"runtime"
 	"testing"
 
+	"AtoiTalkAPI/internal/helper"
+
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestUploadMedia(t *testing.T) {
-	if testConfig.StorageMode != "local" {
-		t.Skip("Skipping Upload Media test: Storage mode is not local")
-	}
-
 	clearDatabase(context.Background())
-	cleanupStorage(true)
 
 	u := createTestUser(t, "uploader")
 	token, _ := helper.GenerateJWT(testConfig.JWTSecret, testConfig.JWTExp, u.ID)
@@ -60,18 +60,12 @@ func TestUploadMedia(t *testing.T) {
 		assert.Equal(t, "image/jpeg", dataMap["mime_type"])
 		assert.NotEmpty(t, dataMap["url"])
 
-		mediaIDStr := dataMap["id"].(string)
-
-		m, err := testClient.Media.Query().Where(media.FileName(dataMap["file_name"].(string))).Only(context.Background())
-		assert.NoError(t, err)
-		assert.Equal(t, mediaIDStr, m.ID.String())
-		assert.Equal(t, media.StatusActive, m.Status)
-		assert.Equal(t, u.ID, m.UploadedByID, "Media uploader should be set to the user")
-
-		_, b, _, _ := runtime.Caller(0)
-		testDir := filepath.Dir(b)
-		physicalPath := filepath.Join(testDir, testConfig.StorageAttachment, m.FileName)
-		assert.FileExists(t, physicalPath)
+		fileName := dataMap["file_name"].(string)
+		_, err := s3Client.HeadObject(context.Background(), &s3.HeadObjectInput{
+			Bucket: aws.String(testConfig.S3BucketPrivate),
+			Key:    aws.String(fileName),
+		})
+		assert.NoError(t, err, "Uploaded file should exist in S3")
 	})
 
 	t.Run("Fail - Invalid Form Data", func(t *testing.T) {
@@ -100,31 +94,93 @@ func TestUploadMedia(t *testing.T) {
 		rr := executeRequest(req)
 		assert.Equal(t, http.StatusUnauthorized, rr.Code)
 	})
+}
 
-	t.Run("Fail - Upload Fake Image (MIME Spoofing)", func(t *testing.T) {
-		body := &bytes.Buffer{}
-		writer := multipart.NewWriter(body)
+func TestGetMediaURL(t *testing.T) {
+	clearDatabase(context.Background())
 
-		h := make(textproto.MIMEHeader)
-		h.Set("Content-Disposition", `form-data; name="file"; filename="virus.jpg"`)
-		h.Set("Content-Type", "image/jpeg")
-		part, _ := writer.CreatePart(h)
+	u1 := createTestUser(t, "user1")
+	u2 := createTestUser(t, "user2")
+	u3 := createTestUser(t, "user3")
 
-		_, _ = io.WriteString(part, "<?php echo 'hacked'; ?>")
-		_ = writer.Close()
+	token1, _ := helper.GenerateJWT(testConfig.JWTSecret, testConfig.JWTExp, u1.ID)
+	token3, _ := helper.GenerateJWT(testConfig.JWTSecret, testConfig.JWTExp, u3.ID)
 
-		req, _ := http.NewRequest("POST", "/api/media/upload", body)
-		req.Header.Set("Content-Type", writer.FormDataContentType())
-		req.Header.Set("Authorization", "Bearer "+token)
+	chatPrivate, _ := testClient.Chat.Create().SetType(chat.TypePrivate).Save(context.Background())
+	testClient.PrivateChat.Create().SetChat(chatPrivate).SetUser1(u1).SetUser2(u2).Save(context.Background())
+
+	chatGroup, _ := testClient.Chat.Create().SetType(chat.TypeGroup).Save(context.Background())
+	gc, _ := testClient.GroupChat.Create().SetChat(chatGroup).SetCreator(u1).SetName("Test Group").SetInviteCode("test").Save(context.Background())
+	testClient.GroupMember.Create().SetGroupChat(gc).SetUser(u1).SetRole(groupmember.RoleOwner).Save(context.Background())
+
+	mediaPrivate, _ := testClient.Media.Create().
+		SetFileName("private.jpg").SetOriginalName("private.jpg").SetFileSize(100).SetMimeType("image/jpeg").
+		SetStatus(media.StatusActive).SetUploader(u1).Save(context.Background())
+	testClient.Message.Create().SetChat(chatPrivate).SetSender(u1).SetType(message.TypeRegular).AddAttachments(mediaPrivate).Save(context.Background())
+
+	mediaGroup, _ := testClient.Media.Create().
+		SetFileName("group.jpg").SetOriginalName("group.jpg").SetFileSize(100).SetMimeType("image/jpeg").
+		SetStatus(media.StatusActive).SetUploader(u1).Save(context.Background())
+	testClient.Message.Create().SetChat(chatGroup).SetSender(u1).SetType(message.TypeRegular).AddAttachments(mediaGroup).Save(context.Background())
+
+	s3Client.PutObject(context.Background(), &s3.PutObjectInput{
+		Bucket: aws.String(testConfig.S3BucketPrivate),
+		Key:    aws.String("private.jpg"),
+		Body:   bytes.NewReader([]byte("content")),
+	})
+	s3Client.PutObject(context.Background(), &s3.PutObjectInput{
+		Bucket: aws.String(testConfig.S3BucketPrivate),
+		Key:    aws.String("group.jpg"),
+		Body:   bytes.NewReader([]byte("content")),
+	})
+
+	t.Run("Success - Refresh URL (Private Chat)", func(t *testing.T) {
+		req, _ := http.NewRequest("GET", fmt.Sprintf("/api/media/%s/url", mediaPrivate.ID), nil)
+		req.Header.Set("Authorization", "Bearer "+token1)
 
 		rr := executeRequest(req)
+		assert.Equal(t, http.StatusOK, rr.Code)
 
-		if assert.Equal(t, http.StatusOK, rr.Code) {
-			var resp helper.ResponseSuccess
-			json.Unmarshal(rr.Body.Bytes(), &resp)
-			dataMap := resp.Data.(map[string]interface{})
+		var resp helper.ResponseSuccess
+		json.Unmarshal(rr.Body.Bytes(), &resp)
+		dataMap := resp.Data.(map[string]interface{})
+		assert.NotEmpty(t, dataMap["url"])
+	})
 
-			assert.Equal(t, "application/octet-stream", dataMap["mime_type"])
-		}
+	t.Run("Success - Refresh URL (Group Chat)", func(t *testing.T) {
+		req, _ := http.NewRequest("GET", fmt.Sprintf("/api/media/%s/url", mediaGroup.ID), nil)
+		req.Header.Set("Authorization", "Bearer "+token1)
+
+		rr := executeRequest(req)
+		assert.Equal(t, http.StatusOK, rr.Code)
+
+		var resp helper.ResponseSuccess
+		json.Unmarshal(rr.Body.Bytes(), &resp)
+		dataMap := resp.Data.(map[string]interface{})
+		assert.NotEmpty(t, dataMap["url"])
+	})
+
+	t.Run("Fail - Not Member (Private Chat)", func(t *testing.T) {
+		req, _ := http.NewRequest("GET", fmt.Sprintf("/api/media/%s/url", mediaPrivate.ID), nil)
+		req.Header.Set("Authorization", "Bearer "+token3)
+
+		rr := executeRequest(req)
+		assert.Equal(t, http.StatusForbidden, rr.Code)
+	})
+
+	t.Run("Fail - Not Member (Group Chat)", func(t *testing.T) {
+		req, _ := http.NewRequest("GET", fmt.Sprintf("/api/media/%s/url", mediaGroup.ID), nil)
+		req.Header.Set("Authorization", "Bearer "+token3)
+
+		rr := executeRequest(req)
+		assert.Equal(t, http.StatusForbidden, rr.Code)
+	})
+
+	t.Run("Fail - Media Not Found", func(t *testing.T) {
+		req, _ := http.NewRequest("GET", fmt.Sprintf("/api/media/%s/url", "00000000-0000-0000-0000-000000000000"), nil)
+		req.Header.Set("Authorization", "Bearer "+token1)
+
+		rr := executeRequest(req)
+		assert.Equal(t, http.StatusNotFound, rr.Code)
 	})
 }

@@ -17,11 +17,12 @@ import (
 	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
-	"path/filepath"
 	"strings"
 	"testing"
 	"time"
 
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/google/uuid"
 	ws "github.com/gorilla/websocket"
 	"github.com/stretchr/testify/assert"
@@ -29,7 +30,6 @@ import (
 
 func TestCreateGroupChat(t *testing.T) {
 	clearDatabase(context.Background())
-	cleanupStorage(true)
 
 	password := "Password123!"
 	hashedPassword, _ := helper.HashPassword(password)
@@ -137,6 +137,7 @@ func TestCreateGroupChat(t *testing.T) {
 	})
 
 	t.Run("Success - Create Group with Avatar", func(t *testing.T) {
+
 		body := &bytes.Buffer{}
 		writer := multipart.NewWriter(body)
 		_ = writer.WriteField("name", "Group With Avatar")
@@ -165,7 +166,23 @@ func TestCreateGroupChat(t *testing.T) {
 			Only(context.Background())
 		assert.NoError(t, err)
 		assert.NotNil(t, gc.Edges.Avatar)
-		assert.FileExists(t, filepath.Join(testConfig.StorageProfile, gc.Edges.Avatar.FileName))
+
+		_, err = s3Client.HeadObject(context.Background(), &s3.HeadObjectInput{
+			Bucket: aws.String(testConfig.S3BucketPublic),
+			Key:    aws.String(gc.Edges.Avatar.FileName),
+		})
+		assert.NoError(t, err, "Avatar file should exist in S3")
+
+		reqGet, _ := http.NewRequest("GET", fmt.Sprintf("/api/chats/%s", gc.ChatID), nil)
+		reqGet.Header.Set("Authorization", "Bearer "+token1)
+		rrGet := executeRequest(reqGet)
+		assert.Equal(t, http.StatusOK, rrGet.Code)
+
+		var resp helper.ResponseSuccess
+		json.Unmarshal(rrGet.Body.Bytes(), &resp)
+		dataMap := resp.Data.(map[string]interface{})
+		avatarURL := dataMap["avatar"].(string)
+		assert.Contains(t, avatarURL, testConfig.S3PublicDomain, "Group avatar URL should contain public domain")
 	})
 
 	t.Run("Fail - No Members", func(t *testing.T) {
@@ -324,7 +341,6 @@ func TestCreateGroupChat(t *testing.T) {
 
 func TestUpdateGroupChat(t *testing.T) {
 	clearDatabase(context.Background())
-	cleanupStorage(true)
 
 	u1 := testClient.User.Create().SetEmail("u1@test.com").SetUsername("owner").SetFullName("Owner").SaveX(context.Background())
 	u2 := testClient.User.Create().SetEmail("u2@test.com").SetUsername("admin").SetFullName("Admin").SaveX(context.Background())
@@ -405,6 +421,7 @@ func TestUpdateGroupChat(t *testing.T) {
 	})
 
 	t.Run("Success - Update Avatar (Owner)", func(t *testing.T) {
+
 		body := &bytes.Buffer{}
 		writer := multipart.NewWriter(body)
 		part, _ := writer.CreateFormFile("avatar", "new_avatar.jpg")
@@ -421,7 +438,18 @@ func TestUpdateGroupChat(t *testing.T) {
 
 		gcReload, _ := testClient.GroupChat.Query().Where(groupchat.ID(gc.ID)).WithAvatar().Only(context.Background())
 		assert.NotNil(t, gcReload.Edges.Avatar)
-		assert.FileExists(t, filepath.Join(testConfig.StorageProfile, gcReload.Edges.Avatar.FileName))
+
+		_, err := s3Client.HeadObject(context.Background(), &s3.HeadObjectInput{
+			Bucket: aws.String(testConfig.S3BucketPublic),
+			Key:    aws.String(gcReload.Edges.Avatar.FileName),
+		})
+		assert.NoError(t, err, "Avatar file should exist in S3")
+
+		var resp helper.ResponseSuccess
+		json.Unmarshal(rr.Body.Bytes(), &resp)
+		dataMap := resp.Data.(map[string]interface{})
+		avatarURL := dataMap["avatar"].(string)
+		assert.Contains(t, avatarURL, testConfig.S3PublicDomain, "Group avatar URL should contain public domain")
 
 		lastMsg, _ := testClient.Chat.Query().Where(chat.ID(gc.ChatID)).QueryLastMessage().Only(context.Background())
 		assert.Equal(t, message.TypeSystemAvatar, lastMsg.Type)
