@@ -21,7 +21,7 @@ import (
 const cacheTTL = 5 * time.Minute
 const typingThrottle = 2 * time.Second
 const pubSubChannel = "events:broadcast"
-const onlineUsersSet = "online_users"
+const onlineUserTTL = 70 * time.Second
 
 type Hub struct {
 	clients     map[*Client]bool
@@ -101,6 +101,9 @@ func (h *Hub) Run() {
 				go h.broadcastUserStatus(client.UserID, true)
 			}
 			h.userClients[client.UserID][client] = true
+
+			go h.KeepAlive(client.UserID)
+
 			h.mu.Unlock()
 
 		case client := <-h.Unregister:
@@ -412,13 +415,13 @@ func (h *Hub) BroadcastToContacts(userID uuid.UUID, event Event) {
 
 func (h *Hub) broadcastUserStatus(userID uuid.UUID, isOnline bool) {
 	ctx := context.Background()
+	key := fmt.Sprintf("online:%s", userID)
+
 	if isOnline {
 
-		h.redis.Client().SAdd(ctx, onlineUsersSet, userID.String())
-
+		h.redis.Set(ctx, key, "true", onlineUserTTL)
 	} else {
-
-		h.redis.Client().SRem(ctx, onlineUsersSet, userID.String())
+		h.redis.Del(ctx, key)
 
 		if err := h.db.User.UpdateOneID(userID).SetLastSeenAt(time.Now().UTC()).Exec(ctx); err != nil {
 			slog.Error("Failed to update user last_seen_at in DB", "error", err)
@@ -444,6 +447,12 @@ func (h *Hub) broadcastUserStatus(userID uuid.UUID, isOnline bool) {
 	}
 
 	h.BroadcastToContacts(userID, event)
+}
+
+func (h *Hub) KeepAlive(userID uuid.UUID) {
+	ctx := context.Background()
+	key := fmt.Sprintf("online:%s", userID)
+	h.redis.Set(ctx, key, "true", onlineUserTTL)
 }
 
 func (h *Hub) DisconnectUser(userID uuid.UUID) {

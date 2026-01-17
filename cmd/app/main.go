@@ -22,9 +22,9 @@ func main() {
 		}
 	}()
 
-	s3Client, err := config.NewS3Client(*cfg)
-	if err != nil {
-		slog.Error("Failed to initialize S3 client", "error", err)
+	s3Client := config.NewS3Client(cfg)
+	if s3Client == nil {
+		slog.Error("Failed to initialize S3 client")
 	}
 
 	httpClient := config.NewHTTPClient()

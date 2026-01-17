@@ -13,6 +13,7 @@ import (
 	"AtoiTalkAPI/internal/repository"
 	"AtoiTalkAPI/internal/websocket"
 	"context"
+	"fmt"
 	"log/slog"
 	"strings"
 	"time"
@@ -88,8 +89,9 @@ func (s *ChatService) GetChatByID(ctx context.Context, userID, chatID uuid.UUID)
 
 	onlineMap := make(map[uuid.UUID]bool)
 	if otherUserID != uuid.Nil {
-		isOnline, _ := s.redisAdapter.Client().SIsMember(ctx, "online_users", otherUserID.String()).Result()
-		onlineMap[otherUserID] = isOnline
+		key := fmt.Sprintf("online:%s", otherUserID)
+		exists, _ := s.redisAdapter.Client().Exists(ctx, key).Result()
+		onlineMap[otherUserID] = exists > 0
 	}
 
 	resp := helper.MapChatToResponse(userID, c, blockedMap, onlineMap, s.storageAdapter)
@@ -183,14 +185,15 @@ func (s *ChatService) GetChats(ctx context.Context, userID uuid.UUID, req model.
 	if len(otherUserIDs) > 0 {
 		results, err := s.redisAdapter.Client().Pipelined(ctx, func(pipe redis.Pipeliner) error {
 			for _, id := range otherUserIDs {
-				pipe.SIsMember(ctx, "online_users", id.String())
+				key := fmt.Sprintf("online:%s", id)
+				pipe.Exists(ctx, key)
 			}
 			return nil
 		})
 		if err == nil {
 			for i, res := range results {
-				if boolCmd, ok := res.(*redis.BoolCmd); ok {
-					onlineMap[otherUserIDs[i]] = boolCmd.Val()
+				if intCmd, ok := res.(*redis.IntCmd); ok {
+					onlineMap[otherUserIDs[i]] = intCmd.Val() > 0
 				}
 			}
 		}

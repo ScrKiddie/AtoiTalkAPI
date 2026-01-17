@@ -39,6 +39,36 @@ func TestWebSocketConnection(t *testing.T) {
 	defer conn.Close()
 }
 
+func TestWebSocketPresenceTTL(t *testing.T) {
+	clearDatabase(context.Background())
+
+	user1 := createWSUser(t, "user1", "user1@example.com")
+	token1, _ := helper.GenerateJWT(testConfig.JWTSecret, testConfig.JWTExp, user1.ID)
+
+	server := httptest.NewServer(testRouter)
+	defer server.Close()
+
+	wsURL := "ws" + strings.TrimPrefix(server.URL, "http") + "/ws?token=" + token1
+	header := http.Header{}
+
+	conn, _, err := ws.DefaultDialer.Dial(wsURL, header)
+	assert.NoError(t, err)
+	defer conn.Close()
+
+	time.Sleep(100 * time.Millisecond)
+
+	key := fmt.Sprintf("online:%s", user1.ID)
+	exists, err := redisAdapter.Client().Exists(context.Background(), key).Result()
+	assert.NoError(t, err)
+	assert.Equal(t, int64(1), exists, "Redis key for online status should exist")
+
+	ttl, err := redisAdapter.Client().TTL(context.Background(), key).Result()
+	assert.NoError(t, err)
+	assert.True(t, ttl > 0, "Redis key should have a TTL")
+
+	assert.True(t, ttl <= 70*time.Second, "TTL should be <= 70s")
+}
+
 func TestWebSocketBroadcastMessage(t *testing.T) {
 	clearDatabase(context.Background())
 
@@ -985,7 +1015,7 @@ func TestWebSocketJoinGroupEvents(t *testing.T) {
 	uDummy := createWSUser(t, "dummy", "dummy@test.com")
 	idsJSON, _ := json.Marshal([]string{uDummy.ID.String()})
 	_ = writer.WriteField("member_ids", string(idsJSON))
-	
+
 	writer.Close()
 
 	req, _ := http.NewRequest("POST", "/api/chats/group", body)
