@@ -13,6 +13,7 @@ import (
 	"AtoiTalkAPI/internal/repository"
 	"AtoiTalkAPI/internal/websocket"
 	"context"
+	"fmt"
 	"log/slog"
 	"mime/multipart"
 	"strings"
@@ -21,8 +22,6 @@ import (
 	"github.com/go-playground/validator/v10"
 	"github.com/google/uuid"
 )
-
-const onlineUsersSet = "online_users"
 
 type UserService struct {
 	client         *ent.Client
@@ -87,7 +86,9 @@ func (s *UserService) GetCurrentUser(ctx context.Context, userID uuid.UUID) (*mo
 		fullName = *u.FullName
 	}
 
-	isOnline, _ := s.redisAdapter.Client().SIsMember(ctx, onlineUsersSet, u.ID.String()).Result()
+	key := fmt.Sprintf("online:%s", u.ID)
+	exists, _ := s.redisAdapter.Client().Exists(ctx, key).Result()
+	isOnline := exists > 0
 
 	return &model.UserDTO{
 		ID:          u.ID,
@@ -163,7 +164,9 @@ func (s *UserService) GetUserProfile(ctx context.Context, currentUserID uuid.UUI
 
 	var lastSeenAt *string
 
-	isOnline, _ := s.redisAdapter.Client().SIsMember(ctx, onlineUsersSet, u.ID.String()).Result()
+	key := fmt.Sprintf("online:%s", u.ID)
+	exists, _ := s.redisAdapter.Client().Exists(ctx, key).Result()
+	isOnline := exists > 0
 
 	username := ""
 	if u.Username != nil {
@@ -297,7 +300,9 @@ func (s *UserService) UpdateProfile(ctx context.Context, userID uuid.UUID, req m
 		hasChanges = true
 	}
 
-	isOnline, _ := s.redisAdapter.Client().SIsMember(ctx, onlineUsersSet, u.ID.String()).Result()
+	key := fmt.Sprintf("online:%s", u.ID)
+	exists, _ := s.redisAdapter.Client().Exists(ctx, key).Result()
+	isOnline := exists > 0
 
 	if !hasChanges {
 		avatarURL := ""
@@ -587,7 +592,9 @@ func (s *UserService) SearchUsers(ctx context.Context, currentUserID uuid.UUID, 
 			fullName = *u.FullName
 		}
 
-		isOnline, _ := s.redisAdapter.Client().SIsMember(ctx, onlineUsersSet, u.ID.String()).Result()
+		key := fmt.Sprintf("online:%s", u.ID)
+		exists, _ := s.redisAdapter.Client().Exists(ctx, key).Result()
+		isOnline := exists > 0
 
 		dto := model.UserDTO{
 			ID:          u.ID,

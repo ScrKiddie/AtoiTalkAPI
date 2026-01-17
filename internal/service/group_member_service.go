@@ -8,6 +8,7 @@ import (
 	"AtoiTalkAPI/internal/helper"
 	"AtoiTalkAPI/internal/model"
 	"context"
+	"fmt"
 	"log/slog"
 
 	"github.com/google/uuid"
@@ -61,14 +62,15 @@ func (s *GroupChatService) SearchGroupMembers(ctx context.Context, userID uuid.U
 	if len(members) > 0 {
 		results, err := s.redisAdapter.Client().Pipelined(ctx, func(pipe redis.Pipeliner) error {
 			for _, m := range members {
-				pipe.SIsMember(ctx, "online_users", m.UserID.String())
+				key := fmt.Sprintf("online:%s", m.UserID)
+				pipe.Exists(ctx, key)
 			}
 			return nil
 		})
 		if err == nil {
 			for i, res := range results {
-				if boolCmd, ok := res.(*redis.BoolCmd); ok {
-					onlineMap[members[i].UserID] = boolCmd.Val()
+				if intCmd, ok := res.(*redis.IntCmd); ok {
+					onlineMap[members[i].UserID] = intCmd.Val() > 0
 				}
 			}
 		}

@@ -184,7 +184,9 @@ func (s *PrivateChatService) CreatePrivateChat(ctx context.Context, userID uuid.
 				creatorName = *creator.FullName
 			}
 
-			creatorIsOnline, _ := s.redisAdapter.Client().SIsMember(context.Background(), "online_users", creator.ID.String()).Result()
+			keyCreator := fmt.Sprintf("online:%s", creator.ID)
+			existsCreator, _ := s.redisAdapter.Client().Exists(context.Background(), keyCreator).Result()
+			creatorIsOnline := existsCreator > 0
 
 			payloadForTarget := model.ChatListResponse{
 				ID:          newChat.ID,
@@ -212,7 +214,9 @@ func (s *PrivateChatService) CreatePrivateChat(ctx context.Context, userID uuid.
 				targetName = *targetUser.FullName
 			}
 
-			targetUserIsOnline, _ := s.redisAdapter.Client().SIsMember(context.Background(), "online_users", targetUser.ID.String()).Result()
+			keyTarget := fmt.Sprintf("online:%s", targetUser.ID)
+			existsTarget, _ := s.redisAdapter.Client().Exists(context.Background(), keyTarget).Result()
+			targetUserIsOnline := existsTarget > 0
 
 			payloadForCreator := model.ChatListResponse{
 				ID:          newChat.ID,
