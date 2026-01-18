@@ -15,7 +15,6 @@ import (
 	"context"
 	"log/slog"
 	"strings"
-	"time"
 
 	"github.com/go-playground/validator/v10"
 	"github.com/google/uuid"
@@ -115,9 +114,7 @@ func (s *ReportService) CreateReport(ctx context.Context, reporterID uuid.UUID, 
 
 		attachments := make([]string, 0)
 		for _, att := range msg.Edges.Attachments {
-
-			url, _ := s.storageAdapter.GetPresignedURL(att.FileName, 15*time.Minute)
-			attachments = append(attachments, url)
+			attachments = append(attachments, att.FileName)
 			mediaIDsToProtect = append(mediaIDsToProtect, att.ID)
 		}
 
