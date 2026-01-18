@@ -253,6 +253,26 @@ func (s *AdminService) GetReportDetail(ctx context.Context, reportID uuid.UUID) 
 		}
 	}
 
+	if r.TargetType == report.TargetTypeMessage && r.EvidenceSnapshot != nil {
+		if attachments, ok := r.EvidenceSnapshot["attachments"].([]interface{}); ok {
+			var refreshedAttachments []string
+			for _, att := range attachments {
+				if fileName, ok := att.(string); ok {
+
+					url, err := s.storageAdapter.GetPresignedURL(fileName, 15*time.Minute)
+					if err == nil {
+						refreshedAttachments = append(refreshedAttachments, url)
+					} else {
+						slog.Error("Failed to refresh presigned URL for report evidence", "error", err, "file", fileName)
+
+						refreshedAttachments = append(refreshedAttachments, fileName)
+					}
+				}
+			}
+			r.EvidenceSnapshot["attachments"] = refreshedAttachments
+		}
+	}
+
 	var adminNotes *string
 
 	return &model.ReportDetailResponse{
