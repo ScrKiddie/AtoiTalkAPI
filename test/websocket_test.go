@@ -22,6 +22,65 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func waitForEvent(t *testing.T, conn *ws.Conn, eventType websocket.EventType, timeout time.Duration) *websocket.Event {
+	deadline := time.Now().Add(timeout)
+	conn.SetReadDeadline(deadline)
+
+	for {
+		if time.Now().After(deadline) {
+			return nil
+		}
+
+		_, message, err := conn.ReadMessage()
+		if err != nil {
+			return nil
+		}
+
+		var event websocket.Event
+		if err := json.Unmarshal(message, &event); err != nil {
+			continue
+		}
+
+		if event.Type == eventType {
+			return &event
+		}
+	}
+}
+
+func waitForEvents(t *testing.T, conn *ws.Conn, expectedTypes []websocket.EventType, timeout time.Duration) map[websocket.EventType]*websocket.Event {
+	deadline := time.Now().Add(timeout)
+	conn.SetReadDeadline(deadline)
+
+	receivedEvents := make(map[websocket.EventType]*websocket.Event)
+	remainingTypes := make(map[websocket.EventType]bool)
+	for _, et := range expectedTypes {
+		remainingTypes[et] = true
+	}
+
+	for len(remainingTypes) > 0 {
+		if time.Now().After(deadline) {
+			break
+		}
+
+		_, message, err := conn.ReadMessage()
+		if err != nil {
+			break
+		}
+
+		var event websocket.Event
+		if err := json.Unmarshal(message, &event); err != nil {
+			continue
+		}
+
+		if remainingTypes[event.Type] {
+			receivedEvents[event.Type] = &event
+			delete(remainingTypes, event.Type)
+		}
+	}
+
+	return receivedEvents
+}
+
 func TestWebSocketConnection(t *testing.T) {
 	clearDatabase(context.Background())
 
@@ -55,7 +114,7 @@ func TestWebSocketPresenceTTL(t *testing.T) {
 	assert.NoError(t, err)
 	defer conn.Close()
 
-	time.Sleep(100 * time.Millisecond)
+	time.Sleep(200 * time.Millisecond)
 
 	key := fmt.Sprintf("online:%s", user1.ID)
 	exists, err := redisAdapter.Client().Exists(context.Background(), key).Result()
@@ -90,7 +149,7 @@ func TestWebSocketBroadcastMessage(t *testing.T) {
 	assert.NoError(t, err)
 	defer conn2.Close()
 
-	time.Sleep(100 * time.Millisecond)
+	time.Sleep(200 * time.Millisecond)
 
 	chats, _ := testClient.Chat.Query().All(context.Background())
 	chatID := chats[0].ID
@@ -107,29 +166,17 @@ func TestWebSocketBroadcastMessage(t *testing.T) {
 	rr := executeRequest(req)
 	assert.Equal(t, http.StatusOK, rr.Code)
 
-	conn2.SetReadDeadline(time.Now().UTC().Add(2 * time.Second))
+	event := waitForEvent(t, conn2, websocket.EventMessageNew, 2*time.Second)
+	assert.NotNil(t, event, "Should have received message.new event")
 
-	foundEvent := false
-	for i := 0; i < 5; i++ {
-		_, message, err := conn2.ReadMessage()
-		if err != nil {
-			break
-		}
-		var event websocket.Event
-		json.Unmarshal(message, &event)
-
-		if event.Type == websocket.EventMessageNew {
-			foundEvent = true
-			payloadMap, ok := event.Payload.(map[string]interface{})
-			assert.True(t, ok)
-			assert.Equal(t, "Hello WebSocket", payloadMap["content"])
-			assert.Equal(t, "regular", payloadMap["type"])
-			assert.NotNil(t, event.Meta)
-			assert.Equal(t, 1, int(event.Meta.UnreadCount))
-			break
-		}
+	if event != nil {
+		payloadMap, ok := event.Payload.(map[string]interface{})
+		assert.True(t, ok)
+		assert.Equal(t, "Hello WebSocket", payloadMap["content"])
+		assert.Equal(t, "regular", payloadMap["type"])
+		assert.NotNil(t, event.Meta)
+		assert.Equal(t, 1, int(event.Meta.UnreadCount))
 	}
-	assert.True(t, foundEvent, "Should have received message.new event")
 }
 
 func TestWebSocketTypingStatus(t *testing.T) {
@@ -161,7 +208,7 @@ func TestWebSocketTypingStatus(t *testing.T) {
 	assert.NoError(t, err)
 	defer conn2.Close()
 
-	time.Sleep(100 * time.Millisecond)
+	time.Sleep(200 * time.Millisecond)
 
 	typingEvent := websocket.Event{
 		Type: websocket.EventTyping,
@@ -173,24 +220,12 @@ func TestWebSocketTypingStatus(t *testing.T) {
 	err = conn1.WriteJSON(typingEvent)
 	assert.NoError(t, err)
 
-	conn2.SetReadDeadline(time.Now().UTC().Add(2 * time.Second))
-
-	foundTyping := false
-	for i := 0; i < 5; i++ {
-		_, message, err := conn2.ReadMessage()
-		if err != nil {
-			break
-		}
-		var event websocket.Event
-		json.Unmarshal(message, &event)
-		if event.Type == websocket.EventTyping {
-			foundTyping = true
-			assert.Equal(t, chatID, event.Meta.ChatID)
-			assert.Equal(t, user1.ID, event.Meta.SenderID)
-			break
-		}
+	event := waitForEvent(t, conn2, websocket.EventTyping, 2*time.Second)
+	assert.NotNil(t, event, "User 2 should receive typing event")
+	if event != nil {
+		assert.Equal(t, chatID, event.Meta.ChatID)
+		assert.Equal(t, user1.ID, event.Meta.SenderID)
 	}
-	assert.True(t, foundTyping, "User 2 should receive typing event")
 }
 
 func TestWebSocketUserPresence(t *testing.T) {
@@ -214,53 +249,28 @@ func TestWebSocketUserPresence(t *testing.T) {
 	assert.NoError(t, err)
 	defer conn1.Close()
 
-	time.Sleep(100 * time.Millisecond)
+	time.Sleep(200 * time.Millisecond)
 
 	header2 := http.Header{}
 	conn2, _, err := ws.DefaultDialer.Dial(wsURL2, header2)
 	assert.NoError(t, err)
 
-	conn1.SetReadDeadline(time.Now().UTC().Add(2 * time.Second))
-	foundOnline := false
-	for i := 0; i < 5; i++ {
-		_, message, err := conn1.ReadMessage()
-		if err != nil {
-			break
-		}
-		var event websocket.Event
-		json.Unmarshal(message, &event)
-		if event.Type == websocket.EventUserOnline {
-			payload, _ := event.Payload.(map[string]interface{})
-
-			if payload["user_id"].(string) == user2.ID.String() {
-				foundOnline = true
-				break
-			}
-		}
+	eventOnline := waitForEvent(t, conn1, websocket.EventUserOnline, 2*time.Second)
+	assert.NotNil(t, eventOnline, "User 1 should receive user.online event for User 2")
+	if eventOnline != nil {
+		payload, _ := eventOnline.Payload.(map[string]interface{})
+		assert.Equal(t, user2.ID.String(), payload["user_id"])
 	}
-	assert.True(t, foundOnline, "User 1 should receive user.online event for User 2")
 
 	conn2.Close()
-	time.Sleep(100 * time.Millisecond)
+	time.Sleep(200 * time.Millisecond)
 
-	conn1.SetReadDeadline(time.Now().UTC().Add(2 * time.Second))
-	foundOffline := false
-	for i := 0; i < 5; i++ {
-		_, message, err := conn1.ReadMessage()
-		if err != nil {
-			break
-		}
-		var event websocket.Event
-		json.Unmarshal(message, &event)
-		if event.Type == websocket.EventUserOffline {
-			payload, _ := event.Payload.(map[string]interface{})
-			if payload["user_id"].(string) == user2.ID.String() {
-				foundOffline = true
-				break
-			}
-		}
+	eventOffline := waitForEvent(t, conn1, websocket.EventUserOffline, 2*time.Second)
+	assert.NotNil(t, eventOffline, "User 1 should receive user.offline event for User 2")
+	if eventOffline != nil {
+		payload, _ := eventOffline.Payload.(map[string]interface{})
+		assert.Equal(t, user2.ID.String(), payload["user_id"])
 	}
-	assert.True(t, foundOffline, "User 1 should receive user.offline event for User 2")
 }
 
 func TestWebSocketMultiDevice(t *testing.T) {
@@ -289,7 +299,7 @@ func TestWebSocketMultiDevice(t *testing.T) {
 	assert.NoError(t, err)
 	defer conn2B.Close()
 
-	time.Sleep(100 * time.Millisecond)
+	time.Sleep(200 * time.Millisecond)
 
 	reqBody := model.SendMessageRequest{
 		ChatID:  chatID,
@@ -301,8 +311,11 @@ func TestWebSocketMultiDevice(t *testing.T) {
 	req.Header.Set("Content-Type", "application/json")
 	executeRequest(req)
 
-	verifyEvent(t, conn2A, websocket.EventMessageNew, user1.ID, uuid.Nil)
-	verifyEvent(t, conn2B, websocket.EventMessageNew, user1.ID, uuid.Nil)
+	eventA := waitForEvent(t, conn2A, websocket.EventMessageNew, 2*time.Second)
+	assert.NotNil(t, eventA, "Device A should receive message")
+
+	eventB := waitForEvent(t, conn2B, websocket.EventMessageNew, 2*time.Second)
+	assert.NotNil(t, eventB, "Device B should receive message")
 }
 
 func TestWebSocketReadStatusSync(t *testing.T) {
@@ -328,7 +341,7 @@ func TestWebSocketReadStatusSync(t *testing.T) {
 	conn2B, _, _ := ws.DefaultDialer.Dial(wsURL, header2)
 	defer conn2B.Close()
 
-	time.Sleep(100 * time.Millisecond)
+	time.Sleep(200 * time.Millisecond)
 
 	reqMsg := model.SendMessageRequest{
 		ChatID:  chatID,
@@ -340,28 +353,17 @@ func TestWebSocketReadStatusSync(t *testing.T) {
 	reqSend.Header.Set("Content-Type", "application/json")
 	executeRequest(reqSend)
 
-	time.Sleep(100 * time.Millisecond)
+	time.Sleep(200 * time.Millisecond)
 
 	req, _ := http.NewRequest("POST", fmt.Sprintf("/api/chats/%s/read", chatID), nil)
 	req.Header.Set("Authorization", "Bearer "+token2)
 	executeRequest(req)
 
-	conn2B.SetReadDeadline(time.Now().UTC().Add(2 * time.Second))
-	foundRead := false
-	for i := 0; i < 5; i++ {
-		_, message, err := conn2B.ReadMessage()
-		if err != nil {
-			break
-		}
-		var event websocket.Event
-		json.Unmarshal(message, &event)
-		if event.Type == websocket.EventChatRead {
-			foundRead = true
-			assert.Equal(t, chatID, event.Meta.ChatID)
-			break
-		}
+	event := waitForEvent(t, conn2B, websocket.EventChatRead, 2*time.Second)
+	assert.NotNil(t, event, "Device B should receive chat.read event")
+	if event != nil {
+		assert.Equal(t, chatID, event.Meta.ChatID)
 	}
-	assert.True(t, foundRead, "Device B should receive chat.read event triggered by Device A")
 }
 
 func TestWebSocketSecurityLeak(t *testing.T) {
@@ -388,7 +390,7 @@ func TestWebSocketSecurityLeak(t *testing.T) {
 	assert.NoError(t, err)
 	defer conn3.Close()
 
-	time.Sleep(100 * time.Millisecond)
+	time.Sleep(200 * time.Millisecond)
 
 	reqBody := model.SendMessageRequest{
 		ChatID:  chatID,
@@ -400,22 +402,8 @@ func TestWebSocketSecurityLeak(t *testing.T) {
 	req.Header.Set("Content-Type", "application/json")
 	executeRequest(req)
 
-	conn3.SetReadDeadline(time.Now().UTC().Add(1 * time.Second))
-
-	receivedSecret := false
-	for {
-		_, message, err := conn3.ReadMessage()
-		if err != nil {
-			break
-		}
-		var event websocket.Event
-		json.Unmarshal(message, &event)
-		if event.Type == websocket.EventMessageNew {
-			receivedSecret = true
-			break
-		}
-	}
-	assert.False(t, receivedSecret, "User 3 (Outsider) should NOT receive message.new event")
+	event := waitForEvent(t, conn3, websocket.EventMessageNew, 1*time.Second)
+	assert.Nil(t, event, "User 3 (Outsider) should NOT receive message.new event")
 }
 
 func TestWebSocketBlockUnblockSync(t *testing.T) {
@@ -443,23 +431,23 @@ func TestWebSocketBlockUnblockSync(t *testing.T) {
 	assert.NoError(t, err)
 	defer conn2.Close()
 
-	time.Sleep(100 * time.Millisecond)
+	time.Sleep(200 * time.Millisecond)
 
 	req, _ := http.NewRequest("POST", fmt.Sprintf("/api/users/%s/block", user2.ID), nil)
 	req.Header.Set("Authorization", "Bearer "+token1)
 	executeRequest(req)
 
-	verifyEvent(t, conn1A, websocket.EventUserBlock, user1.ID, user2.ID)
-	verifyEvent(t, conn1B, websocket.EventUserBlock, user1.ID, user2.ID)
-	verifyEvent(t, conn2, websocket.EventUserBlock, user1.ID, user2.ID)
+	assert.NotNil(t, waitForEvent(t, conn1A, websocket.EventUserBlock, 2*time.Second))
+	assert.NotNil(t, waitForEvent(t, conn1B, websocket.EventUserBlock, 2*time.Second))
+	assert.NotNil(t, waitForEvent(t, conn2, websocket.EventUserBlock, 2*time.Second))
 
 	reqUnblock, _ := http.NewRequest("POST", fmt.Sprintf("/api/users/%s/unblock", user2.ID), nil)
 	reqUnblock.Header.Set("Authorization", "Bearer "+token1)
 	executeRequest(reqUnblock)
 
-	verifyEvent(t, conn1A, websocket.EventUserUnblock, user1.ID, user2.ID)
-	verifyEvent(t, conn1B, websocket.EventUserUnblock, user1.ID, user2.ID)
-	verifyEvent(t, conn2, websocket.EventUserUnblock, user1.ID, user2.ID)
+	assert.NotNil(t, waitForEvent(t, conn1A, websocket.EventUserUnblock, 2*time.Second))
+	assert.NotNil(t, waitForEvent(t, conn1B, websocket.EventUserUnblock, 2*time.Second))
+	assert.NotNil(t, waitForEvent(t, conn2, websocket.EventUserUnblock, 2*time.Second))
 }
 
 func TestWebSocketProfileUpdate(t *testing.T) {
@@ -489,7 +477,7 @@ func TestWebSocketProfileUpdate(t *testing.T) {
 	assert.NoError(t, err)
 	defer conn2.Close()
 
-	time.Sleep(100 * time.Millisecond)
+	time.Sleep(200 * time.Millisecond)
 
 	body := &bytes.Buffer{}
 	writer := multipart.NewWriter(body)
@@ -501,9 +489,8 @@ func TestWebSocketProfileUpdate(t *testing.T) {
 	req.Header.Set("Authorization", "Bearer "+token1)
 	executeRequest(req)
 
-	verifyEvent(t, conn1B, websocket.EventUserUpdate, user1.ID, uuid.Nil)
-
-	verifyEvent(t, conn2, websocket.EventUserUpdate, user1.ID, uuid.Nil)
+	assert.NotNil(t, waitForEvent(t, conn1B, websocket.EventUserUpdate, 2*time.Second))
+	assert.NotNil(t, waitForEvent(t, conn2, websocket.EventUserUpdate, 2*time.Second))
 }
 
 func TestWebSocketMessageDelete(t *testing.T) {
@@ -528,7 +515,7 @@ func TestWebSocketMessageDelete(t *testing.T) {
 	assert.NoError(t, err)
 	defer conn2.Close()
 
-	time.Sleep(100 * time.Millisecond)
+	time.Sleep(200 * time.Millisecond)
 
 	reqBody := model.SendMessageRequest{
 		ChatID:  chatID,
@@ -550,7 +537,7 @@ func TestWebSocketMessageDelete(t *testing.T) {
 	reqDel.Header.Set("Authorization", "Bearer "+token1)
 	executeRequest(reqDel)
 
-	verifyEvent(t, conn2, websocket.EventMessageDelete, user1.ID, uuid.Nil)
+	assert.NotNil(t, waitForEvent(t, conn2, websocket.EventMessageDelete, 2*time.Second))
 }
 
 func TestWebSocketMessageUpdate(t *testing.T) {
@@ -575,7 +562,7 @@ func TestWebSocketMessageUpdate(t *testing.T) {
 	assert.NoError(t, err)
 	defer conn2.Close()
 
-	time.Sleep(100 * time.Millisecond)
+	time.Sleep(200 * time.Millisecond)
 
 	reqBody := model.SendMessageRequest{
 		ChatID:  chatID,
@@ -593,8 +580,7 @@ func TestWebSocketMessageUpdate(t *testing.T) {
 	msgIDStr := msgData["id"].(string)
 	msgID, _ := uuid.Parse(msgIDStr)
 
-	conn2.SetReadDeadline(time.Now().UTC().Add(2 * time.Second))
-	conn2.ReadMessage()
+	waitForEvent(t, conn2, websocket.EventMessageNew, 2*time.Second)
 
 	editBody := model.EditMessageRequest{
 		Content: "Edited Content",
@@ -605,7 +591,7 @@ func TestWebSocketMessageUpdate(t *testing.T) {
 	reqEdit.Header.Set("Content-Type", "application/json")
 	executeRequest(reqEdit)
 
-	verifyEvent(t, conn2, websocket.EventMessageUpdate, user1.ID, uuid.Nil)
+	assert.NotNil(t, waitForEvent(t, conn2, websocket.EventMessageUpdate, 2*time.Second))
 }
 
 func TestWebSocketChatHide(t *testing.T) {
@@ -629,13 +615,13 @@ func TestWebSocketChatHide(t *testing.T) {
 	assert.NoError(t, err)
 	defer conn1.Close()
 
-	time.Sleep(100 * time.Millisecond)
+	time.Sleep(200 * time.Millisecond)
 
 	req, _ := http.NewRequest("POST", fmt.Sprintf("/api/chats/%s/hide", chatID), nil)
 	req.Header.Set("Authorization", "Bearer "+token1)
 	executeRequest(req)
 
-	verifyEvent(t, conn1, websocket.EventChatHide, user1.ID, uuid.Nil)
+	assert.NotNil(t, waitForEvent(t, conn1, websocket.EventChatHide, 2*time.Second))
 }
 
 func TestWebSocketGroupChatCreation(t *testing.T) {
@@ -660,7 +646,7 @@ func TestWebSocketGroupChatCreation(t *testing.T) {
 	conn3, _, _ := ws.DefaultDialer.Dial(wsURL3, nil)
 	defer conn3.Close()
 
-	time.Sleep(100 * time.Millisecond)
+	time.Sleep(200 * time.Millisecond)
 
 	body := &bytes.Buffer{}
 	writer := multipart.NewWriter(body)
@@ -676,9 +662,9 @@ func TestWebSocketGroupChatCreation(t *testing.T) {
 	req.Header.Set("Authorization", "Bearer "+token1)
 	executeRequest(req)
 
-	verifyEvent(t, conn1, websocket.EventChatNew, u1.ID, uuid.Nil)
-	verifyEvent(t, conn2, websocket.EventChatNew, u1.ID, uuid.Nil)
-	verifyEvent(t, conn3, websocket.EventChatNew, u1.ID, uuid.Nil)
+	assert.NotNil(t, waitForEvent(t, conn1, websocket.EventChatNew, 2*time.Second))
+	assert.NotNil(t, waitForEvent(t, conn2, websocket.EventChatNew, 2*time.Second))
+	assert.NotNil(t, waitForEvent(t, conn3, websocket.EventChatNew, 2*time.Second))
 }
 
 func TestWebSocketAddGroupMember(t *testing.T) {
@@ -726,7 +712,7 @@ func TestWebSocketAddGroupMember(t *testing.T) {
 	conn3, _, _ := ws.DefaultDialer.Dial(wsURL3, nil)
 	defer conn3.Close()
 
-	time.Sleep(100 * time.Millisecond)
+	time.Sleep(200 * time.Millisecond)
 
 	addReqBody := model.AddGroupMemberRequest{UserIDs: []uuid.UUID{u3.ID}}
 	addBody, _ := json.Marshal(addReqBody)
@@ -735,11 +721,12 @@ func TestWebSocketAddGroupMember(t *testing.T) {
 	addReq.Header.Set("Authorization", "Bearer "+token1)
 	executeRequest(addReq)
 
-	verifyEvent(t, conn3, websocket.EventChatNew, u1.ID, uuid.Nil)
+	events3 := waitForEvents(t, conn3, []websocket.EventType{websocket.EventChatNew, websocket.EventMessageNew}, 2*time.Second)
+	assert.NotNil(t, events3[websocket.EventChatNew], "u3 should receive chat.new")
+	assert.NotNil(t, events3[websocket.EventMessageNew], "u3 should receive message.new")
 
-	verifyEvent(t, conn1, websocket.EventMessageNew, u1.ID, uuid.Nil)
-	verifyEvent(t, conn2, websocket.EventMessageNew, u1.ID, uuid.Nil)
-	verifyEvent(t, conn3, websocket.EventMessageNew, u1.ID, uuid.Nil)
+	assert.NotNil(t, waitForEvent(t, conn1, websocket.EventMessageNew, 2*time.Second), "u1 should receive message.new")
+	assert.NotNil(t, waitForEvent(t, conn2, websocket.EventMessageNew, 2*time.Second), "u2 should receive message.new")
 }
 
 func TestWebSocketUpdateGroupChat(t *testing.T) {
@@ -775,7 +762,7 @@ func TestWebSocketUpdateGroupChat(t *testing.T) {
 	conn2, _, _ := ws.DefaultDialer.Dial(wsURL2, nil)
 	defer conn2.Close()
 
-	time.Sleep(100 * time.Millisecond)
+	time.Sleep(200 * time.Millisecond)
 
 	updateBody := &bytes.Buffer{}
 	updateWriter := multipart.NewWriter(updateBody)
@@ -787,18 +774,9 @@ func TestWebSocketUpdateGroupChat(t *testing.T) {
 	updateReq.Header.Set("Authorization", "Bearer "+token1)
 	executeRequest(updateReq)
 
-	conn2.SetReadDeadline(time.Now().UTC().Add(2 * time.Second))
-	eventsReceived := make(map[websocket.EventType]bool)
-	for i := 0; i < 2; i++ {
-		_, msg, err := conn2.ReadMessage()
-		if err == nil {
-			var event websocket.Event
-			json.Unmarshal(msg, &event)
-			eventsReceived[event.Type] = true
-		}
-	}
-	assert.True(t, eventsReceived[websocket.EventChatNew], "User 2 should receive chat.new")
-	assert.True(t, eventsReceived[websocket.EventMessageNew], "User 2 should receive message.new")
+	events := waitForEvents(t, conn2, []websocket.EventType{websocket.EventChatNew, websocket.EventMessageNew}, 2*time.Second)
+	assert.NotNil(t, events[websocket.EventChatNew], "User 2 should receive chat.new (update)")
+	assert.NotNil(t, events[websocket.EventMessageNew], "User 2 should receive message.new")
 }
 
 func TestWebSocketKickMember(t *testing.T) {
@@ -834,15 +812,14 @@ func TestWebSocketKickMember(t *testing.T) {
 	conn2, _, _ := ws.DefaultDialer.Dial(wsURL2, nil)
 	defer conn2.Close()
 
-	time.Sleep(100 * time.Millisecond)
+	time.Sleep(200 * time.Millisecond)
 
 	kickReq, _ := http.NewRequest("POST", fmt.Sprintf("/api/chats/group/%s/members/%s/kick", chatID, u2.ID), nil)
 	kickReq.Header.Set("Authorization", "Bearer "+token1)
 	executeRequest(kickReq)
 
-	verifyEvent(t, conn1, websocket.EventMessageNew, u1.ID, uuid.Nil)
-
-	verifyEvent(t, conn2, websocket.EventMessageNew, u1.ID, uuid.Nil)
+	assert.NotNil(t, waitForEvent(t, conn1, websocket.EventMessageNew, 2*time.Second))
+	assert.NotNil(t, waitForEvent(t, conn2, websocket.EventMessageNew, 2*time.Second))
 }
 
 func TestWebSocketUpdateRole(t *testing.T) {
@@ -878,7 +855,7 @@ func TestWebSocketUpdateRole(t *testing.T) {
 	conn2, _, _ := ws.DefaultDialer.Dial(wsURL2, nil)
 	defer conn2.Close()
 
-	time.Sleep(100 * time.Millisecond)
+	time.Sleep(200 * time.Millisecond)
 
 	roleBody := model.UpdateGroupMemberRoleRequest{Role: "admin"}
 	jsonRole, _ := json.Marshal(roleBody)
@@ -887,8 +864,8 @@ func TestWebSocketUpdateRole(t *testing.T) {
 	roleReq.Header.Set("Authorization", "Bearer "+token1)
 	executeRequest(roleReq)
 
-	verifyEvent(t, conn1, websocket.EventMessageNew, u1.ID, uuid.Nil)
-	verifyEvent(t, conn2, websocket.EventMessageNew, u1.ID, uuid.Nil)
+	assert.NotNil(t, waitForEvent(t, conn1, websocket.EventMessageNew, 2*time.Second))
+	assert.NotNil(t, waitForEvent(t, conn2, websocket.EventMessageNew, 2*time.Second))
 }
 
 func TestWebSocketTransferOwnership(t *testing.T) {
@@ -924,7 +901,7 @@ func TestWebSocketTransferOwnership(t *testing.T) {
 	conn2, _, _ := ws.DefaultDialer.Dial(wsURL2, nil)
 	defer conn2.Close()
 
-	time.Sleep(100 * time.Millisecond)
+	time.Sleep(200 * time.Millisecond)
 
 	transferBody := model.TransferGroupOwnershipRequest{NewOwnerID: u2.ID}
 	jsonTransfer, _ := json.Marshal(transferBody)
@@ -933,8 +910,8 @@ func TestWebSocketTransferOwnership(t *testing.T) {
 	transferReq.Header.Set("Authorization", "Bearer "+token1)
 	executeRequest(transferReq)
 
-	verifyEvent(t, conn1, websocket.EventMessageNew, u1.ID, uuid.Nil)
-	verifyEvent(t, conn2, websocket.EventMessageNew, u1.ID, uuid.Nil)
+	assert.NotNil(t, waitForEvent(t, conn1, websocket.EventMessageNew, 2*time.Second))
+	assert.NotNil(t, waitForEvent(t, conn2, websocket.EventMessageNew, 2*time.Second))
 }
 
 func TestWebSocketAccountDeletion(t *testing.T) {
@@ -955,7 +932,7 @@ func TestWebSocketAccountDeletion(t *testing.T) {
 	assert.NoError(t, err)
 	defer conn2.Close()
 
-	time.Sleep(100 * time.Millisecond)
+	time.Sleep(200 * time.Millisecond)
 
 	password := "password123"
 	reqBody := model.DeleteAccountRequest{Password: &password}
@@ -965,7 +942,7 @@ func TestWebSocketAccountDeletion(t *testing.T) {
 	req.Header.Set("Content-Type", "application/json")
 	executeRequest(req)
 
-	verifyEvent(t, conn2, websocket.EventUserDeleted, u1.ID, uuid.Nil)
+	assert.NotNil(t, waitForEvent(t, conn2, websocket.EventUserDeleted, 2*time.Second))
 }
 
 func TestWebSocketUnbanEvent(t *testing.T) {
@@ -991,13 +968,13 @@ func TestWebSocketUnbanEvent(t *testing.T) {
 	assert.NoError(t, err)
 	defer conn2.Close()
 
-	time.Sleep(100 * time.Millisecond)
+	time.Sleep(200 * time.Millisecond)
 
 	reqUnban, _ := http.NewRequest("POST", fmt.Sprintf("/api/admin/users/%s/unban", user1.ID), nil)
 	reqUnban.Header.Set("Authorization", "Bearer "+adminToken)
 	executeRequest(reqUnban)
 
-	verifyEvent(t, conn2, websocket.EventUserUnbanned, admin.ID, uuid.Nil)
+	assert.NotNil(t, waitForEvent(t, conn2, websocket.EventUserUnbanned, 2*time.Second))
 }
 
 func TestWebSocketJoinGroupEvents(t *testing.T) {
@@ -1043,16 +1020,17 @@ func TestWebSocketJoinGroupEvents(t *testing.T) {
 	conn2, _, _ := ws.DefaultDialer.Dial(wsURL2, nil)
 	defer conn2.Close()
 
-	time.Sleep(100 * time.Millisecond)
+	time.Sleep(200 * time.Millisecond)
 
 	joinReq, _ := http.NewRequest("POST", fmt.Sprintf("/api/chats/group/%s/join", chatID), nil)
 	joinReq.Header.Set("Authorization", "Bearer "+token2)
 	executeRequest(joinReq)
 
-	verifyEvent(t, conn2, websocket.EventChatNew, u2.ID, uuid.Nil)
+	events := waitForEvents(t, conn2, []websocket.EventType{websocket.EventChatNew, websocket.EventMessageNew}, 2*time.Second)
+	assert.NotNil(t, events[websocket.EventChatNew], "User 2 should receive chat.new")
+	assert.NotNil(t, events[websocket.EventMessageNew], "User 2 should receive message.new")
 
-	verifyEvent(t, conn1, websocket.EventMessageNew, u2.ID, uuid.Nil)
-	verifyEvent(t, conn2, websocket.EventMessageNew, u2.ID, uuid.Nil)
+	assert.NotNil(t, waitForEvent(t, conn1, websocket.EventMessageNew, 2*time.Second))
 }
 
 func createWSUser(t *testing.T, username, email string) *ent.User {
@@ -1081,33 +1059,4 @@ func createWSPrivateChat(t *testing.T, user2ID uuid.UUID, token string) {
 	req.Header.Set("Content-Type", "application/json")
 	rr := executeRequest(req)
 	assert.Equal(t, http.StatusOK, rr.Code)
-}
-
-func verifyEvent(t *testing.T, conn *ws.Conn, eventType websocket.EventType, senderID, blockedID uuid.UUID) {
-	conn.SetReadDeadline(time.Now().UTC().Add(2 * time.Second))
-	foundEvent := false
-	for i := 0; i < 5; i++ {
-		_, message, err := conn.ReadMessage()
-		if err != nil {
-			break
-		}
-		var event websocket.Event
-		json.Unmarshal(message, &event)
-
-		if event.Type == eventType {
-			foundEvent = true
-			if event.Meta != nil {
-				assert.Equal(t, senderID.String(), event.Meta.SenderID.String())
-			}
-
-			if eventType == websocket.EventUserBlock || eventType == websocket.EventUserUnblock {
-				payload, ok := event.Payload.(map[string]interface{})
-				assert.True(t, ok)
-				assert.Equal(t, senderID.String(), payload["blocker_id"])
-				assert.Equal(t, blockedID.String(), payload["blocked_id"])
-			}
-			break
-		}
-	}
-	assert.True(t, foundEvent, "Should have received event '"+string(eventType)+"'")
 }

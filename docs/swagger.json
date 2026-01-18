@@ -3033,7 +3033,15 @@
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseSuccess"
+                                    "allOf": [
+                                        {
+                                            "$ref": "#/components/schemas/data"
+                                        }
+                                    ],
+                                    "properties": {
+                                        "data": {}
+                                    },
+                                    "type": "object"
                                 }
                             }
                         },
@@ -3149,7 +3157,15 @@
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseSuccess"
+                                    "allOf": [
+                                        {
+                                            "$ref": "#/components/schemas/data"
+                                        }
+                                    ],
+                                    "properties": {
+                                        "data": {}
+                                    },
+                                    "type": "object"
                                 }
                             }
                         },
@@ -3395,7 +3411,15 @@
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseSuccess"
+                                    "allOf": [
+                                        {
+                                            "$ref": "#/components/schemas/data"
+                                        }
+                                    ],
+                                    "properties": {
+                                        "data": {}
+                                    },
+                                    "type": "object"
                                 }
                             }
                         },
@@ -3520,7 +3544,15 @@
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseSuccess"
+                                    "allOf": [
+                                        {
+                                            "$ref": "#/components/schemas/data"
+                                        }
+                                    ],
+                                    "properties": {
+                                        "data": {}
+                                    },
+                                    "type": "object"
                                 }
                             }
                         },
@@ -3646,7 +3678,15 @@
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseSuccess"
+                                    "allOf": [
+                                        {
+                                            "$ref": "#/components/schemas/data"
+                                        }
+                                    ],
+                                    "properties": {
+                                        "data": {}
+                                    },
+                                    "type": "object"
                                 }
                             }
                         },
@@ -3763,7 +3803,15 @@
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseSuccess"
+                                    "allOf": [
+                                        {
+                                            "$ref": "#/components/schemas/data"
+                                        }
+                                    ],
+                                    "properties": {
+                                        "data": {}
+                                    },
+                                    "type": "object"
                                 }
                             }
                         },

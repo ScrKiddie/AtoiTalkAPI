@@ -19,15 +19,15 @@ import (
 	"github.com/google/uuid"
 )
 
-func (s *GroupChatService) AddMember(ctx context.Context, requestorID uuid.UUID, groupID uuid.UUID, req model.AddGroupMemberRequest) error {
+func (s *GroupChatService) AddMember(ctx context.Context, requestorID uuid.UUID, groupID uuid.UUID, req model.AddGroupMemberRequest) ([]*model.MessageResponse, error) {
 	if err := s.validator.Struct(req); err != nil {
-		return helper.NewBadRequestError("")
+		return nil, helper.NewBadRequestError("")
 	}
 
 	tx, err := s.client.Tx(ctx)
 	if err != nil {
 		slog.Error("Failed to start transaction", "error", err)
-		return helper.NewInternalServerError("")
+		return nil, helper.NewInternalServerError("")
 	}
 	defer tx.Rollback()
 
@@ -41,10 +41,10 @@ func (s *GroupChatService) AddMember(ctx context.Context, requestorID uuid.UUID,
 		Only(ctx)
 	if err != nil {
 		if ent.IsNotFound(err) {
-			return helper.NewNotFoundError("Group chat not found")
+			return nil, helper.NewNotFoundError("Group chat not found")
 		}
 		slog.Error("Failed to query group chat", "error", err)
-		return helper.NewInternalServerError("")
+		return nil, helper.NewInternalServerError("")
 	}
 
 	requestorMember, err := tx.GroupMember.Query().
@@ -55,14 +55,14 @@ func (s *GroupChatService) AddMember(ctx context.Context, requestorID uuid.UUID,
 		Only(ctx)
 	if err != nil {
 		if ent.IsNotFound(err) {
-			return helper.NewForbiddenError("You are not a member of this group")
+			return nil, helper.NewForbiddenError("You are not a member of this group")
 		}
 		slog.Error("Failed to query requestor membership", "error", err)
-		return helper.NewInternalServerError("")
+		return nil, helper.NewInternalServerError("")
 	}
 
 	if requestorMember.Role != groupmember.RoleOwner && requestorMember.Role != groupmember.RoleAdmin {
-		return helper.NewForbiddenError("Only admins or owners can add members")
+		return nil, helper.NewForbiddenError("Only admins or owners can add members")
 	}
 
 	targetUsers, err := tx.User.Query().
@@ -70,14 +70,14 @@ func (s *GroupChatService) AddMember(ctx context.Context, requestorID uuid.UUID,
 			user.IDIn(req.UserIDs...),
 			user.DeletedAtIsNil(),
 		).
-		Select(user.FieldID, user.FieldIsBanned, user.FieldBannedUntil).
+		Select(user.FieldID, user.FieldIsBanned, user.FieldBannedUntil, user.FieldFullName).
 		All(ctx)
 	if err != nil {
 		slog.Error("Failed to query target users", "error", err)
-		return helper.NewInternalServerError("")
+		return nil, helper.NewInternalServerError("")
 	}
 	if len(targetUsers) != len(req.UserIDs) {
-		return helper.NewNotFoundError("One or more users not found or deleted")
+		return nil, helper.NewNotFoundError("One or more users not found or deleted")
 	}
 
 	var targetUserIDs []uuid.UUID
@@ -85,7 +85,7 @@ func (s *GroupChatService) AddMember(ctx context.Context, requestorID uuid.UUID,
 
 		if u.IsBanned {
 			if u.BannedUntil == nil || time.Now().Before(*u.BannedUntil) {
-				return helper.NewForbiddenError("Cannot add suspended/banned user to group")
+				return nil, helper.NewForbiddenError("Cannot add suspended/banned user to group")
 			}
 		}
 		targetUserIDs = append(targetUserIDs, u.ID)
@@ -99,7 +99,7 @@ func (s *GroupChatService) AddMember(ctx context.Context, requestorID uuid.UUID,
 		All(ctx)
 	if err != nil {
 		slog.Error("Failed to check existing memberships", "error", err)
-		return helper.NewInternalServerError("")
+		return nil, helper.NewInternalServerError("")
 	}
 
 	existingMemberIDs := make(map[uuid.UUID]bool)
@@ -117,10 +117,10 @@ func (s *GroupChatService) AddMember(ctx context.Context, requestorID uuid.UUID,
 		Exist(ctx)
 	if err != nil {
 		slog.Error("Failed to check block status", "error", err)
-		return helper.NewInternalServerError("")
+		return nil, helper.NewInternalServerError("")
 	}
 	if blocked {
-		return helper.NewForbiddenError("Cannot add a blocked user")
+		return nil, helper.NewForbiddenError("Cannot add a blocked user")
 	}
 
 	var memberCreates []*ent.GroupMemberCreate
@@ -138,13 +138,13 @@ func (s *GroupChatService) AddMember(ctx context.Context, requestorID uuid.UUID,
 	}
 
 	if len(memberCreates) == 0 {
-		return helper.NewConflictError("All users are already members")
+		return nil, helper.NewConflictError("All users are already members")
 	}
 
 	_, err = tx.GroupMember.CreateBulk(memberCreates...).Save(ctx)
 	if err != nil {
 		slog.Error("Failed to add group members", "error", err)
-		return helper.NewInternalServerError("")
+		return nil, helper.NewInternalServerError("")
 	}
 
 	var msgCreates []*ent.MessageCreate
@@ -162,8 +162,9 @@ func (s *GroupChatService) AddMember(ctx context.Context, requestorID uuid.UUID,
 	msgs, err := tx.Message.CreateBulk(msgCreates...).Save(ctx)
 	if err != nil {
 		slog.Error("Failed to create system messages", "error", err)
-		return helper.NewInternalServerError("")
+		return nil, helper.NewInternalServerError("")
 	}
+
 	lastSystemMsg := msgs[len(msgs)-1]
 
 	err = tx.Chat.UpdateOne(gc.Edges.Chat).
@@ -172,15 +173,44 @@ func (s *GroupChatService) AddMember(ctx context.Context, requestorID uuid.UUID,
 		Exec(ctx)
 	if err != nil {
 		slog.Error("Failed to update chat with last message", "error", err)
-		return helper.NewInternalServerError("")
+		return nil, helper.NewInternalServerError("")
 	}
 
 	if err := tx.Commit(); err != nil {
 		slog.Error("Failed to commit transaction", "error", err)
-		return helper.NewInternalServerError("")
+		return nil, helper.NewInternalServerError("")
 	}
 
 	s.redisAdapter.Del(context.Background(), fmt.Sprintf("chat_members:%s", groupID))
+
+	var responses []*model.MessageResponse
+	var msgIDs []uuid.UUID
+	for _, m := range msgs {
+		msgIDs = append(msgIDs, m.ID)
+	}
+
+	fullMsgs, err := s.client.Message.Query().
+		Where(message.IDIn(msgIDs...)).
+		WithSender().
+		Order(ent.Asc(message.FieldID)).
+		All(ctx)
+
+	if err == nil {
+		for i, fullMsg := range fullMsgs {
+			msgResponse := helper.ToMessageResponse(fullMsg, s.storageAdapter, nil)
+
+			if i < len(newMembers) {
+				targetUser := newMembers[i]
+				if targetUser.FullName != nil {
+					if msgResponse.ActionData == nil {
+						msgResponse.ActionData = make(map[string]interface{})
+					}
+					msgResponse.ActionData["target_name"] = *targetUser.FullName
+				}
+			}
+			responses = append(responses, msgResponse)
+		}
+	}
 
 	if s.wsHub != nil {
 		go func() {
@@ -189,54 +219,53 @@ func (s *GroupChatService) AddMember(ctx context.Context, requestorID uuid.UUID,
 				avatarURL = s.storageAdapter.GetPublicURL(gc.Edges.Avatar.FileName)
 			}
 
-			fullMsg, _ := s.client.Message.Query().
-				Where(message.ID(lastSystemMsg.ID)).
-				WithSender().
-				Only(context.Background())
-
-			msgResponse := helper.ToMessageResponse(fullMsg, s.storageAdapter, nil)
-
-			for _, u := range newMembers {
-				chatPayload := model.ChatListResponse{
-					ID:          gc.Edges.Chat.ID,
-					Type:        string(chat.TypeGroup),
-					Name:        gc.Name,
-					Avatar:      avatarURL,
-					LastMessage: msgResponse,
-					UnreadCount: 1,
-				}
-
-				s.wsHub.BroadcastToUser(u.ID, websocket.Event{
-					Type:    websocket.EventChatNew,
-					Payload: chatPayload,
+			for _, resp := range responses {
+				s.wsHub.BroadcastToChat(gc.ChatID, websocket.Event{
+					Type:    websocket.EventMessageNew,
+					Payload: resp,
 					Meta: &websocket.EventMeta{
 						Timestamp: time.Now().UTC().UnixMilli(),
-						ChatID:    groupID,
+						ChatID:    gc.ChatID,
 						SenderID:  requestorID,
 					},
 				})
 			}
 
-			s.wsHub.BroadcastToChat(gc.ChatID, websocket.Event{
-				Type:    websocket.EventMessageNew,
-				Payload: msgResponse,
-				Meta: &websocket.EventMeta{
-					Timestamp: time.Now().UTC().UnixMilli(),
-					ChatID:    gc.ChatID,
-					SenderID:  requestorID,
-				},
-			})
+			if len(responses) > 0 {
+				lastMsgResponse := responses[len(responses)-1]
+
+				for _, u := range newMembers {
+					chatPayload := model.ChatListResponse{
+						ID:          gc.Edges.Chat.ID,
+						Type:        string(chat.TypeGroup),
+						Name:        gc.Name,
+						Avatar:      avatarURL,
+						LastMessage: lastMsgResponse,
+						UnreadCount: 1,
+					}
+
+					s.wsHub.BroadcastToUser(u.ID, websocket.Event{
+						Type:    websocket.EventChatNew,
+						Payload: chatPayload,
+						Meta: &websocket.EventMeta{
+							Timestamp: time.Now().UTC().UnixMilli(),
+							ChatID:    groupID,
+							SenderID:  requestorID,
+						},
+					})
+				}
+			}
 		}()
 	}
 
-	return nil
+	return responses, nil
 }
 
-func (s *GroupChatService) LeaveGroup(ctx context.Context, userID uuid.UUID, groupID uuid.UUID) error {
+func (s *GroupChatService) LeaveGroup(ctx context.Context, userID uuid.UUID, groupID uuid.UUID) (*model.MessageResponse, error) {
 	tx, err := s.client.Tx(ctx)
 	if err != nil {
 		slog.Error("Failed to start transaction", "error", err)
-		return helper.NewInternalServerError("")
+		return nil, helper.NewInternalServerError("")
 	}
 	defer tx.Rollback()
 
@@ -249,10 +278,10 @@ func (s *GroupChatService) LeaveGroup(ctx context.Context, userID uuid.UUID, gro
 		Only(ctx)
 	if err != nil {
 		if ent.IsNotFound(err) {
-			return helper.NewNotFoundError("Group chat not found")
+			return nil, helper.NewNotFoundError("Group chat not found")
 		}
 		slog.Error("Failed to query group chat", "error", err)
-		return helper.NewInternalServerError("")
+		return nil, helper.NewInternalServerError("")
 	}
 
 	member, err := tx.GroupMember.Query().
@@ -263,20 +292,20 @@ func (s *GroupChatService) LeaveGroup(ctx context.Context, userID uuid.UUID, gro
 		Only(ctx)
 	if err != nil {
 		if ent.IsNotFound(err) {
-			return helper.NewBadRequestError("You are not a member of this group")
+			return nil, helper.NewBadRequestError("You are not a member of this group")
 		}
 		slog.Error("Failed to query membership", "error", err)
-		return helper.NewInternalServerError("")
+		return nil, helper.NewInternalServerError("")
 	}
 
 	if member.Role == groupmember.RoleOwner {
-		return helper.NewBadRequestError("Owner cannot leave the group. Please transfer ownership first.")
+		return nil, helper.NewBadRequestError("Owner cannot leave the group. Please transfer ownership first.")
 	}
 
 	err = tx.GroupMember.DeleteOne(member).Exec(ctx)
 	if err != nil {
 		slog.Error("Failed to delete group member", "error", err)
-		return helper.NewInternalServerError("")
+		return nil, helper.NewInternalServerError("")
 	}
 
 	systemMsg, err := tx.Message.Create().
@@ -286,7 +315,7 @@ func (s *GroupChatService) LeaveGroup(ctx context.Context, userID uuid.UUID, gro
 		Save(ctx)
 	if err != nil {
 		slog.Error("Failed to create system message for leave", "error", err)
-		return helper.NewInternalServerError("")
+		return nil, helper.NewInternalServerError("")
 	}
 
 	err = tx.Chat.UpdateOne(gc.Edges.Chat).
@@ -295,25 +324,28 @@ func (s *GroupChatService) LeaveGroup(ctx context.Context, userID uuid.UUID, gro
 		Exec(ctx)
 	if err != nil {
 		slog.Error("Failed to update chat with last message", "error", err)
-		return helper.NewInternalServerError("")
+		return nil, helper.NewInternalServerError("")
 	}
 
 	if err := tx.Commit(); err != nil {
 		slog.Error("Failed to commit transaction", "error", err)
-		return helper.NewInternalServerError("")
+		return nil, helper.NewInternalServerError("")
 	}
 
 	s.redisAdapter.Del(context.Background(), fmt.Sprintf("chat_members:%s", groupID))
 
-	if s.wsHub != nil {
+	fullMsg, err := s.client.Message.Query().
+		Where(message.ID(systemMsg.ID)).
+		WithSender().
+		Only(ctx)
+
+	var msgResponse *model.MessageResponse
+	if err == nil {
+		msgResponse = helper.ToMessageResponse(fullMsg, s.storageAdapter, nil)
+	}
+
+	if s.wsHub != nil && msgResponse != nil {
 		go func() {
-			fullMsg, _ := s.client.Message.Query().
-				Where(message.ID(systemMsg.ID)).
-				WithSender().
-				Only(context.Background())
-
-			msgResponse := helper.ToMessageResponse(fullMsg, s.storageAdapter, nil)
-
 			s.wsHub.BroadcastToChat(gc.ChatID, websocket.Event{
 				Type:    websocket.EventMessageNew,
 				Payload: msgResponse,
@@ -326,14 +358,14 @@ func (s *GroupChatService) LeaveGroup(ctx context.Context, userID uuid.UUID, gro
 		}()
 	}
 
-	return nil
+	return msgResponse, nil
 }
 
-func (s *GroupChatService) KickMember(ctx context.Context, requestorID uuid.UUID, groupID uuid.UUID, targetUserID uuid.UUID) error {
+func (s *GroupChatService) KickMember(ctx context.Context, requestorID uuid.UUID, groupID uuid.UUID, targetUserID uuid.UUID) (*model.MessageResponse, error) {
 	tx, err := s.client.Tx(ctx)
 	if err != nil {
 		slog.Error("Failed to start transaction", "error", err)
-		return helper.NewInternalServerError("")
+		return nil, helper.NewInternalServerError("")
 	}
 	defer tx.Rollback()
 
@@ -346,10 +378,10 @@ func (s *GroupChatService) KickMember(ctx context.Context, requestorID uuid.UUID
 		Only(ctx)
 	if err != nil {
 		if ent.IsNotFound(err) {
-			return helper.NewNotFoundError("Group chat not found")
+			return nil, helper.NewNotFoundError("Group chat not found")
 		}
 		slog.Error("Failed to query group chat", "error", err)
-		return helper.NewInternalServerError("")
+		return nil, helper.NewInternalServerError("")
 	}
 
 	requestorMember, err := tx.GroupMember.Query().
@@ -359,11 +391,11 @@ func (s *GroupChatService) KickMember(ctx context.Context, requestorID uuid.UUID
 		).
 		Only(ctx)
 	if err != nil {
-		return helper.NewForbiddenError("You are not a member of this group")
+		return nil, helper.NewForbiddenError("You are not a member of this group")
 	}
 
 	if requestorMember.Role == groupmember.RoleMember {
-		return helper.NewForbiddenError("Only admins or owners can kick members")
+		return nil, helper.NewForbiddenError("Only admins or owners can kick members")
 	}
 
 	targetMember, err := tx.GroupMember.Query().
@@ -371,26 +403,28 @@ func (s *GroupChatService) KickMember(ctx context.Context, requestorID uuid.UUID
 			groupmember.GroupChatID(gc.ID),
 			groupmember.UserID(targetUserID),
 		).
-		WithUser().
+		WithUser(func(q *ent.UserQuery) {
+			q.Select(user.FieldID, user.FieldFullName)
+		}).
 		Only(ctx)
 	if err != nil {
-		return helper.NewNotFoundError("Target user is not a member of this group")
+		return nil, helper.NewNotFoundError("Target user is not a member of this group")
 	}
 
 	if targetMember.UserID == requestorID {
-		return helper.NewBadRequestError("Cannot kick yourself")
+		return nil, helper.NewBadRequestError("Cannot kick yourself")
 	}
 
 	if requestorMember.Role == groupmember.RoleAdmin {
 		if targetMember.Role == groupmember.RoleAdmin || targetMember.Role == groupmember.RoleOwner {
-			return helper.NewForbiddenError("Admins cannot kick other admins or the owner")
+			return nil, helper.NewForbiddenError("Admins cannot kick other admins or the owner")
 		}
 	}
 
 	err = tx.GroupMember.DeleteOne(targetMember).Exec(ctx)
 	if err != nil {
 		slog.Error("Failed to delete group member", "error", err)
-		return helper.NewInternalServerError("")
+		return nil, helper.NewInternalServerError("")
 	}
 
 	systemMsg, err := tx.Message.Create().
@@ -404,7 +438,7 @@ func (s *GroupChatService) KickMember(ctx context.Context, requestorID uuid.UUID
 		Save(ctx)
 	if err != nil {
 		slog.Error("Failed to create system message for kick", "error", err)
-		return helper.NewInternalServerError("")
+		return nil, helper.NewInternalServerError("")
 	}
 
 	err = tx.Chat.UpdateOne(gc.Edges.Chat).
@@ -413,25 +447,34 @@ func (s *GroupChatService) KickMember(ctx context.Context, requestorID uuid.UUID
 		Exec(ctx)
 	if err != nil {
 		slog.Error("Failed to update chat with last message", "error", err)
-		return helper.NewInternalServerError("")
+		return nil, helper.NewInternalServerError("")
 	}
 
 	if err := tx.Commit(); err != nil {
 		slog.Error("Failed to commit transaction", "error", err)
-		return helper.NewInternalServerError("")
+		return nil, helper.NewInternalServerError("")
 	}
 
 	s.redisAdapter.Del(context.Background(), fmt.Sprintf("chat_members:%s", groupID))
 
-	if s.wsHub != nil {
+	fullMsg, err := s.client.Message.Query().
+		Where(message.ID(systemMsg.ID)).
+		WithSender().
+		Only(ctx)
+
+	var msgResponse *model.MessageResponse
+	if err == nil {
+		msgResponse = helper.ToMessageResponse(fullMsg, s.storageAdapter, nil)
+		if targetMember.Edges.User != nil && targetMember.Edges.User.FullName != nil {
+			if msgResponse.ActionData == nil {
+				msgResponse.ActionData = make(map[string]interface{})
+			}
+			msgResponse.ActionData["target_name"] = *targetMember.Edges.User.FullName
+		}
+	}
+
+	if s.wsHub != nil && msgResponse != nil {
 		go func() {
-			fullMsg, _ := s.client.Message.Query().
-				Where(message.ID(systemMsg.ID)).
-				WithSender().
-				Only(context.Background())
-
-			msgResponse := helper.ToMessageResponse(fullMsg, s.storageAdapter, nil)
-
 			s.wsHub.BroadcastToChat(gc.ChatID, websocket.Event{
 				Type:    websocket.EventMessageNew,
 				Payload: msgResponse,
@@ -454,5 +497,5 @@ func (s *GroupChatService) KickMember(ctx context.Context, requestorID uuid.UUID
 		}()
 	}
 
-	return nil
+	return msgResponse, nil
 }
