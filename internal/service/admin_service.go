@@ -49,6 +49,7 @@ func (s *AdminService) BanUser(ctx context.Context, adminID uuid.UUID, req model
 
 	targetUser, err := s.client.User.Query().
 		Where(user.ID(req.TargetUserID)).
+		Select(user.FieldID, user.FieldRole, user.FieldIsBanned, user.FieldBannedUntil, user.FieldBanReason).
 		Only(ctx)
 	if err != nil {
 		if ent.IsNotFound(err) {
@@ -118,6 +119,7 @@ func (s *AdminService) BanUser(ctx context.Context, adminID uuid.UUID, req model
 func (s *AdminService) UnbanUser(ctx context.Context, adminID uuid.UUID, targetUserID uuid.UUID) error {
 	targetUser, err := s.client.User.Query().
 		Where(user.ID(targetUserID)).
+		Select(user.FieldID, user.FieldIsBanned).
 		Only(ctx)
 	if err != nil {
 		if ent.IsNotFound(err) {
@@ -278,6 +280,7 @@ func (s *AdminService) ResolveReport(ctx context.Context, reportID uuid.UUID, re
 
 	r, err := s.client.Report.Query().
 		Where(report.ID(reportID)).
+		Select(report.FieldID, report.FieldStatus).
 		Only(ctx)
 	if err != nil {
 		if ent.IsNotFound(err) {

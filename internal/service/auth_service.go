@@ -114,6 +114,7 @@ func (s *AuthService) VerifyUser(ctx context.Context, tokenString string) (*mode
 			user.ID(claims.UserID),
 			user.DeletedAtIsNil(),
 		).
+		Select(user.FieldID, user.FieldRole, user.FieldIsBanned, user.FieldBannedUntil).
 		Only(ctx)
 
 	if err != nil {
@@ -661,6 +662,7 @@ func (s *AuthService) ResetPassword(ctx context.Context, req model.ResetPassword
 			user.Email(req.Email),
 			user.DeletedAtIsNil(),
 		).
+		Select(user.FieldID).
 		Only(ctx)
 	if err != nil {
 		if ent.IsNotFound(err) {

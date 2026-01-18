@@ -30,6 +30,7 @@ func (s *GroupChatService) JoinGroupByInvite(ctx context.Context, userID uuid.UU
 			groupchat.InviteCode(inviteCode),
 			groupchat.HasChatWith(chat.DeletedAtIsNil()),
 		).
+		Select(groupchat.FieldID, groupchat.FieldChatID, groupchat.FieldInviteExpiresAt, groupchat.FieldName, groupchat.FieldAvatarID).
 		WithAvatar().
 		WithChat().
 		Only(ctx)
@@ -153,6 +154,7 @@ func (s *GroupChatService) GetGroupByInviteCode(ctx context.Context, inviteCode 
 			groupchat.InviteCode(inviteCode),
 			groupchat.HasChatWith(chat.DeletedAtIsNil()),
 		).
+		Select(groupchat.FieldID, groupchat.FieldName, groupchat.FieldDescription, groupchat.FieldAvatarID, groupchat.FieldInviteExpiresAt, groupchat.FieldIsPublic).
 		WithAvatar().
 		Only(ctx)
 	if err != nil {
@@ -199,6 +201,7 @@ func (s *GroupChatService) GetInviteCode(ctx context.Context, userID, groupID uu
 			groupchat.ChatID(groupID),
 			groupchat.HasChatWith(chat.DeletedAtIsNil()),
 		).
+		Select(groupchat.FieldID, groupchat.FieldInviteCode, groupchat.FieldInviteExpiresAt).
 		Only(ctx)
 	if err != nil {
 		if ent.IsNotFound(err) {
@@ -239,6 +242,7 @@ func (s *GroupChatService) ResetInviteCode(ctx context.Context, userID, groupID 
 			groupchat.ChatID(groupID),
 			groupchat.HasChatWith(chat.DeletedAtIsNil()),
 		).
+		Select(groupchat.FieldID).
 		Only(ctx)
 	if err != nil {
 		if ent.IsNotFound(err) {

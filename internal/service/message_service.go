@@ -74,8 +74,12 @@ func (s *MessageService) SendMessage(ctx context.Context, userID uuid.UUID, req 
 			chat.DeletedAtIsNil(),
 		).
 		WithPrivateChat(func(q *ent.PrivateChatQuery) {
-			q.WithUser1()
-			q.WithUser2()
+			q.WithUser1(func(uq *ent.UserQuery) {
+				uq.Select(user.FieldID, user.FieldDeletedAt, user.FieldIsBanned, user.FieldBannedUntil)
+			})
+			q.WithUser2(func(uq *ent.UserQuery) {
+				uq.Select(user.FieldID, user.FieldDeletedAt, user.FieldIsBanned, user.FieldBannedUntil)
+			})
 		}).
 		WithGroupChat(func(q *ent.GroupChatQuery) {
 			q.WithMembers(func(mq *ent.GroupMemberQuery) {
@@ -509,7 +513,14 @@ func (s *MessageService) GetMessages(ctx context.Context, userID uuid.UUID, req 
 			chat.ID(req.ChatID),
 			chat.DeletedAtIsNil(),
 		).
-		WithPrivateChat().
+		WithPrivateChat(func(q *ent.PrivateChatQuery) {
+			q.WithUser1(func(uq *ent.UserQuery) {
+				uq.Select(user.FieldID)
+			})
+			q.WithUser2(func(uq *ent.UserQuery) {
+				uq.Select(user.FieldID)
+			})
+		}).
 		WithGroupChat(func(q *ent.GroupChatQuery) {
 			q.WithMembers(func(mq *ent.GroupMemberQuery) {
 				mq.Where(groupmember.UserID(userID))

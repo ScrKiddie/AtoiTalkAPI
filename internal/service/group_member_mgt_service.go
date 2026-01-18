@@ -70,6 +70,7 @@ func (s *GroupChatService) AddMember(ctx context.Context, requestorID uuid.UUID,
 			user.IDIn(req.UserIDs...),
 			user.DeletedAtIsNil(),
 		).
+		Select(user.FieldID, user.FieldIsBanned, user.FieldBannedUntil).
 		All(ctx)
 	if err != nil {
 		slog.Error("Failed to query target users", "error", err)

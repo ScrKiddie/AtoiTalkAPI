@@ -8,11 +8,9 @@ import (
 	"AtoiTalkAPI/internal/helper"
 	"AtoiTalkAPI/internal/model"
 	"context"
-	"fmt"
 	"log/slog"
 
 	"github.com/google/uuid"
-	"github.com/redis/go-redis/v9"
 )
 
 func (s *GroupChatService) SearchGroupMembers(ctx context.Context, userID uuid.UUID, req model.SearchGroupMembersRequest) ([]model.GroupMemberDTO, string, bool, error) {
@@ -58,31 +56,13 @@ func (s *GroupChatService) SearchGroupMembers(ctx context.Context, userID uuid.U
 		return nil, "", false, helper.NewInternalServerError("")
 	}
 
-	onlineMap := make(map[uuid.UUID]bool)
-	if len(members) > 0 {
-		results, err := s.redisAdapter.Client().Pipelined(ctx, func(pipe redis.Pipeliner) error {
-			for _, m := range members {
-				key := fmt.Sprintf("online:%s", m.UserID)
-				pipe.Exists(ctx, key)
-			}
-			return nil
-		})
-		if err == nil {
-			for i, res := range results {
-				if intCmd, ok := res.(*redis.IntCmd); ok {
-					onlineMap[members[i].UserID] = intCmd.Val() > 0
-				}
-			}
-		}
-	}
-
 	var memberDTOs []model.GroupMemberDTO
 	for _, m := range members {
 
 		if m.Edges.User != nil && m.Edges.User.DeletedAt != nil {
 			continue
 		}
-		memberDTOs = append(memberDTOs, helper.ToGroupMemberDTO(m, onlineMap, s.storageAdapter))
+		memberDTOs = append(memberDTOs, helper.ToGroupMemberDTO(m, s.storageAdapter))
 	}
 
 	return memberDTOs, nextCursor, hasNext, nil
