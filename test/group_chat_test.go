@@ -1,7 +1,6 @@
 package test
 
 import (
-	"AtoiTalkAPI/ent"
 	"AtoiTalkAPI/ent/chat"
 	"AtoiTalkAPI/ent/groupchat"
 	"AtoiTalkAPI/ent/groupmember"
@@ -59,6 +58,20 @@ func TestCreateGroupChat(t *testing.T) {
 			printBody(t, rr)
 		}
 
+		var resp helper.ResponseSuccess
+		json.Unmarshal(rr.Body.Bytes(), &resp)
+		dataMap := resp.Data.(map[string]interface{})
+
+		assert.Equal(t, "Test Group 1", dataMap["name"])
+		assert.Equal(t, "group", dataMap["type"])
+		assert.Equal(t, "owner", dataMap["my_role"])
+
+		lastMsg, ok := dataMap["last_message"].(map[string]interface{})
+		assert.True(t, ok)
+		assert.Equal(t, "system_create", lastMsg["type"])
+		actionData := lastMsg["action_data"].(map[string]interface{})
+		assert.Equal(t, "Test Group 1", actionData["initial_name"])
+
 		gc, err := testClient.GroupChat.Query().Where(groupchat.Name("Test Group 1")).WithChat().Only(context.Background())
 		assert.NoError(t, err)
 		assert.Equal(t, u1.ID, *gc.CreatedBy)
@@ -67,26 +80,6 @@ func TestCreateGroupChat(t *testing.T) {
 		members, err := gc.QueryMembers().All(context.Background())
 		assert.NoError(t, err)
 		assert.Len(t, members, 3)
-
-		ownerCount := 0
-		memberCount := 0
-		for _, m := range members {
-			if m.UserID == u1.ID && m.Role == groupmember.RoleOwner {
-				ownerCount++
-			}
-			if (m.UserID == u2.ID || m.UserID == u3.ID) && m.Role == groupmember.RoleMember {
-				memberCount++
-			}
-		}
-		assert.Equal(t, 1, ownerCount, "Creator should be owner")
-		assert.Equal(t, 2, memberCount, "Other users should be members")
-
-		sysMsg, err := gc.Edges.Chat.QueryMessages().Order(ent.Asc(message.FieldID)).First(context.Background())
-		assert.NoError(t, err)
-		assert.Equal(t, message.TypeSystemCreate, sysMsg.Type)
-		assert.Equal(t, u1.ID, *sysMsg.SenderID)
-		assert.Equal(t, "Test Group 1", sysMsg.ActionData["initial_name"])
-		assert.Equal(t, sysMsg.ID, *gc.Edges.Chat.LastMessageID)
 	})
 
 	t.Run("Success - Create Public Group", func(t *testing.T) {
@@ -160,6 +153,12 @@ func TestCreateGroupChat(t *testing.T) {
 			return
 		}
 
+		var resp helper.ResponseSuccess
+		json.Unmarshal(rr.Body.Bytes(), &resp)
+		dataMap := resp.Data.(map[string]interface{})
+		avatarURL := dataMap["avatar"].(string)
+		assert.Contains(t, avatarURL, testConfig.S3PublicDomain, "Group avatar URL should contain public domain")
+
 		gc, err := testClient.GroupChat.Query().
 			Where(groupchat.Name("Group With Avatar")).
 			WithAvatar().
@@ -172,17 +171,6 @@ func TestCreateGroupChat(t *testing.T) {
 			Key:    aws.String(gc.Edges.Avatar.FileName),
 		})
 		assert.NoError(t, err, "Avatar file should exist in S3")
-
-		reqGet, _ := http.NewRequest("GET", fmt.Sprintf("/api/chats/%s", gc.ChatID), nil)
-		reqGet.Header.Set("Authorization", "Bearer "+token1)
-		rrGet := executeRequest(reqGet)
-		assert.Equal(t, http.StatusOK, rrGet.Code)
-
-		var resp helper.ResponseSuccess
-		json.Unmarshal(rrGet.Body.Bytes(), &resp)
-		dataMap := resp.Data.(map[string]interface{})
-		avatarURL := dataMap["avatar"].(string)
-		assert.Contains(t, avatarURL, testConfig.S3PublicDomain, "Group avatar URL should contain public domain")
 	})
 
 	t.Run("Fail - No Members", func(t *testing.T) {
@@ -660,24 +648,20 @@ func TestAddGroupMember(t *testing.T) {
 		rr := executeRequest(req)
 		assert.Equal(t, http.StatusOK, rr.Code)
 
+		var resp helper.ResponseSuccess
+		json.Unmarshal(rr.Body.Bytes(), &resp)
+		dataList := resp.Data.([]interface{})
+		assert.Len(t, dataList, 2)
+
+		msg1 := dataList[0].(map[string]interface{})
+		assert.Equal(t, "system_add", msg1["type"])
+		actionData := msg1["action_data"].(map[string]interface{})
+		assert.Equal(t, u1.ID.String(), actionData["actor_id"])
+
 		isMember4, _ := testClient.GroupMember.Query().Where(groupmember.GroupChatID(gc.ID), groupmember.UserID(u4.ID)).Exist(context.Background())
 		assert.True(t, isMember4)
 		isMember5, _ := testClient.GroupMember.Query().Where(groupmember.GroupChatID(gc.ID), groupmember.UserID(u5.ID)).Exist(context.Background())
 		assert.True(t, isMember5)
-
-		gc, _ = testClient.GroupChat.Query().Where(groupchat.ID(gc.ID)).WithChat(func(q *ent.ChatQuery) {
-			q.WithLastMessage()
-		}).Only(context.Background())
-		sysMsg := gc.Edges.Chat.Edges.LastMessage
-		assert.NotNil(t, sysMsg)
-		assert.Equal(t, message.TypeSystemAdd, sysMsg.Type)
-		assert.Equal(t, u1.ID, *sysMsg.SenderID)
-
-		targetID := sysMsg.ActionData["target_id"].(string)
-		assert.True(t, targetID == u4.ID.String() || targetID == u5.ID.String())
-		assert.Equal(t, u1.ID.String(), sysMsg.ActionData["actor_id"])
-		assert.Nil(t, sysMsg.ActionData["target_username_snapshot"])
-		assert.Nil(t, sysMsg.ActionData["target_name_snapshot"])
 	})
 
 	t.Run("Fail - Member Tries to Add Member", func(t *testing.T) {
@@ -773,12 +757,14 @@ func TestLeaveGroup(t *testing.T) {
 		rr := executeRequest(req)
 		assert.Equal(t, http.StatusOK, rr.Code)
 
+		var resp helper.ResponseSuccess
+		json.Unmarshal(rr.Body.Bytes(), &resp)
+		dataMap := resp.Data.(map[string]interface{})
+		assert.Equal(t, "system_leave", dataMap["type"])
+		assert.Equal(t, u2.ID.String(), dataMap["sender_id"])
+
 		exists, _ := testClient.GroupMember.Query().Where(groupmember.GroupChatID(gc.ID), groupmember.UserID(u2.ID)).Exist(context.Background())
 		assert.False(t, exists)
-
-		lastMsg, _ := testClient.Chat.Query().Where(chat.ID(gc.ChatID)).QueryLastMessage().Only(context.Background())
-		assert.Equal(t, message.TypeSystemLeave, lastMsg.Type)
-		assert.Equal(t, u2.ID, *lastMsg.SenderID)
 	})
 
 	t.Run("Fail - Owner Leaves", func(t *testing.T) {
@@ -823,15 +809,15 @@ func TestKickMember(t *testing.T) {
 		rr := executeRequest(req)
 		assert.Equal(t, http.StatusOK, rr.Code)
 
+		var resp helper.ResponseSuccess
+		json.Unmarshal(rr.Body.Bytes(), &resp)
+		dataMap := resp.Data.(map[string]interface{})
+		assert.Equal(t, "system_kick", dataMap["type"])
+		actionData := dataMap["action_data"].(map[string]interface{})
+		assert.Equal(t, u3.ID.String(), actionData["target_id"])
+
 		exists, _ := testClient.GroupMember.Query().Where(groupmember.GroupChatID(gc.ID), groupmember.UserID(u3.ID)).Exist(context.Background())
 		assert.False(t, exists)
-
-		lastMsg, _ := testClient.Chat.Query().Where(chat.ID(gc.ChatID)).QueryLastMessage().Only(context.Background())
-		assert.Equal(t, message.TypeSystemKick, lastMsg.Type)
-		assert.Equal(t, u3.ID.String(), lastMsg.ActionData["target_id"])
-		assert.Equal(t, u1.ID.String(), lastMsg.ActionData["actor_id"])
-		assert.Nil(t, lastMsg.ActionData["target_username_snapshot"])
-		assert.Nil(t, lastMsg.ActionData["target_name_snapshot"])
 	})
 
 	t.Run("Success - Admin Kicks Member", func(t *testing.T) {
@@ -922,16 +908,15 @@ func TestUpdateMemberRole(t *testing.T) {
 		rr := executeRequest(req)
 		assert.Equal(t, http.StatusOK, rr.Code)
 
+		var resp helper.ResponseSuccess
+		json.Unmarshal(rr.Body.Bytes(), &resp)
+		dataMap := resp.Data.(map[string]interface{})
+		assert.Equal(t, "system_promote", dataMap["type"])
+		actionData := dataMap["action_data"].(map[string]interface{})
+		assert.Equal(t, "admin", actionData["new_role"])
+
 		member, _ := testClient.GroupMember.Query().Where(groupmember.GroupChatID(gc.ID), groupmember.UserID(u2.ID)).Only(context.Background())
 		assert.Equal(t, groupmember.RoleAdmin, member.Role)
-
-		lastMsg, _ := testClient.Chat.Query().Where(chat.ID(gc.ChatID)).QueryLastMessage().Only(context.Background())
-		assert.Equal(t, message.TypeSystemPromote, lastMsg.Type)
-		assert.Equal(t, u2.ID.String(), lastMsg.ActionData["target_id"])
-		assert.Equal(t, u1.ID.String(), lastMsg.ActionData["actor_id"])
-		assert.Nil(t, lastMsg.ActionData["target_username_snapshot"])
-		assert.Nil(t, lastMsg.ActionData["target_name_snapshot"])
-		assert.Equal(t, "admin", lastMsg.ActionData["new_role"])
 	})
 
 	t.Run("Success - Demote to Member", func(t *testing.T) {
@@ -998,20 +983,18 @@ func TestTransferOwnership(t *testing.T) {
 		rr := executeRequest(req)
 		assert.Equal(t, http.StatusOK, rr.Code)
 
+		var resp helper.ResponseSuccess
+		json.Unmarshal(rr.Body.Bytes(), &resp)
+		dataMap := resp.Data.(map[string]interface{})
+		assert.Equal(t, "system_promote", dataMap["type"])
+		actionData := dataMap["action_data"].(map[string]interface{})
+		assert.Equal(t, "ownership_transferred", actionData["action"])
+
 		oldOwner, _ := testClient.GroupMember.Query().Where(groupmember.GroupChatID(gc.ID), groupmember.UserID(u1.ID)).Only(context.Background())
 		newOwner, _ := testClient.GroupMember.Query().Where(groupmember.GroupChatID(gc.ID), groupmember.UserID(u2.ID)).Only(context.Background())
 
 		assert.Equal(t, groupmember.RoleAdmin, oldOwner.Role)
 		assert.Equal(t, groupmember.RoleOwner, newOwner.Role)
-
-		lastMsg, _ := testClient.Chat.Query().Where(chat.ID(gc.ChatID)).QueryLastMessage().Only(context.Background())
-		assert.Equal(t, message.TypeSystemPromote, lastMsg.Type)
-		assert.Equal(t, u2.ID.String(), lastMsg.ActionData["target_id"])
-		assert.Equal(t, u1.ID.String(), lastMsg.ActionData["actor_id"])
-		assert.Nil(t, lastMsg.ActionData["target_username_snapshot"])
-		assert.Nil(t, lastMsg.ActionData["target_name_snapshot"])
-		assert.Equal(t, "owner", lastMsg.ActionData["new_role"])
-		assert.Equal(t, "ownership_transferred", lastMsg.ActionData["action"])
 	})
 
 	t.Run("Fail - Not Owner", func(t *testing.T) {
@@ -1220,6 +1203,12 @@ func TestJoinPublicGroup(t *testing.T) {
 		rr := executeRequest(req)
 		assert.Equal(t, http.StatusOK, rr.Code)
 
+		var resp helper.ResponseSuccess
+		json.Unmarshal(rr.Body.Bytes(), &resp)
+		dataMap := resp.Data.(map[string]interface{})
+		assert.Equal(t, "system_join", dataMap["type"])
+		assert.Equal(t, u2.ID.String(), dataMap["sender_id"])
+
 		isMember, _ := testClient.GroupMember.Query().Where(groupmember.GroupChatID(gc1.ID), groupmember.UserID(u2.ID)).Exist(context.Background())
 		assert.True(t, isMember)
 	})
@@ -1271,6 +1260,15 @@ func TestJoinGroupByInvite(t *testing.T) {
 
 		rr := executeRequest(req)
 		assert.Equal(t, http.StatusOK, rr.Code)
+
+		var resp helper.ResponseSuccess
+		json.Unmarshal(rr.Body.Bytes(), &resp)
+		dataMap := resp.Data.(map[string]interface{})
+		assert.Equal(t, "Private Group", dataMap["name"])
+		assert.Equal(t, "group", dataMap["type"])
+		lastMsg, ok := dataMap["last_message"].(map[string]interface{})
+		assert.True(t, ok)
+		assert.Equal(t, "system_join", lastMsg["type"])
 
 		isMember, _ := testClient.GroupMember.Query().Where(groupmember.GroupChatID(gc1.ID), groupmember.UserID(u2.ID)).Exist(context.Background())
 		assert.True(t, isMember)

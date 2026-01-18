@@ -18,15 +18,15 @@ import (
 	"github.com/google/uuid"
 )
 
-func (s *GroupChatService) UpdateMemberRole(ctx context.Context, requestorID uuid.UUID, groupID uuid.UUID, targetUserID uuid.UUID, req model.UpdateGroupMemberRoleRequest) error {
+func (s *GroupChatService) UpdateMemberRole(ctx context.Context, requestorID uuid.UUID, groupID uuid.UUID, targetUserID uuid.UUID, req model.UpdateGroupMemberRoleRequest) (*model.MessageResponse, error) {
 	if err := s.validator.Struct(req); err != nil {
-		return helper.NewBadRequestError("")
+		return nil, helper.NewBadRequestError("")
 	}
 
 	tx, err := s.client.Tx(ctx)
 	if err != nil {
 		slog.Error("Failed to start transaction", "error", err)
-		return helper.NewInternalServerError("")
+		return nil, helper.NewInternalServerError("")
 	}
 	defer tx.Rollback()
 
@@ -40,10 +40,10 @@ func (s *GroupChatService) UpdateMemberRole(ctx context.Context, requestorID uui
 		Only(ctx)
 	if err != nil {
 		if ent.IsNotFound(err) {
-			return helper.NewNotFoundError("Group chat not found")
+			return nil, helper.NewNotFoundError("Group chat not found")
 		}
 		slog.Error("Failed to query group chat", "error", err)
-		return helper.NewInternalServerError("")
+		return nil, helper.NewInternalServerError("")
 	}
 
 	requestorMember, err := tx.GroupMember.Query().
@@ -53,11 +53,11 @@ func (s *GroupChatService) UpdateMemberRole(ctx context.Context, requestorID uui
 		).
 		Only(ctx)
 	if err != nil {
-		return helper.NewForbiddenError("You are not a member of this group")
+		return nil, helper.NewForbiddenError("You are not a member of this group")
 	}
 
 	if requestorMember.Role != groupmember.RoleOwner {
-		return helper.NewForbiddenError("Only owner can change member roles")
+		return nil, helper.NewForbiddenError("Only owner can change member roles")
 	}
 
 	targetMember, err := tx.GroupMember.Query().
@@ -66,32 +66,32 @@ func (s *GroupChatService) UpdateMemberRole(ctx context.Context, requestorID uui
 			groupmember.UserID(targetUserID),
 		).
 		WithUser(func(q *ent.UserQuery) {
-			q.Select(user.FieldID, user.FieldIsBanned, user.FieldBannedUntil)
+			q.Select(user.FieldID, user.FieldFullName, user.FieldIsBanned, user.FieldBannedUntil)
 		}).
 		Only(ctx)
 	if err != nil {
-		return helper.NewNotFoundError("Target user is not a member of this group")
+		return nil, helper.NewNotFoundError("Target user is not a member of this group")
 	}
 
 	if targetMember.UserID == requestorID {
-		return helper.NewBadRequestError("Cannot change your own role")
+		return nil, helper.NewBadRequestError("Cannot change your own role")
 	}
 
 	if targetMember.Edges.User != nil && targetMember.Edges.User.IsBanned {
 		if targetMember.Edges.User.BannedUntil == nil || time.Now().Before(*targetMember.Edges.User.BannedUntil) {
-			return helper.NewForbiddenError("Cannot promote a suspended/banned user")
+			return nil, helper.NewForbiddenError("Cannot promote a suspended/banned user")
 		}
 	}
 
 	newRole := groupmember.Role(req.Role)
 	if targetMember.Role == newRole {
-		return nil
+		return nil, nil
 	}
 
 	err = tx.GroupMember.UpdateOne(targetMember).SetRole(newRole).Exec(ctx)
 	if err != nil {
 		slog.Error("Failed to update member role", "error", err)
-		return helper.NewInternalServerError("")
+		return nil, helper.NewInternalServerError("")
 	}
 
 	msgType := message.TypeSystemPromote
@@ -111,7 +111,7 @@ func (s *GroupChatService) UpdateMemberRole(ctx context.Context, requestorID uui
 		Save(ctx)
 	if err != nil {
 		slog.Error("Failed to create system message for role update", "error", err)
-		return helper.NewInternalServerError("")
+		return nil, helper.NewInternalServerError("")
 	}
 
 	err = tx.Chat.UpdateOne(gc.Edges.Chat).
@@ -120,25 +120,34 @@ func (s *GroupChatService) UpdateMemberRole(ctx context.Context, requestorID uui
 		Exec(ctx)
 	if err != nil {
 		slog.Error("Failed to update chat with last message", "error", err)
-		return helper.NewInternalServerError("")
+		return nil, helper.NewInternalServerError("")
 	}
 
 	if err := tx.Commit(); err != nil {
 		slog.Error("Failed to commit transaction", "error", err)
-		return helper.NewInternalServerError("")
+		return nil, helper.NewInternalServerError("")
 	}
 
 	s.redisAdapter.Del(context.Background(), fmt.Sprintf("chat_members:%s", groupID))
 
-	if s.wsHub != nil {
+	fullMsg, err := s.client.Message.Query().
+		Where(message.ID(systemMsg.ID)).
+		WithSender().
+		Only(ctx)
+
+	var msgResponse *model.MessageResponse
+	if err == nil {
+		msgResponse = helper.ToMessageResponse(fullMsg, s.storageAdapter, nil)
+		if targetMember.Edges.User != nil && targetMember.Edges.User.FullName != nil {
+			if msgResponse.ActionData == nil {
+				msgResponse.ActionData = make(map[string]interface{})
+			}
+			msgResponse.ActionData["target_name"] = *targetMember.Edges.User.FullName
+		}
+	}
+
+	if s.wsHub != nil && msgResponse != nil {
 		go func() {
-			fullMsg, _ := s.client.Message.Query().
-				Where(message.ID(systemMsg.ID)).
-				WithSender().
-				Only(context.Background())
-
-			msgResponse := helper.ToMessageResponse(fullMsg, s.storageAdapter, nil)
-
 			s.wsHub.BroadcastToChat(gc.ChatID, websocket.Event{
 				Type:    websocket.EventMessageNew,
 				Payload: msgResponse,
@@ -151,22 +160,22 @@ func (s *GroupChatService) UpdateMemberRole(ctx context.Context, requestorID uui
 		}()
 	}
 
-	return nil
+	return msgResponse, nil
 }
 
-func (s *GroupChatService) TransferOwnership(ctx context.Context, requestorID uuid.UUID, groupID uuid.UUID, req model.TransferGroupOwnershipRequest) error {
+func (s *GroupChatService) TransferOwnership(ctx context.Context, requestorID uuid.UUID, groupID uuid.UUID, req model.TransferGroupOwnershipRequest) (*model.MessageResponse, error) {
 	if err := s.validator.Struct(req); err != nil {
-		return helper.NewBadRequestError("")
+		return nil, helper.NewBadRequestError("")
 	}
 
 	if requestorID == req.NewOwnerID {
-		return helper.NewBadRequestError("Cannot transfer ownership to yourself")
+		return nil, helper.NewBadRequestError("Cannot transfer ownership to yourself")
 	}
 
 	tx, err := s.client.Tx(ctx)
 	if err != nil {
 		slog.Error("Failed to start transaction", "error", err)
-		return helper.NewInternalServerError("")
+		return nil, helper.NewInternalServerError("")
 	}
 	defer tx.Rollback()
 
@@ -180,10 +189,10 @@ func (s *GroupChatService) TransferOwnership(ctx context.Context, requestorID uu
 		Only(ctx)
 	if err != nil {
 		if ent.IsNotFound(err) {
-			return helper.NewNotFoundError("Group chat not found")
+			return nil, helper.NewNotFoundError("Group chat not found")
 		}
 		slog.Error("Failed to query group chat", "error", err)
-		return helper.NewInternalServerError("")
+		return nil, helper.NewInternalServerError("")
 	}
 
 	requestorMember, err := tx.GroupMember.Query().
@@ -193,11 +202,11 @@ func (s *GroupChatService) TransferOwnership(ctx context.Context, requestorID uu
 		).
 		Only(ctx)
 	if err != nil {
-		return helper.NewForbiddenError("You are not a member of this group")
+		return nil, helper.NewForbiddenError("You are not a member of this group")
 	}
 
 	if requestorMember.Role != groupmember.RoleOwner {
-		return helper.NewForbiddenError("Only owner can transfer ownership")
+		return nil, helper.NewForbiddenError("Only owner can transfer ownership")
 	}
 
 	targetMember, err := tx.GroupMember.Query().
@@ -206,33 +215,33 @@ func (s *GroupChatService) TransferOwnership(ctx context.Context, requestorID uu
 			groupmember.UserID(req.NewOwnerID),
 		).
 		WithUser(func(q *ent.UserQuery) {
-			q.Select(user.FieldID, user.FieldIsBanned, user.FieldBannedUntil)
+			q.Select(user.FieldID, user.FieldFullName, user.FieldIsBanned, user.FieldBannedUntil)
 		}).
 		Only(ctx)
 	if err != nil {
-		return helper.NewNotFoundError("Target user is not a member of this group")
+		return nil, helper.NewNotFoundError("Target user is not a member of this group")
 	}
 
 	if targetMember.Role == groupmember.RoleOwner {
-		return nil
+		return nil, nil
 	}
 
 	if targetMember.Edges.User != nil && targetMember.Edges.User.IsBanned {
 		if targetMember.Edges.User.BannedUntil == nil || time.Now().Before(*targetMember.Edges.User.BannedUntil) {
-			return helper.NewForbiddenError("Cannot transfer ownership to a suspended/banned user")
+			return nil, helper.NewForbiddenError("Cannot transfer ownership to a suspended/banned user")
 		}
 	}
 
 	err = tx.GroupMember.UpdateOne(requestorMember).SetRole(groupmember.RoleAdmin).Exec(ctx)
 	if err != nil {
 		slog.Error("Failed to demote old owner", "error", err)
-		return helper.NewInternalServerError("")
+		return nil, helper.NewInternalServerError("")
 	}
 
 	err = tx.GroupMember.UpdateOne(targetMember).SetRole(groupmember.RoleOwner).Exec(ctx)
 	if err != nil {
 		slog.Error("Failed to promote new owner", "error", err)
-		return helper.NewInternalServerError("")
+		return nil, helper.NewInternalServerError("")
 	}
 
 	systemMsg, err := tx.Message.Create().
@@ -248,7 +257,7 @@ func (s *GroupChatService) TransferOwnership(ctx context.Context, requestorID uu
 		Save(ctx)
 	if err != nil {
 		slog.Error("Failed to create system message for ownership transfer", "error", err)
-		return helper.NewInternalServerError("")
+		return nil, helper.NewInternalServerError("")
 	}
 
 	err = tx.Chat.UpdateOne(gc.Edges.Chat).
@@ -257,25 +266,34 @@ func (s *GroupChatService) TransferOwnership(ctx context.Context, requestorID uu
 		Exec(ctx)
 	if err != nil {
 		slog.Error("Failed to update chat with last message", "error", err)
-		return helper.NewInternalServerError("")
+		return nil, helper.NewInternalServerError("")
 	}
 
 	if err := tx.Commit(); err != nil {
 		slog.Error("Failed to commit transaction", "error", err)
-		return helper.NewInternalServerError("")
+		return nil, helper.NewInternalServerError("")
 	}
 
 	s.redisAdapter.Del(context.Background(), fmt.Sprintf("chat_members:%s", groupID))
 
-	if s.wsHub != nil {
+	fullMsg, err := s.client.Message.Query().
+		Where(message.ID(systemMsg.ID)).
+		WithSender().
+		Only(ctx)
+
+	var msgResponse *model.MessageResponse
+	if err == nil {
+		msgResponse = helper.ToMessageResponse(fullMsg, s.storageAdapter, nil)
+		if targetMember.Edges.User != nil && targetMember.Edges.User.FullName != nil {
+			if msgResponse.ActionData == nil {
+				msgResponse.ActionData = make(map[string]interface{})
+			}
+			msgResponse.ActionData["target_name"] = *targetMember.Edges.User.FullName
+		}
+	}
+
+	if s.wsHub != nil && msgResponse != nil {
 		go func() {
-			fullMsg, _ := s.client.Message.Query().
-				Where(message.ID(systemMsg.ID)).
-				WithSender().
-				Only(context.Background())
-
-			msgResponse := helper.ToMessageResponse(fullMsg, s.storageAdapter, nil)
-
 			s.wsHub.BroadcastToChat(gc.ChatID, websocket.Event{
 				Type:    websocket.EventMessageNew,
 				Payload: msgResponse,
@@ -288,5 +306,5 @@ func (s *GroupChatService) TransferOwnership(ctx context.Context, requestorID uu
 		}()
 	}
 
-	return nil
+	return msgResponse, nil
 }

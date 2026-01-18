@@ -17,7 +17,7 @@ import (
 	"github.com/google/uuid"
 )
 
-func (s *GroupChatService) JoinGroupByInvite(ctx context.Context, userID uuid.UUID, inviteCode string) (*model.ChatResponse, error) {
+func (s *GroupChatService) JoinGroupByInvite(ctx context.Context, userID uuid.UUID, inviteCode string) (*model.ChatListResponse, error) {
 	tx, err := s.client.Tx(ctx)
 	if err != nil {
 		slog.Error("Failed to start transaction", "error", err)
@@ -96,32 +96,36 @@ func (s *GroupChatService) JoinGroupByInvite(ctx context.Context, userID uuid.UU
 
 	s.redisAdapter.Del(context.Background(), fmt.Sprintf("chat_members:%s", gc.ChatID))
 
+	avatarURL := ""
+	if gc.Edges.Avatar != nil {
+		avatarURL = s.storageAdapter.GetPublicURL(gc.Edges.Avatar.FileName)
+	}
+
+	fullMsg, err := s.client.Message.Query().
+		Where(message.ID(systemMsg.ID)).
+		WithSender().
+		Only(ctx)
+
+	var msgResponse *model.MessageResponse
+	if err == nil {
+		msgResponse = helper.ToMessageResponse(fullMsg, s.storageAdapter, nil)
+	}
+
+	chatListResponse := &model.ChatListResponse{
+		ID:          gc.Edges.Chat.ID,
+		Type:        string(chat.TypeGroup),
+		Name:        gc.Name,
+		Avatar:      avatarURL,
+		LastMessage: msgResponse,
+		UnreadCount: 0,
+	}
+
 	if s.wsHub != nil {
 		go func() {
-			avatarURL := ""
-			if gc.Edges.Avatar != nil {
-				avatarURL = s.storageAdapter.GetPublicURL(gc.Edges.Avatar.FileName)
-			}
-
-			fullMsg, _ := s.client.Message.Query().
-				Where(message.ID(systemMsg.ID)).
-				WithSender().
-				Only(context.Background())
-
-			msgResponse := helper.ToMessageResponse(fullMsg, s.storageAdapter, nil)
-
-			chatPayload := model.ChatListResponse{
-				ID:          gc.Edges.Chat.ID,
-				Type:        string(chat.TypeGroup),
-				Name:        gc.Name,
-				Avatar:      avatarURL,
-				LastMessage: msgResponse,
-				UnreadCount: 0,
-			}
 
 			s.wsHub.BroadcastToUser(userID, websocket.Event{
 				Type:    websocket.EventChatNew,
-				Payload: chatPayload,
+				Payload: chatListResponse,
 				Meta: &websocket.EventMeta{
 					Timestamp: time.Now().UTC().UnixMilli(),
 					ChatID:    gc.ChatID,
@@ -129,23 +133,21 @@ func (s *GroupChatService) JoinGroupByInvite(ctx context.Context, userID uuid.UU
 				},
 			})
 
-			s.wsHub.BroadcastToChat(gc.ChatID, websocket.Event{
-				Type:    websocket.EventMessageNew,
-				Payload: msgResponse,
-				Meta: &websocket.EventMeta{
-					Timestamp: time.Now().UTC().UnixMilli(),
-					ChatID:    gc.ChatID,
-					SenderID:  userID,
-				},
-			})
+			if msgResponse != nil {
+				s.wsHub.BroadcastToChat(gc.ChatID, websocket.Event{
+					Type:    websocket.EventMessageNew,
+					Payload: msgResponse,
+					Meta: &websocket.EventMeta{
+						Timestamp: time.Now().UTC().UnixMilli(),
+						ChatID:    gc.ChatID,
+						SenderID:  userID,
+					},
+				})
+			}
 		}()
 	}
 
-	return &model.ChatResponse{
-		ID:        gc.Edges.Chat.ID,
-		Type:      string(chat.TypeGroup),
-		CreatedAt: gc.Edges.Chat.CreatedAt.Format(time.RFC3339),
-	}, nil
+	return chatListResponse, nil
 }
 
 func (s *GroupChatService) GetGroupByInviteCode(ctx context.Context, inviteCode string) (*model.GroupPreviewDTO, error) {

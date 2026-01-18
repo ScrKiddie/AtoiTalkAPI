@@ -242,7 +242,7 @@ func (c *GroupChatController) SearchGroupMembers(w http.ResponseWriter, r *http.
 // @Produce      json
 // @Param        groupID path string true "Group Chat ID (UUID)"
 // @Param        request body model.AddGroupMemberRequest true "Add Member Request"
-// @Success      200  {object}  helper.ResponseSuccess
+// @Success      200  {object}  helper.ResponseSuccess{data=[]model.MessageResponse}
 // @Failure      400  {object}  helper.ResponseError
 // @Failure      401  {object}  helper.ResponseError
 // @Failure      403  {object}  helper.ResponseError
@@ -272,13 +272,13 @@ func (c *GroupChatController) AddMember(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	err = c.groupChatService.AddMember(r.Context(), userContext.ID, groupID, req)
+	resp, err := c.groupChatService.AddMember(r.Context(), userContext.ID, groupID, req)
 	if err != nil {
 		helper.WriteError(w, err)
 		return
 	}
 
-	helper.WriteSuccess(w, nil)
+	helper.WriteSuccess(w, resp)
 }
 
 // LeaveGroup godoc
@@ -288,7 +288,7 @@ func (c *GroupChatController) AddMember(w http.ResponseWriter, r *http.Request) 
 // @Accept       json
 // @Produce      json
 // @Param        groupID path string true "Group Chat ID (UUID)"
-// @Success      200  {object}  helper.ResponseSuccess
+// @Success      200  {object}  helper.ResponseSuccess{data=model.MessageResponse}
 // @Failure      400  {object}  helper.ResponseError
 // @Failure      401  {object}  helper.ResponseError
 // @Failure      404  {object}  helper.ResponseError
@@ -310,13 +310,13 @@ func (c *GroupChatController) LeaveGroup(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	err = c.groupChatService.LeaveGroup(r.Context(), userContext.ID, groupID)
+	resp, err := c.groupChatService.LeaveGroup(r.Context(), userContext.ID, groupID)
 	if err != nil {
 		helper.WriteError(w, err)
 		return
 	}
 
-	helper.WriteSuccess(w, nil)
+	helper.WriteSuccess(w, resp)
 }
 
 // KickMember godoc
@@ -327,7 +327,7 @@ func (c *GroupChatController) LeaveGroup(w http.ResponseWriter, r *http.Request)
 // @Produce      json
 // @Param        groupID path string true "Group Chat ID (UUID)"
 // @Param        userID path string true "Target User ID (UUID)"
-// @Success      200  {object}  helper.ResponseSuccess
+// @Success      200  {object}  helper.ResponseSuccess{data=model.MessageResponse}
 // @Failure      400  {object}  helper.ResponseError
 // @Failure      401  {object}  helper.ResponseError
 // @Failure      403  {object}  helper.ResponseError
@@ -357,13 +357,13 @@ func (c *GroupChatController) KickMember(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	err = c.groupChatService.KickMember(r.Context(), userContext.ID, groupID, targetUserID)
+	resp, err := c.groupChatService.KickMember(r.Context(), userContext.ID, groupID, targetUserID)
 	if err != nil {
 		helper.WriteError(w, err)
 		return
 	}
 
-	helper.WriteSuccess(w, nil)
+	helper.WriteSuccess(w, resp)
 }
 
 // UpdateMemberRole godoc
@@ -375,7 +375,7 @@ func (c *GroupChatController) KickMember(w http.ResponseWriter, r *http.Request)
 // @Param        groupID path string true "Group Chat ID (UUID)"
 // @Param        userID path string true "Target User ID (UUID)"
 // @Param        request body model.UpdateGroupMemberRoleRequest true "Update Role Request"
-// @Success      200  {object}  helper.ResponseSuccess
+// @Success      200  {object}  helper.ResponseSuccess{data=model.MessageResponse}
 // @Failure      400  {object}  helper.ResponseError
 // @Failure      401  {object}  helper.ResponseError
 // @Failure      403  {object}  helper.ResponseError
@@ -411,13 +411,13 @@ func (c *GroupChatController) UpdateMemberRole(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	err = c.groupChatService.UpdateMemberRole(r.Context(), userContext.ID, groupID, targetUserID, req)
+	resp, err := c.groupChatService.UpdateMemberRole(r.Context(), userContext.ID, groupID, targetUserID, req)
 	if err != nil {
 		helper.WriteError(w, err)
 		return
 	}
 
-	helper.WriteSuccess(w, nil)
+	helper.WriteSuccess(w, resp)
 }
 
 // TransferOwnership godoc
@@ -428,7 +428,7 @@ func (c *GroupChatController) UpdateMemberRole(w http.ResponseWriter, r *http.Re
 // @Produce      json
 // @Param        groupID path string true "Group Chat ID (UUID)"
 // @Param        request body model.TransferGroupOwnershipRequest true "Transfer Ownership Request"
-// @Success      200  {object}  helper.ResponseSuccess
+// @Success      200  {object}  helper.ResponseSuccess{data=model.MessageResponse}
 // @Failure      400  {object}  helper.ResponseError
 // @Failure      401  {object}  helper.ResponseError
 // @Failure      403  {object}  helper.ResponseError
@@ -457,13 +457,13 @@ func (c *GroupChatController) TransferOwnership(w http.ResponseWriter, r *http.R
 		return
 	}
 
-	err = c.groupChatService.TransferOwnership(r.Context(), userContext.ID, groupID, req)
+	resp, err := c.groupChatService.TransferOwnership(r.Context(), userContext.ID, groupID, req)
 	if err != nil {
 		helper.WriteError(w, err)
 		return
 	}
 
-	helper.WriteSuccess(w, nil)
+	helper.WriteSuccess(w, resp)
 }
 
 // DeleteGroup godoc
@@ -561,7 +561,7 @@ func (c *GroupChatController) SearchPublicGroups(w http.ResponseWriter, r *http.
 // @Accept       json
 // @Produce      json
 // @Param        groupID path string true "Group Chat ID (UUID)"
-// @Success      200  {object}  helper.ResponseSuccess
+// @Success      200  {object}  helper.ResponseSuccess{data=model.MessageResponse}
 // @Failure      400  {object}  helper.ResponseError
 // @Failure      401  {object}  helper.ResponseError
 // @Failure      403  {object}  helper.ResponseError
@@ -585,13 +585,13 @@ func (c *GroupChatController) JoinPublicGroup(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	err = c.groupChatService.JoinPublicGroup(r.Context(), userContext.ID, groupID)
+	resp, err := c.groupChatService.JoinPublicGroup(r.Context(), userContext.ID, groupID)
 	if err != nil {
 		helper.WriteError(w, err)
 		return
 	}
 
-	helper.WriteSuccess(w, nil)
+	helper.WriteSuccess(w, resp)
 }
 
 // JoinGroupByInvite godoc

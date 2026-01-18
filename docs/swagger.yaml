@@ -1956,7 +1956,11 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/helper.ResponseSuccess'
+                allOf:
+                - $ref: '#/components/schemas/data'
+                properties:
+                  data: {}
+                type: object
           description: OK
         "400":
           content:
@@ -2026,7 +2030,11 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/helper.ResponseSuccess'
+                allOf:
+                - $ref: '#/components/schemas/data'
+                properties:
+                  data: {}
+                type: object
           description: OK
         "400":
           content:
@@ -2173,7 +2181,11 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/helper.ResponseSuccess'
+                allOf:
+                - $ref: '#/components/schemas/data'
+                properties:
+                  data: {}
+                type: object
           description: OK
         "400":
           content:
@@ -2249,7 +2261,11 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/helper.ResponseSuccess'
+                allOf:
+                - $ref: '#/components/schemas/data'
+                properties:
+                  data: {}
+                type: object
           description: OK
         "400":
           content:
@@ -2324,7 +2340,11 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/helper.ResponseSuccess'
+                allOf:
+                - $ref: '#/components/schemas/data'
+                properties:
+                  data: {}
+                type: object
           description: OK
         "400":
           content:
@@ -2394,7 +2414,11 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/helper.ResponseSuccess'
+                allOf:
+                - $ref: '#/components/schemas/data'
+                properties:
+                  data: {}
+                type: object
           description: OK
         "400":
           content:

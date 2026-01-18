@@ -3041,7 +3041,15 @@ const docTemplate = `{
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseSuccess"
+                                    "allOf": [
+                                        {
+                                            "$ref": "#/components/schemas/data"
+                                        }
+                                    ],
+                                    "properties": {
+                                        "data": {}
+                                    },
+                                    "type": "object"
                                 }
                             }
                         },
@@ -3157,7 +3165,15 @@ const docTemplate = `{
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseSuccess"
+                                    "allOf": [
+                                        {
+                                            "$ref": "#/components/schemas/data"
+                                        }
+                                    ],
+                                    "properties": {
+                                        "data": {}
+                                    },
+                                    "type": "object"
                                 }
                             }
                         },
@@ -3403,7 +3419,15 @@ const docTemplate = `{
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseSuccess"
+                                    "allOf": [
+                                        {
+                                            "$ref": "#/components/schemas/data"
+                                        }
+                                    ],
+                                    "properties": {
+                                        "data": {}
+                                    },
+                                    "type": "object"
                                 }
                             }
                         },
@@ -3528,7 +3552,15 @@ const docTemplate = `{
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseSuccess"
+                                    "allOf": [
+                                        {
+                                            "$ref": "#/components/schemas/data"
+                                        }
+                                    ],
+                                    "properties": {
+                                        "data": {}
+                                    },
+                                    "type": "object"
                                 }
                             }
                         },
@@ -3654,7 +3686,15 @@ const docTemplate = `{
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseSuccess"
+                                    "allOf": [
+                                        {
+                                            "$ref": "#/components/schemas/data"
+                                        }
+                                    ],
+                                    "properties": {
+                                        "data": {}
+                                    },
+                                    "type": "object"
                                 }
                             }
                         },
@@ -3771,7 +3811,15 @@ const docTemplate = `{
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseSuccess"
+                                    "allOf": [
+                                        {
+                                            "$ref": "#/components/schemas/data"
+                                        }
+                                    ],
+                                    "properties": {
+                                        "data": {}
+                                    },
+                                    "type": "object"
                                 }
                             }
                         },

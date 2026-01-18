@@ -71,11 +71,11 @@ func (s *GroupChatService) SearchPublicGroups(ctx context.Context, userID uuid.U
 	return groupDTOs, nextCursor, hasNext, nil
 }
 
-func (s *GroupChatService) JoinPublicGroup(ctx context.Context, userID uuid.UUID, groupID uuid.UUID) error {
+func (s *GroupChatService) JoinPublicGroup(ctx context.Context, userID uuid.UUID, groupID uuid.UUID) (*model.MessageResponse, error) {
 	tx, err := s.client.Tx(ctx)
 	if err != nil {
 		slog.Error("Failed to start transaction", "error", err)
-		return helper.NewInternalServerError("")
+		return nil, helper.NewInternalServerError("")
 	}
 	defer tx.Rollback()
 
@@ -90,14 +90,14 @@ func (s *GroupChatService) JoinPublicGroup(ctx context.Context, userID uuid.UUID
 		Only(ctx)
 	if err != nil {
 		if ent.IsNotFound(err) {
-			return helper.NewNotFoundError("Group chat not found")
+			return nil, helper.NewNotFoundError("Group chat not found")
 		}
 		slog.Error("Failed to query group chat", "error", err)
-		return helper.NewInternalServerError("")
+		return nil, helper.NewInternalServerError("")
 	}
 
 	if !gc.IsPublic {
-		return helper.NewForbiddenError("This group is private. You must be added by an admin.")
+		return nil, helper.NewForbiddenError("This group is private. You must be added by an admin.")
 	}
 
 	isMember, err := tx.GroupMember.Query().
@@ -108,10 +108,10 @@ func (s *GroupChatService) JoinPublicGroup(ctx context.Context, userID uuid.UUID
 		Exist(ctx)
 	if err != nil {
 		slog.Error("Failed to check membership", "error", err)
-		return helper.NewInternalServerError("")
+		return nil, helper.NewInternalServerError("")
 	}
 	if isMember {
-		return helper.NewConflictError("You are already a member of this group")
+		return nil, helper.NewConflictError("You are already a member of this group")
 	}
 
 	_, err = tx.GroupMember.Create().
@@ -121,7 +121,7 @@ func (s *GroupChatService) JoinPublicGroup(ctx context.Context, userID uuid.UUID
 		Save(ctx)
 	if err != nil {
 		slog.Error("Failed to add member", "error", err)
-		return helper.NewInternalServerError("")
+		return nil, helper.NewInternalServerError("")
 	}
 
 	systemMsg, err := tx.Message.Create().
@@ -131,7 +131,7 @@ func (s *GroupChatService) JoinPublicGroup(ctx context.Context, userID uuid.UUID
 		Save(ctx)
 	if err != nil {
 		slog.Error("Failed to create system message for join", "error", err)
-		return helper.NewInternalServerError("")
+		return nil, helper.NewInternalServerError("")
 	}
 
 	err = tx.Chat.UpdateOne(gc.Edges.Chat).
@@ -140,29 +140,32 @@ func (s *GroupChatService) JoinPublicGroup(ctx context.Context, userID uuid.UUID
 		Exec(ctx)
 	if err != nil {
 		slog.Error("Failed to update chat with last message", "error", err)
-		return helper.NewInternalServerError("")
+		return nil, helper.NewInternalServerError("")
 	}
 
 	if err := tx.Commit(); err != nil {
 		slog.Error("Failed to commit transaction", "error", err)
-		return helper.NewInternalServerError("")
+		return nil, helper.NewInternalServerError("")
 	}
 
 	s.redisAdapter.Del(context.Background(), fmt.Sprintf("chat_members:%s", groupID))
 
-	if s.wsHub != nil {
+	fullMsg, err := s.client.Message.Query().
+		Where(message.ID(systemMsg.ID)).
+		WithSender().
+		Only(ctx)
+
+	var msgResponse *model.MessageResponse
+	if err == nil {
+		msgResponse = helper.ToMessageResponse(fullMsg, s.storageAdapter, nil)
+	}
+
+	if s.wsHub != nil && msgResponse != nil {
 		go func() {
 			avatarURL := ""
 			if gc.Edges.Avatar != nil {
 				avatarURL = s.storageAdapter.GetPublicURL(gc.Edges.Avatar.FileName)
 			}
-
-			fullMsg, _ := s.client.Message.Query().
-				Where(message.ID(systemMsg.ID)).
-				WithSender().
-				Only(context.Background())
-
-			msgResponse := helper.ToMessageResponse(fullMsg, s.storageAdapter, nil)
 
 			chatPayload := model.ChatListResponse{
 				ID:          gc.Edges.Chat.ID,
@@ -195,5 +198,5 @@ func (s *GroupChatService) JoinPublicGroup(ctx context.Context, userID uuid.UUID
 		}()
 	}
 
-	return nil
+	return msgResponse, nil
 }

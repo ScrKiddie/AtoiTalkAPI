@@ -48,7 +48,7 @@ func NewGroupChatService(client *ent.Client, repo *repository.Repository, cfg *c
 	}
 }
 
-func (s *GroupChatService) CreateGroupChat(ctx context.Context, creatorID uuid.UUID, req model.CreateGroupChatRequest) (*model.ChatResponse, error) {
+func (s *GroupChatService) CreateGroupChat(ctx context.Context, creatorID uuid.UUID, req model.CreateGroupChatRequest) (*model.ChatListResponse, error) {
 
 	if err := s.validator.Struct(req); err != nil {
 		slog.Warn("Validation failed for CreateGroupChat", "error", err)
@@ -230,35 +230,38 @@ func (s *GroupChatService) CreateGroupChat(ctx context.Context, creatorID uuid.U
 		}
 	}
 
+	avatarURL := ""
+	if avatarMedia != nil {
+		avatarURL = s.storageAdapter.GetPublicURL(avatarMedia.FileName)
+	}
+
+	fullMsg, err := s.client.Message.Query().
+		Where(message.ID(systemMsg.ID)).
+		WithSender().
+		Only(context.Background())
+
+	var lastMsgResp *model.MessageResponse
+	if err == nil {
+		lastMsgResp = helper.ToMessageResponse(fullMsg, s.storageAdapter, nil)
+	}
+
+	myRole := string(groupmember.RoleOwner)
+	chatListResponse := &model.ChatListResponse{
+		ID:          newChat.ID,
+		Type:        string(newChat.Type),
+		Name:        newGroupChat.Name,
+		Avatar:      avatarURL,
+		LastMessage: lastMsgResp,
+		UnreadCount: 0,
+		MyRole:      &myRole,
+		MemberCount: len(allMemberIDs),
+	}
+
 	if s.wsHub != nil {
 		go func() {
-			avatarURL := ""
-			if avatarMedia != nil {
-				avatarURL = s.storageAdapter.GetPublicURL(avatarMedia.FileName)
-			}
-
-			fullMsg, err := s.client.Message.Query().
-				Where(message.ID(systemMsg.ID)).
-				WithSender().
-				Only(context.Background())
-
-			var lastMsgResp *model.MessageResponse
-			if err == nil {
-				lastMsgResp = helper.ToMessageResponse(fullMsg, s.storageAdapter, nil)
-			}
-
-			payload := model.ChatListResponse{
-				ID:          newChat.ID,
-				Type:        string(newChat.Type),
-				Name:        newGroupChat.Name,
-				Avatar:      avatarURL,
-				LastMessage: lastMsgResp,
-				UnreadCount: 0,
-			}
-
 			event := websocket.Event{
 				Type:    websocket.EventChatNew,
-				Payload: payload,
+				Payload: chatListResponse,
 				Meta: &websocket.EventMeta{
 					Timestamp: time.Now().UTC().UnixMilli(),
 					ChatID:    newChat.ID,
@@ -267,16 +270,13 @@ func (s *GroupChatService) CreateGroupChat(ctx context.Context, creatorID uuid.U
 			}
 
 			for _, memberID := range allMemberIDs {
+
 				s.wsHub.BroadcastToUser(memberID, event)
 			}
 		}()
 	}
 
-	return &model.ChatResponse{
-		ID:        newChat.ID,
-		Type:      string(newChat.Type),
-		CreatedAt: newChat.CreatedAt.Format(time.RFC3339),
-	}, nil
+	return chatListResponse, nil
 }
 
 func (s *GroupChatService) UpdateGroupChat(ctx context.Context, requestorID uuid.UUID, groupID uuid.UUID, req model.UpdateGroupChatRequest) (*model.ChatListResponse, error) {
