@@ -84,6 +84,7 @@ func (s *GroupChatService) JoinPublicGroup(ctx context.Context, userID uuid.UUID
 			groupchat.ChatID(groupID),
 			groupchat.HasChatWith(chat.DeletedAtIsNil()),
 		).
+		Select(groupchat.FieldID, groupchat.FieldChatID, groupchat.FieldName, groupchat.FieldIsPublic, groupchat.FieldAvatarID).
 		WithAvatar().
 		WithChat().
 		Only(ctx)

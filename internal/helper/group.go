@@ -3,12 +3,9 @@ package helper
 import (
 	"AtoiTalkAPI/ent"
 	"AtoiTalkAPI/internal/model"
-	"time"
-
-	"github.com/google/uuid"
 )
 
-func ToGroupMemberDTO(m *ent.GroupMember, onlineMap map[uuid.UUID]bool, urlGen URLGenerator) model.GroupMemberDTO {
+func ToGroupMemberDTO(m *ent.GroupMember, urlGen URLGenerator) model.GroupMemberDTO {
 	if m == nil || m.Edges.User == nil {
 		return model.GroupMemberDTO{}
 	}
@@ -24,25 +21,18 @@ func ToGroupMemberDTO(m *ent.GroupMember, onlineMap map[uuid.UUID]bool, urlGen U
 		fullName = *user.FullName
 	}
 
-	isBanned := user.IsBanned
-
-	if isBanned && user.BannedUntil != nil && time.Now().After(*user.BannedUntil) {
-		isBanned = false
-	}
-
-	isOnline := false
-	if onlineMap != nil {
-		isOnline = onlineMap[user.ID]
+	username := ""
+	if user.Username != nil {
+		username = *user.Username
 	}
 
 	return model.GroupMemberDTO{
 		ID:       m.ID,
 		UserID:   user.ID,
+		Username: username,
 		FullName: fullName,
 		Avatar:   avatarURL,
 		Role:     string(m.Role),
 		JoinedAt: m.JoinedAt.String(),
-		IsOnline: isOnline,
-		IsBanned: isBanned,
 	}
 }

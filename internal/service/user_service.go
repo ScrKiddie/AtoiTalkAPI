@@ -592,10 +592,6 @@ func (s *UserService) SearchUsers(ctx context.Context, currentUserID uuid.UUID, 
 			fullName = *u.FullName
 		}
 
-		key := fmt.Sprintf("online:%s", u.ID)
-		exists, _ := s.redisAdapter.Client().Exists(ctx, key).Result()
-		isOnline := exists > 0
-
 		dto := model.UserDTO{
 			ID:          u.ID,
 			Username:    username,
@@ -603,7 +599,6 @@ func (s *UserService) SearchUsers(ctx context.Context, currentUserID uuid.UUID, 
 			Avatar:      avatarURL,
 			Bio:         bio,
 			HasPassword: false,
-			IsOnline:    &isOnline,
 		}
 
 		if chatID, exists := privateChatMap[u.ID]; exists {

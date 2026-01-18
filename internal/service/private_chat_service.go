@@ -56,6 +56,7 @@ func (s *PrivateChatService) CreatePrivateChat(ctx context.Context, userID uuid.
 			user.DeletedAtIsNil(),
 		).
 		WithAvatar().
+		Select(user.FieldID, user.FieldFullName, user.FieldIsBanned, user.FieldBannedUntil, user.FieldAvatarID).
 		All(ctx)
 	if err != nil {
 		slog.Error("Failed to query users for private chat", "error", err)

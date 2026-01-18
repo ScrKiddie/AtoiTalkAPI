@@ -6,6 +6,7 @@ import (
 	"AtoiTalkAPI/ent/groupchat"
 	"AtoiTalkAPI/ent/groupmember"
 	"AtoiTalkAPI/ent/message"
+	"AtoiTalkAPI/ent/user"
 	"AtoiTalkAPI/internal/helper"
 	"AtoiTalkAPI/internal/model"
 	"AtoiTalkAPI/internal/websocket"
@@ -34,6 +35,7 @@ func (s *GroupChatService) UpdateMemberRole(ctx context.Context, requestorID uui
 			groupchat.ChatID(groupID),
 			groupchat.HasChatWith(chat.DeletedAtIsNil()),
 		).
+		Select(groupchat.FieldID, groupchat.FieldChatID).
 		WithChat().
 		Only(ctx)
 	if err != nil {
@@ -63,7 +65,9 @@ func (s *GroupChatService) UpdateMemberRole(ctx context.Context, requestorID uui
 			groupmember.GroupChatID(gc.ID),
 			groupmember.UserID(targetUserID),
 		).
-		WithUser().
+		WithUser(func(q *ent.UserQuery) {
+			q.Select(user.FieldID, user.FieldIsBanned, user.FieldBannedUntil)
+		}).
 		Only(ctx)
 	if err != nil {
 		return helper.NewNotFoundError("Target user is not a member of this group")
@@ -171,6 +175,7 @@ func (s *GroupChatService) TransferOwnership(ctx context.Context, requestorID uu
 			groupchat.ChatID(groupID),
 			groupchat.HasChatWith(chat.DeletedAtIsNil()),
 		).
+		Select(groupchat.FieldID, groupchat.FieldChatID).
 		WithChat().
 		Only(ctx)
 	if err != nil {
@@ -200,7 +205,9 @@ func (s *GroupChatService) TransferOwnership(ctx context.Context, requestorID uu
 			groupmember.GroupChatID(gc.ID),
 			groupmember.UserID(req.NewOwnerID),
 		).
-		WithUser().
+		WithUser(func(q *ent.UserQuery) {
+			q.Select(user.FieldID, user.FieldIsBanned, user.FieldBannedUntil)
+		}).
 		Only(ctx)
 	if err != nil {
 		return helper.NewNotFoundError("Target user is not a member of this group")

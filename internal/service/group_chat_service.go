@@ -63,6 +63,7 @@ func (s *GroupChatService) CreateGroupChat(ctx context.Context, creatorID uuid.U
 			user.IDIn(req.MemberIDs...),
 			user.DeletedAtIsNil(),
 		).
+		Select(user.FieldID, user.FieldIsBanned, user.FieldBannedUntil).
 		All(ctx)
 	if err != nil {
 		slog.Error("Failed to query users for group creation", "error", err)

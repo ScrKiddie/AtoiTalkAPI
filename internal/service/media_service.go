@@ -3,8 +3,11 @@ package service
 import (
 	"AtoiTalkAPI/ent"
 	"AtoiTalkAPI/ent/chat"
+	"AtoiTalkAPI/ent/groupchat"
 	"AtoiTalkAPI/ent/groupmember"
 	"AtoiTalkAPI/ent/media"
+	"AtoiTalkAPI/ent/message"
+	"AtoiTalkAPI/ent/privatechat"
 	"AtoiTalkAPI/internal/adapter"
 	"AtoiTalkAPI/internal/config"
 	"AtoiTalkAPI/internal/helper"
@@ -101,10 +104,17 @@ func (s *MediaService) UploadMedia(ctx context.Context, userID uuid.UUID, req mo
 func (s *MediaService) GetMediaURL(ctx context.Context, userID, mediaID uuid.UUID) (*model.MediaURLResponse, error) {
 	m, err := s.client.Media.Query().
 		Where(media.ID(mediaID)).
+		Select(media.FieldID, media.FieldFileName).
 		WithMessage(func(q *ent.MessageQuery) {
+			q.Select(message.FieldID, message.FieldChatID)
 			q.WithChat(func(cq *ent.ChatQuery) {
-				cq.WithPrivateChat()
-				cq.WithGroupChat()
+				cq.Select(chat.FieldID, chat.FieldType)
+				cq.WithPrivateChat(func(pq *ent.PrivateChatQuery) {
+					pq.Select(privatechat.FieldUser1ID, privatechat.FieldUser2ID)
+				})
+				cq.WithGroupChat(func(gq *ent.GroupChatQuery) {
+					gq.Select(groupchat.FieldID)
+				})
 			})
 		}).
 		Only(ctx)

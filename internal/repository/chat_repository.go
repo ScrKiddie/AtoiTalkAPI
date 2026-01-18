@@ -46,8 +46,14 @@ func (r *ChatRepository) GetChatByID(ctx context.Context, userID, chatID uuid.UU
 			),
 		).
 		WithPrivateChat(func(q *ent.PrivateChatQuery) {
-			q.WithUser1(func(uq *ent.UserQuery) { uq.WithAvatar() })
-			q.WithUser2(func(uq *ent.UserQuery) { uq.WithAvatar() })
+			q.WithUser1(func(uq *ent.UserQuery) {
+				uq.Select(user.FieldID, user.FieldUsername, user.FieldFullName, user.FieldAvatarID, user.FieldDeletedAt, user.FieldIsBanned, user.FieldBannedUntil)
+				uq.WithAvatar()
+			})
+			q.WithUser2(func(uq *ent.UserQuery) {
+				uq.Select(user.FieldID, user.FieldUsername, user.FieldFullName, user.FieldAvatarID, user.FieldDeletedAt, user.FieldIsBanned, user.FieldBannedUntil)
+				uq.WithAvatar()
+			})
 		}).
 		WithGroupChat(func(q *ent.GroupChatQuery) {
 			q.WithAvatar()
@@ -57,7 +63,10 @@ func (r *ChatRepository) GetChatByID(ctx context.Context, userID, chatID uuid.UU
 			})
 		}).
 		WithLastMessage(func(q *ent.MessageQuery) {
-			q.WithSender()
+			q.WithSender(func(uq *ent.UserQuery) {
+				uq.Select(user.FieldID, user.FieldUsername, user.FieldFullName, user.FieldAvatarID)
+				uq.WithAvatar()
+			})
 			q.WithAttachments(func(aq *ent.MediaQuery) {
 				aq.Limit(1)
 			})
@@ -158,8 +167,14 @@ func (r *ChatRepository) GetChats(ctx context.Context, userID uuid.UUID, querySt
 		Order(ent.Desc(chat.FieldLastMessageAt), ent.Desc(chat.FieldID)).
 		Limit(fetchLimit + 1).
 		WithPrivateChat(func(q *ent.PrivateChatQuery) {
-			q.WithUser1(func(uq *ent.UserQuery) { uq.WithAvatar() })
-			q.WithUser2(func(uq *ent.UserQuery) { uq.WithAvatar() })
+			q.WithUser1(func(uq *ent.UserQuery) {
+				uq.Select(user.FieldID, user.FieldUsername, user.FieldFullName, user.FieldAvatarID, user.FieldDeletedAt, user.FieldIsBanned, user.FieldBannedUntil)
+				uq.WithAvatar()
+			})
+			q.WithUser2(func(uq *ent.UserQuery) {
+				uq.Select(user.FieldID, user.FieldUsername, user.FieldFullName, user.FieldAvatarID, user.FieldDeletedAt, user.FieldIsBanned, user.FieldBannedUntil)
+				uq.WithAvatar()
+			})
 		}).
 		WithGroupChat(func(q *ent.GroupChatQuery) {
 			q.WithAvatar()
@@ -168,7 +183,10 @@ func (r *ChatRepository) GetChats(ctx context.Context, userID uuid.UUID, querySt
 			})
 		}).
 		WithLastMessage(func(q *ent.MessageQuery) {
-			q.WithSender()
+			q.WithSender(func(uq *ent.UserQuery) {
+				uq.Select(user.FieldID, user.FieldUsername, user.FieldFullName, user.FieldAvatarID)
+				uq.WithAvatar()
+			})
 			q.WithAttachments(func(aq *ent.MediaQuery) {
 				aq.Limit(1)
 			})

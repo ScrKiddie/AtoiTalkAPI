@@ -183,6 +183,7 @@ func (s *ReportService) CreateReport(ctx context.Context, reporterID uuid.UUID, 
 
 		u, err := s.client.User.Query().
 			Where(user.ID(*req.TargetUserID)).
+			Select(user.FieldID, user.FieldUsername, user.FieldFullName, user.FieldBio, user.FieldAvatarID).
 			WithAvatar().
 			Only(ctx)
 

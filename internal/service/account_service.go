@@ -50,7 +50,10 @@ func (s *AccountService) ChangePassword(ctx context.Context, userID uuid.UUID, r
 		return helper.NewBadRequestError("")
 	}
 
-	u, err := s.client.User.Query().Where(user.ID(userID)).Only(ctx)
+	u, err := s.client.User.Query().
+		Where(user.ID(userID)).
+		Select(user.FieldID, user.FieldPasswordHash).
+		Only(ctx)
 	if err != nil {
 		if ent.IsNotFound(err) {
 			return helper.NewNotFoundError("")
@@ -96,7 +99,10 @@ func (s *AccountService) ChangeEmail(ctx context.Context, userID uuid.UUID, req 
 		return helper.NewBadRequestError("")
 	}
 
-	u, err := s.client.User.Query().Where(user.ID(userID)).Only(ctx)
+	u, err := s.client.User.Query().
+		Where(user.ID(userID)).
+		Select(user.FieldID, user.FieldPasswordHash, user.FieldEmail).
+		Only(ctx)
 	if err != nil {
 		if ent.IsNotFound(err) {
 			return helper.NewNotFoundError("")
@@ -168,7 +174,10 @@ func (s *AccountService) ChangeEmail(ctx context.Context, userID uuid.UUID, req 
 }
 
 func (s *AccountService) DeleteAccount(ctx context.Context, userID uuid.UUID, req model.DeleteAccountRequest) error {
-	u, err := s.client.User.Query().Where(user.ID(userID)).Only(ctx)
+	u, err := s.client.User.Query().
+		Where(user.ID(userID)).
+		Select(user.FieldID, user.FieldPasswordHash).
+		Only(ctx)
 	if err != nil {
 		if ent.IsNotFound(err) {
 			return helper.NewNotFoundError("")

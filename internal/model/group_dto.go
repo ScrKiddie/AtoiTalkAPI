@@ -53,12 +53,11 @@ type JoinGroupByInviteRequest struct {
 type GroupMemberDTO struct {
 	ID       uuid.UUID `json:"id"`
 	UserID   uuid.UUID `json:"user_id"`
+	Username string    `json:"username"`
 	FullName string    `json:"full_name"`
 	Avatar   string    `json:"avatar"`
 	Role     string    `json:"role"`
 	JoinedAt string    `json:"joined_at"`
-	IsOnline bool      `json:"is_online"`
-	IsBanned bool      `json:"is_banned"`
 }
 
 type PublicGroupDTO struct {

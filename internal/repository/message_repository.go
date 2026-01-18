@@ -4,6 +4,7 @@ import (
 	"AtoiTalkAPI/ent"
 	"AtoiTalkAPI/ent/chat"
 	"AtoiTalkAPI/ent/message"
+	"AtoiTalkAPI/ent/user"
 	"context"
 	"errors"
 	"sort"
@@ -48,10 +49,16 @@ func (r *MessageRepository) GetMessages(ctx context.Context, chatID uuid.UUID, h
 	}
 
 	query = query.Limit(limit + 1).
-		WithSender().
+		WithSender(func(q *ent.UserQuery) {
+			q.Select(user.FieldID, user.FieldUsername, user.FieldFullName, user.FieldAvatarID)
+			q.WithAvatar()
+		}).
 		WithAttachments().
 		WithReplyTo(func(q *ent.MessageQuery) {
-			q.WithSender()
+			q.WithSender(func(uq *ent.UserQuery) {
+				uq.Select(user.FieldID, user.FieldUsername, user.FieldFullName, user.FieldAvatarID)
+				uq.WithAvatar()
+			})
 			q.WithAttachments(func(aq *ent.MediaQuery) {
 				aq.Limit(1)
 			})
@@ -68,10 +75,16 @@ func (r *MessageRepository) GetMessagesAround(ctx context.Context, chatID uuid.U
 			message.ChatID(chatID),
 			message.HasChatWith(chat.DeletedAtIsNil()),
 		).
-		WithSender().
+		WithSender(func(q *ent.UserQuery) {
+			q.Select(user.FieldID, user.FieldUsername, user.FieldFullName, user.FieldAvatarID)
+			q.WithAvatar()
+		}).
 		WithAttachments().
 		WithReplyTo(func(q *ent.MessageQuery) {
-			q.WithSender()
+			q.WithSender(func(uq *ent.UserQuery) {
+				uq.Select(user.FieldID, user.FieldUsername, user.FieldFullName, user.FieldAvatarID)
+				uq.WithAvatar()
+			})
 			q.WithAttachments(func(aq *ent.MediaQuery) {
 				aq.Limit(1)
 			})
@@ -99,10 +112,16 @@ func (r *MessageRepository) GetMessagesAround(ctx context.Context, chatID uuid.U
 	prevMsgs, err := prevQuery.
 		Order(ent.Desc(message.FieldID)).
 		Limit(halfLimit).
-		WithSender().
+		WithSender(func(q *ent.UserQuery) {
+			q.Select(user.FieldID, user.FieldUsername, user.FieldFullName, user.FieldAvatarID)
+			q.WithAvatar()
+		}).
 		WithAttachments().
 		WithReplyTo(func(q *ent.MessageQuery) {
-			q.WithSender()
+			q.WithSender(func(uq *ent.UserQuery) {
+				uq.Select(user.FieldID, user.FieldUsername, user.FieldFullName, user.FieldAvatarID)
+				uq.WithAvatar()
+			})
 			q.WithAttachments(func(aq *ent.MediaQuery) {
 				aq.Limit(1)
 			})
@@ -123,10 +142,16 @@ func (r *MessageRepository) GetMessagesAround(ctx context.Context, chatID uuid.U
 	nextMsgs, err := nextQuery.
 		Order(ent.Asc(message.FieldID)).
 		Limit(halfLimit).
-		WithSender().
+		WithSender(func(q *ent.UserQuery) {
+			q.Select(user.FieldID, user.FieldUsername, user.FieldFullName, user.FieldAvatarID)
+			q.WithAvatar()
+		}).
 		WithAttachments().
 		WithReplyTo(func(q *ent.MessageQuery) {
-			q.WithSender()
+			q.WithSender(func(uq *ent.UserQuery) {
+				uq.Select(user.FieldID, user.FieldUsername, user.FieldFullName, user.FieldAvatarID)
+				uq.WithAvatar()
+			})
 			q.WithAttachments(func(aq *ent.MediaQuery) {
 				aq.Limit(1)
 			})
