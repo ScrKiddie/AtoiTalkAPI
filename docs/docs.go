@@ -5379,6 +5379,14 @@ const docTemplate = `{
                         "schema": {
                             "type": "boolean"
                         }
+                    },
+                    {
+                        "description": "Exclude users who are members of this group ID",
+                        "in": "query",
+                        "name": "exclude_group_id",
+                        "schema": {
+                            "type": "string"
+                        }
                     }
                 ],
                 "requestBody": {

@@ -3,6 +3,7 @@ package test
 import (
 	"AtoiTalkAPI/ent"
 	"AtoiTalkAPI/ent/chat"
+	"AtoiTalkAPI/ent/groupmember"
 	"AtoiTalkAPI/ent/message"
 	"AtoiTalkAPI/ent/user"
 	"AtoiTalkAPI/ent/userblock"
@@ -816,6 +817,7 @@ func TestSearchUsers(t *testing.T) {
 	t.Run("Success - Exclude Blocked Users", func(t *testing.T) {
 
 		testClient.UserBlock.Create().SetBlockerID(searcher.ID).SetBlockedID(users["User Bob"].ID).Save(context.Background())
+		defer testClient.UserBlock.Delete().Where(userblock.BlockerID(searcher.ID), userblock.BlockedID(users["User Bob"].ID)).ExecX(context.Background())
 
 		req, _ := http.NewRequest("GET", "/api/users?query=User%20Bob", nil)
 		req.Header.Set("Authorization", "Bearer "+token)
@@ -830,8 +832,9 @@ func TestSearchUsers(t *testing.T) {
 	t.Run("Success - Mutual Block (Both should not see each other)", func(t *testing.T) {
 
 		testClient.UserBlock.Create().SetBlockerID(users["User Eve"].ID).SetBlockedID(searcher.ID).Save(context.Background())
-
 		testClient.UserBlock.Create().SetBlockerID(searcher.ID).SetBlockedID(users["User Eve"].ID).Save(context.Background())
+		defer testClient.UserBlock.Delete().Where(userblock.BlockerID(users["User Eve"].ID), userblock.BlockedID(searcher.ID)).ExecX(context.Background())
+		defer testClient.UserBlock.Delete().Where(userblock.BlockerID(searcher.ID), userblock.BlockedID(users["User Eve"].ID)).ExecX(context.Background())
 
 		req, _ := http.NewRequest("GET", "/api/users?query=User%20Eve", nil)
 		req.Header.Set("Authorization", "Bearer "+token)
@@ -846,6 +849,7 @@ func TestSearchUsers(t *testing.T) {
 	t.Run("Success - Exclude Deleted Users", func(t *testing.T) {
 
 		testClient.User.UpdateOne(users["User Charlie"]).SetDeletedAt(time.Now().UTC()).ExecX(context.Background())
+		defer testClient.User.UpdateOne(users["User Charlie"]).ClearDeletedAt().ExecX(context.Background())
 
 		req, _ := http.NewRequest("GET", "/api/users?query=User%20Charlie", nil)
 		req.Header.Set("Authorization", "Bearer "+token)
@@ -855,6 +859,46 @@ func TestSearchUsers(t *testing.T) {
 		json.Unmarshal(rr.Body.Bytes(), &resp)
 		dataList := resp.Data.([]interface{})
 		assert.Len(t, dataList, 0, "Deleted user should not appear in search")
+	})
+
+	t.Run("Success - Exclude Group Members", func(t *testing.T) {
+
+		chatGroup := testClient.Chat.Create().SetType(chat.TypeGroup).SaveX(context.Background())
+		gc := testClient.GroupChat.Create().SetChat(chatGroup).SetCreator(searcher).SetName("Exclude Test Group").SetInviteCode("exclude").SaveX(context.Background())
+		testClient.GroupMember.Create().SetGroupChat(gc).SetUser(searcher).SetRole(groupmember.RoleOwner).SaveX(context.Background())
+		testClient.GroupMember.Create().SetGroupChat(gc).SetUser(users["User Alice"]).SetRole(groupmember.RoleMember).SaveX(context.Background())
+
+		req, _ := http.NewRequest("GET", fmt.Sprintf("/api/users?query=User&exclude_group_id=%s", gc.ChatID), nil)
+		req.Header.Set("Authorization", "Bearer "+token)
+		rr := executeRequest(req)
+
+		assert.Equal(t, http.StatusOK, rr.Code)
+		var resp helper.ResponseWithPagination
+		json.Unmarshal(rr.Body.Bytes(), &resp)
+		dataList := resp.Data.([]interface{})
+
+		foundAlice := false
+		foundBob := false
+		for _, item := range dataList {
+			u := item.(map[string]interface{})
+			if u["full_name"] == "User Alice" {
+				foundAlice = true
+			}
+			if u["full_name"] == "User Bob" {
+				foundBob = true
+			}
+		}
+
+		assert.False(t, foundAlice, "User Alice (member) should be excluded")
+		assert.True(t, foundBob, "User Bob (non-member) should be included")
+	})
+
+	t.Run("Fail - Invalid Exclude Group ID", func(t *testing.T) {
+		req, _ := http.NewRequest("GET", "/api/users?query=User&exclude_group_id=invalid-uuid", nil)
+		req.Header.Set("Authorization", "Bearer "+token)
+		rr := executeRequest(req)
+
+		assert.Equal(t, http.StatusBadRequest, rr.Code)
 	})
 
 	t.Run("Empty Result", func(t *testing.T) {

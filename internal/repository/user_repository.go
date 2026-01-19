@@ -2,6 +2,8 @@ package repository
 
 import (
 	"AtoiTalkAPI/ent"
+	"AtoiTalkAPI/ent/groupchat"
+	"AtoiTalkAPI/ent/groupmember"
 	"AtoiTalkAPI/ent/user"
 	"AtoiTalkAPI/ent/userblock"
 	"AtoiTalkAPI/internal/helper"
@@ -24,7 +26,7 @@ func NewUserRepository(client *ent.Client) *UserRepository {
 	}
 }
 
-func (r *UserRepository) SearchUsers(ctx context.Context, currentUserID uuid.UUID, queryStr string, cursor string, limit int) ([]*ent.User, string, bool, error) {
+func (r *UserRepository) SearchUsers(ctx context.Context, currentUserID uuid.UUID, queryStr string, cursor string, limit int, excludeGroupID *uuid.UUID) ([]*ent.User, string, bool, error) {
 	queryStr = strings.TrimSpace(queryStr)
 
 	if len(queryStr) < 3 {
@@ -66,6 +68,30 @@ func (r *UserRepository) SearchUsers(ctx context.Context, currentUserID uuid.UUI
 				)
 			},
 		)
+
+	if excludeGroupID != nil {
+		query = query.Where(
+			func(s *sql.Selector) {
+				gm := sql.Table(groupmember.Table)
+				gc := sql.Table(groupchat.Table)
+				s.Where(
+					sql.Not(
+						sql.Exists(
+							sql.Select(gm.C(groupmember.FieldID)).
+								From(gm).
+								Join(gc).On(gm.C(groupmember.FieldGroupChatID), gc.C(groupchat.FieldID)).
+								Where(
+									sql.And(
+										sql.EQ(gc.C(groupchat.FieldChatID), *excludeGroupID),
+										sql.ColumnsEQ(gm.C(groupmember.FieldUserID), s.C(user.FieldID)),
+									),
+								),
+						),
+					),
+				)
+			},
+		)
+	}
 
 	lowerQuery := strings.ToLower(queryStr)
 	query = query.Where(
