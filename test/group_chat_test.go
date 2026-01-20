@@ -65,6 +65,7 @@ func TestCreateGroupChat(t *testing.T) {
 		assert.Equal(t, "Test Group 1", dataMap["name"])
 		assert.Equal(t, "group", dataMap["type"])
 		assert.Equal(t, "owner", dataMap["my_role"])
+		assert.Equal(t, float64(3), dataMap["member_count"])
 
 		lastMsg, ok := dataMap["last_message"].(map[string]interface{})
 		assert.True(t, ok)
@@ -657,6 +658,7 @@ func TestAddGroupMember(t *testing.T) {
 		assert.Equal(t, "system_add", msg1["type"])
 		actionData := msg1["action_data"].(map[string]interface{})
 		assert.Equal(t, u1.ID.String(), actionData["actor_id"])
+		assert.Equal(t, float64(5), msg1["member_count"])
 
 		isMember4, _ := testClient.GroupMember.Query().Where(groupmember.GroupChatID(gc.ID), groupmember.UserID(u4.ID)).Exist(context.Background())
 		assert.True(t, isMember4)
@@ -762,6 +764,7 @@ func TestLeaveGroup(t *testing.T) {
 		dataMap := resp.Data.(map[string]interface{})
 		assert.Equal(t, "system_leave", dataMap["type"])
 		assert.Equal(t, u2.ID.String(), dataMap["sender_id"])
+		assert.Equal(t, float64(1), dataMap["member_count"])
 
 		exists, _ := testClient.GroupMember.Query().Where(groupmember.GroupChatID(gc.ID), groupmember.UserID(u2.ID)).Exist(context.Background())
 		assert.False(t, exists)
@@ -815,6 +818,7 @@ func TestKickMember(t *testing.T) {
 		assert.Equal(t, "system_kick", dataMap["type"])
 		actionData := dataMap["action_data"].(map[string]interface{})
 		assert.Equal(t, u3.ID.String(), actionData["target_id"])
+		assert.Equal(t, float64(2), dataMap["member_count"])
 
 		exists, _ := testClient.GroupMember.Query().Where(groupmember.GroupChatID(gc.ID), groupmember.UserID(u3.ID)).Exist(context.Background())
 		assert.False(t, exists)

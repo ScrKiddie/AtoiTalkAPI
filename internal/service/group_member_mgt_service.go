@@ -183,6 +183,13 @@ func (s *GroupChatService) AddMember(ctx context.Context, requestorID uuid.UUID,
 
 	s.redisAdapter.Del(context.Background(), fmt.Sprintf("chat_members:%s", groupID))
 
+	memberCount, err := s.client.GroupMember.Query().
+		Where(groupmember.GroupChatID(gc.ID)).
+		Count(ctx)
+	if err != nil {
+		slog.Error("Failed to count group members after add", "error", err)
+	}
+
 	var responses []*model.MessageResponse
 	var msgIDs []uuid.UUID
 	for _, m := range msgs {
@@ -198,6 +205,7 @@ func (s *GroupChatService) AddMember(ctx context.Context, requestorID uuid.UUID,
 	if err == nil {
 		for i, fullMsg := range fullMsgs {
 			msgResponse := helper.ToMessageResponse(fullMsg, s.storageAdapter, nil)
+			msgResponse.MemberCount = &memberCount
 
 			if i < len(newMembers) {
 				targetUser := newMembers[i]
@@ -242,6 +250,7 @@ func (s *GroupChatService) AddMember(ctx context.Context, requestorID uuid.UUID,
 						Avatar:      avatarURL,
 						LastMessage: lastMsgResponse,
 						UnreadCount: 1,
+						MemberCount: memberCount,
 					}
 
 					s.wsHub.BroadcastToUser(u.ID, websocket.Event{
@@ -334,6 +343,13 @@ func (s *GroupChatService) LeaveGroup(ctx context.Context, userID uuid.UUID, gro
 
 	s.redisAdapter.Del(context.Background(), fmt.Sprintf("chat_members:%s", groupID))
 
+	memberCount, err := s.client.GroupMember.Query().
+		Where(groupmember.GroupChatID(gc.ID)).
+		Count(ctx)
+	if err != nil {
+		slog.Error("Failed to count group members after leave", "error", err)
+	}
+
 	fullMsg, err := s.client.Message.Query().
 		Where(message.ID(systemMsg.ID)).
 		WithSender().
@@ -342,6 +358,7 @@ func (s *GroupChatService) LeaveGroup(ctx context.Context, userID uuid.UUID, gro
 	var msgResponse *model.MessageResponse
 	if err == nil {
 		msgResponse = helper.ToMessageResponse(fullMsg, s.storageAdapter, nil)
+		msgResponse.MemberCount = &memberCount
 	}
 
 	if s.wsHub != nil && msgResponse != nil {
@@ -457,6 +474,13 @@ func (s *GroupChatService) KickMember(ctx context.Context, requestorID uuid.UUID
 
 	s.redisAdapter.Del(context.Background(), fmt.Sprintf("chat_members:%s", groupID))
 
+	memberCount, err := s.client.GroupMember.Query().
+		Where(groupmember.GroupChatID(gc.ID)).
+		Count(ctx)
+	if err != nil {
+		slog.Error("Failed to count group members after kick", "error", err)
+	}
+
 	fullMsg, err := s.client.Message.Query().
 		Where(message.ID(systemMsg.ID)).
 		WithSender().
@@ -465,6 +489,7 @@ func (s *GroupChatService) KickMember(ctx context.Context, requestorID uuid.UUID
 	var msgResponse *model.MessageResponse
 	if err == nil {
 		msgResponse = helper.ToMessageResponse(fullMsg, s.storageAdapter, nil)
+		msgResponse.MemberCount = &memberCount
 		if targetMember.Edges.User != nil && targetMember.Edges.User.FullName != nil {
 			if msgResponse.ActionData == nil {
 				msgResponse.ActionData = make(map[string]interface{})
