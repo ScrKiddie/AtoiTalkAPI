@@ -63,6 +63,7 @@ func TestCreateGroupChat(t *testing.T) {
 		dataMap := resp.Data.(map[string]interface{})
 
 		assert.Equal(t, "Test Group 1", dataMap["name"])
+		assert.Equal(t, "A group for testing", dataMap["description"])
 		assert.Equal(t, "group", dataMap["type"])
 		assert.Equal(t, "owner", dataMap["my_role"])
 		assert.Equal(t, float64(3), dataMap["member_count"])
@@ -100,6 +101,11 @@ func TestCreateGroupChat(t *testing.T) {
 
 		rr := executeRequest(req)
 		assert.Equal(t, http.StatusOK, rr.Code)
+
+		var resp helper.ResponseSuccess
+		json.Unmarshal(rr.Body.Bytes(), &resp)
+		dataMap := resp.Data.(map[string]interface{})
+		assert.True(t, dataMap["is_public"].(bool))
 
 		gc, err := testClient.GroupChat.Query().Where(groupchat.Name("Public Group")).Only(context.Background())
 		assert.NoError(t, err)
@@ -388,8 +394,19 @@ func TestUpdateGroupChat(t *testing.T) {
 		rr := executeRequest(req)
 		assert.Equal(t, http.StatusOK, rr.Code)
 
+		var resp helper.ResponseSuccess
+		json.Unmarshal(rr.Body.Bytes(), &resp)
+		dataMap := resp.Data.(map[string]interface{})
+		assert.Equal(t, "New Description", dataMap["description"])
+
 		gcReload, _ := testClient.GroupChat.Query().Where(groupchat.ID(gc.ID)).Only(context.Background())
 		assert.Equal(t, "New Description", *gcReload.Description)
+
+		lastMsg, err := testClient.Chat.Query().Where(chat.ID(gc.ChatID)).QueryLastMessage().Only(context.Background())
+		if assert.NoError(t, err) {
+			assert.Equal(t, message.TypeSystemDescription, lastMsg.Type)
+			assert.Equal(t, "New Description", lastMsg.ActionData["new_description"])
+		}
 	})
 
 	t.Run("Success - Update IsPublic (Owner)", func(t *testing.T) {
@@ -405,8 +422,19 @@ func TestUpdateGroupChat(t *testing.T) {
 		rr := executeRequest(req)
 		assert.Equal(t, http.StatusOK, rr.Code)
 
+		var resp helper.ResponseSuccess
+		json.Unmarshal(rr.Body.Bytes(), &resp)
+		dataMap := resp.Data.(map[string]interface{})
+		assert.True(t, dataMap["is_public"].(bool))
+
 		gcReload, _ := testClient.GroupChat.Query().Where(groupchat.ID(gc.ID)).Only(context.Background())
 		assert.True(t, gcReload.IsPublic)
+
+		lastMsg, err := testClient.Chat.Query().Where(chat.ID(gc.ChatID)).QueryLastMessage().Only(context.Background())
+		if assert.NoError(t, err) {
+			assert.Equal(t, "system_visibility", string(lastMsg.Type))
+			assert.Equal(t, "public", lastMsg.ActionData["new_visibility"])
+		}
 	})
 
 	t.Run("Success - Update Avatar (Owner)", func(t *testing.T) {
@@ -442,6 +470,36 @@ func TestUpdateGroupChat(t *testing.T) {
 
 		lastMsg, _ := testClient.Chat.Query().Where(chat.ID(gc.ChatID)).QueryLastMessage().Only(context.Background())
 		assert.Equal(t, message.TypeSystemAvatar, lastMsg.Type)
+	})
+
+	t.Run("Success - Delete Avatar (Owner)", func(t *testing.T) {
+
+		gcReload, _ := testClient.GroupChat.Query().Where(groupchat.ID(gc.ID)).WithAvatar().Only(context.Background())
+		assert.NotNil(t, gcReload.Edges.Avatar)
+
+		body := &bytes.Buffer{}
+		writer := multipart.NewWriter(body)
+		_ = writer.WriteField("delete_avatar", "true")
+		writer.Close()
+
+		req, _ := http.NewRequest("PUT", fmt.Sprintf("/api/chats/group/%s", gc.ChatID), body)
+		req.Header.Set("Content-Type", writer.FormDataContentType())
+		req.Header.Set("Authorization", "Bearer "+token1)
+
+		rr := executeRequest(req)
+		assert.Equal(t, http.StatusOK, rr.Code)
+
+		var resp helper.ResponseSuccess
+		json.Unmarshal(rr.Body.Bytes(), &resp)
+		dataMap := resp.Data.(map[string]interface{})
+		assert.Empty(t, dataMap["avatar"])
+
+		gcReload, _ = testClient.GroupChat.Query().Where(groupchat.ID(gc.ID)).WithAvatar().Only(context.Background())
+		assert.Nil(t, gcReload.Edges.Avatar)
+
+		lastMsg, _ := testClient.Chat.Query().Where(chat.ID(gc.ChatID)).QueryLastMessage().Only(context.Background())
+		assert.Equal(t, message.TypeSystemAvatar, lastMsg.Type)
+		assert.Equal(t, "removed", lastMsg.ActionData["action"])
 	})
 
 	t.Run("Fail - Member (Not Admin/Owner)", func(t *testing.T) {

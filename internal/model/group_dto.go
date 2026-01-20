@@ -15,10 +15,11 @@ type CreateGroupChatRequest struct {
 }
 
 type UpdateGroupChatRequest struct {
-	Name        *string               `form:"name" validate:"omitempty,min=3,max=100"`
-	Description *string               `form:"description" validate:"omitempty,max=255"`
-	Avatar      *multipart.FileHeader `form:"avatar" validate:"omitempty"`
-	IsPublic    *bool                 `form:"is_public"`
+	Name         *string               `form:"name" validate:"omitempty,min=3,max=100"`
+	Description  *string               `form:"description" validate:"omitempty,max=255"`
+	Avatar       *multipart.FileHeader `form:"avatar" validate:"omitempty"`
+	IsPublic     *bool                 `form:"is_public"`
+	DeleteAvatar bool                  `form:"delete_avatar"`
 }
 
 type SearchGroupMembersRequest struct {

@@ -34,6 +34,7 @@ func (Message) Fields() []ent.Field {
 				"system_kick",
 				"system_promote",
 				"system_demote",
+				"system_visibility",
 			).
 			Default("regular"),
 		field.Text("content").Optional().Nillable(),

@@ -96,6 +96,8 @@ components:
       properties:
         avatar:
           type: string
+        description:
+          type: string
         hidden_at:
           type: string
         id:
@@ -105,6 +107,8 @@ components:
         is_blocked_by_other:
           type: boolean
         is_online:
+          type: boolean
+        is_public:
           type: boolean
         last_message:
           $ref: '#/components/schemas/model.MessageResponse'
@@ -281,15 +285,16 @@ components:
             - system_create: { "initial_name": string }
             - system_rename: { "old_name": string, "new_name": string }
             - system_description: { "old_description": string, "new_description": string }
-            - system_avatar: { "action": "updated" }
-            - system_add: { "target_id": uuid, "actor_id": uuid }
-            - system_kick: { "target_id": uuid, "actor_id": uuid }
-            - system_promote: { "target_id": uuid, "actor_id": uuid, "new_role": string }
-            - system_demote: { "target_id": uuid, "actor_id": uuid, "new_role": string }
-            - system_transfer: { "target_id": uuid, "actor_id": uuid, "new_role": "owner", "action": "ownership_transferred" }
+            - system_avatar: { "action": "updated" | "removed" }
+            - system_add: { "target_id": uuid, "actor_id": uuid, "target_name": string }
+            - system_join: (empty, relies on sender_id)
             - system_leave: (empty, relies on sender_id)
+            - system_kick: { "target_id": uuid, "actor_id": uuid, "target_name": string }
+            - system_promote: { "target_id": uuid, "actor_id": uuid, "new_role": "admin" | "owner", "target_name": string, "action": "ownership_transferred" (optional) }
+            - system_demote: { "target_id": uuid, "actor_id": uuid, "new_role": "member", "target_name": string }
+            - system_visibility: { "new_visibility": "public" | "private" }
 
-            Note: "target_name" and "actor_name" are injected dynamically by the backend for display convenience.
+            Note: "target_name" is injected dynamically by the backend for display convenience.
           type: object
         attachments:
           items:
@@ -1724,8 +1729,8 @@ paths:
       tags:
       - chat
     put:
-      description: Update group name, description, or avatar. Only owners or admins
-        can perform this action.
+      description: Update group name, description, avatar, or visibility. Only owners
+        or admins can perform this action.
       parameters:
       - description: Group Chat ID (UUID)
         in: path
@@ -1744,13 +1749,15 @@ paths:
                 type: string
               - title: avatar
                 type: file
+              - title: delete_avatar
+                type: boolean
               - title: is_public
                 type: boolean
           multipart/form-data:
             schema:
               type: object
-        description: Group Name | Group Description | Group Avatar Image | Is Public
-          Group
+        description: Group Name | Group Description | Group Avatar Image | Delete
+          Avatar (Set to true to delete current avatar) | Is Public Group
       responses:
         "200":
           content:

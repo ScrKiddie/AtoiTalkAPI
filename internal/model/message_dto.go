@@ -36,15 +36,16 @@ type MessageResponse struct {
 	// - system_create: { "initial_name": string }
 	// - system_rename: { "old_name": string, "new_name": string }
 	// - system_description: { "old_description": string, "new_description": string }
-	// - system_avatar: { "action": "updated" }
-	// - system_add: { "target_id": uuid, "actor_id": uuid }
-	// - system_kick: { "target_id": uuid, "actor_id": uuid }
-	// - system_promote: { "target_id": uuid, "actor_id": uuid, "new_role": string }
-	// - system_demote: { "target_id": uuid, "actor_id": uuid, "new_role": string }
-	// - system_transfer: { "target_id": uuid, "actor_id": uuid, "new_role": "owner", "action": "ownership_transferred" }
+	// - system_avatar: { "action": "updated" | "removed" }
+	// - system_add: { "target_id": uuid, "actor_id": uuid, "target_name": string }
+	// - system_join: (empty, relies on sender_id)
 	// - system_leave: (empty, relies on sender_id)
+	// - system_kick: { "target_id": uuid, "actor_id": uuid, "target_name": string }
+	// - system_promote: { "target_id": uuid, "actor_id": uuid, "new_role": "admin" | "owner", "target_name": string, "action": "ownership_transferred" (optional) }
+	// - system_demote: { "target_id": uuid, "actor_id": uuid, "new_role": "member", "target_name": string }
+	// - system_visibility: { "new_visibility": "public" | "private" }
 	//
-	// Note: "target_name" and "actor_name" are injected dynamically by the backend for display convenience.
+	// Note: "target_name" is injected dynamically by the backend for display convenience.
 	ActionData  map[string]interface{} `json:"action_data,omitempty"`
 	Attachments []MediaDTO             `json:"attachments,omitempty"`
 	ReplyTo     *ReplyPreviewDTO       `json:"reply_to,omitempty"`
