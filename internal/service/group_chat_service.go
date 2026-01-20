@@ -250,6 +250,8 @@ func (s *GroupChatService) CreateGroupChat(ctx context.Context, creatorID uuid.U
 		ID:          newChat.ID,
 		Type:        string(newChat.Type),
 		Name:        newGroupChat.Name,
+		Description: newGroupChat.Description,
+		IsPublic:    &newGroupChat.IsPublic,
 		Avatar:      avatarURL,
 		LastMessage: lastMsgResp,
 		UnreadCount: 0,
@@ -372,6 +374,19 @@ func (s *GroupChatService) UpdateGroupChat(ctx context.Context, requestorID uuid
 
 	if req.IsPublic != nil && *req.IsPublic != gc.IsPublic {
 		update.SetIsPublic(*req.IsPublic)
+
+		newVisibility := "private"
+		if *req.IsPublic {
+			newVisibility = "public"
+		}
+
+		systemMessages = append(systemMessages, tx.Message.Create().
+			SetChatID(gc.ChatID).
+			SetSenderID(requestorID).
+			SetType(message.TypeSystemVisibility).
+			SetActionData(map[string]interface{}{
+				"new_visibility": newVisibility,
+			}))
 		hasChanges = true
 	}
 
@@ -379,7 +394,17 @@ func (s *GroupChatService) UpdateGroupChat(ctx context.Context, requestorID uuid
 	var fileUploadPath string
 	var fileContentType string
 
-	if req.Avatar != nil {
+	if req.DeleteAvatar {
+		update.ClearAvatar()
+		systemMessages = append(systemMessages, tx.Message.Create().
+			SetChatID(gc.ChatID).
+			SetSenderID(requestorID).
+			SetType(message.TypeSystemAvatar).
+			SetActionData(map[string]interface{}{
+				"action": "removed",
+			}))
+		hasChanges = true
+	} else if req.Avatar != nil {
 		file, err := req.Avatar.Open()
 		if err != nil {
 			slog.Error("Failed to open avatar file", "error", err)
@@ -433,11 +458,13 @@ func (s *GroupChatService) UpdateGroupChat(ctx context.Context, requestorID uuid
 		}
 		myRole := string(requestorMember.Role)
 		return &model.ChatListResponse{
-			ID:     gc.Edges.Chat.ID,
-			Type:   string(chat.TypeGroup),
-			Name:   gc.Name,
-			Avatar: avatarURL,
-			MyRole: &myRole,
+			ID:          gc.Edges.Chat.ID,
+			Type:        string(chat.TypeGroup),
+			Name:        gc.Name,
+			Description: gc.Description,
+			IsPublic:    &gc.IsPublic,
+			Avatar:      avatarURL,
+			MyRole:      &myRole,
 		}, nil
 	}
 
@@ -518,6 +545,8 @@ func (s *GroupChatService) UpdateGroupChat(ctx context.Context, requestorID uuid
 				ID:          gc.Edges.Chat.ID,
 				Type:        string(chat.TypeGroup),
 				Name:        updatedGroup.Name,
+				Description: updatedGroup.Description,
+				IsPublic:    &updatedGroup.IsPublic,
 				Avatar:      avatarURL,
 				LastMessage: msgResponse,
 			}
@@ -536,10 +565,9 @@ func (s *GroupChatService) UpdateGroupChat(ctx context.Context, requestorID uuid
 
 	avatarURL := ""
 
-	if req.Avatar == nil && gc.Edges.Avatar != nil {
+	if req.Avatar == nil && !req.DeleteAvatar && gc.Edges.Avatar != nil {
 		avatarURL = s.storageAdapter.GetPublicURL(gc.Edges.Avatar.FileName)
 	} else if req.Avatar != nil {
-
 		updatedGroupWithAvatar, _ := s.client.GroupChat.Query().Where(groupchat.ID(updatedGroup.ID)).WithAvatar().Only(context.Background())
 		if updatedGroupWithAvatar.Edges.Avatar != nil {
 			avatarURL = s.storageAdapter.GetPublicURL(updatedGroupWithAvatar.Edges.Avatar.FileName)
@@ -549,11 +577,13 @@ func (s *GroupChatService) UpdateGroupChat(ctx context.Context, requestorID uuid
 	myRole := string(requestorMember.Role)
 
 	return &model.ChatListResponse{
-		ID:     gc.Edges.Chat.ID,
-		Type:   string(chat.TypeGroup),
-		Name:   updatedGroup.Name,
-		Avatar: avatarURL,
-		MyRole: &myRole,
+		ID:          gc.Edges.Chat.ID,
+		Type:        string(chat.TypeGroup),
+		Name:        updatedGroup.Name,
+		Description: updatedGroup.Description,
+		IsPublic:    &updatedGroup.IsPublic,
+		Avatar:      avatarURL,
+		MyRole:      &myRole,
 	}, nil
 }
 

@@ -262,12 +262,12 @@ components:
           description: Avatar URL of the sender
         type:
           type: string
-          description: Type of the message (regular, system_create, system_add, system_rename, system_description, system_avatar, system_leave, system_promote, system_demote, system_kick, etc.)
+          description: Type of the message (regular, system_create, system_add, system_rename, system_description, system_avatar, system_leave, system_promote, system_demote, system_kick, system_visibility, etc.)
         content:
           type: string
         action_data:
           type: object
-          description: Metadata for system messages (e.g. target_id, new_name, old_name, new_description, new_role, action)
+          description: Metadata for system messages (e.g. target_id, new_name, old_name, new_description, new_role, action, new_visibility)
         attachments:
           type: array
           items:
@@ -301,6 +301,12 @@ components:
           enum: [private, group]
         name:
           type: string
+        description:
+          type: string
+          description: Group description (Omitted for private chat)
+        is_public:
+          type: boolean
+          description: True if group is public (Omitted for private chat)
         avatar:
           type: string
           format: uri

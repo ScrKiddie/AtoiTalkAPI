@@ -35,7 +35,7 @@ func NewGroupChatController(groupChatService *service.GroupChatService) *GroupCh
 // @Param        member_ids formData string true "JSON Array of Member IDs (UUIDs)"
 // @Param        avatar formData file false "Group Avatar Image"
 // @Param        is_public formData boolean false "Is Public Group"
-// @Success      200  {object}  helper.ResponseSuccess{data=model.ChatResponse}
+// @Success      200  {object}  helper.ResponseSuccess{data=model.ChatListResponse}
 // @Failure      400  {object}  helper.ResponseError
 // @Failure      401  {object}  helper.ResponseError
 // @Failure      403  {object}  helper.ResponseError
@@ -105,7 +105,7 @@ func (c *GroupChatController) CreateGroupChat(w http.ResponseWriter, r *http.Req
 
 // UpdateGroupChat godoc
 // @Summary      Update Group Chat Info
-// @Description  Update group name, description, or avatar. Only owners or admins can perform this action.
+// @Description  Update group name, description, avatar, or visibility. Only owners or admins can perform this action.
 // @Tags         chat
 // @Accept       multipart/form-data
 // @Produce      json
@@ -113,6 +113,7 @@ func (c *GroupChatController) CreateGroupChat(w http.ResponseWriter, r *http.Req
 // @Param        name formData string false "Group Name"
 // @Param        description formData string false "Group Description"
 // @Param        avatar formData file false "Group Avatar Image"
+// @Param        delete_avatar formData boolean false "Delete Avatar (Set to true to delete current avatar)"
 // @Param        is_public formData boolean false "Is Public Group"
 // @Success      200  {object}  helper.ResponseSuccess{data=model.ChatListResponse}
 // @Failure      400  {object}  helper.ResponseError
@@ -155,6 +156,10 @@ func (c *GroupChatController) UpdateGroupChat(w http.ResponseWriter, r *http.Req
 	if _, ok := r.MultipartForm.Value["is_public"]; ok {
 		isPublic, _ := strconv.ParseBool(r.FormValue("is_public"))
 		req.IsPublic = &isPublic
+	}
+	if _, ok := r.MultipartForm.Value["delete_avatar"]; ok {
+		deleteAvatar, _ := strconv.ParseBool(r.FormValue("delete_avatar"))
+		req.DeleteAvatar = deleteAvatar
 	}
 
 	_, header, err := r.FormFile("avatar")
@@ -601,7 +606,7 @@ func (c *GroupChatController) JoinPublicGroup(w http.ResponseWriter, r *http.Req
 // @Accept       json
 // @Produce      json
 // @Param        request body model.JoinGroupByInviteRequest true "Join Request"
-// @Success      200  {object}  helper.ResponseSuccess{data=model.ChatResponse}
+// @Success      200  {object}  helper.ResponseSuccess{data=model.ChatListResponse}
 // @Failure      400  {object}  helper.ResponseError
 // @Failure      401  {object}  helper.ResponseError
 // @Failure      404  {object}  helper.ResponseError

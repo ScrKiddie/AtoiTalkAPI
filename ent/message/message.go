@@ -143,6 +143,7 @@ const (
 	TypeSystemKick        Type = "system_kick"
 	TypeSystemPromote     Type = "system_promote"
 	TypeSystemDemote      Type = "system_demote"
+	TypeSystemVisibility  Type = "system_visibility"
 )
 
 func (_type Type) String() string {
@@ -152,7 +153,7 @@ func (_type Type) String() string {
 // TypeValidator is a validator for the "type" field enum values. It is called by the builders before save.
 func TypeValidator(_type Type) error {
 	switch _type {
-	case TypeRegular, TypeSystemCreate, TypeSystemRename, TypeSystemDescription, TypeSystemAvatar, TypeSystemJoin, TypeSystemAdd, TypeSystemLeave, TypeSystemKick, TypeSystemPromote, TypeSystemDemote:
+	case TypeRegular, TypeSystemCreate, TypeSystemRename, TypeSystemDescription, TypeSystemAvatar, TypeSystemJoin, TypeSystemAdd, TypeSystemLeave, TypeSystemKick, TypeSystemPromote, TypeSystemDemote, TypeSystemVisibility:
 		return nil
 	default:
 		return fmt.Errorf("message: invalid enum value for type field: %q", _type)

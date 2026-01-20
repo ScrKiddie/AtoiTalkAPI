@@ -155,6 +155,9 @@ const docTemplate = `{
                     "avatar": {
                         "type": "string"
                     },
+                    "description": {
+                        "type": "string"
+                    },
                     "hidden_at": {
                         "type": "string"
                     },
@@ -168,6 +171,9 @@ const docTemplate = `{
                         "type": "boolean"
                     },
                     "is_online": {
+                        "type": "boolean"
+                    },
+                    "is_public": {
                         "type": "boolean"
                     },
                     "last_message": {
@@ -424,7 +430,7 @@ const docTemplate = `{
                 "properties": {
                     "action_data": {
                         "additionalProperties": {},
-                        "description": "ActionData contains metadata for system messages.\n\nStructure depends on Type:\n- system_create: { \"initial_name\": string }\n- system_rename: { \"old_name\": string, \"new_name\": string }\n- system_description: { \"old_description\": string, \"new_description\": string }\n- system_avatar: { \"action\": \"updated\" }\n- system_add: { \"target_id\": uuid, \"actor_id\": uuid }\n- system_kick: { \"target_id\": uuid, \"actor_id\": uuid }\n- system_promote: { \"target_id\": uuid, \"actor_id\": uuid, \"new_role\": string }\n- system_demote: { \"target_id\": uuid, \"actor_id\": uuid, \"new_role\": string }\n- system_transfer: { \"target_id\": uuid, \"actor_id\": uuid, \"new_role\": \"owner\", \"action\": \"ownership_transferred\" }\n- system_leave: (empty, relies on sender_id)\n\nNote: \"target_name\" and \"actor_name\" are injected dynamically by the backend for display convenience.",
+                        "description": "ActionData contains metadata for system messages.\n\nStructure depends on Type:\n- system_create: { \"initial_name\": string }\n- system_rename: { \"old_name\": string, \"new_name\": string }\n- system_description: { \"old_description\": string, \"new_description\": string }\n- system_avatar: { \"action\": \"updated\" | \"removed\" }\n- system_add: { \"target_id\": uuid, \"actor_id\": uuid, \"target_name\": string }\n- system_join: (empty, relies on sender_id)\n- system_leave: (empty, relies on sender_id)\n- system_kick: { \"target_id\": uuid, \"actor_id\": uuid, \"target_name\": string }\n- system_promote: { \"target_id\": uuid, \"actor_id\": uuid, \"new_role\": \"admin\" | \"owner\", \"target_name\": string, \"action\": \"ownership_transferred\" (optional) }\n- system_demote: { \"target_id\": uuid, \"actor_id\": uuid, \"new_role\": \"member\", \"target_name\": string }\n- system_visibility: { \"new_visibility\": \"public\" | \"private\" }\n\nNote: \"target_name\" is injected dynamically by the backend for display convenience.",
                         "type": "object"
                     },
                     "attachments": {
@@ -2655,7 +2661,7 @@ const docTemplate = `{
                 ]
             },
             "put": {
-                "description": "Update group name, description, or avatar. Only owners or admins can perform this action.",
+                "description": "Update group name, description, avatar, or visibility. Only owners or admins can perform this action.",
                 "parameters": [
                     {
                         "description": "Group Chat ID (UUID)",
@@ -2685,6 +2691,10 @@ const docTemplate = `{
                                         "type": "file"
                                     },
                                     {
+                                        "title": "delete_avatar",
+                                        "type": "boolean"
+                                    },
+                                    {
                                         "title": "is_public",
                                         "type": "boolean"
                                     }
@@ -2697,7 +2707,7 @@ const docTemplate = `{
                             }
                         }
                     },
-                    "description": "Group Name | Group Description | Group Avatar Image | Is Public Group"
+                    "description": "Group Name | Group Description | Group Avatar Image | Delete Avatar (Set to true to delete current avatar) | Is Public Group"
                 },
                 "responses": {
                     "200": {

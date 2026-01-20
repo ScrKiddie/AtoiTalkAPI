@@ -16,6 +16,8 @@ type BlockStatus struct {
 
 func MapChatToResponse(userID uuid.UUID, c *ent.Chat, blockedMap map[uuid.UUID]BlockStatus, onlineMap map[uuid.UUID]bool, urlGen URLGenerator) *model.ChatListResponse {
 	var name, avatar string
+	var description *string
+	var isPublic *bool
 	var lastReadAt *string
 	var otherLastReadAt *string
 	var hiddenAtStr *string
@@ -99,6 +101,8 @@ func MapChatToResponse(userID uuid.UUID, c *ent.Chat, blockedMap map[uuid.UUID]B
 	} else if c.Type == chat.TypeGroup && c.Edges.GroupChat != nil {
 		gc := c.Edges.GroupChat
 		name = gc.Name
+		description = gc.Description
+		isPublic = &gc.IsPublic
 		if gc.Edges.Avatar != nil {
 			avatar = urlGen.GetPublicURL(gc.Edges.Avatar.FileName)
 		}
@@ -124,6 +128,8 @@ func MapChatToResponse(userID uuid.UUID, c *ent.Chat, blockedMap map[uuid.UUID]B
 		ID:                 c.ID,
 		Type:               string(c.Type),
 		Name:               name,
+		Description:        description,
+		IsPublic:           isPublic,
 		Avatar:             avatar,
 		LastMessage:        lastMsgResp,
 		UnreadCount:        unreadCount,

@@ -164,7 +164,7 @@ var (
 		{Name: "id", Type: field.TypeUUID},
 		{Name: "created_at", Type: field.TypeTime, Default: "CURRENT_TIMESTAMP"},
 		{Name: "updated_at", Type: field.TypeTime, Default: "CURRENT_TIMESTAMP"},
-		{Name: "type", Type: field.TypeEnum, Enums: []string{"regular", "system_create", "system_rename", "system_description", "system_avatar", "system_join", "system_add", "system_leave", "system_kick", "system_promote", "system_demote"}, Default: "regular"},
+		{Name: "type", Type: field.TypeEnum, Enums: []string{"regular", "system_create", "system_rename", "system_description", "system_avatar", "system_join", "system_add", "system_leave", "system_kick", "system_promote", "system_demote", "system_visibility"}, Default: "regular"},
 		{Name: "content", Type: field.TypeString, Nullable: true, Size: 2147483647},
 		{Name: "action_data", Type: field.TypeJSON, Nullable: true},
 		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
