@@ -452,6 +452,9 @@ const docTemplate = `{
                     "id": {
                         "type": "string"
                     },
+                    "member_count": {
+                        "type": "integer"
+                    },
                     "reply_to": {
                         "$ref": "#/components/schemas/model.ReplyPreviewDTO"
                     },

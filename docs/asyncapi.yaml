@@ -286,6 +286,9 @@ components:
           type: string
           format: date-time
           description: If present, the message has been edited.
+        member_count:
+          type: integer
+          description: Total number of active members in the group (for system messages).
 
     ChatListResponse:
       type: object

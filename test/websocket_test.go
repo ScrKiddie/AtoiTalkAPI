@@ -725,6 +725,12 @@ func TestWebSocketAddGroupMember(t *testing.T) {
 	assert.NotNil(t, events3[websocket.EventChatNew], "u3 should receive chat.new")
 	assert.NotNil(t, events3[websocket.EventMessageNew], "u3 should receive message.new")
 
+	if msgEvent, ok := events3[websocket.EventMessageNew]; ok {
+		payloadMap, ok := msgEvent.Payload.(map[string]interface{})
+		assert.True(t, ok)
+		assert.Equal(t, float64(3), payloadMap["member_count"], "member_count should be 3")
+	}
+
 	assert.NotNil(t, waitForEvent(t, conn1, websocket.EventMessageNew, 2*time.Second), "u1 should receive message.new")
 	assert.NotNil(t, waitForEvent(t, conn2, websocket.EventMessageNew, 2*time.Second), "u2 should receive message.new")
 }
@@ -819,7 +825,8 @@ func TestWebSocketKickMember(t *testing.T) {
 	executeRequest(kickReq)
 
 	assert.NotNil(t, waitForEvent(t, conn1, websocket.EventMessageNew, 2*time.Second))
-	assert.NotNil(t, waitForEvent(t, conn2, websocket.EventMessageNew, 2*time.Second))
+
+	verifyEvent(t, conn2, websocket.EventMessageNew, u1.ID, uuid.Nil)
 }
 
 func TestWebSocketUpdateRole(t *testing.T) {
@@ -864,8 +871,8 @@ func TestWebSocketUpdateRole(t *testing.T) {
 	roleReq.Header.Set("Authorization", "Bearer "+token1)
 	executeRequest(roleReq)
 
-	assert.NotNil(t, waitForEvent(t, conn1, websocket.EventMessageNew, 2*time.Second))
-	assert.NotNil(t, waitForEvent(t, conn2, websocket.EventMessageNew, 2*time.Second))
+	verifyEvent(t, conn1, websocket.EventMessageNew, u1.ID, uuid.Nil)
+	verifyEvent(t, conn2, websocket.EventMessageNew, u1.ID, uuid.Nil)
 }
 
 func TestWebSocketTransferOwnership(t *testing.T) {
@@ -910,8 +917,8 @@ func TestWebSocketTransferOwnership(t *testing.T) {
 	transferReq.Header.Set("Authorization", "Bearer "+token1)
 	executeRequest(transferReq)
 
-	assert.NotNil(t, waitForEvent(t, conn1, websocket.EventMessageNew, 2*time.Second))
-	assert.NotNil(t, waitForEvent(t, conn2, websocket.EventMessageNew, 2*time.Second))
+	verifyEvent(t, conn1, websocket.EventMessageNew, u1.ID, uuid.Nil)
+	verifyEvent(t, conn2, websocket.EventMessageNew, u1.ID, uuid.Nil)
 }
 
 func TestWebSocketAccountDeletion(t *testing.T) {
@@ -942,7 +949,7 @@ func TestWebSocketAccountDeletion(t *testing.T) {
 	req.Header.Set("Content-Type", "application/json")
 	executeRequest(req)
 
-	assert.NotNil(t, waitForEvent(t, conn2, websocket.EventUserDeleted, 2*time.Second))
+	verifyEvent(t, conn2, websocket.EventUserDeleted, u1.ID, uuid.Nil)
 }
 
 func TestWebSocketUnbanEvent(t *testing.T) {
@@ -974,7 +981,7 @@ func TestWebSocketUnbanEvent(t *testing.T) {
 	reqUnban.Header.Set("Authorization", "Bearer "+adminToken)
 	executeRequest(reqUnban)
 
-	assert.NotNil(t, waitForEvent(t, conn2, websocket.EventUserUnbanned, 2*time.Second))
+	verifyEvent(t, conn2, websocket.EventUserUnbanned, admin.ID, uuid.Nil)
 }
 
 func TestWebSocketJoinGroupEvents(t *testing.T) {
@@ -1026,11 +1033,10 @@ func TestWebSocketJoinGroupEvents(t *testing.T) {
 	joinReq.Header.Set("Authorization", "Bearer "+token2)
 	executeRequest(joinReq)
 
-	events := waitForEvents(t, conn2, []websocket.EventType{websocket.EventChatNew, websocket.EventMessageNew}, 2*time.Second)
-	assert.NotNil(t, events[websocket.EventChatNew], "User 2 should receive chat.new")
-	assert.NotNil(t, events[websocket.EventMessageNew], "User 2 should receive message.new")
+	verifyEvent(t, conn2, websocket.EventChatNew, u2.ID, uuid.Nil)
 
-	assert.NotNil(t, waitForEvent(t, conn1, websocket.EventMessageNew, 2*time.Second))
+	verifyEvent(t, conn1, websocket.EventMessageNew, u2.ID, uuid.Nil)
+	verifyEvent(t, conn2, websocket.EventMessageNew, u2.ID, uuid.Nil)
 }
 
 func createWSUser(t *testing.T, username, email string) *ent.User {
@@ -1059,4 +1065,33 @@ func createWSPrivateChat(t *testing.T, user2ID uuid.UUID, token string) {
 	req.Header.Set("Content-Type", "application/json")
 	rr := executeRequest(req)
 	assert.Equal(t, http.StatusOK, rr.Code)
+}
+
+func verifyEvent(t *testing.T, conn *ws.Conn, eventType websocket.EventType, senderID, blockedID uuid.UUID) {
+	conn.SetReadDeadline(time.Now().UTC().Add(2 * time.Second))
+	foundEvent := false
+	for i := 0; i < 5; i++ {
+		_, message, err := conn.ReadMessage()
+		if err != nil {
+			break
+		}
+		var event websocket.Event
+		json.Unmarshal(message, &event)
+
+		if event.Type == eventType {
+			foundEvent = true
+			if event.Meta != nil {
+				assert.Equal(t, senderID.String(), event.Meta.SenderID.String())
+			}
+
+			if eventType == websocket.EventUserBlock || eventType == websocket.EventUserUnblock {
+				payload, ok := event.Payload.(map[string]interface{})
+				assert.True(t, ok)
+				assert.Equal(t, senderID.String(), payload["blocker_id"])
+				assert.Equal(t, blockedID.String(), payload["blocked_id"])
+			}
+			break
+		}
+	}
+	assert.True(t, foundEvent, "Should have received event '"+string(eventType)+"'")
 }

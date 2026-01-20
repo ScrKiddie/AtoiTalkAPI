@@ -51,6 +51,7 @@ type MessageResponse struct {
 	CreatedAt   string                 `json:"created_at"`
 	DeletedAt   *string                `json:"deleted_at,omitempty"`
 	EditedAt    *string                `json:"edited_at,omitempty"`
+	MemberCount *int                   `json:"member_count,omitempty"`
 }
 
 type ReplyPreviewDTO struct {

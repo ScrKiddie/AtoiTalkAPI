@@ -308,6 +308,8 @@ components:
           type: string
         id:
           type: string
+        member_count:
+          type: integer
         reply_to:
           $ref: '#/components/schemas/model.ReplyPreviewDTO'
         sender_avatar:
