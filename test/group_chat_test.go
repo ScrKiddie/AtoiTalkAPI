@@ -440,7 +440,11 @@ func TestUpdateGroupChat(t *testing.T) {
 		}
 	})
 
-	t.Run("Success - Update IsPublic to False (Should Add Expiry)", func(t *testing.T) {
+	t.Run("Success - Update IsPublic to False (Should Add Expiry and Reset Code)", func(t *testing.T) {
+		
+		gcBefore, _ := testClient.GroupChat.Query().Where(groupchat.ID(gc.ID)).Only(context.Background())
+		oldCode := gcBefore.InviteCode
+
 		body := &bytes.Buffer{}
 		writer := multipart.NewWriter(body)
 		_ = writer.WriteField("is_public", "false")
@@ -456,6 +460,7 @@ func TestUpdateGroupChat(t *testing.T) {
 		gcReload, _ := testClient.GroupChat.Query().Where(groupchat.ID(gc.ID)).Only(context.Background())
 		assert.False(t, gcReload.IsPublic)
 		assert.NotNil(t, gcReload.InviteExpiresAt, "Private group should have InviteExpiresAt")
+		assert.NotEqual(t, oldCode, gcReload.InviteCode, "Invite code should be reset when changing to private")
 
 		lastMsg, err := testClient.Chat.Query().Where(chat.ID(gc.ChatID)).QueryLastMessage().Only(context.Background())
 		if assert.NoError(t, err) {

@@ -41,8 +41,8 @@ func TestGetChats(t *testing.T) {
 	chat2.Update().SetLastMessage(msg2).SetLastMessageAt(msg2.CreatedAt).ExecX(context.Background())
 
 	chat3 := testClient.Chat.Create().SetType(chat.TypeGroup).SetUpdatedAt(time.Now().UTC()).SaveX(context.Background())
-	gc := testClient.GroupChat.Create().SetChat(chat3).SetCreator(u1).SetName("My Group").SetInviteCode("mygroup").SaveX(context.Background())
-	testClient.GroupMember.Create().SetGroupChat(gc).SetUser(u1).SetUnreadCount(5).SaveX(context.Background())
+	gc := testClient.GroupChat.Create().SetChat(chat3).SetCreator(u1).SetName("My Group").SetInviteCode("mygroup").SetInviteExpiresAt(time.Now().Add(time.Hour)).SaveX(context.Background())
+	testClient.GroupMember.Create().SetGroupChat(gc).SetUser(u1).SetRole(groupmember.RoleOwner).SetUnreadCount(5).SaveX(context.Background())
 	msg3 := testClient.Message.Create().SetChat(chat3).SetSender(u1).SetType(message.TypeRegular).SetContent("Group message").SetCreatedAt(time.Now().UTC()).SaveX(context.Background())
 	chat3.Update().SetLastMessage(msg3).SetLastMessageAt(msg3.CreatedAt).ExecX(context.Background())
 
@@ -70,6 +70,7 @@ func TestGetChats(t *testing.T) {
 		assert.Equal(t, "My Group", c1["name"])
 		assert.Equal(t, float64(5), c1["unread_count"])
 		assert.Equal(t, "mygroup", c1["invite_code"], "Group chat should have invite_code")
+		assert.NotNil(t, c1["invite_expires_at"], "Owner should see invite_expires_at")
 		assert.Nil(t, c1["other_user_id"], "Group chat should not have other_user_id")
 		lastMsg1, _ := c1["last_message"].(map[string]interface{})
 		assert.Equal(t, "regular", lastMsg1["type"])
@@ -369,6 +370,7 @@ func TestGetChatByID(t *testing.T) {
 	u3 := createTestUser(t, "user3")
 
 	token1, _ := helper.GenerateJWT(testConfig.JWTSecret, testConfig.JWTExp, u1.ID)
+	token3, _ := helper.GenerateJWT(testConfig.JWTSecret, testConfig.JWTExp, u3.ID)
 
 	chat1 := testClient.Chat.Create().SetType(chat.TypePrivate).SaveX(context.Background())
 	testClient.PrivateChat.Create().SetChat(chat1).SetUser1(u1).SetUser2(u2).SetUser1UnreadCount(3).SaveX(context.Background())
@@ -410,12 +412,11 @@ func TestGetChatByID(t *testing.T) {
 		testClient.UserBlock.Delete().Where(userblock.BlockerID(u1.ID), userblock.BlockedID(u2.ID)).ExecX(context.Background())
 	})
 
-	t.Run("Success - Get Group Chat with Member Count", func(t *testing.T) {
+	t.Run("Success - Get Group Chat as Owner (Should see expiry)", func(t *testing.T) {
 		chatGroup := testClient.Chat.Create().SetType(chat.TypeGroup).SaveX(context.Background())
-		gc := testClient.GroupChat.Create().SetChat(chatGroup).SetCreator(u1).SetName("Count Test").SetInviteCode("counttest").SaveX(context.Background())
-		testClient.GroupMember.Create().SetGroupChat(gc).SetUser(u1).SaveX(context.Background())
+		gc := testClient.GroupChat.Create().SetChat(chatGroup).SetCreator(u1).SetName("Count Test").SetInviteCode("counttest").SetInviteExpiresAt(time.Now().Add(time.Hour)).SaveX(context.Background())
+		testClient.GroupMember.Create().SetGroupChat(gc).SetUser(u1).SetRole(groupmember.RoleOwner).SaveX(context.Background())
 		testClient.GroupMember.Create().SetGroupChat(gc).SetUser(u2).SaveX(context.Background())
-		testClient.GroupMember.Create().SetGroupChat(gc).SetUser(u3).SaveX(context.Background())
 
 		req, _ := http.NewRequest("GET", fmt.Sprintf("/api/chats/%s", chatGroup.ID), nil)
 		req.Header.Set("Authorization", "Bearer "+token1)
@@ -427,8 +428,29 @@ func TestGetChatByID(t *testing.T) {
 		json.Unmarshal(rr.Body.Bytes(), &resp)
 		data := resp.Data.(map[string]interface{})
 
-		assert.Equal(t, float64(3), data["member_count"])
+		assert.Equal(t, float64(2), data["member_count"])
 		assert.Equal(t, "counttest", data["invite_code"], "Group chat should have invite_code")
+		assert.NotNil(t, data["invite_expires_at"], "Owner should see invite_expires_at")
+	})
+
+	t.Run("Success - Get Group Chat as Member (Should NOT see expiry)", func(t *testing.T) {
+		chatGroup := testClient.Chat.Create().SetType(chat.TypeGroup).SaveX(context.Background())
+		gc := testClient.GroupChat.Create().SetChat(chatGroup).SetCreator(u1).SetName("Member Test").SetInviteCode("membertest").SetInviteExpiresAt(time.Now().Add(time.Hour)).SaveX(context.Background())
+		testClient.GroupMember.Create().SetGroupChat(gc).SetUser(u1).SetRole(groupmember.RoleOwner).SaveX(context.Background())
+		testClient.GroupMember.Create().SetGroupChat(gc).SetUser(u3).SetRole(groupmember.RoleMember).SaveX(context.Background())
+
+		req, _ := http.NewRequest("GET", fmt.Sprintf("/api/chats/%s", chatGroup.ID), nil)
+		req.Header.Set("Authorization", "Bearer "+token3)
+
+		rr := executeRequest(req)
+		assert.Equal(t, http.StatusOK, rr.Code)
+
+		var resp helper.ResponseSuccess
+		json.Unmarshal(rr.Body.Bytes(), &resp)
+		data := resp.Data.(map[string]interface{})
+
+		assert.Equal(t, "membertest", data["invite_code"])
+		assert.Nil(t, data["invite_expires_at"], "Regular member should NOT see invite_expires_at")
 	})
 
 	t.Run("Success - Get Public Group (Non-Member)", func(t *testing.T) {

@@ -3,6 +3,7 @@ package helper
 import (
 	"AtoiTalkAPI/ent"
 	"AtoiTalkAPI/ent/chat"
+	"AtoiTalkAPI/ent/groupmember"
 	"AtoiTalkAPI/internal/model"
 	"time"
 
@@ -19,6 +20,7 @@ func MapChatToResponse(userID uuid.UUID, c *ent.Chat, blockedMap map[uuid.UUID]B
 	var description *string
 	var isPublic *bool
 	var inviteCode *string
+	var inviteExpiresAt *string
 	var lastReadAt *string
 	var otherLastReadAt *string
 	var hiddenAtStr *string
@@ -118,6 +120,13 @@ func MapChatToResponse(userID uuid.UUID, c *ent.Chat, blockedMap map[uuid.UUID]B
 				t := member.LastReadAt.Format(time.RFC3339)
 				lastReadAt = &t
 			}
+
+			if member.Role == groupmember.RoleOwner || member.Role == groupmember.RoleAdmin {
+				if gc.InviteExpiresAt != nil {
+					t := gc.InviteExpiresAt.Format(time.RFC3339)
+					inviteExpiresAt = &t
+				}
+			}
 		}
 	}
 
@@ -133,6 +142,7 @@ func MapChatToResponse(userID uuid.UUID, c *ent.Chat, blockedMap map[uuid.UUID]B
 		Description:        description,
 		IsPublic:           isPublic,
 		InviteCode:         inviteCode,
+		InviteExpiresAt:    inviteExpiresAt,
 		Avatar:             avatar,
 		LastMessage:        lastMsgResp,
 		UnreadCount:        unreadCount,
