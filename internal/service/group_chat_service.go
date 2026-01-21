@@ -384,6 +384,9 @@ func (s *GroupChatService) UpdateGroupChat(ctx context.Context, requestorID uuid
 			newVisibility = "public"
 			update.ClearInviteExpiresAt()
 		} else {
+			
+			newCode, _ := helper.GenerateRandomString(12)
+			update.SetInviteCode(newCode)
 			update.SetInviteExpiresAt(time.Now().UTC().Add(7 * 24 * time.Hour))
 		}
 
@@ -583,14 +586,22 @@ func (s *GroupChatService) UpdateGroupChat(ctx context.Context, requestorID uuid
 
 	myRole := string(requestorMember.Role)
 
+	var inviteExpiresAt *string
+	if updatedGroup.InviteExpiresAt != nil {
+		t := updatedGroup.InviteExpiresAt.Format(time.RFC3339)
+		inviteExpiresAt = &t
+	}
+
 	return &model.ChatListResponse{
-		ID:          gc.Edges.Chat.ID,
-		Type:        string(chat.TypeGroup),
-		Name:        updatedGroup.Name,
-		Description: updatedGroup.Description,
-		IsPublic:    &updatedGroup.IsPublic,
-		Avatar:      avatarURL,
-		MyRole:      &myRole,
+		ID:              gc.Edges.Chat.ID,
+		Type:            string(chat.TypeGroup),
+		Name:            updatedGroup.Name,
+		Description:     updatedGroup.Description,
+		IsPublic:        &updatedGroup.IsPublic,
+		InviteCode:      &updatedGroup.InviteCode,
+		InviteExpiresAt: inviteExpiresAt,
+		Avatar:          avatarURL,
+		MyRole:          &myRole,
 	}, nil
 }
 

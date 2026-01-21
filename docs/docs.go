@@ -167,6 +167,9 @@ const docTemplate = `{
                     "invite_code": {
                         "type": "string"
                     },
+                    "invite_expires_at": {
+                        "type": "string"
+                    },
                     "is_blocked_by_me": {
                         "type": "boolean"
                     },
