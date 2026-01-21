@@ -826,7 +826,8 @@ func TestWebSocketKickMember(t *testing.T) {
 
 	assert.NotNil(t, waitForEvent(t, conn1, websocket.EventMessageNew, 2*time.Second))
 
-	verifyEvent(t, conn2, websocket.EventMessageNew, u1.ID, uuid.Nil)
+	event := waitForEvent(t, conn2, websocket.EventChatDelete, 2*time.Second)
+	assert.NotNil(t, event, "User 2 should receive chat.delete")
 }
 
 func TestWebSocketUpdateRole(t *testing.T) {

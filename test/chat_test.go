@@ -69,6 +69,7 @@ func TestGetChats(t *testing.T) {
 		assert.Equal(t, chat3.ID.String(), c1["id"])
 		assert.Equal(t, "My Group", c1["name"])
 		assert.Equal(t, float64(5), c1["unread_count"])
+		assert.Equal(t, "mygroup", c1["invite_code"], "Group chat should have invite_code")
 		assert.Nil(t, c1["other_user_id"], "Group chat should not have other_user_id")
 		lastMsg1, _ := c1["last_message"].(map[string]interface{})
 		assert.Equal(t, "regular", lastMsg1["type"])
@@ -77,6 +78,7 @@ func TestGetChats(t *testing.T) {
 
 		assert.Contains(t, c2["name"], "user3")
 		assert.NotContains(t, c2, "unread_count", "unread_count should be omitted when it is 0")
+		assert.Nil(t, c2["invite_code"], "Private chat should NOT have invite_code")
 		assert.Equal(t, u3.ID.String(), c2["other_user_id"], "Private chat should have other_user_id")
 
 		assert.Equal(t, chat1.ID.String(), c3["id"])
@@ -385,6 +387,7 @@ func TestGetChatByID(t *testing.T) {
 		assert.Equal(t, chat1.ID.String(), data["id"])
 		assert.Contains(t, data["name"], "user2")
 		assert.Equal(t, float64(3), data["unread_count"])
+		assert.Nil(t, data["invite_code"], "Private chat should NOT have invite_code")
 	})
 
 	t.Run("Success - Get Chat with Blocked User", func(t *testing.T) {
@@ -425,6 +428,7 @@ func TestGetChatByID(t *testing.T) {
 		data := resp.Data.(map[string]interface{})
 
 		assert.Equal(t, float64(3), data["member_count"])
+		assert.Equal(t, "counttest", data["invite_code"], "Group chat should have invite_code")
 	})
 
 	t.Run("Success - Get Public Group (Non-Member)", func(t *testing.T) {
@@ -442,6 +446,7 @@ func TestGetChatByID(t *testing.T) {
 		data := resp.Data.(map[string]interface{})
 
 		assert.Equal(t, "Public Group", data["name"])
+		assert.Equal(t, "publicgroup", data["invite_code"], "Public group should have invite_code")
 		assert.Nil(t, data["my_role"], "Should not have a role")
 	})
 

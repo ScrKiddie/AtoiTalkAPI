@@ -27,6 +27,7 @@ type ChatListResponse struct {
 	HiddenAt           *string          `json:"hidden_at,omitempty"`
 	IsOnline           bool             `json:"is_online"`
 	IsPublic           *bool            `json:"is_public,omitempty"`
+	InviteCode         *string          `json:"invite_code,omitempty"`
 	OtherUserID        *uuid.UUID       `json:"other_user_id,omitempty"`
 	OtherUserIsDeleted bool             `json:"other_user_is_deleted"`
 	OtherUserIsBanned  bool             `json:"other_user_is_banned"`

@@ -167,6 +167,10 @@ func (s *GroupChatService) CreateGroupChat(ctx context.Context, creatorID uuid.U
 		SetIsPublic(req.IsPublic).
 		SetInviteCode(inviteCode)
 
+	if !req.IsPublic {
+		groupCreate.SetInviteExpiresAt(time.Now().UTC().Add(7 * 24 * time.Hour))
+	}
+
 	if avatarMedia != nil {
 		groupCreate.SetAvatar(avatarMedia)
 	}
@@ -378,6 +382,9 @@ func (s *GroupChatService) UpdateGroupChat(ctx context.Context, requestorID uuid
 		newVisibility := "private"
 		if *req.IsPublic {
 			newVisibility = "public"
+			update.ClearInviteExpiresAt()
+		} else {
+			update.SetInviteExpiresAt(time.Now().UTC().Add(7 * 24 * time.Hour))
 		}
 
 		systemMessages = append(systemMessages, tx.Message.Create().

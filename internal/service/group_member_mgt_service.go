@@ -511,11 +511,13 @@ func (s *GroupChatService) KickMember(ctx context.Context, requestorID uuid.UUID
 			})
 
 			s.wsHub.BroadcastToUser(targetUserID, websocket.Event{
-				Type:    websocket.EventMessageNew,
-				Payload: msgResponse,
+				Type: websocket.EventChatDelete,
+				Payload: map[string]interface{}{
+					"chat_id": groupID,
+				},
 				Meta: &websocket.EventMeta{
 					Timestamp: time.Now().UTC().UnixMilli(),
-					ChatID:    gc.ChatID,
+					ChatID:    groupID,
 					SenderID:  requestorID,
 				},
 			})

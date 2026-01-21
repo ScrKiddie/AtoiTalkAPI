@@ -164,6 +164,9 @@ const docTemplate = `{
                     "id": {
                         "type": "string"
                     },
+                    "invite_code": {
+                        "type": "string"
+                    },
                     "is_blocked_by_me": {
                         "type": "boolean"
                     },
