@@ -156,7 +156,7 @@ func (s *GroupChatService) GetGroupByInviteCode(ctx context.Context, inviteCode 
 			groupchat.InviteCode(inviteCode),
 			groupchat.HasChatWith(chat.DeletedAtIsNil()),
 		).
-		Select(groupchat.FieldID, groupchat.FieldName, groupchat.FieldDescription, groupchat.FieldAvatarID, groupchat.FieldInviteExpiresAt, groupchat.FieldIsPublic).
+		Select(groupchat.FieldID, groupchat.FieldChatID, groupchat.FieldName, groupchat.FieldDescription, groupchat.FieldAvatarID, groupchat.FieldInviteExpiresAt, groupchat.FieldIsPublic).
 		WithAvatar().
 		Only(ctx)
 	if err != nil {
@@ -188,7 +188,7 @@ func (s *GroupChatService) GetGroupByInviteCode(ctx context.Context, inviteCode 
 	}
 
 	return &model.GroupPreviewDTO{
-		ID:          gc.ID,
+		ID:          gc.ChatID,
 		Name:        gc.Name,
 		Description: description,
 		Avatar:      avatarURL,
@@ -244,7 +244,7 @@ func (s *GroupChatService) ResetInviteCode(ctx context.Context, userID, groupID 
 			groupchat.ChatID(groupID),
 			groupchat.HasChatWith(chat.DeletedAtIsNil()),
 		).
-		Select(groupchat.FieldID).
+		Select(groupchat.FieldID, groupchat.FieldIsPublic).
 		Only(ctx)
 	if err != nil {
 		if ent.IsNotFound(err) {
@@ -269,21 +269,33 @@ func (s *GroupChatService) ResetInviteCode(ctx context.Context, userID, groupID 
 
 	newCode, _ := helper.GenerateRandomString(12)
 
-	expiresAt := time.Now().UTC().Add(7 * 24 * time.Hour)
+	var expiresAt *time.Time
+	if !gc.IsPublic {
+		t := time.Now().UTC().Add(7 * 24 * time.Hour)
+		expiresAt = &t
+	}
 
-	_, err = s.client.GroupChat.UpdateOne(gc).
-		SetInviteCode(newCode).
-		SetInviteExpiresAt(expiresAt).
-		Save(ctx)
+	update := s.client.GroupChat.UpdateOne(gc).SetInviteCode(newCode)
+	if expiresAt != nil {
+		update.SetInviteExpiresAt(*expiresAt)
+	} else {
+		update.ClearInviteExpiresAt()
+	}
+
+	_, err = update.Save(ctx)
 	if err != nil {
 		slog.Error("Failed to reset invite code", "error", err)
 		return nil, helper.NewInternalServerError("")
 	}
 
-	expiresAtStr := expiresAt.Format(time.RFC3339)
+	var expiresAtStr *string
+	if expiresAt != nil {
+		t := expiresAt.Format(time.RFC3339)
+		expiresAtStr = &t
+	}
 
 	return &model.GroupInviteResponse{
 		InviteCode: newCode,
-		ExpiresAt:  &expiresAtStr,
+		ExpiresAt:  expiresAtStr,
 	}, nil
 }

@@ -18,6 +18,7 @@ func MapChatToResponse(userID uuid.UUID, c *ent.Chat, blockedMap map[uuid.UUID]B
 	var name, avatar string
 	var description *string
 	var isPublic *bool
+	var inviteCode *string
 	var lastReadAt *string
 	var otherLastReadAt *string
 	var hiddenAtStr *string
@@ -103,6 +104,7 @@ func MapChatToResponse(userID uuid.UUID, c *ent.Chat, blockedMap map[uuid.UUID]B
 		name = gc.Name
 		description = gc.Description
 		isPublic = &gc.IsPublic
+		inviteCode = &gc.InviteCode
 		if gc.Edges.Avatar != nil {
 			avatar = urlGen.GetPublicURL(gc.Edges.Avatar.FileName)
 		}
@@ -130,6 +132,7 @@ func MapChatToResponse(userID uuid.UUID, c *ent.Chat, blockedMap map[uuid.UUID]B
 		Name:               name,
 		Description:        description,
 		IsPublic:           isPublic,
+		InviteCode:         inviteCode,
 		Avatar:             avatar,
 		LastMessage:        lastMsgResp,
 		UnreadCount:        unreadCount,

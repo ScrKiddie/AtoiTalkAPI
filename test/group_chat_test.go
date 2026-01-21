@@ -38,7 +38,7 @@ func TestCreateGroupChat(t *testing.T) {
 
 	token1, _ := helper.GenerateJWT(testConfig.JWTSecret, testConfig.JWTExp, u1.ID)
 
-	t.Run("Success - Create Group with Text Only", func(t *testing.T) {
+	t.Run("Success - Create Group with Text Only (Private Default)", func(t *testing.T) {
 		body := &bytes.Buffer{}
 		writer := multipart.NewWriter(body)
 		_ = writer.WriteField("name", "Test Group 1")
@@ -78,6 +78,7 @@ func TestCreateGroupChat(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Equal(t, u1.ID, *gc.CreatedBy)
 		assert.NotEmpty(t, gc.InviteCode, "Invite code should be generated automatically")
+		assert.NotNil(t, gc.InviteExpiresAt, "Private group should have invite expiration")
 
 		members, err := gc.QueryMembers().All(context.Background())
 		assert.NoError(t, err)
@@ -110,6 +111,7 @@ func TestCreateGroupChat(t *testing.T) {
 		gc, err := testClient.GroupChat.Query().Where(groupchat.Name("Public Group")).Only(context.Background())
 		assert.NoError(t, err)
 		assert.True(t, gc.IsPublic)
+		assert.Nil(t, gc.InviteExpiresAt, "Public group should NOT have invite expiration")
 	})
 
 	t.Run("Success - Create Group with Whitespace", func(t *testing.T) {
@@ -347,7 +349,7 @@ func TestUpdateGroupChat(t *testing.T) {
 	token4, _ := helper.GenerateJWT(testConfig.JWTSecret, testConfig.JWTExp, u4.ID)
 
 	chatEntity := testClient.Chat.Create().SetType("group").SaveX(context.Background())
-	gc := testClient.GroupChat.Create().SetChat(chatEntity).SetCreator(u1).SetName("Original Name").SetDescription("Original Desc").SetInviteCode("original").SaveX(context.Background())
+	gc := testClient.GroupChat.Create().SetChat(chatEntity).SetCreator(u1).SetName("Original Name").SetDescription("Original Desc").SetInviteCode("original").SetIsPublic(false).SetInviteExpiresAt(time.Now().Add(7 * 24 * time.Hour)).SaveX(context.Background())
 
 	testClient.GroupMember.Create().SetGroupChat(gc).SetUser(u1).SetRole(groupmember.RoleOwner).SaveX(context.Background())
 	testClient.GroupMember.Create().SetGroupChat(gc).SetUser(u2).SetRole(groupmember.RoleAdmin).SaveX(context.Background())
@@ -409,7 +411,7 @@ func TestUpdateGroupChat(t *testing.T) {
 		}
 	})
 
-	t.Run("Success - Update IsPublic (Owner)", func(t *testing.T) {
+	t.Run("Success - Update IsPublic to True (Should Remove Expiry)", func(t *testing.T) {
 		body := &bytes.Buffer{}
 		writer := multipart.NewWriter(body)
 		_ = writer.WriteField("is_public", "true")
@@ -429,11 +431,36 @@ func TestUpdateGroupChat(t *testing.T) {
 
 		gcReload, _ := testClient.GroupChat.Query().Where(groupchat.ID(gc.ID)).Only(context.Background())
 		assert.True(t, gcReload.IsPublic)
+		assert.Nil(t, gcReload.InviteExpiresAt, "Public group should have nil InviteExpiresAt")
 
 		lastMsg, err := testClient.Chat.Query().Where(chat.ID(gc.ChatID)).QueryLastMessage().Only(context.Background())
 		if assert.NoError(t, err) {
 			assert.Equal(t, "system_visibility", string(lastMsg.Type))
 			assert.Equal(t, "public", lastMsg.ActionData["new_visibility"])
+		}
+	})
+
+	t.Run("Success - Update IsPublic to False (Should Add Expiry)", func(t *testing.T) {
+		body := &bytes.Buffer{}
+		writer := multipart.NewWriter(body)
+		_ = writer.WriteField("is_public", "false")
+		writer.Close()
+
+		req, _ := http.NewRequest("PUT", fmt.Sprintf("/api/chats/group/%s", gc.ChatID), body)
+		req.Header.Set("Content-Type", writer.FormDataContentType())
+		req.Header.Set("Authorization", "Bearer "+token1)
+
+		rr := executeRequest(req)
+		assert.Equal(t, http.StatusOK, rr.Code)
+
+		gcReload, _ := testClient.GroupChat.Query().Where(groupchat.ID(gc.ID)).Only(context.Background())
+		assert.False(t, gcReload.IsPublic)
+		assert.NotNil(t, gcReload.InviteExpiresAt, "Private group should have InviteExpiresAt")
+
+		lastMsg, err := testClient.Chat.Query().Where(chat.ID(gc.ChatID)).QueryLastMessage().Only(context.Background())
+		if assert.NoError(t, err) {
+			assert.Equal(t, "system_visibility", string(lastMsg.Type))
+			assert.Equal(t, "private", lastMsg.ActionData["new_visibility"])
 		}
 	})
 
@@ -1391,6 +1418,7 @@ func TestGetGroupByInviteCode(t *testing.T) {
 		json.Unmarshal(rr.Body.Bytes(), &resp)
 		data := resp.Data.(map[string]interface{})
 		assert.Equal(t, "Preview Group", data["name"])
+		assert.Equal(t, chat1.ID.String(), data["id"], "Should return ChatID, not GroupChatID")
 	})
 
 	t.Run("Fail - Expired Code", func(t *testing.T) {
@@ -1415,11 +1443,15 @@ func TestResetInviteCode(t *testing.T) {
 	token2, _ := helper.GenerateJWT(testConfig.JWTSecret, testConfig.JWTExp, u2.ID)
 
 	chatEntity := testClient.Chat.Create().SetType("group").SaveX(context.Background())
-	gc := testClient.GroupChat.Create().SetChat(chatEntity).SetCreator(u1).SetName("Reset Test").SetInviteCode("oldcode").SaveX(context.Background())
+	gc := testClient.GroupChat.Create().SetChat(chatEntity).SetCreator(u1).SetName("Reset Test").SetInviteCode("oldcode").SetIsPublic(false).SaveX(context.Background())
 	testClient.GroupMember.Create().SetGroupChat(gc).SetUser(u1).SetRole(groupmember.RoleOwner).SaveX(context.Background())
 	testClient.GroupMember.Create().SetGroupChat(gc).SetUser(u2).SetRole(groupmember.RoleMember).SaveX(context.Background())
 
-	t.Run("Success - Reset Code", func(t *testing.T) {
+	chatEntityPub := testClient.Chat.Create().SetType("group").SaveX(context.Background())
+	gcPub := testClient.GroupChat.Create().SetChat(chatEntityPub).SetCreator(u1).SetName("Reset Public").SetInviteCode("oldpub").SetIsPublic(true).SaveX(context.Background())
+	testClient.GroupMember.Create().SetGroupChat(gcPub).SetUser(u1).SetRole(groupmember.RoleOwner).SaveX(context.Background())
+
+	t.Run("Success - Reset Code (Private Group)", func(t *testing.T) {
 		req, _ := http.NewRequest("PUT", fmt.Sprintf("/api/chats/group/%s/invite", gc.ChatID), nil)
 		req.Header.Set("Authorization", "Bearer "+token1)
 
@@ -1430,9 +1462,11 @@ func TestResetInviteCode(t *testing.T) {
 		json.Unmarshal(rr.Body.Bytes(), &resp)
 		data := resp.Data.(map[string]interface{})
 		newCode := data["invite_code"].(string)
+		expiresAt := data["expires_at"].(string)
 
 		assert.NotEqual(t, "oldcode", newCode)
 		assert.NotEmpty(t, newCode)
+		assert.NotEmpty(t, expiresAt, "Private group reset should have expiration")
 
 		reqOld, _ := http.NewRequest("GET", "/api/chats/group/invite/oldcode", nil)
 		rrOld := executeRequest(reqOld)
@@ -1441,6 +1475,24 @@ func TestResetInviteCode(t *testing.T) {
 		reqNew, _ := http.NewRequest("GET", fmt.Sprintf("/api/chats/group/invite/%s", newCode), nil)
 		rrNew := executeRequest(reqNew)
 		assert.Equal(t, http.StatusOK, rrNew.Code)
+	})
+
+	t.Run("Success - Reset Code (Public Group)", func(t *testing.T) {
+		req, _ := http.NewRequest("PUT", fmt.Sprintf("/api/chats/group/%s/invite", gcPub.ChatID), nil)
+		req.Header.Set("Authorization", "Bearer "+token1)
+
+		rr := executeRequest(req)
+		assert.Equal(t, http.StatusOK, rr.Code)
+
+		var resp helper.ResponseSuccess
+		json.Unmarshal(rr.Body.Bytes(), &resp)
+		data := resp.Data.(map[string]interface{})
+		newCode := data["invite_code"].(string)
+		expiresAt := data["expires_at"]
+
+		assert.NotEqual(t, "oldpub", newCode)
+		assert.NotEmpty(t, newCode)
+		assert.Nil(t, expiresAt, "Public group reset should NOT have expiration")
 	})
 
 	t.Run("Fail - Non-Admin", func(t *testing.T) {
