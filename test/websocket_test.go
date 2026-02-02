@@ -785,6 +785,188 @@ func TestWebSocketUpdateGroupChat(t *testing.T) {
 	assert.NotNil(t, events[websocket.EventMessageNew], "User 2 should receive message.new")
 }
 
+func TestWebSocketUpdateGroupVisibility(t *testing.T) {
+	clearDatabase(context.Background())
+	u1 := createWSUser(t, "u1", "u1@test.com")
+	u2 := createWSUser(t, "u2", "u2@test.com")
+	u3 := createWSUser(t, "u3", "u3@test.com")
+	token1, _ := helper.GenerateJWT(testConfig.JWTSecret, testConfig.JWTExp, u1.ID)
+	token2, _ := helper.GenerateJWT(testConfig.JWTSecret, testConfig.JWTExp, u2.ID)
+	token3, _ := helper.GenerateJWT(testConfig.JWTSecret, testConfig.JWTExp, u3.ID)
+
+	body := &bytes.Buffer{}
+	writer := multipart.NewWriter(body)
+	_ = writer.WriteField("name", "Visibility Test")
+	_ = writer.WriteField("is_public", "false")
+	idsJSON, _ := json.Marshal([]string{u2.ID.String(), u3.ID.String()})
+	_ = writer.WriteField("member_ids", string(idsJSON))
+	writer.Close()
+
+	req, _ := http.NewRequest("POST", "/api/chats/group", body)
+	req.Header.Set("Content-Type", writer.FormDataContentType())
+	req.Header.Set("Authorization", "Bearer "+token1)
+	rr := executeRequest(req)
+
+	var chatResp helper.ResponseSuccess
+	json.Unmarshal(rr.Body.Bytes(), &chatResp)
+	chatData := chatResp.Data.(map[string]interface{})
+	chatIDStr := chatData["id"].(string)
+	chatID, _ := uuid.Parse(chatIDStr)
+
+	roleBody := model.UpdateGroupMemberRoleRequest{Role: "admin"}
+	jsonRole, _ := json.Marshal(roleBody)
+	roleReq, _ := http.NewRequest("PUT", fmt.Sprintf("/api/chats/group/%s/members/%s/role", chatID, u3.ID), bytes.NewBuffer(jsonRole))
+	roleReq.Header.Set("Content-Type", "application/json")
+	roleReq.Header.Set("Authorization", "Bearer "+token1)
+	executeRequest(roleReq)
+
+	server := httptest.NewServer(testRouter)
+	defer server.Close()
+	wsURL2 := "ws" + strings.TrimPrefix(server.URL, "http") + "/ws?token=" + token2
+	wsURL3 := "ws" + strings.TrimPrefix(server.URL, "http") + "/ws?token=" + token3
+
+	conn2, _, _ := ws.DefaultDialer.Dial(wsURL2, nil)
+	defer conn2.Close()
+	conn3, _, _ := ws.DefaultDialer.Dial(wsURL3, nil)
+	defer conn3.Close()
+
+	time.Sleep(200 * time.Millisecond)
+
+	updateBody := &bytes.Buffer{}
+	updateWriter := multipart.NewWriter(updateBody)
+	_ = updateWriter.WriteField("is_public", "true")
+	updateWriter.Close()
+
+	updateReq, _ := http.NewRequest("PUT", fmt.Sprintf("/api/chats/group/%s", chatID), updateBody)
+	updateReq.Header.Set("Content-Type", updateWriter.FormDataContentType())
+	updateReq.Header.Set("Authorization", "Bearer "+token1)
+	executeRequest(updateReq)
+
+	event2 := waitForEvent(t, conn2, websocket.EventChatNew, 2*time.Second)
+	assert.NotNil(t, event2, "Member (u2) should receive chat.new")
+	if event2 != nil {
+		payload := event2.Payload.(map[string]interface{})
+		assert.True(t, payload["is_public"].(bool))
+		assert.Nil(t, payload["invite_code"], "Member should NOT see invite_code")
+	}
+
+	event3 := waitForEvent(t, conn3, websocket.EventChatNew, 2*time.Second)
+	assert.NotNil(t, event3, "Admin (u3) should receive chat.new")
+	if event3 != nil {
+		payload := event3.Payload.(map[string]interface{})
+		assert.True(t, payload["is_public"].(bool))
+		assert.Nil(t, payload["invite_code"], "Admin should NOT see invite_code in general broadcast for public group")
+	}
+
+	updateBody2 := &bytes.Buffer{}
+	updateWriter2 := multipart.NewWriter(updateBody2)
+	_ = updateWriter2.WriteField("is_public", "false")
+	updateWriter2.Close()
+
+	updateReq2, _ := http.NewRequest("PUT", fmt.Sprintf("/api/chats/group/%s", chatID), updateBody2)
+	updateReq2.Header.Set("Content-Type", updateWriter2.FormDataContentType())
+	updateReq2.Header.Set("Authorization", "Bearer "+token1)
+	executeRequest(updateReq2)
+
+	event2Private := waitForEvent(t, conn2, websocket.EventChatNew, 2*time.Second)
+	assert.NotNil(t, event2Private, "Member (u2) should receive chat.new")
+	if event2Private != nil {
+		payload := event2Private.Payload.(map[string]interface{})
+		assert.False(t, payload["is_public"].(bool))
+		assert.Nil(t, payload["invite_code"], "Member should NOT see invite_code")
+	}
+
+	foundCode := false
+	deadline := time.Now().Add(3 * time.Second)
+	conn3.SetReadDeadline(deadline)
+
+	for {
+		if time.Now().After(deadline) {
+			break
+		}
+		_, msg, err := conn3.ReadMessage()
+		if err != nil {
+			break
+		}
+		var ev websocket.Event
+		if err := json.Unmarshal(msg, &ev); err != nil {
+			continue
+		}
+
+		if ev.Type == websocket.EventChatNew {
+			payload := ev.Payload.(map[string]interface{})
+			if payload["invite_code"] != nil {
+				foundCode = true
+				assert.NotNil(t, payload["invite_expires_at"])
+				break
+			}
+		}
+	}
+	assert.True(t, foundCode, "Admin (u3) should receive at least one chat.new event WITH invite_code")
+}
+
+func TestWebSocketResetInviteCodeBroadcast(t *testing.T) {
+	clearDatabase(context.Background())
+	u1 := createWSUser(t, "u1", "u1@test.com")
+	u2 := createWSUser(t, "u2", "u2@test.com")
+	u3 := createWSUser(t, "u3", "u3@test.com")
+	token1, _ := helper.GenerateJWT(testConfig.JWTSecret, testConfig.JWTExp, u1.ID)
+	token2, _ := helper.GenerateJWT(testConfig.JWTSecret, testConfig.JWTExp, u2.ID)
+	token3, _ := helper.GenerateJWT(testConfig.JWTSecret, testConfig.JWTExp, u3.ID)
+
+	body := &bytes.Buffer{}
+	writer := multipart.NewWriter(body)
+	_ = writer.WriteField("name", "Reset Code WS Test")
+	idsJSON, _ := json.Marshal([]string{u2.ID.String(), u3.ID.String()})
+	_ = writer.WriteField("member_ids", string(idsJSON))
+	writer.Close()
+
+	req, _ := http.NewRequest("POST", "/api/chats/group", body)
+	req.Header.Set("Content-Type", writer.FormDataContentType())
+	req.Header.Set("Authorization", "Bearer "+token1)
+	rr := executeRequest(req)
+
+	var chatResp helper.ResponseSuccess
+	json.Unmarshal(rr.Body.Bytes(), &chatResp)
+	chatData := chatResp.Data.(map[string]interface{})
+	chatIDStr := chatData["id"].(string)
+	chatID, _ := uuid.Parse(chatIDStr)
+
+	roleBody := model.UpdateGroupMemberRoleRequest{Role: "admin"}
+	jsonRole, _ := json.Marshal(roleBody)
+	roleReq, _ := http.NewRequest("PUT", fmt.Sprintf("/api/chats/group/%s/members/%s/role", chatID, u2.ID), bytes.NewBuffer(jsonRole))
+	roleReq.Header.Set("Content-Type", "application/json")
+	roleReq.Header.Set("Authorization", "Bearer "+token1)
+	executeRequest(roleReq)
+
+	server := httptest.NewServer(testRouter)
+	defer server.Close()
+	wsURL2 := "ws" + strings.TrimPrefix(server.URL, "http") + "/ws?token=" + token2
+	wsURL3 := "ws" + strings.TrimPrefix(server.URL, "http") + "/ws?token=" + token3
+
+	conn2, _, _ := ws.DefaultDialer.Dial(wsURL2, nil)
+	defer conn2.Close()
+	conn3, _, _ := ws.DefaultDialer.Dial(wsURL3, nil)
+	defer conn3.Close()
+
+	time.Sleep(200 * time.Millisecond)
+
+	resetReq, _ := http.NewRequest("PUT", fmt.Sprintf("/api/chats/group/%s/invite", chatID), nil)
+	resetReq.Header.Set("Authorization", "Bearer "+token1)
+	executeRequest(resetReq)
+
+	event2 := waitForEvent(t, conn2, websocket.EventChatNew, 2*time.Second)
+	assert.NotNil(t, event2, "Admin (u2) should receive chat.new event")
+	if event2 != nil {
+		payload := event2.Payload.(map[string]interface{})
+		assert.NotNil(t, payload["invite_code"])
+		assert.NotNil(t, payload["invite_expires_at"])
+	}
+
+	event3 := waitForEvent(t, conn3, websocket.EventChatNew, 1*time.Second)
+	assert.Nil(t, event3, "Member (u3) should NOT receive chat.new event for invite code reset")
+}
+
 func TestWebSocketKickMember(t *testing.T) {
 	clearDatabase(context.Background())
 	u1 := createWSUser(t, "u1", "u1@test.com")

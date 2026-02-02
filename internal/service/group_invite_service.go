@@ -244,7 +244,7 @@ func (s *GroupChatService) ResetInviteCode(ctx context.Context, userID, groupID 
 			groupchat.ChatID(groupID),
 			groupchat.HasChatWith(chat.DeletedAtIsNil()),
 		).
-		Select(groupchat.FieldID, groupchat.FieldIsPublic).
+		Select(groupchat.FieldID, groupchat.FieldChatID, groupchat.FieldIsPublic).
 		Only(ctx)
 	if err != nil {
 		if ent.IsNotFound(err) {
@@ -292,6 +292,40 @@ func (s *GroupChatService) ResetInviteCode(ctx context.Context, userID, groupID 
 	if expiresAt != nil {
 		t := expiresAt.Format(time.RFC3339)
 		expiresAtStr = &t
+	}
+
+	if s.wsHub != nil {
+		go func() {
+			admins, err := s.client.GroupMember.Query().
+				Where(
+					groupmember.GroupChatID(gc.ID),
+					groupmember.RoleIn(groupmember.RoleOwner, groupmember.RoleAdmin),
+				).
+				Select(groupmember.FieldUserID).
+				All(context.Background())
+
+			if err == nil {
+				event := websocket.Event{
+					Type: websocket.EventChatNew, 
+					Payload: map[string]interface{}{
+						"id":                gc.ChatID,
+						"invite_code":       newCode,
+						"invite_expires_at": expiresAtStr,
+					},
+					Meta: &websocket.EventMeta{
+						Timestamp: time.Now().UTC().UnixMilli(),
+						ChatID:    gc.ChatID,
+						SenderID:  userID,
+					},
+				}
+
+				for _, admin := range admins {
+					if admin.UserID != userID { 
+						s.wsHub.BroadcastToUser(admin.UserID, event)
+					}
+				}
+			}
+		}()
 	}
 
 	return &model.GroupInviteResponse{

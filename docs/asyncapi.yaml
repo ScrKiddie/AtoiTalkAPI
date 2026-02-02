@@ -307,6 +307,13 @@ components:
         is_public:
           type: boolean
           description: True if group is public (Omitted for private chat)
+        invite_code:
+          type: string
+          description: Invite code for group chat (Omitted for private chat or non-admin)
+        invite_expires_at:
+          type: string
+          format: date-time
+          description: Expiration time for invite code (Omitted for private chat or non-admin)
         avatar:
           type: string
           format: uri

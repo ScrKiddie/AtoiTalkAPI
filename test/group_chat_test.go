@@ -428,6 +428,8 @@ func TestUpdateGroupChat(t *testing.T) {
 		json.Unmarshal(rr.Body.Bytes(), &resp)
 		dataMap := resp.Data.(map[string]interface{})
 		assert.True(t, dataMap["is_public"].(bool))
+		assert.NotNil(t, dataMap["invite_code"])
+		assert.Nil(t, dataMap["invite_expires_at"])
 
 		gcReload, _ := testClient.GroupChat.Query().Where(groupchat.ID(gc.ID)).Only(context.Background())
 		assert.True(t, gcReload.IsPublic)
@@ -441,7 +443,7 @@ func TestUpdateGroupChat(t *testing.T) {
 	})
 
 	t.Run("Success - Update IsPublic to False (Should Add Expiry and Reset Code)", func(t *testing.T) {
-		
+
 		gcBefore, _ := testClient.GroupChat.Query().Where(groupchat.ID(gc.ID)).Only(context.Background())
 		oldCode := gcBefore.InviteCode
 
@@ -456,6 +458,15 @@ func TestUpdateGroupChat(t *testing.T) {
 
 		rr := executeRequest(req)
 		assert.Equal(t, http.StatusOK, rr.Code)
+
+		var resp helper.ResponseSuccess
+		json.Unmarshal(rr.Body.Bytes(), &resp)
+		dataMap := resp.Data.(map[string]interface{})
+		assert.False(t, dataMap["is_public"].(bool))
+		newCode := dataMap["invite_code"].(string)
+		assert.NotEmpty(t, newCode)
+		assert.NotEqual(t, oldCode, newCode)
+		assert.NotNil(t, dataMap["invite_expires_at"])
 
 		gcReload, _ := testClient.GroupChat.Query().Where(groupchat.ID(gc.ID)).Only(context.Background())
 		assert.False(t, gcReload.IsPublic)

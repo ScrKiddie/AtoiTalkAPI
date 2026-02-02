@@ -516,6 +516,12 @@ func (s *GroupChatService) UpdateGroupChat(ctx context.Context, requestorID uuid
 		}
 	}
 
+	var inviteExpiresAt *string
+	if updatedGroup.InviteExpiresAt != nil {
+		t := updatedGroup.InviteExpiresAt.Format(time.RFC3339)
+		inviteExpiresAt = &t
+	}
+
 	if s.wsHub != nil && lastSystemMsg != nil {
 		go func() {
 
@@ -570,6 +576,36 @@ func (s *GroupChatService) UpdateGroupChat(ctx context.Context, requestorID uuid
 					SenderID:  requestorID,
 				},
 			})
+
+			if !updatedGroup.IsPublic {
+				admins, err := s.client.GroupMember.Query().
+					Where(
+						groupmember.GroupChatID(gc.ID),
+						groupmember.RoleIn(groupmember.RoleOwner, groupmember.RoleAdmin),
+					).
+					Select(groupmember.FieldUserID).
+					All(context.Background())
+
+				if err == nil {
+					adminPayload := chatPayload
+					adminPayload.InviteCode = &updatedGroup.InviteCode
+					adminPayload.InviteExpiresAt = inviteExpiresAt
+
+					adminEvent := websocket.Event{
+						Type:    websocket.EventChatNew,
+						Payload: adminPayload,
+						Meta: &websocket.EventMeta{
+							Timestamp: time.Now().UTC().UnixMilli(),
+							ChatID:    gc.ChatID,
+							SenderID:  requestorID,
+						},
+					}
+
+					for _, admin := range admins {
+						s.wsHub.BroadcastToUser(admin.UserID, adminEvent)
+					}
+				}
+			}
 		}()
 	}
 
@@ -585,12 +621,6 @@ func (s *GroupChatService) UpdateGroupChat(ctx context.Context, requestorID uuid
 	}
 
 	myRole := string(requestorMember.Role)
-
-	var inviteExpiresAt *string
-	if updatedGroup.InviteExpiresAt != nil {
-		t := updatedGroup.InviteExpiresAt.Format(time.RFC3339)
-		inviteExpiresAt = &t
-	}
 
 	return &model.ChatListResponse{
 		ID:              gc.Edges.Chat.ID,
