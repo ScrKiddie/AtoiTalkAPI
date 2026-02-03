@@ -67,6 +67,8 @@ func TestCreateGroupChat(t *testing.T) {
 		assert.Equal(t, "group", dataMap["type"])
 		assert.Equal(t, "owner", dataMap["my_role"])
 		assert.Equal(t, float64(3), dataMap["member_count"])
+		assert.NotEmpty(t, dataMap["invite_code"], "Invite code should be returned in response")
+		assert.NotNil(t, dataMap["invite_expires_at"], "Invite expiration should be returned for private group")
 
 		lastMsg, ok := dataMap["last_message"].(map[string]interface{})
 		assert.True(t, ok)
@@ -107,6 +109,8 @@ func TestCreateGroupChat(t *testing.T) {
 		json.Unmarshal(rr.Body.Bytes(), &resp)
 		dataMap := resp.Data.(map[string]interface{})
 		assert.True(t, dataMap["is_public"].(bool))
+		assert.NotEmpty(t, dataMap["invite_code"], "Invite code should be returned in response")
+		assert.Nil(t, dataMap["invite_expires_at"], "Invite expiration should be nil for public group")
 
 		gc, err := testClient.GroupChat.Query().Where(groupchat.Name("Public Group")).Only(context.Background())
 		assert.NoError(t, err)

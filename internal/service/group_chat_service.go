@@ -249,18 +249,26 @@ func (s *GroupChatService) CreateGroupChat(ctx context.Context, creatorID uuid.U
 		lastMsgResp = helper.ToMessageResponse(fullMsg, s.storageAdapter, nil)
 	}
 
+	var inviteExpiresAt *string
+	if newGroupChat.InviteExpiresAt != nil {
+		t := newGroupChat.InviteExpiresAt.Format(time.RFC3339)
+		inviteExpiresAt = &t
+	}
+
 	myRole := string(groupmember.RoleOwner)
 	chatListResponse := &model.ChatListResponse{
-		ID:          newChat.ID,
-		Type:        string(newChat.Type),
-		Name:        newGroupChat.Name,
-		Description: newGroupChat.Description,
-		IsPublic:    &newGroupChat.IsPublic,
-		Avatar:      avatarURL,
-		LastMessage: lastMsgResp,
-		UnreadCount: 0,
-		MyRole:      &myRole,
-		MemberCount: len(allMemberIDs),
+		ID:              newChat.ID,
+		Type:            string(newChat.Type),
+		Name:            newGroupChat.Name,
+		Description:     newGroupChat.Description,
+		IsPublic:        &newGroupChat.IsPublic,
+		InviteCode:      &newGroupChat.InviteCode,
+		InviteExpiresAt: inviteExpiresAt,
+		Avatar:          avatarURL,
+		LastMessage:     lastMsgResp,
+		UnreadCount:     0,
+		MyRole:          &myRole,
+		MemberCount:     len(allMemberIDs),
 	}
 
 	if s.wsHub != nil {
