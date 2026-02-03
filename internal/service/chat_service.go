@@ -99,11 +99,57 @@ func (s *ChatService) GetChatByID(ctx context.Context, userID, chatID uuid.UUID)
 	if resp != nil {
 
 		if resp.LastMessage != nil && resp.LastMessage.ActionData != nil {
+			userIDsToResolve := make(map[uuid.UUID]bool)
 			if targetIDStr, ok := resp.LastMessage.ActionData["target_id"].(string); ok {
 				if id, err := uuid.Parse(targetIDStr); err == nil {
-					u, err := s.client.User.Query().Where(user.ID(id)).Select(user.FieldFullName).Only(ctx)
-					if err == nil && u.FullName != nil {
-						resp.LastMessage.ActionData["target_name"] = *u.FullName
+					userIDsToResolve[id] = true
+				}
+			}
+			if actorIDStr, ok := resp.LastMessage.ActionData["actor_id"].(string); ok {
+				if id, err := uuid.Parse(actorIDStr); err == nil {
+					userIDsToResolve[id] = true
+				}
+			}
+
+			if len(userIDsToResolve) > 0 {
+				ids := make([]uuid.UUID, 0, len(userIDsToResolve))
+				for id := range userIDsToResolve {
+					ids = append(ids, id)
+				}
+				users, err := s.client.User.Query().
+					Where(user.IDIn(ids...)).
+					Select(user.FieldID, user.FieldFullName, user.FieldDeletedAt).
+					All(ctx)
+
+				if err == nil {
+					userMap := make(map[uuid.UUID]*ent.User)
+					for _, u := range users {
+						userMap[u.ID] = u
+					}
+
+					if targetIDStr, ok := resp.LastMessage.ActionData["target_id"].(string); ok {
+						if id, err := uuid.Parse(targetIDStr); err == nil {
+							if u, exists := userMap[id]; exists {
+								if u.DeletedAt != nil {
+									delete(resp.LastMessage.ActionData, "target_id")
+									resp.LastMessage.ActionData["target_name"] = ""
+								} else if u.FullName != nil {
+									resp.LastMessage.ActionData["target_name"] = *u.FullName
+								}
+							}
+						}
+					}
+					if actorIDStr, ok := resp.LastMessage.ActionData["actor_id"].(string); ok {
+						if id, err := uuid.Parse(actorIDStr); err == nil {
+							if u, exists := userMap[id]; exists {
+								if u.DeletedAt != nil {
+									delete(resp.LastMessage.ActionData, "actor_id")
+									resp.LastMessage.ActionData["actor_name"] = ""
+								} else if u.FullName != nil {
+									resp.LastMessage.ActionData["actor_name"] = *u.FullName
+								}
+							}
+						}
 					}
 				}
 			}
@@ -207,10 +253,15 @@ func (s *ChatService) GetChats(ctx context.Context, userID uuid.UUID, req model.
 					userIDsToResolve[id] = true
 				}
 			}
+			if actorIDStr, ok := c.Edges.LastMessage.ActionData["actor_id"].(string); ok {
+				if id, err := uuid.Parse(actorIDStr); err == nil {
+					userIDsToResolve[id] = true
+				}
+			}
 		}
 	}
 
-	userMap := make(map[uuid.UUID]string)
+	userMap := make(map[uuid.UUID]*ent.User)
 	if len(userIDsToResolve) > 0 {
 		ids := make([]uuid.UUID, 0, len(userIDsToResolve))
 		for id := range userIDsToResolve {
@@ -218,13 +269,11 @@ func (s *ChatService) GetChats(ctx context.Context, userID uuid.UUID, req model.
 		}
 		users, err := s.client.User.Query().
 			Where(user.IDIn(ids...)).
-			Select(user.FieldID, user.FieldFullName).
+			Select(user.FieldID, user.FieldFullName, user.FieldDeletedAt).
 			All(ctx)
 		if err == nil {
 			for _, u := range users {
-				if u.FullName != nil {
-					userMap[u.ID] = *u.FullName
-				}
+				userMap[u.ID] = u
 			}
 		}
 	}
@@ -237,8 +286,25 @@ func (s *ChatService) GetChats(ctx context.Context, userID uuid.UUID, req model.
 			if resp.LastMessage != nil && resp.LastMessage.ActionData != nil {
 				if targetIDStr, ok := resp.LastMessage.ActionData["target_id"].(string); ok {
 					if id, err := uuid.Parse(targetIDStr); err == nil {
-						if name, exists := userMap[id]; exists {
-							resp.LastMessage.ActionData["target_name"] = name
+						if u, exists := userMap[id]; exists {
+							if u.DeletedAt != nil {
+								delete(resp.LastMessage.ActionData, "target_id")
+								resp.LastMessage.ActionData["target_name"] = ""
+							} else if u.FullName != nil {
+								resp.LastMessage.ActionData["target_name"] = *u.FullName
+							}
+						}
+					}
+				}
+				if actorIDStr, ok := resp.LastMessage.ActionData["actor_id"].(string); ok {
+					if id, err := uuid.Parse(actorIDStr); err == nil {
+						if u, exists := userMap[id]; exists {
+							if u.DeletedAt != nil {
+								delete(resp.LastMessage.ActionData, "actor_id")
+								resp.LastMessage.ActionData["actor_name"] = ""
+							} else if u.FullName != nil {
+								resp.LastMessage.ActionData["actor_name"] = *u.FullName
+							}
 						}
 					}
 				}

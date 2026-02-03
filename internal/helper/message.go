@@ -48,13 +48,20 @@ func ToMessageResponse(msg *ent.Message, urlGen URLGenerator, hiddenAt *time.Tim
 
 	var senderName string
 	var senderAvatar string
+	senderID := msg.SenderID
 
 	if msg.Edges.Sender != nil {
-		if msg.Edges.Sender.FullName != nil {
-			senderName = *msg.Edges.Sender.FullName
-		}
-		if msg.Edges.Sender.Edges.Avatar != nil {
-			senderAvatar = urlGen.GetPublicURL(msg.Edges.Sender.Edges.Avatar.FileName)
+		if msg.Edges.Sender.DeletedAt != nil {
+			senderName = ""
+			senderAvatar = ""
+			senderID = nil
+		} else {
+			if msg.Edges.Sender.FullName != nil {
+				senderName = *msg.Edges.Sender.FullName
+			}
+			if msg.Edges.Sender.Edges.Avatar != nil {
+				senderAvatar = urlGen.GetPublicURL(msg.Edges.Sender.Edges.Avatar.FileName)
+			}
 		}
 	}
 
@@ -65,8 +72,12 @@ func ToMessageResponse(msg *ent.Message, urlGen URLGenerator, hiddenAt *time.Tim
 		var replyActionData map[string]interface{}
 		replySenderName := ""
 
-		if reply.Edges.Sender != nil && reply.Edges.Sender.FullName != nil {
-			replySenderName = *reply.Edges.Sender.FullName
+		if reply.Edges.Sender != nil {
+			if reply.Edges.Sender.DeletedAt != nil {
+				replySenderName = ""
+			} else if reply.Edges.Sender.FullName != nil {
+				replySenderName = *reply.Edges.Sender.FullName
+			}
 		}
 
 		if reply.DeletedAt != nil {
@@ -95,7 +106,7 @@ func ToMessageResponse(msg *ent.Message, urlGen URLGenerator, hiddenAt *time.Tim
 	return &model.MessageResponse{
 		ID:           msg.ID,
 		ChatID:       msg.ChatID,
-		SenderID:     msg.SenderID,
+		SenderID:     senderID,
 		SenderName:   senderName,
 		SenderAvatar: senderAvatar,
 		Type:         string(msg.Type),

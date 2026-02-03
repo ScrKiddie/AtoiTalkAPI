@@ -50,13 +50,13 @@ func (r *MessageRepository) GetMessages(ctx context.Context, chatID uuid.UUID, h
 
 	query = query.Limit(limit + 1).
 		WithSender(func(q *ent.UserQuery) {
-			q.Select(user.FieldID, user.FieldUsername, user.FieldFullName, user.FieldAvatarID)
+			q.Select(user.FieldID, user.FieldUsername, user.FieldFullName, user.FieldAvatarID, user.FieldDeletedAt)
 			q.WithAvatar()
 		}).
 		WithAttachments().
 		WithReplyTo(func(q *ent.MessageQuery) {
 			q.WithSender(func(uq *ent.UserQuery) {
-				uq.Select(user.FieldID, user.FieldUsername, user.FieldFullName, user.FieldAvatarID)
+				uq.Select(user.FieldID, user.FieldUsername, user.FieldFullName, user.FieldAvatarID, user.FieldDeletedAt)
 				uq.WithAvatar()
 			})
 			q.WithAttachments(func(aq *ent.MediaQuery) {
@@ -76,13 +76,13 @@ func (r *MessageRepository) GetMessagesAround(ctx context.Context, chatID uuid.U
 			message.HasChatWith(chat.DeletedAtIsNil()),
 		).
 		WithSender(func(q *ent.UserQuery) {
-			q.Select(user.FieldID, user.FieldUsername, user.FieldFullName, user.FieldAvatarID)
+			q.Select(user.FieldID, user.FieldUsername, user.FieldFullName, user.FieldAvatarID, user.FieldDeletedAt)
 			q.WithAvatar()
 		}).
 		WithAttachments().
 		WithReplyTo(func(q *ent.MessageQuery) {
 			q.WithSender(func(uq *ent.UserQuery) {
-				uq.Select(user.FieldID, user.FieldUsername, user.FieldFullName, user.FieldAvatarID)
+				uq.Select(user.FieldID, user.FieldUsername, user.FieldFullName, user.FieldAvatarID, user.FieldDeletedAt)
 				uq.WithAvatar()
 			})
 			q.WithAttachments(func(aq *ent.MediaQuery) {
@@ -113,13 +113,13 @@ func (r *MessageRepository) GetMessagesAround(ctx context.Context, chatID uuid.U
 		Order(ent.Desc(message.FieldID)).
 		Limit(halfLimit).
 		WithSender(func(q *ent.UserQuery) {
-			q.Select(user.FieldID, user.FieldUsername, user.FieldFullName, user.FieldAvatarID)
+			q.Select(user.FieldID, user.FieldUsername, user.FieldFullName, user.FieldAvatarID, user.FieldDeletedAt)
 			q.WithAvatar()
 		}).
 		WithAttachments().
 		WithReplyTo(func(q *ent.MessageQuery) {
 			q.WithSender(func(uq *ent.UserQuery) {
-				uq.Select(user.FieldID, user.FieldUsername, user.FieldFullName, user.FieldAvatarID)
+				uq.Select(user.FieldID, user.FieldUsername, user.FieldFullName, user.FieldAvatarID, user.FieldDeletedAt)
 				uq.WithAvatar()
 			})
 			q.WithAttachments(func(aq *ent.MediaQuery) {
@@ -143,13 +143,13 @@ func (r *MessageRepository) GetMessagesAround(ctx context.Context, chatID uuid.U
 		Order(ent.Asc(message.FieldID)).
 		Limit(halfLimit).
 		WithSender(func(q *ent.UserQuery) {
-			q.Select(user.FieldID, user.FieldUsername, user.FieldFullName, user.FieldAvatarID)
+			q.Select(user.FieldID, user.FieldUsername, user.FieldFullName, user.FieldAvatarID, user.FieldDeletedAt)
 			q.WithAvatar()
 		}).
 		WithAttachments().
 		WithReplyTo(func(q *ent.MessageQuery) {
 			q.WithSender(func(uq *ent.UserQuery) {
-				uq.Select(user.FieldID, user.FieldUsername, user.FieldFullName, user.FieldAvatarID)
+				uq.Select(user.FieldID, user.FieldUsername, user.FieldFullName, user.FieldAvatarID, user.FieldDeletedAt)
 				uq.WithAvatar()
 			})
 			q.WithAttachments(func(aq *ent.MediaQuery) {

@@ -939,6 +939,30 @@ func TestKickMember(t *testing.T) {
 		assert.False(t, exists)
 	})
 
+	t.Run("Success - Kick Deleted Member (Cleanup)", func(t *testing.T) {
+		defer testClient.User.UpdateOne(u3).ClearDeletedAt().ExecX(context.Background())
+
+		testClient.GroupMember.Create().SetGroupChat(gc).SetUser(u3).SetRole(groupmember.RoleMember).SaveX(context.Background())
+		testClient.User.UpdateOne(u3).SetDeletedAt(time.Now().UTC()).ExecX(context.Background())
+
+		req, _ := http.NewRequest("POST", fmt.Sprintf("/api/chats/group/%s/members/%s/kick", gc.ChatID, u3.ID), nil)
+		req.Header.Set("Authorization", "Bearer "+token1)
+
+		rr := executeRequest(req)
+		assert.Equal(t, http.StatusOK, rr.Code)
+
+		var resp helper.ResponseSuccess
+		json.Unmarshal(rr.Body.Bytes(), &resp)
+		dataMap := resp.Data.(map[string]interface{})
+		actionData := dataMap["action_data"].(map[string]interface{})
+
+		assert.Equal(t, u3.ID.String(), actionData["target_id"])
+		assert.NotEmpty(t, actionData["target_name"])
+
+		exists, _ := testClient.GroupMember.Query().Where(groupmember.GroupChatID(gc.ID), groupmember.UserID(u3.ID)).Exist(context.Background())
+		assert.False(t, exists)
+	})
+
 	t.Run("Fail - Admin Kicks Admin", func(t *testing.T) {
 
 		testClient.GroupMember.Create().SetGroupChat(gc).SetUser(u3).SetRole(groupmember.RoleAdmin).SaveX(context.Background())
@@ -962,7 +986,10 @@ func TestKickMember(t *testing.T) {
 
 		testClient.GroupMember.Update().Where(groupmember.GroupChatID(gc.ID), groupmember.UserID(u3.ID)).SetRole(groupmember.RoleMember).ExecX(context.Background())
 
-		testClient.GroupMember.Create().SetGroupChat(gc).SetUser(u4).SetRole(groupmember.RoleMember).SaveX(context.Background())
+		exists, _ := testClient.GroupMember.Query().Where(groupmember.GroupChatID(gc.ID), groupmember.UserID(u4.ID)).Exist(context.Background())
+		if !exists {
+			testClient.GroupMember.Create().SetGroupChat(gc).SetUser(u4).SetRole(groupmember.RoleMember).SaveX(context.Background())
+		}
 
 		req, _ := http.NewRequest("POST", fmt.Sprintf("/api/chats/group/%s/members/%s/kick", gc.ChatID, u4.ID), nil)
 		req.Header.Set("Authorization", "Bearer "+token3)
@@ -1038,6 +1065,21 @@ func TestUpdateMemberRole(t *testing.T) {
 		assert.Equal(t, groupmember.RoleMember, member.Role)
 	})
 
+	t.Run("Fail - Promote Deleted User", func(t *testing.T) {
+		testClient.User.UpdateOne(u2).SetDeletedAt(time.Now().UTC()).ExecX(context.Background())
+
+		reqBody := model.UpdateGroupMemberRoleRequest{Role: "admin"}
+		body, _ := json.Marshal(reqBody)
+		req, _ := http.NewRequest("PUT", fmt.Sprintf("/api/chats/group/%s/members/%s/role", gc.ChatID, u2.ID), bytes.NewBuffer(body))
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Authorization", "Bearer "+token1)
+
+		rr := executeRequest(req)
+		assert.Equal(t, http.StatusBadRequest, rr.Code)
+
+		testClient.User.UpdateOne(u2).ClearDeletedAt().ExecX(context.Background())
+	})
+
 	t.Run("Fail - Admin Promotes", func(t *testing.T) {
 
 		reqBody := model.UpdateGroupMemberRoleRequest{Role: "admin"}
@@ -1100,6 +1142,21 @@ func TestTransferOwnership(t *testing.T) {
 
 		assert.Equal(t, groupmember.RoleAdmin, oldOwner.Role)
 		assert.Equal(t, groupmember.RoleOwner, newOwner.Role)
+	})
+
+	t.Run("Fail - Transfer to Deleted User", func(t *testing.T) {
+		testClient.User.UpdateOne(u3).SetDeletedAt(time.Now().UTC()).ExecX(context.Background())
+
+		reqBody := model.TransferGroupOwnershipRequest{NewOwnerID: u3.ID}
+		body, _ := json.Marshal(reqBody)
+		req, _ := http.NewRequest("POST", fmt.Sprintf("/api/chats/group/%s/transfer", gc.ChatID), bytes.NewBuffer(body))
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Authorization", "Bearer "+token2)
+
+		rr := executeRequest(req)
+		assert.Equal(t, http.StatusBadRequest, rr.Code)
+
+		testClient.User.UpdateOne(u3).ClearDeletedAt().ExecX(context.Background())
 	})
 
 	t.Run("Fail - Not Owner", func(t *testing.T) {

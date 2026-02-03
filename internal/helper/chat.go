@@ -55,14 +55,15 @@ func MapChatToResponse(userID uuid.UUID, c *ent.Chat, blockedMap map[uuid.UUID]B
 
 		if otherUser != nil {
 			otherUserID = &otherUser.ID
-			if otherUser.FullName != nil {
-				name = *otherUser.FullName
-			}
 
 			if otherUser.DeletedAt != nil {
 				otherUserIsDeleted = true
 				isOnline = false
+				name = "" 
 			} else {
+				if otherUser.FullName != nil {
+					name = *otherUser.FullName
+				}
 
 				if otherUser.IsBanned {
 					if otherUser.BannedUntil == nil || time.Now().Before(*otherUser.BannedUntil) {

@@ -66,7 +66,7 @@ func (s *GroupChatService) UpdateMemberRole(ctx context.Context, requestorID uui
 			groupmember.UserID(targetUserID),
 		).
 		WithUser(func(q *ent.UserQuery) {
-			q.Select(user.FieldID, user.FieldFullName, user.FieldIsBanned, user.FieldBannedUntil)
+			q.Select(user.FieldID, user.FieldFullName, user.FieldIsBanned, user.FieldBannedUntil, user.FieldDeletedAt)
 		}).
 		Only(ctx)
 	if err != nil {
@@ -77,9 +77,14 @@ func (s *GroupChatService) UpdateMemberRole(ctx context.Context, requestorID uui
 		return nil, helper.NewBadRequestError("Cannot change your own role")
 	}
 
-	if targetMember.Edges.User != nil && targetMember.Edges.User.IsBanned {
-		if targetMember.Edges.User.BannedUntil == nil || time.Now().Before(*targetMember.Edges.User.BannedUntil) {
-			return nil, helper.NewForbiddenError("Cannot promote a suspended/banned user")
+	if targetMember.Edges.User != nil {
+		if targetMember.Edges.User.DeletedAt != nil {
+			return nil, helper.NewBadRequestError("Cannot change role of a deleted user")
+		}
+		if targetMember.Edges.User.IsBanned {
+			if targetMember.Edges.User.BannedUntil == nil || time.Now().Before(*targetMember.Edges.User.BannedUntil) {
+				return nil, helper.NewForbiddenError("Cannot promote a suspended/banned user")
+			}
 		}
 	}
 
@@ -215,7 +220,7 @@ func (s *GroupChatService) TransferOwnership(ctx context.Context, requestorID uu
 			groupmember.UserID(req.NewOwnerID),
 		).
 		WithUser(func(q *ent.UserQuery) {
-			q.Select(user.FieldID, user.FieldFullName, user.FieldIsBanned, user.FieldBannedUntil)
+			q.Select(user.FieldID, user.FieldFullName, user.FieldIsBanned, user.FieldBannedUntil, user.FieldDeletedAt)
 		}).
 		Only(ctx)
 	if err != nil {
@@ -226,9 +231,14 @@ func (s *GroupChatService) TransferOwnership(ctx context.Context, requestorID uu
 		return nil, nil
 	}
 
-	if targetMember.Edges.User != nil && targetMember.Edges.User.IsBanned {
-		if targetMember.Edges.User.BannedUntil == nil || time.Now().Before(*targetMember.Edges.User.BannedUntil) {
-			return nil, helper.NewForbiddenError("Cannot transfer ownership to a suspended/banned user")
+	if targetMember.Edges.User != nil {
+		if targetMember.Edges.User.DeletedAt != nil {
+			return nil, helper.NewBadRequestError("Cannot transfer ownership to a deleted user")
+		}
+		if targetMember.Edges.User.IsBanned {
+			if targetMember.Edges.User.BannedUntil == nil || time.Now().Before(*targetMember.Edges.User.BannedUntil) {
+				return nil, helper.NewForbiddenError("Cannot transfer ownership to a suspended/banned user")
+			}
 		}
 	}
 

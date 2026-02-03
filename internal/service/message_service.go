@@ -596,6 +596,11 @@ func (s *MessageService) GetMessages(ctx context.Context, userID uuid.UUID, req 
 					userIDsToResolve[id] = true
 				}
 			}
+			if actorIDStr, ok := msg.ActionData["actor_id"].(string); ok {
+				if id, err := uuid.Parse(actorIDStr); err == nil {
+					userIDsToResolve[id] = true
+				}
+			}
 		}
 	}
 
@@ -608,7 +613,7 @@ func (s *MessageService) GetMessages(ctx context.Context, userID uuid.UUID, req 
 
 		users, err := s.client.User.Query().
 			Where(user.IDIn(ids...)).
-			Select(user.FieldID, user.FieldFullName).
+			Select(user.FieldID, user.FieldFullName, user.FieldDeletedAt).
 			All(ctx)
 
 		if err != nil {
@@ -681,8 +686,24 @@ func (s *MessageService) GetMessages(ctx context.Context, userID uuid.UUID, req 
 				if targetIDStr, ok := resp.ActionData["target_id"].(string); ok {
 					if id, err := uuid.Parse(targetIDStr); err == nil {
 						if u, exists := userMap[id]; exists {
-							if u.FullName != nil {
+							if u.DeletedAt != nil {
+								delete(resp.ActionData, "target_id")
+								resp.ActionData["target_name"] = ""
+							} else if u.FullName != nil {
 								resp.ActionData["target_name"] = *u.FullName
+							}
+						}
+					}
+				}
+
+				if actorIDStr, ok := resp.ActionData["actor_id"].(string); ok {
+					if id, err := uuid.Parse(actorIDStr); err == nil {
+						if u, exists := userMap[id]; exists {
+							if u.DeletedAt != nil {
+								delete(resp.ActionData, "actor_id")
+								resp.ActionData["actor_name"] = ""
+							} else if u.FullName != nil {
+								resp.ActionData["actor_name"] = *u.FullName
 							}
 						}
 					}
