@@ -197,47 +197,6 @@ func (s *GroupChatService) GetGroupByInviteCode(ctx context.Context, inviteCode 
 	}, nil
 }
 
-func (s *GroupChatService) GetInviteCode(ctx context.Context, userID, groupID uuid.UUID) (*model.GroupInviteResponse, error) {
-	gc, err := s.client.GroupChat.Query().
-		Where(
-			groupchat.ChatID(groupID),
-			groupchat.HasChatWith(chat.DeletedAtIsNil()),
-		).
-		Select(groupchat.FieldID, groupchat.FieldInviteCode, groupchat.FieldInviteExpiresAt).
-		Only(ctx)
-	if err != nil {
-		if ent.IsNotFound(err) {
-			return nil, helper.NewNotFoundError("Group not found")
-		}
-		return nil, helper.NewInternalServerError("")
-	}
-
-	member, err := s.client.GroupMember.Query().
-		Where(
-			groupmember.GroupChatID(gc.ID),
-			groupmember.UserID(userID),
-		).
-		Only(ctx)
-	if err != nil {
-		return nil, helper.NewForbiddenError("You are not a member of this group")
-	}
-
-	if member.Role != groupmember.RoleOwner && member.Role != groupmember.RoleAdmin {
-		return nil, helper.NewForbiddenError("Only admins can view invite code")
-	}
-
-	var expiresAt *string
-	if gc.InviteExpiresAt != nil {
-		t := gc.InviteExpiresAt.Format(time.RFC3339)
-		expiresAt = &t
-	}
-
-	return &model.GroupInviteResponse{
-		InviteCode: gc.InviteCode,
-		ExpiresAt:  expiresAt,
-	}, nil
-}
-
 func (s *GroupChatService) ResetInviteCode(ctx context.Context, userID, groupID uuid.UUID) (*model.GroupInviteResponse, error) {
 	gc, err := s.client.GroupChat.Query().
 		Where(
@@ -306,7 +265,7 @@ func (s *GroupChatService) ResetInviteCode(ctx context.Context, userID, groupID 
 
 			if err == nil {
 				event := websocket.Event{
-					Type: websocket.EventChatNew, 
+					Type: websocket.EventChatUpdate,
 					Payload: map[string]interface{}{
 						"id":                gc.ChatID,
 						"invite_code":       newCode,
@@ -319,9 +278,13 @@ func (s *GroupChatService) ResetInviteCode(ctx context.Context, userID, groupID 
 					},
 				}
 
-				for _, admin := range admins {
-					if admin.UserID != userID { 
-						s.wsHub.BroadcastToUser(admin.UserID, event)
+				if gc.IsPublic {
+					s.wsHub.BroadcastToChat(gc.ChatID, event)
+				} else {
+					for _, admin := range admins {
+						if admin.UserID != userID {
+							s.wsHub.BroadcastToUser(admin.UserID, event)
+						}
 					}
 				}
 			}

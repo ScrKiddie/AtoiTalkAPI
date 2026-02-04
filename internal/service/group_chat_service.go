@@ -392,7 +392,7 @@ func (s *GroupChatService) UpdateGroupChat(ctx context.Context, requestorID uuid
 			newVisibility = "public"
 			update.ClearInviteExpiresAt()
 		} else {
-			
+
 			newCode, _ := helper.GenerateRandomString(12)
 			update.SetInviteCode(newCode)
 			update.SetInviteExpiresAt(time.Now().UTC().Add(7 * 24 * time.Hour))
@@ -575,42 +575,41 @@ func (s *GroupChatService) UpdateGroupChat(ctx context.Context, requestorID uuid
 				LastMessage: msgResponse,
 			}
 
-			s.wsHub.BroadcastToChat(gc.ChatID, websocket.Event{
-				Type:    websocket.EventChatNew,
-				Payload: chatPayload,
-				Meta: &websocket.EventMeta{
-					Timestamp: time.Now().UTC().UnixMilli(),
-					ChatID:    gc.ChatID,
-					SenderID:  requestorID,
-				},
-			})
+			if updatedGroup.IsPublic {
+				chatPayload.InviteCode = &updatedGroup.InviteCode
 
-			if !updatedGroup.IsPublic {
-				admins, err := s.client.GroupMember.Query().
-					Where(
-						groupmember.GroupChatID(gc.ID),
-						groupmember.RoleIn(groupmember.RoleOwner, groupmember.RoleAdmin),
-					).
-					Select(groupmember.FieldUserID).
+				s.wsHub.BroadcastToChat(gc.ChatID, websocket.Event{
+					Type:    websocket.EventChatUpdate,
+					Payload: chatPayload,
+					Meta: &websocket.EventMeta{
+						Timestamp: time.Now().UTC().UnixMilli(),
+						ChatID:    gc.ChatID,
+						SenderID:  requestorID,
+					},
+				})
+			} else {
+				members, err := s.client.GroupMember.Query().
+					Where(groupmember.GroupChatID(gc.ID)).
+					Select(groupmember.FieldUserID, groupmember.FieldRole).
 					All(context.Background())
 
 				if err == nil {
-					adminPayload := chatPayload
-					adminPayload.InviteCode = &updatedGroup.InviteCode
-					adminPayload.InviteExpiresAt = inviteExpiresAt
+					for _, m := range members {
+						payload := chatPayload
+						if m.Role == groupmember.RoleOwner || m.Role == groupmember.RoleAdmin {
+							payload.InviteCode = &updatedGroup.InviteCode
+							payload.InviteExpiresAt = inviteExpiresAt
+						}
 
-					adminEvent := websocket.Event{
-						Type:    websocket.EventChatNew,
-						Payload: adminPayload,
-						Meta: &websocket.EventMeta{
-							Timestamp: time.Now().UTC().UnixMilli(),
-							ChatID:    gc.ChatID,
-							SenderID:  requestorID,
-						},
-					}
-
-					for _, admin := range admins {
-						s.wsHub.BroadcastToUser(admin.UserID, adminEvent)
+						s.wsHub.BroadcastToUser(m.UserID, websocket.Event{
+							Type:    websocket.EventChatUpdate,
+							Payload: payload,
+							Meta: &websocket.EventMeta{
+								Timestamp: time.Now().UTC().UnixMilli(),
+								ChatID:    gc.ChatID,
+								SenderID:  requestorID,
+							},
+						})
 					}
 				}
 			}

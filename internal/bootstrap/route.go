@@ -100,11 +100,20 @@ func (route *Route) Register() {
 				r.Use(route.authMiddleware.AdminOnly)
 				r.Use(route.rateLimitMiddleware.Limit("admin_action", 1000, time.Minute))
 
+				r.Get("/admin/dashboard", route.adminController.GetDashboardStats)
+				r.Get("/admin/users", route.adminController.GetUsers)
+				r.Get("/admin/users/{userID}", route.adminController.GetUserDetail)
+				r.Post("/admin/users/{userID}/reset", route.adminController.ResetUserInfo)
 				r.Post("/admin/users/ban", route.adminController.BanUser)
 				r.Post("/admin/users/{userID}/unban", route.adminController.UnbanUser)
 				r.Get("/admin/reports", route.adminController.GetReports)
 				r.Get("/admin/reports/{reportID}", route.adminController.GetReportDetail)
 				r.Put("/admin/reports/{reportID}/resolve", route.adminController.ResolveReport)
+
+				r.Get("/admin/groups", route.adminController.GetGroups)
+				r.Get("/admin/groups/{groupID}", route.adminController.GetGroupDetail)
+				r.Delete("/admin/groups/{groupID}", route.adminController.DissolveGroup)
+				r.Post("/admin/groups/{groupID}/reset", route.adminController.ResetGroupInfo)
 			})
 
 			r.Group(func(r chi.Router) {
@@ -136,7 +145,7 @@ func (route *Route) Register() {
 				r.Post("/chats/group/{groupID}/leave", route.groupChatController.LeaveGroup)
 				r.Post("/chats/group/{groupID}/join", route.groupChatController.JoinPublicGroup)
 				r.Post("/chats/group/join/invite", route.groupChatController.JoinGroupByInvite)
-				r.Get("/chats/group/{groupID}/invite", route.groupChatController.GetInviteCode)
+
 				r.Put("/chats/group/{groupID}/invite", route.groupChatController.ResetInviteCode)
 				r.Post("/chats/group/{groupID}/members/{userID}/kick", route.groupChatController.KickMember)
 				r.Put("/chats/group/{groupID}/members/{userID}/role", route.groupChatController.UpdateMemberRole)

@@ -85,6 +85,79 @@ const docTemplate = `{
                 ],
                 "type": "object"
             },
+            "model.AdminUserDetailResponse": {
+                "properties": {
+                    "avatar": {
+                        "type": "string"
+                    },
+                    "ban_reason": {
+                        "type": "string"
+                    },
+                    "banned_until": {
+                        "type": "string"
+                    },
+                    "bio": {
+                        "type": "string"
+                    },
+                    "created_at": {
+                        "type": "string"
+                    },
+                    "email": {
+                        "type": "string"
+                    },
+                    "full_name": {
+                        "type": "string"
+                    },
+                    "id": {
+                        "type": "string"
+                    },
+                    "is_banned": {
+                        "type": "boolean"
+                    },
+                    "last_seen_at": {
+                        "type": "string"
+                    },
+                    "role": {
+                        "type": "string"
+                    },
+                    "total_groups": {
+                        "type": "integer"
+                    },
+                    "total_messages": {
+                        "type": "integer"
+                    },
+                    "username": {
+                        "type": "string"
+                    }
+                },
+                "type": "object"
+            },
+            "model.AdminUserListResponse": {
+                "properties": {
+                    "created_at": {
+                        "type": "string"
+                    },
+                    "email": {
+                        "type": "string"
+                    },
+                    "full_name": {
+                        "type": "string"
+                    },
+                    "id": {
+                        "type": "string"
+                    },
+                    "is_banned": {
+                        "type": "boolean"
+                    },
+                    "role": {
+                        "type": "string"
+                    },
+                    "username": {
+                        "type": "string"
+                    }
+                },
+                "type": "object"
+            },
             "model.AuthResponse": {
                 "properties": {
                     "token": {
@@ -273,6 +346,23 @@ const docTemplate = `{
                     "reason",
                     "target_type"
                 ],
+                "type": "object"
+            },
+            "model.DashboardStatsResponse": {
+                "properties": {
+                    "active_reports": {
+                        "type": "integer"
+                    },
+                    "total_groups": {
+                        "type": "integer"
+                    },
+                    "total_messages": {
+                        "type": "integer"
+                    },
+                    "total_users": {
+                        "type": "integer"
+                    }
+                },
                 "type": "object"
             },
             "model.DeleteAccountRequest": {
@@ -641,6 +731,20 @@ const docTemplate = `{
                 },
                 "type": "object"
             },
+            "model.ResetGroupInfoRequest": {
+                "properties": {
+                    "reset_avatar": {
+                        "type": "boolean"
+                    },
+                    "reset_description": {
+                        "type": "boolean"
+                    },
+                    "reset_name": {
+                        "type": "boolean"
+                    }
+                },
+                "type": "object"
+            },
             "model.ResetPasswordRequest": {
                 "properties": {
                     "captcha_token": {
@@ -667,6 +771,26 @@ const docTemplate = `{
                     "confirm_password",
                     "email",
                     "password"
+                ],
+                "type": "object"
+            },
+            "model.ResetUserInfoRequest": {
+                "properties": {
+                    "reset_avatar": {
+                        "type": "boolean"
+                    },
+                    "reset_bio": {
+                        "type": "boolean"
+                    },
+                    "reset_name": {
+                        "type": "boolean"
+                    },
+                    "target_user_id": {
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "target_user_id"
                 ],
                 "type": "object"
             },
@@ -1106,6 +1230,300 @@ const docTemplate = `{
                 ]
             }
         },
+        "/api/admin/dashboard": {
+            "get": {
+                "description": "Get high-level statistics for the admin dashboard. Requires Admin privileges.",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "allOf": [
+                                        {
+                                            "$ref": "#/components/schemas/data"
+                                        }
+                                    ],
+                                    "properties": {
+                                        "data": {}
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "OK"
+                    },
+                    "401": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/helper.ResponseError"
+                                }
+                            }
+                        },
+                        "description": "Unauthorized"
+                    },
+                    "403": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/helper.ResponseError"
+                                }
+                            }
+                        },
+                        "description": "Forbidden"
+                    },
+                    "500": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/helper.ResponseError"
+                                }
+                            }
+                        },
+                        "description": "Internal Server Error"
+                    }
+                },
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "summary": "Get Dashboard Stats",
+                "tags": [
+                    "admin"
+                ]
+            }
+        },
+        "/api/admin/groups": {
+            "get": {
+                "description": "List and search groups with pagination. Requires Admin.",
+                "parameters": [
+                    {
+                        "description": "Search by name",
+                        "in": "query",
+                        "name": "query",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "description": "Limit",
+                        "in": "query",
+                        "name": "limit",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "description": "Pagination cursor",
+                        "in": "query",
+                        "name": "cursor",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/helper.ResponseWithPagination"
+                                }
+                            }
+                        },
+                        "description": "OK"
+                    },
+                    "403": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/helper.ResponseError"
+                                }
+                            }
+                        },
+                        "description": "Forbidden"
+                    }
+                },
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "summary": "List Groups",
+                "tags": [
+                    "admin"
+                ]
+            }
+        },
+        "/api/admin/groups/{groupID}": {
+            "delete": {
+                "description": "Soft delete a group. Requires Admin.",
+                "parameters": [
+                    {
+                        "description": "Group ID",
+                        "in": "path",
+                        "name": "groupID",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/helper.ResponseSuccess"
+                                }
+                            }
+                        },
+                        "description": "OK"
+                    },
+                    "404": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/helper.ResponseError"
+                                }
+                            }
+                        },
+                        "description": "Not Found"
+                    }
+                },
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "summary": "Dissolve Group",
+                "tags": [
+                    "admin"
+                ]
+            },
+            "get": {
+                "description": "Get detailed group information. Requires Admin.",
+                "parameters": [
+                    {
+                        "description": "Group ID",
+                        "in": "path",
+                        "name": "groupID",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/helper.ResponseSuccess"
+                                }
+                            }
+                        },
+                        "description": "OK"
+                    },
+                    "404": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/helper.ResponseError"
+                                }
+                            }
+                        },
+                        "description": "Not Found"
+                    }
+                },
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "summary": "Get Group Detail",
+                "tags": [
+                    "admin"
+                ]
+            }
+        },
+        "/api/admin/groups/{groupID}/reset": {
+            "post": {
+                "description": "Reset group's avatar, description, or name. Requires Admin.",
+                "parameters": [
+                    {
+                        "description": "Group ID",
+                        "in": "path",
+                        "name": "groupID",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "oneOf": [
+                                    {
+                                        "type": "object"
+                                    },
+                                    {
+                                        "$ref": "#/components/schemas/model.ResetGroupInfoRequest",
+                                        "summary": "req",
+                                        "description": "Reset Request"
+                                    }
+                                ]
+                            }
+                        }
+                    },
+                    "description": "Reset Request",
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/helper.ResponseSuccess"
+                                }
+                            }
+                        },
+                        "description": "OK"
+                    },
+                    "400": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/helper.ResponseError"
+                                }
+                            }
+                        },
+                        "description": "Bad Request"
+                    }
+                },
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "summary": "Reset Group Info",
+                "tags": [
+                    "admin"
+                ]
+            }
+        },
         "/api/admin/reports": {
             "get": {
                 "description": "Get a list of reports. Requires Admin privileges.",
@@ -1429,6 +1847,98 @@ const docTemplate = `{
                 ]
             }
         },
+        "/api/admin/users": {
+            "get": {
+                "description": "Get paginated list of users with optional filtering. Requires Admin.",
+                "parameters": [
+                    {
+                        "description": "Search query (username, email, or full name)",
+                        "in": "query",
+                        "name": "query",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "description": "Filter by role (user, admin)",
+                        "in": "query",
+                        "name": "role",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "description": "Limit (default 20)",
+                        "in": "query",
+                        "name": "limit",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "allOf": [
+                                        {
+                                            "$ref": "#/components/schemas/data"
+                                        }
+                                    ],
+                                    "properties": {
+                                        "data": {},
+                                        "meta": {
+                                            "$ref": "#/components/schemas/helper.PaginationMeta"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "OK"
+                    },
+                    "403": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/helper.ResponseError"
+                                }
+                            }
+                        },
+                        "description": "Forbidden"
+                    },
+                    "500": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/helper.ResponseError"
+                                }
+                            }
+                        },
+                        "description": "Internal Server Error"
+                    }
+                },
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "summary": "Get Users List",
+                "tags": [
+                    "admin"
+                ]
+            }
+        },
         "/api/admin/users/ban": {
             "post": {
                 "description": "Ban a user permanently or temporarily. Requires Admin privileges.",
@@ -1520,6 +2030,157 @@ const docTemplate = `{
                     }
                 ],
                 "summary": "Ban User",
+                "tags": [
+                    "admin"
+                ]
+            }
+        },
+        "/api/admin/users/{userID}": {
+            "get": {
+                "description": "Get detailed user info including stats. Requires Admin.",
+                "parameters": [
+                    {
+                        "description": "User ID",
+                        "in": "path",
+                        "name": "userID",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "allOf": [
+                                        {
+                                            "$ref": "#/components/schemas/data"
+                                        }
+                                    ],
+                                    "properties": {
+                                        "data": {}
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "OK"
+                    },
+                    "400": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/helper.ResponseError"
+                                }
+                            }
+                        },
+                        "description": "Bad Request"
+                    },
+                    "404": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/helper.ResponseError"
+                                }
+                            }
+                        },
+                        "description": "Not Found"
+                    }
+                },
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "summary": "Get User Detail",
+                "tags": [
+                    "admin"
+                ]
+            }
+        },
+        "/api/admin/users/{userID}/reset": {
+            "post": {
+                "description": "Reset user's avatar, bio, or name. Requires Admin.",
+                "parameters": [
+                    {
+                        "description": "User ID",
+                        "in": "path",
+                        "name": "userID",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "oneOf": [
+                                    {
+                                        "type": "object"
+                                    },
+                                    {
+                                        "$ref": "#/components/schemas/model.ResetUserInfoRequest",
+                                        "summary": "req",
+                                        "description": "Reset Request"
+                                    }
+                                ]
+                            }
+                        }
+                    },
+                    "description": "Reset Request",
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/helper.ResponseSuccess"
+                                }
+                            }
+                        },
+                        "description": "OK"
+                    },
+                    "400": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/helper.ResponseError"
+                                }
+                            }
+                        },
+                        "description": "Bad Request"
+                    },
+                    "500": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/helper.ResponseError"
+                                }
+                            }
+                        },
+                        "description": "Internal Server Error"
+                    }
+                },
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "summary": "Reset User Info",
                 "tags": [
                     "admin"
                 ]
@@ -2807,118 +3468,6 @@ const docTemplate = `{
             }
         },
         "/api/chats/group/{groupID}/invite": {
-            "get": {
-                "description": "Get the invite code for a group. Only admins or owners can view it.",
-                "parameters": [
-                    {
-                        "description": "Group Chat ID (UUID)",
-                        "in": "path",
-                        "name": "groupID",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                ],
-                "requestBody": {
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "type": "object"
-                            }
-                        }
-                    }
-                },
-                "responses": {
-                    "200": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "allOf": [
-                                        {
-                                            "$ref": "#/components/schemas/data"
-                                        }
-                                    ],
-                                    "properties": {
-                                        "data": {}
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        },
-                        "description": "OK"
-                    },
-                    "400": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Bad Request"
-                    },
-                    "401": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Unauthorized"
-                    },
-                    "403": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Forbidden"
-                    },
-                    "404": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Not Found"
-                    },
-                    "429": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Too Many Requests"
-                    },
-                    "500": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Internal Server Error"
-                    }
-                },
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "summary": "Get Group Invite Code",
-                "tags": [
-                    "chat"
-                ]
-            },
             "put": {
                 "description": "Reset the invite code for a group. Only admins or owners can perform this action.",
                 "parameters": [

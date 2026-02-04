@@ -156,7 +156,7 @@ func TestMain(m *testing.M) {
 	reportController := controller.NewReportController(reportService)
 
 	adminService := service.NewAdminService(testClient, testConfig, validator, testHub, repo, storageAdapter)
-	adminController := controller.NewAdminController(adminService)
+	adminController := controller.NewAdminController(adminService, validator)
 
 	wsController := controller.NewWebSocketController(testHub)
 

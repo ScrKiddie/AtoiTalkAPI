@@ -3,6 +3,7 @@ package service
 import (
 	"AtoiTalkAPI/ent"
 	"AtoiTalkAPI/ent/chat"
+	"AtoiTalkAPI/ent/groupchat"
 	"AtoiTalkAPI/ent/groupmember"
 	"AtoiTalkAPI/ent/media"
 	"AtoiTalkAPI/ent/message"
@@ -734,7 +735,24 @@ func (s *MessageService) DeleteMessage(ctx context.Context, userID uuid.UUID, me
 		return helper.NewBadRequestError("Chat is deleted")
 	}
 
-	if msg.SenderID == nil || *msg.SenderID != userID {
+	canDelete := false
+	if msg.SenderID != nil && *msg.SenderID == userID {
+		canDelete = true
+	} else if msg.Edges.Chat != nil && msg.Edges.Chat.Type == chat.TypeGroup {
+
+		count, err := s.client.GroupMember.Query().
+			Where(
+				groupmember.UserID(userID),
+				groupmember.RoleIn(groupmember.RoleAdmin, groupmember.RoleOwner),
+				groupmember.HasGroupChatWith(groupchat.ChatID(msg.ChatID)),
+			).
+			Count(ctx)
+		if err == nil && count > 0 {
+			canDelete = true
+		}
+	}
+
+	if !canDelete {
 		return helper.NewForbiddenError("")
 	}
 

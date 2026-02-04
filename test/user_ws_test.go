@@ -780,8 +780,8 @@ func TestWebSocketUpdateGroupChat(t *testing.T) {
 	updateReq.Header.Set("Authorization", "Bearer "+token1)
 	executeRequest(updateReq)
 
-	events := waitForEvents(t, conn2, []websocket.EventType{websocket.EventChatNew, websocket.EventMessageNew}, 2*time.Second)
-	assert.NotNil(t, events[websocket.EventChatNew], "User 2 should receive chat.new (update)")
+	events := waitForEvents(t, conn2, []websocket.EventType{websocket.EventChatUpdate, websocket.EventMessageNew}, 2*time.Second)
+	assert.NotNil(t, events[websocket.EventChatUpdate], "User 2 should receive chat.update")
 	assert.NotNil(t, events[websocket.EventMessageNew], "User 2 should receive message.new")
 }
 
@@ -842,16 +842,16 @@ func TestWebSocketUpdateGroupVisibility(t *testing.T) {
 	updateReq.Header.Set("Authorization", "Bearer "+token1)
 	executeRequest(updateReq)
 
-	event2 := waitForEvent(t, conn2, websocket.EventChatNew, 2*time.Second)
-	assert.NotNil(t, event2, "Member (u2) should receive chat.new")
+	event2 := waitForEvent(t, conn2, websocket.EventChatUpdate, 2*time.Second)
+	assert.NotNil(t, event2, "Member (u2) should receive chat.update")
 	if event2 != nil {
 		payload := event2.Payload.(map[string]interface{})
 		assert.True(t, payload["is_public"].(bool))
 		assert.Nil(t, payload["invite_code"], "Member should NOT see invite_code")
 	}
 
-	event3 := waitForEvent(t, conn3, websocket.EventChatNew, 2*time.Second)
-	assert.NotNil(t, event3, "Admin (u3) should receive chat.new")
+	event3 := waitForEvent(t, conn3, websocket.EventChatUpdate, 2*time.Second)
+	assert.NotNil(t, event3, "Admin (u3) should receive chat.update")
 	if event3 != nil {
 		payload := event3.Payload.(map[string]interface{})
 		assert.True(t, payload["is_public"].(bool))
@@ -868,8 +868,8 @@ func TestWebSocketUpdateGroupVisibility(t *testing.T) {
 	updateReq2.Header.Set("Authorization", "Bearer "+token1)
 	executeRequest(updateReq2)
 
-	event2Private := waitForEvent(t, conn2, websocket.EventChatNew, 2*time.Second)
-	assert.NotNil(t, event2Private, "Member (u2) should receive chat.new")
+	event2Private := waitForEvent(t, conn2, websocket.EventChatUpdate, 2*time.Second)
+	assert.NotNil(t, event2Private, "Member (u2) should receive chat.update")
 	if event2Private != nil {
 		payload := event2Private.Payload.(map[string]interface{})
 		assert.False(t, payload["is_public"].(bool))
@@ -893,7 +893,7 @@ func TestWebSocketUpdateGroupVisibility(t *testing.T) {
 			continue
 		}
 
-		if ev.Type == websocket.EventChatNew {
+		if ev.Type == websocket.EventChatUpdate {
 			payload := ev.Payload.(map[string]interface{})
 			if payload["invite_code"] != nil {
 				foundCode = true
@@ -902,7 +902,7 @@ func TestWebSocketUpdateGroupVisibility(t *testing.T) {
 			}
 		}
 	}
-	assert.True(t, foundCode, "Admin (u3) should receive at least one chat.new event WITH invite_code")
+	assert.True(t, foundCode, "Admin (u3) should receive at least one chat.update event WITH invite_code")
 }
 
 func TestWebSocketResetInviteCodeBroadcast(t *testing.T) {
@@ -955,16 +955,16 @@ func TestWebSocketResetInviteCodeBroadcast(t *testing.T) {
 	resetReq.Header.Set("Authorization", "Bearer "+token1)
 	executeRequest(resetReq)
 
-	event2 := waitForEvent(t, conn2, websocket.EventChatNew, 2*time.Second)
-	assert.NotNil(t, event2, "Admin (u2) should receive chat.new event")
+	event2 := waitForEvent(t, conn2, websocket.EventChatUpdate, 2*time.Second)
+	assert.NotNil(t, event2, "Admin (u2) should receive chat.update event")
 	if event2 != nil {
 		payload := event2.Payload.(map[string]interface{})
 		assert.NotNil(t, payload["invite_code"])
 		assert.NotNil(t, payload["invite_expires_at"])
 	}
 
-	event3 := waitForEvent(t, conn3, websocket.EventChatNew, 1*time.Second)
-	assert.Nil(t, event3, "Member (u3) should NOT receive chat.new event for invite code reset")
+	event3 := waitForEvent(t, conn3, websocket.EventChatUpdate, 1*time.Second)
+	assert.Nil(t, event3, "Member (u3) should NOT receive chat.update event for invite code reset")
 }
 
 func TestWebSocketKickMember(t *testing.T) {

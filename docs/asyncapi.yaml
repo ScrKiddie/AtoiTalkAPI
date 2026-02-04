@@ -53,6 +53,8 @@ channels:
         $ref: '#/components/messages/ServerChatHide'
       serverChatDelete:
         $ref: '#/components/messages/ServerChatDelete'
+      serverChatUpdate:
+        $ref: '#/components/messages/ServerChatUpdate'
       serverUserOnline:
         $ref: '#/components/messages/ServerUserOnline'
       serverUserOffline:
@@ -92,6 +94,7 @@ operations:
       - $ref: '#/channels/chat/messages/serverChatRead'
       - $ref: '#/channels/chat/messages/serverChatHide'
       - $ref: '#/channels/chat/messages/serverChatDelete'
+      - $ref: '#/channels/chat/messages/serverChatUpdate'
       - $ref: '#/channels/chat/messages/serverUserOnline'
       - $ref: '#/channels/chat/messages/serverUserOffline'
       - $ref: '#/channels/chat/messages/serverUserUpdate'
@@ -457,7 +460,7 @@ components:
     ServerChatNew:
       name: chat.new
       title: New Chat / Chat Update
-      summary: Sent to target user when a new private chat is started, when added to a group, OR when group info (name/avatar) is updated.
+      summary: Sent to target user when a new private chat is started or when added to a group.
       payload:
         allOf:
           - $ref: '#/components/schemas/BaseEvent'
@@ -525,6 +528,20 @@ components:
                   chat_id:
                     type: string
                     format: uuid
+
+    ServerChatUpdate:
+      name: chat.update
+      title: Chat Updated
+      summary: Broadcasted when chat info is updated. This includes changes to Group Name, Description, Avatar, Visibility (Public/Private), and Invite Code reset (sent to admins).
+      payload:
+        allOf:
+          - $ref: '#/components/schemas/BaseEvent'
+          - type: object
+            properties:
+              type:
+                const: chat.update
+              payload:
+                $ref: '#/components/schemas/ChatListResponse'
 
     ServerUserOnline:
       name: user.online

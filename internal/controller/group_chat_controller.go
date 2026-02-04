@@ -665,45 +665,6 @@ func (c *GroupChatController) GetGroupByInviteCode(w http.ResponseWriter, r *htt
 	helper.WriteSuccess(w, resp)
 }
 
-// GetInviteCode godoc
-// @Summary      Get Group Invite Code
-// @Description  Get the invite code for a group. Only admins or owners can view it.
-// @Tags         chat
-// @Accept       json
-// @Produce      json
-// @Param        groupID path string true "Group Chat ID (UUID)"
-// @Success      200  {object}  helper.ResponseSuccess{data=model.GroupInviteResponse}
-// @Failure      400  {object}  helper.ResponseError
-// @Failure      401  {object}  helper.ResponseError
-// @Failure      403  {object}  helper.ResponseError
-// @Failure      404  {object}  helper.ResponseError
-// @Failure      429  {object}  helper.ResponseError
-// @Failure      500  {object}  helper.ResponseError
-// @Security     BearerAuth
-// @Router       /api/chats/group/{groupID}/invite [get]
-func (c *GroupChatController) GetInviteCode(w http.ResponseWriter, r *http.Request) {
-	userContext, ok := r.Context().Value(middleware.UserContextKey).(*model.UserDTO)
-	if !ok {
-		helper.WriteError(w, helper.NewUnauthorizedError(""))
-		return
-	}
-
-	groupIDStr := chi.URLParam(r, "groupID")
-	groupID, err := uuid.Parse(groupIDStr)
-	if err != nil {
-		helper.WriteError(w, helper.NewBadRequestError("Invalid Group ID"))
-		return
-	}
-
-	resp, err := c.groupChatService.GetInviteCode(r.Context(), userContext.ID, groupID)
-	if err != nil {
-		helper.WriteError(w, err)
-		return
-	}
-
-	helper.WriteSuccess(w, resp)
-}
-
 // ResetInviteCode godoc
 // @Summary      Reset Group Invite Code
 // @Description  Reset the invite code for a group. Only admins or owners can perform this action.

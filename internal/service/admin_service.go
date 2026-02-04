@@ -2,6 +2,10 @@ package service
 
 import (
 	"AtoiTalkAPI/ent"
+	"AtoiTalkAPI/ent/chat"
+	"AtoiTalkAPI/ent/groupchat"
+	"AtoiTalkAPI/ent/groupmember"
+	"AtoiTalkAPI/ent/message"
 	"AtoiTalkAPI/ent/report"
 	"AtoiTalkAPI/ent/user"
 	"AtoiTalkAPI/internal/adapter"
@@ -321,6 +325,531 @@ func (s *AdminService) ResolveReport(ctx context.Context, reportID uuid.UUID, re
 	if err != nil {
 		slog.Error("Failed to resolve report", "error", err)
 		return helper.NewInternalServerError("")
+	}
+
+	if report.Status(req.Status) == report.StatusResolved {
+		fullReport, err := s.client.Report.Query().
+			Where(report.ID(reportID)).
+			Only(ctx)
+
+		if err == nil && fullReport.TargetType == report.TargetTypeMessage && fullReport.MessageID != nil {
+			msgID := *fullReport.MessageID
+
+			msg, err := s.client.Message.Query().
+				Where(message.ID(msgID)).
+				WithChat().
+				Only(ctx)
+
+			if err == nil && msg.DeletedAt == nil {
+
+				err = s.client.Message.UpdateOne(msg).SetDeletedAt(time.Now().UTC()).Exec(ctx)
+				if err == nil && s.wsHub != nil {
+					go s.wsHub.BroadcastToChat(msg.ChatID, websocket.Event{
+						Type: websocket.EventMessageDelete,
+						Payload: map[string]uuid.UUID{
+							"message_id": msgID,
+						},
+						Meta: &websocket.EventMeta{
+							Timestamp: time.Now().UTC().UnixMilli(),
+							ChatID:    msg.ChatID,
+						},
+					})
+				}
+			}
+		}
+	}
+
+	return nil
+}
+
+func (s *AdminService) GetDashboardStats(ctx context.Context) (*model.DashboardStatsResponse, error) {
+	totalUsers, err := s.client.User.Query().Count(ctx)
+	if err != nil {
+		slog.Error("Failed to count users", "error", err)
+		return nil, helper.NewInternalServerError("")
+	}
+
+	totalGroups, err := s.client.GroupChat.Query().Count(ctx)
+	if err != nil {
+		slog.Error("Failed to count groups", "error", err)
+		return nil, helper.NewInternalServerError("")
+	}
+
+	totalMessages, err := s.client.Message.Query().Count(ctx)
+	if err != nil {
+		slog.Error("Failed to count messages", "error", err)
+		return nil, helper.NewInternalServerError("")
+	}
+
+	activeReports, err := s.client.Report.Query().
+		Where(report.StatusEQ(report.StatusPending)).
+		Count(ctx)
+	if err != nil {
+		slog.Error("Failed to count active reports", "error", err)
+		return nil, helper.NewInternalServerError("")
+	}
+
+	return &model.DashboardStatsResponse{
+		TotalUsers:    totalUsers,
+		TotalGroups:   totalGroups,
+		TotalMessages: totalMessages,
+		ActiveReports: activeReports,
+	}, nil
+}
+
+func (s *AdminService) GetUsers(ctx context.Context, req model.AdminGetUserListRequest) ([]model.AdminUserListResponse, string, bool, error) {
+	if err := s.validator.Struct(req); err != nil {
+		return nil, "", false, helper.NewBadRequestError("")
+	}
+
+	if req.Limit == 0 {
+		req.Limit = 20
+	}
+
+	query := s.client.User.Query()
+
+	if req.Query != "" {
+		query = query.Where(user.Or(
+			user.UsernameContainsFold(req.Query),
+			user.EmailContainsFold(req.Query),
+			user.FullNameContainsFold(req.Query),
+		))
+	}
+
+	if req.Role != "" {
+		query = query.Where(user.RoleEQ(user.Role(req.Role)))
+	}
+
+	if req.Cursor != "" {
+		decodedBytes, err := base64.URLEncoding.DecodeString(req.Cursor)
+		if err == nil {
+			if cursorID, err := uuid.Parse(string(decodedBytes)); err == nil {
+				query = query.Where(user.IDLT(cursorID))
+			}
+		}
+	}
+
+	query = query.Order(ent.Desc(user.FieldCreatedAt))
+
+	usersList, err := query.Limit(req.Limit + 1).All(ctx)
+	if err != nil {
+		slog.Error("Failed to fetch users", "error", err)
+		return nil, "", false, helper.NewInternalServerError("")
+	}
+
+	hasNext := false
+	var nextCursor string
+	if len(usersList) > req.Limit {
+		hasNext = true
+		usersList = usersList[:req.Limit]
+		lastID := usersList[len(usersList)-1].ID
+		nextCursor = base64.URLEncoding.EncodeToString([]byte(lastID.String()))
+	}
+
+	data := make([]model.AdminUserListResponse, 0)
+	for _, u := range usersList {
+		username := ""
+		if u.Username != nil {
+			username = *u.Username
+		}
+		email := ""
+		if u.Email != nil {
+			email = *u.Email
+		}
+		fullName := ""
+		if u.FullName != nil {
+			fullName = *u.FullName
+		}
+
+		isBanned := u.IsBanned
+		if isBanned && u.BannedUntil != nil && time.Now().After(*u.BannedUntil) {
+			isBanned = false
+		}
+
+		data = append(data, model.AdminUserListResponse{
+			ID:        u.ID,
+			Username:  username,
+			Email:     &email,
+			FullName:  &fullName,
+			Role:      string(u.Role),
+			IsBanned:  isBanned,
+			CreatedAt: u.CreatedAt.Format(time.RFC3339),
+		})
+	}
+
+	return data, nextCursor, hasNext, nil
+}
+
+func (s *AdminService) GetUserDetail(ctx context.Context, userID uuid.UUID) (*model.AdminUserDetailResponse, error) {
+	u, err := s.client.User.Query().
+		Where(user.ID(userID)).
+		WithAvatar().
+		Only(ctx)
+	if err != nil {
+		if ent.IsNotFound(err) {
+			return nil, helper.NewNotFoundError("User not found")
+		}
+		slog.Error("Failed to fetching user detail", "error", err)
+		return nil, helper.NewInternalServerError("")
+	}
+
+	msgCount, _ := s.client.Message.Query().Where(message.SenderID(u.ID)).Count(ctx)
+	groupCount, _ := s.client.GroupMember.Query().Where(groupmember.UserID(u.ID)).Count(ctx)
+
+	var username, email, fullName, bio string
+	if u.Username != nil {
+		username = *u.Username
+	}
+	if u.Email != nil {
+		email = *u.Email
+	}
+	if u.FullName != nil {
+		fullName = *u.FullName
+	}
+	if u.Bio != nil {
+		bio = *u.Bio
+	}
+
+	resp := &model.AdminUserDetailResponse{
+		ID:            u.ID,
+		Username:      username,
+		Email:         &email,
+		FullName:      &fullName,
+		Bio:           &bio,
+		Role:          string(u.Role),
+		IsBanned:      u.BannedUntil != nil && u.BannedUntil.After(time.Now()),
+		BanReason:     u.BanReason,
+		CreatedAt:     u.CreatedAt.Format(time.RFC3339),
+		TotalMessages: msgCount,
+		TotalGroups:   groupCount,
+	}
+
+	if u.Edges.Avatar != nil {
+		url := s.storageAdapter.GetPublicURL(u.Edges.Avatar.FileName)
+		resp.Avatar = url
+	}
+
+	if u.BannedUntil != nil {
+		tStr := u.BannedUntil.Format(time.RFC3339)
+		resp.BannedUntil = &tStr
+	}
+
+	if u.LastSeenAt != nil {
+		tStr := u.LastSeenAt.Format(time.RFC3339)
+		resp.LastSeenAt = &tStr
+	}
+
+	return resp, nil
+}
+
+func (s *AdminService) ResetUserInfo(ctx context.Context, req model.ResetUserInfoRequest) error {
+	uQuery := s.client.User.Query().Where(user.ID(req.TargetUserID)).WithAvatar()
+	u, err := uQuery.Only(ctx)
+	if err != nil {
+		return helper.NewNotFoundError("User not found")
+	}
+
+	update := s.client.User.UpdateOne(u)
+
+	if req.ResetBio {
+		update.ClearBio()
+	}
+
+	if req.ResetName {
+		update.SetFullName("User " + u.ID.String()[:8])
+	}
+
+	if req.ResetAvatar {
+		if u.Edges.Avatar != nil {
+
+			update.ClearAvatar()
+		}
+	}
+
+	if err := update.Exec(ctx); err != nil {
+		slog.Error("Failed to reset user info", "error", err)
+		return helper.NewInternalServerError("Failed to reset info")
+	}
+
+	if s.wsHub != nil {
+		updatedUser, err := s.client.User.Query().
+			Where(user.ID(req.TargetUserID)).
+			WithAvatar().
+			Only(ctx)
+
+		if err == nil {
+			avatarURL := ""
+			if updatedUser.Edges.Avatar != nil {
+				avatarURL = s.storageAdapter.GetPublicURL(updatedUser.Edges.Avatar.FileName)
+			}
+
+			fullName := ""
+			if updatedUser.FullName != nil {
+				fullName = *updatedUser.FullName
+			}
+			username := ""
+			if updatedUser.Username != nil {
+				username = *updatedUser.Username
+			}
+			bio := ""
+			if updatedUser.Bio != nil {
+				bio = *updatedUser.Bio
+			}
+
+			wsPayload := &model.UserUpdateEventPayload{
+				ID:       updatedUser.ID,
+				Username: username,
+				FullName: fullName,
+				Avatar:   avatarURL,
+				Bio:      bio,
+			}
+			if updatedUser.LastSeenAt != nil {
+				t := updatedUser.LastSeenAt.Format(time.RFC3339)
+				wsPayload.LastSeenAt = &t
+			}
+
+			event := websocket.Event{
+				Type:    websocket.EventUserUpdate,
+				Payload: wsPayload,
+				Meta: &websocket.EventMeta{
+					Timestamp: time.Now().UTC().UnixMilli(),
+					SenderID:  req.TargetUserID,
+				},
+			}
+
+			s.wsHub.BroadcastToUser(req.TargetUserID, event)
+			s.wsHub.BroadcastToContacts(req.TargetUserID, event)
+		}
+	}
+
+	return nil
+}
+
+func (s *AdminService) GetGroups(ctx context.Context, req model.AdminGetGroupListRequest) ([]model.AdminGroupListResponse, string, bool, error) {
+	if req.Limit <= 0 {
+		req.Limit = 20
+	}
+
+	query := s.client.GroupChat.Query().
+		WithChat().
+		WithMembers()
+
+	if req.Query != "" {
+		query = query.Where(groupchat.NameContainsFold(req.Query))
+	}
+
+	if req.Cursor != "" {
+		decoded, err := base64.URLEncoding.DecodeString(req.Cursor)
+		if err == nil {
+			cursorID, err := uuid.Parse(string(decoded))
+			if err == nil {
+				query = query.Where(groupchat.IDGT(cursorID))
+			}
+		}
+	}
+
+	query = query.Order(ent.Asc(groupchat.FieldID))
+
+	groups, err := query.Limit(req.Limit + 1).All(ctx)
+	if err != nil {
+		slog.Error("Failed to fetch groups", "error", err)
+		return nil, "", false, helper.NewInternalServerError("Failed to fetch groups")
+	}
+
+	hasNext := false
+	var nextCursor string
+	if len(groups) > req.Limit {
+		hasNext = true
+		groups = groups[:req.Limit]
+		lastID := groups[len(groups)-1].ID
+		nextCursor = base64.URLEncoding.EncodeToString([]byte(lastID.String()))
+	}
+
+	data := make([]model.AdminGroupListResponse, 0, len(groups))
+	for _, g := range groups {
+		createdAt := ""
+		if g.Edges.Chat != nil {
+			createdAt = g.Edges.Chat.CreatedAt.Format(time.RFC3339)
+		}
+		data = append(data, model.AdminGroupListResponse{
+			ID:          g.ID,
+			ChatID:      g.ChatID,
+			Name:        g.Name,
+			MemberCount: len(g.Edges.Members),
+			IsPublic:    g.IsPublic,
+			CreatedAt:   createdAt,
+		})
+	}
+
+	return data, nextCursor, hasNext, nil
+}
+
+func (s *AdminService) GetGroupDetail(ctx context.Context, groupID uuid.UUID) (*model.AdminGroupDetailResponse, error) {
+	g, err := s.client.GroupChat.Query().
+		Where(groupchat.ID(groupID)).
+		WithChat().
+		WithCreator().
+		WithAvatar().
+		WithMembers().
+		Only(ctx)
+	if err != nil {
+		if ent.IsNotFound(err) {
+			return nil, helper.NewNotFoundError("Group not found")
+		}
+		slog.Error("Failed to get group detail", "error", err)
+		return nil, helper.NewInternalServerError("")
+	}
+
+	messageCount := 0
+	if g.Edges.Chat != nil {
+		messageCount, _ = s.client.Message.Query().
+			Where(message.ChatID(g.Edges.Chat.ID)).
+			Count(ctx)
+	}
+
+	resp := &model.AdminGroupDetailResponse{
+		ID:            g.ID,
+		ChatID:        g.ChatID,
+		Name:          g.Name,
+		Description:   g.Description,
+		IsPublic:      g.IsPublic,
+		MemberCount:   len(g.Edges.Members),
+		TotalMessages: messageCount,
+	}
+
+	if g.Edges.Chat != nil {
+		resp.CreatedAt = g.Edges.Chat.CreatedAt.Format(time.RFC3339)
+	}
+
+	if g.CreatedBy != nil {
+		resp.CreatorID = g.CreatedBy
+	}
+
+	if g.Edges.Creator != nil && g.Edges.Creator.FullName != nil {
+		resp.CreatorName = g.Edges.Creator.FullName
+	}
+
+	if g.Edges.Avatar != nil {
+		resp.Avatar = s.storageAdapter.GetPublicURL(g.Edges.Avatar.FileName)
+	}
+
+	return resp, nil
+}
+
+func (s *AdminService) DissolveGroup(ctx context.Context, groupID uuid.UUID) error {
+	g, err := s.client.GroupChat.Query().
+		Where(groupchat.ID(groupID)).
+		WithChat().
+		Only(ctx)
+	if err != nil {
+		if ent.IsNotFound(err) {
+			return helper.NewNotFoundError("Group not found")
+		}
+		return helper.NewInternalServerError("")
+	}
+
+	members, _ := s.client.GroupMember.Query().
+		Where(groupmember.GroupChatID(g.ID)).
+		All(ctx)
+
+	if g.Edges.Chat != nil {
+		now := time.Now().UTC()
+		_, err = s.client.Chat.UpdateOneID(g.Edges.Chat.ID).
+			SetDeletedAt(now).
+			Save(ctx)
+		if err != nil {
+			slog.Error("Failed to dissolve group", "error", err)
+			return helper.NewInternalServerError("Failed to dissolve group")
+		}
+	}
+
+	if s.wsHub != nil {
+		for _, m := range members {
+			s.wsHub.BroadcastToUser(m.UserID, websocket.Event{
+				Type: websocket.EventChatDelete,
+				Payload: map[string]interface{}{
+					"chat_id": groupID,
+				},
+				Meta: &websocket.EventMeta{
+					Timestamp: time.Now().UTC().UnixMilli(),
+					ChatID:    groupID,
+				},
+			})
+		}
+	}
+
+	return nil
+}
+
+func (s *AdminService) ResetGroupInfo(ctx context.Context, groupID uuid.UUID, req model.ResetGroupInfoRequest) error {
+	g, err := s.client.GroupChat.Query().
+		Where(groupchat.ID(groupID)).
+		WithAvatar().
+		Only(ctx)
+	if err != nil {
+		if ent.IsNotFound(err) {
+			return helper.NewNotFoundError("Group not found")
+		}
+		return helper.NewInternalServerError("")
+	}
+
+	update := s.client.GroupChat.UpdateOne(g)
+
+	if req.ResetDescription {
+		update.ClearDescription()
+	}
+
+	if req.ResetName {
+		update.SetName("Group " + g.ID.String()[:8])
+	}
+
+	if req.ResetAvatar {
+		if g.Edges.Avatar != nil {
+
+			update.ClearAvatar()
+		}
+	}
+
+	if err := update.Exec(ctx); err != nil {
+		slog.Error("Failed to reset group info", "error", err)
+		return helper.NewInternalServerError("Failed to reset group info")
+	}
+
+	if s.wsHub != nil {
+		updatedGroup, err := s.client.GroupChat.Query().
+			Where(groupchat.ID(groupID)).
+			WithChat().
+			WithAvatar().
+			Only(ctx)
+
+		if err == nil {
+			var avatarURL string
+			if updatedGroup.Edges.Avatar != nil {
+				avatarURL = s.storageAdapter.GetPublicURL(updatedGroup.Edges.Avatar.FileName)
+			}
+
+			myRole := "member"
+
+			chatPayload := model.ChatListResponse{
+				ID:          updatedGroup.Edges.Chat.ID,
+				Type:        string(chat.TypeGroup),
+				Name:        updatedGroup.Name,
+				Description: updatedGroup.Description,
+				IsPublic:    &updatedGroup.IsPublic,
+				Avatar:      avatarURL,
+				MyRole:      &myRole,
+			}
+			chatPayload.MyRole = nil
+
+			s.wsHub.BroadcastToChat(updatedGroup.Edges.Chat.ID, websocket.Event{
+				Type:    websocket.EventChatUpdate,
+				Payload: chatPayload,
+				Meta: &websocket.EventMeta{
+					Timestamp: time.Now().UTC().UnixMilli(),
+					ChatID:    updatedGroup.Edges.Chat.ID,
+				},
+			})
+		}
 	}
 
 	return nil

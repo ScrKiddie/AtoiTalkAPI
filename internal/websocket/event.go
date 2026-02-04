@@ -13,6 +13,7 @@ const (
 	EventChatRead   EventType = "chat.read"
 	EventChatHide   EventType = "chat.hide"
 	EventChatDelete EventType = "chat.delete"
+	EventChatUpdate EventType = "chat.update"
 	EventTyping     EventType = "chat.typing"
 
 	EventUserOnline   EventType = "user.online"

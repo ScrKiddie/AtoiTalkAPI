@@ -59,3 +59,86 @@ type GetReportsRequest struct {
 	Limit  int    `json:"limit" validate:"omitempty,gt=0,max=50"`
 	Cursor string `json:"cursor" validate:"omitempty"`
 }
+
+type DashboardStatsResponse struct {
+	TotalUsers    int `json:"total_users"`
+	TotalGroups   int `json:"total_groups"`
+	TotalMessages int `json:"total_messages"`
+	ActiveReports int `json:"active_reports"`
+}
+
+type AdminGetUserListRequest struct {
+	Query  string `json:"query" validate:"omitempty"`
+	Role   string `json:"role" validate:"omitempty,oneof=user admin"`
+	Limit  int    `json:"limit" validate:"omitempty,gt=0,max=50"`
+	Cursor string `json:"cursor" validate:"omitempty"`
+}
+
+type AdminUserListResponse struct {
+	ID        uuid.UUID `json:"id"`
+	Username  string    `json:"username"`
+	Email     *string   `json:"email"`
+	FullName  *string   `json:"full_name"`
+	Role      string    `json:"role"`
+	IsBanned  bool      `json:"is_banned"`
+	CreatedAt string    `json:"created_at"`
+}
+
+type AdminUserDetailResponse struct {
+	ID            uuid.UUID `json:"id"`
+	Username      string    `json:"username"`
+	Email         *string   `json:"email"`
+	FullName      *string   `json:"full_name"`
+	Bio           *string   `json:"bio"`
+	Avatar        string    `json:"avatar"`
+	Role          string    `json:"role"`
+	IsBanned      bool      `json:"is_banned"`
+	BanReason     *string   `json:"ban_reason,omitempty"`
+	BannedUntil   *string   `json:"banned_until,omitempty"`
+	CreatedAt     string    `json:"created_at"`
+	LastSeenAt    *string   `json:"last_seen_at"`
+	TotalMessages int       `json:"total_messages"`
+	TotalGroups   int       `json:"total_groups"`
+}
+
+type ResetUserInfoRequest struct {
+	TargetUserID uuid.UUID `json:"target_user_id" validate:"required"`
+	ResetAvatar  bool      `json:"reset_avatar"`
+	ResetBio     bool      `json:"reset_bio"`
+	ResetName    bool      `json:"reset_name"`
+}
+
+type AdminGetGroupListRequest struct {
+	Query  string `json:"query" validate:"omitempty"`
+	Limit  int    `json:"limit" validate:"omitempty,gt=0,max=50"`
+	Cursor string `json:"cursor" validate:"omitempty"`
+}
+
+type AdminGroupListResponse struct {
+	ID          uuid.UUID `json:"id"`
+	ChatID      uuid.UUID `json:"chat_id"`
+	Name        string    `json:"name"`
+	MemberCount int       `json:"member_count"`
+	IsPublic    bool      `json:"is_public"`
+	CreatedAt   string    `json:"created_at"`
+}
+
+type AdminGroupDetailResponse struct {
+	ID            uuid.UUID  `json:"id"`
+	ChatID        uuid.UUID  `json:"chat_id"`
+	Name          string     `json:"name"`
+	Description   *string    `json:"description"`
+	Avatar        string     `json:"avatar"`
+	IsPublic      bool       `json:"is_public"`
+	CreatorID     *uuid.UUID `json:"creator_id"`
+	CreatorName   *string    `json:"creator_name"`
+	MemberCount   int        `json:"member_count"`
+	TotalMessages int        `json:"total_messages"`
+	CreatedAt     string     `json:"created_at"`
+}
+
+type ResetGroupInfoRequest struct {
+	ResetAvatar      bool `json:"reset_avatar"`
+	ResetDescription bool `json:"reset_description"`
+	ResetName        bool `json:"reset_name"`
+}

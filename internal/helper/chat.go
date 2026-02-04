@@ -59,7 +59,7 @@ func MapChatToResponse(userID uuid.UUID, c *ent.Chat, blockedMap map[uuid.UUID]B
 			if otherUser.DeletedAt != nil {
 				otherUserIsDeleted = true
 				isOnline = false
-				name = "" 
+				name = ""
 			} else {
 				if otherUser.FullName != nil {
 					name = *otherUser.FullName
@@ -107,7 +107,6 @@ func MapChatToResponse(userID uuid.UUID, c *ent.Chat, blockedMap map[uuid.UUID]B
 		name = gc.Name
 		description = gc.Description
 		isPublic = &gc.IsPublic
-		inviteCode = &gc.InviteCode
 		if gc.Edges.Avatar != nil {
 			avatar = urlGen.GetPublicURL(gc.Edges.Avatar.FileName)
 		}
@@ -122,10 +121,13 @@ func MapChatToResponse(userID uuid.UUID, c *ent.Chat, blockedMap map[uuid.UUID]B
 				lastReadAt = &t
 			}
 
-			if member.Role == groupmember.RoleOwner || member.Role == groupmember.RoleAdmin {
-				if gc.InviteExpiresAt != nil {
-					t := gc.InviteExpiresAt.Format(time.RFC3339)
-					inviteExpiresAt = &t
+			if gc.IsPublic || member.Role == groupmember.RoleOwner || member.Role == groupmember.RoleAdmin {
+				inviteCode = &gc.InviteCode
+				if member.Role == groupmember.RoleOwner || member.Role == groupmember.RoleAdmin {
+					if gc.InviteExpiresAt != nil {
+						t := gc.InviteExpiresAt.Format(time.RFC3339)
+						inviteExpiresAt = &t
+					}
 				}
 			}
 		}
