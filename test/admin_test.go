@@ -556,5 +556,7 @@ func TestAdminDashboard(t *testing.T) {
 
 		updatedRpt, _ := testClient.Report.Query().Where(report.ID(rpt.ID)).Only(context.Background())
 		assert.Equal(t, report.StatusResolved, updatedRpt.Status)
+		assert.Equal(t, "Done", *updatedRpt.ResolutionNotes)
+		assert.Equal(t, admin.ID, *updatedRpt.ResolvedByID)
 	})
 }

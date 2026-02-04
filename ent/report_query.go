@@ -34,6 +34,7 @@ type ReportQuery struct {
 	withGroup         *GroupChatQuery
 	withTargetUser    *UserQuery
 	withEvidenceMedia *MediaQuery
+	withResolvedBy    *UserQuery
 	withFKs           bool
 	modifiers         []func(*sql.Selector)
 	// intermediate query (i.e. traversal path).
@@ -175,6 +176,28 @@ func (_q *ReportQuery) QueryEvidenceMedia() *MediaQuery {
 			sqlgraph.From(report.Table, report.FieldID, selector),
 			sqlgraph.To(media.Table, media.FieldID),
 			sqlgraph.Edge(sqlgraph.M2M, false, report.EvidenceMediaTable, report.EvidenceMediaPrimaryKey...),
+		)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryResolvedBy chains the current query on the "resolved_by" edge.
+func (_q *ReportQuery) QueryResolvedBy() *UserQuery {
+	query := (&UserClient{config: _q.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := _q.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := _q.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(report.Table, report.FieldID, selector),
+			sqlgraph.To(user.Table, user.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, false, report.ResolvedByTable, report.ResolvedByColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
 		return fromU, nil
@@ -379,6 +402,7 @@ func (_q *ReportQuery) Clone() *ReportQuery {
 		withGroup:         _q.withGroup.Clone(),
 		withTargetUser:    _q.withTargetUser.Clone(),
 		withEvidenceMedia: _q.withEvidenceMedia.Clone(),
+		withResolvedBy:    _q.withResolvedBy.Clone(),
 		// clone intermediate query.
 		sql:       _q.sql.Clone(),
 		path:      _q.path,
@@ -438,6 +462,17 @@ func (_q *ReportQuery) WithEvidenceMedia(opts ...func(*MediaQuery)) *ReportQuery
 		opt(query)
 	}
 	_q.withEvidenceMedia = query
+	return _q
+}
+
+// WithResolvedBy tells the query-builder to eager-load the nodes that are connected to
+// the "resolved_by" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *ReportQuery) WithResolvedBy(opts ...func(*UserQuery)) *ReportQuery {
+	query := (&UserClient{config: _q.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	_q.withResolvedBy = query
 	return _q
 }
 
@@ -520,12 +555,13 @@ func (_q *ReportQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Repor
 		nodes       = []*Report{}
 		withFKs     = _q.withFKs
 		_spec       = _q.querySpec()
-		loadedTypes = [5]bool{
+		loadedTypes = [6]bool{
 			_q.withReporter != nil,
 			_q.withMessage != nil,
 			_q.withGroup != nil,
 			_q.withTargetUser != nil,
 			_q.withEvidenceMedia != nil,
+			_q.withResolvedBy != nil,
 		}
 	)
 	if withFKs {
@@ -580,6 +616,12 @@ func (_q *ReportQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Repor
 		if err := _q.loadEvidenceMedia(ctx, query, nodes,
 			func(n *Report) { n.Edges.EvidenceMedia = []*Media{} },
 			func(n *Report, e *Media) { n.Edges.EvidenceMedia = append(n.Edges.EvidenceMedia, e) }); err != nil {
+			return nil, err
+		}
+	}
+	if query := _q.withResolvedBy; query != nil {
+		if err := _q.loadResolvedBy(ctx, query, nodes, nil,
+			func(n *Report, e *User) { n.Edges.ResolvedBy = e }); err != nil {
 			return nil, err
 		}
 	}
@@ -772,6 +814,38 @@ func (_q *ReportQuery) loadEvidenceMedia(ctx context.Context, query *MediaQuery,
 	}
 	return nil
 }
+func (_q *ReportQuery) loadResolvedBy(ctx context.Context, query *UserQuery, nodes []*Report, init func(*Report), assign func(*Report, *User)) error {
+	ids := make([]uuid.UUID, 0, len(nodes))
+	nodeids := make(map[uuid.UUID][]*Report)
+	for i := range nodes {
+		if nodes[i].ResolvedByID == nil {
+			continue
+		}
+		fk := *nodes[i].ResolvedByID
+		if _, ok := nodeids[fk]; !ok {
+			ids = append(ids, fk)
+		}
+		nodeids[fk] = append(nodeids[fk], nodes[i])
+	}
+	if len(ids) == 0 {
+		return nil
+	}
+	query.Where(user.IDIn(ids...))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		nodes, ok := nodeids[n.ID]
+		if !ok {
+			return fmt.Errorf(`unexpected foreign-key "resolved_by_id" returned %v`, n.ID)
+		}
+		for i := range nodes {
+			assign(nodes[i], n)
+		}
+	}
+	return nil
+}
 
 func (_q *ReportQuery) sqlCount(ctx context.Context) (int, error) {
 	_spec := _q.querySpec()
@@ -812,6 +886,9 @@ func (_q *ReportQuery) querySpec() *sqlgraph.QuerySpec {
 		}
 		if _q.withTargetUser != nil {
 			_spec.Node.AddColumnOnce(report.FieldTargetUserID)
+		}
+		if _q.withResolvedBy != nil {
+			_spec.Node.AddColumnOnce(report.FieldResolvedByID)
 		}
 	}
 	if ps := _q.predicates; len(ps) > 0 {

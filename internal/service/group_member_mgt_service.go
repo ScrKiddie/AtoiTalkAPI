@@ -184,7 +184,10 @@ func (s *GroupChatService) AddMember(ctx context.Context, requestorID uuid.UUID,
 	s.redisAdapter.Del(context.Background(), fmt.Sprintf("chat_members:%s", groupID))
 
 	memberCount, err := s.client.GroupMember.Query().
-		Where(groupmember.GroupChatID(gc.ID)).
+		Where(
+			groupmember.GroupChatID(gc.ID),
+			groupmember.HasUserWith(user.DeletedAtIsNil()),
+		).
 		Count(ctx)
 	if err != nil {
 		slog.Error("Failed to count group members after add", "error", err)
@@ -344,7 +347,10 @@ func (s *GroupChatService) LeaveGroup(ctx context.Context, userID uuid.UUID, gro
 	s.redisAdapter.Del(context.Background(), fmt.Sprintf("chat_members:%s", groupID))
 
 	memberCount, err := s.client.GroupMember.Query().
-		Where(groupmember.GroupChatID(gc.ID)).
+		Where(
+			groupmember.GroupChatID(gc.ID),
+			groupmember.HasUserWith(user.DeletedAtIsNil()),
+		).
 		Count(ctx)
 	if err != nil {
 		slog.Error("Failed to count group members after leave", "error", err)
@@ -475,7 +481,10 @@ func (s *GroupChatService) KickMember(ctx context.Context, requestorID uuid.UUID
 	s.redisAdapter.Del(context.Background(), fmt.Sprintf("chat_members:%s", groupID))
 
 	memberCount, err := s.client.GroupMember.Query().
-		Where(groupmember.GroupChatID(gc.ID)).
+		Where(
+			groupmember.GroupChatID(gc.ID),
+			groupmember.HasUserWith(user.DeletedAtIsNil()),
+		).
 		Count(ctx)
 	if err != nil {
 		slog.Error("Failed to count group members after kick", "error", err)

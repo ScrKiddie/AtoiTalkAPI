@@ -40,6 +40,12 @@ type Report struct {
 	GroupID *uuid.UUID `json:"group_id,omitempty"`
 	// TargetUserID holds the value of the "target_user_id" field.
 	TargetUserID *uuid.UUID `json:"target_user_id,omitempty"`
+	// ResolutionNotes holds the value of the "resolution_notes" field.
+	ResolutionNotes *string `json:"resolution_notes,omitempty"`
+	// ResolvedAt holds the value of the "resolved_at" field.
+	ResolvedAt *time.Time `json:"resolved_at,omitempty"`
+	// ResolvedByID holds the value of the "resolved_by_id" field.
+	ResolvedByID *uuid.UUID `json:"resolved_by_id,omitempty"`
 	// CreatedAt holds the value of the "created_at" field.
 	CreatedAt time.Time `json:"created_at,omitempty"`
 	// UpdatedAt holds the value of the "updated_at" field.
@@ -63,9 +69,11 @@ type ReportEdges struct {
 	TargetUser *User `json:"target_user,omitempty"`
 	// EvidenceMedia holds the value of the evidence_media edge.
 	EvidenceMedia []*Media `json:"evidence_media,omitempty"`
+	// ResolvedBy holds the value of the resolved_by edge.
+	ResolvedBy *User `json:"resolved_by,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [5]bool
+	loadedTypes [6]bool
 }
 
 // ReporterOrErr returns the Reporter value or an error if the edge
@@ -121,18 +129,29 @@ func (e ReportEdges) EvidenceMediaOrErr() ([]*Media, error) {
 	return nil, &NotLoadedError{edge: "evidence_media"}
 }
 
+// ResolvedByOrErr returns the ResolvedBy value or an error if the edge
+// was not loaded in eager-loading, or loaded but was not found.
+func (e ReportEdges) ResolvedByOrErr() (*User, error) {
+	if e.ResolvedBy != nil {
+		return e.ResolvedBy, nil
+	} else if e.loadedTypes[5] {
+		return nil, &NotFoundError{label: user.Label}
+	}
+	return nil, &NotLoadedError{edge: "resolved_by"}
+}
+
 // scanValues returns the types for scanning values from sql.Rows.
 func (*Report) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case report.FieldMessageID, report.FieldGroupID, report.FieldTargetUserID:
+		case report.FieldMessageID, report.FieldGroupID, report.FieldTargetUserID, report.FieldResolvedByID:
 			values[i] = &sql.NullScanner{S: new(uuid.UUID)}
 		case report.FieldEvidenceSnapshot:
 			values[i] = new([]byte)
-		case report.FieldTargetType, report.FieldReason, report.FieldDescription, report.FieldStatus:
+		case report.FieldTargetType, report.FieldReason, report.FieldDescription, report.FieldStatus, report.FieldResolutionNotes:
 			values[i] = new(sql.NullString)
-		case report.FieldCreatedAt, report.FieldUpdatedAt:
+		case report.FieldResolvedAt, report.FieldCreatedAt, report.FieldUpdatedAt:
 			values[i] = new(sql.NullTime)
 		case report.FieldID, report.FieldReporterID:
 			values[i] = new(uuid.UUID)
@@ -219,6 +238,27 @@ func (_m *Report) assignValues(columns []string, values []any) error {
 				_m.TargetUserID = new(uuid.UUID)
 				*_m.TargetUserID = *value.S.(*uuid.UUID)
 			}
+		case report.FieldResolutionNotes:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field resolution_notes", values[i])
+			} else if value.Valid {
+				_m.ResolutionNotes = new(string)
+				*_m.ResolutionNotes = value.String
+			}
+		case report.FieldResolvedAt:
+			if value, ok := values[i].(*sql.NullTime); !ok {
+				return fmt.Errorf("unexpected type %T for field resolved_at", values[i])
+			} else if value.Valid {
+				_m.ResolvedAt = new(time.Time)
+				*_m.ResolvedAt = value.Time
+			}
+		case report.FieldResolvedByID:
+			if value, ok := values[i].(*sql.NullScanner); !ok {
+				return fmt.Errorf("unexpected type %T for field resolved_by_id", values[i])
+			} else if value.Valid {
+				_m.ResolvedByID = new(uuid.UUID)
+				*_m.ResolvedByID = *value.S.(*uuid.UUID)
+			}
 		case report.FieldCreatedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field created_at", values[i])
@@ -276,6 +316,11 @@ func (_m *Report) QueryEvidenceMedia() *MediaQuery {
 	return NewReportClient(_m.config).QueryEvidenceMedia(_m)
 }
 
+// QueryResolvedBy queries the "resolved_by" edge of the Report entity.
+func (_m *Report) QueryResolvedBy() *UserQuery {
+	return NewReportClient(_m.config).QueryResolvedBy(_m)
+}
+
 // Update returns a builder for updating this Report.
 // Note that you need to call Report.Unwrap() before calling this method if this Report
 // was returned from a transaction, and the transaction was committed or rolled back.
@@ -331,6 +376,21 @@ func (_m *Report) String() string {
 	builder.WriteString(", ")
 	if v := _m.TargetUserID; v != nil {
 		builder.WriteString("target_user_id=")
+		builder.WriteString(fmt.Sprintf("%v", *v))
+	}
+	builder.WriteString(", ")
+	if v := _m.ResolutionNotes; v != nil {
+		builder.WriteString("resolution_notes=")
+		builder.WriteString(*v)
+	}
+	builder.WriteString(", ")
+	if v := _m.ResolvedAt; v != nil {
+		builder.WriteString("resolved_at=")
+		builder.WriteString(v.Format(time.ANSIC))
+	}
+	builder.WriteString(", ")
+	if v := _m.ResolvedByID; v != nil {
+		builder.WriteString("resolved_by_id=")
 		builder.WriteString(fmt.Sprintf("%v", *v))
 	}
 	builder.WriteString(", ")

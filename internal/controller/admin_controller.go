@@ -203,7 +203,7 @@ func (c *AdminController) GetReportDetail(w http.ResponseWriter, r *http.Request
 // @Security     BearerAuth
 // @Router       /api/admin/reports/{reportID}/resolve [put]
 func (c *AdminController) ResolveReport(w http.ResponseWriter, r *http.Request) {
-	_, ok := r.Context().Value(middleware.UserContextKey).(*model.UserDTO)
+	userContext, ok := r.Context().Value(middleware.UserContextKey).(*model.UserDTO)
 	if !ok {
 		helper.WriteError(w, helper.NewUnauthorizedError(""))
 		return
@@ -222,7 +222,7 @@ func (c *AdminController) ResolveReport(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	if err := c.adminService.ResolveReport(r.Context(), reportID, req); err != nil {
+	if err := c.adminService.ResolveReport(r.Context(), userContext.ID, reportID, req); err != nil {
 		helper.WriteError(w, err)
 		return
 	}

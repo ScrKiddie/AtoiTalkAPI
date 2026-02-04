@@ -37,6 +37,10 @@ func (Report) Fields() []ent.Field {
 		field.UUID("group_id", uuid.UUID{}).Optional().Nillable(),
 		field.UUID("target_user_id", uuid.UUID{}).Optional().Nillable(),
 
+		field.Text("resolution_notes").Optional().Nillable(),
+		field.Time("resolved_at").Optional().Nillable(),
+		field.UUID("resolved_by_id", uuid.UUID{}).Optional().Nillable(),
+
 		field.Time("created_at").Default(time.Now).Immutable(),
 		field.Time("updated_at").Default(time.Now).UpdateDefault(time.Now),
 	}
@@ -67,6 +71,11 @@ func (Report) Edges() []ent.Edge {
 			Annotations(entsql.OnDelete(entsql.SetNull)),
 
 		edge.To("evidence_media", Media.Type),
+
+		edge.To("resolved_by", User.Type).
+			Field("resolved_by_id").
+			Unique().
+			Annotations(entsql.OnDelete(entsql.SetNull)),
 	}
 }
 

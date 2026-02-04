@@ -34,6 +34,12 @@ const (
 	FieldGroupID = "group_id"
 	// FieldTargetUserID holds the string denoting the target_user_id field in the database.
 	FieldTargetUserID = "target_user_id"
+	// FieldResolutionNotes holds the string denoting the resolution_notes field in the database.
+	FieldResolutionNotes = "resolution_notes"
+	// FieldResolvedAt holds the string denoting the resolved_at field in the database.
+	FieldResolvedAt = "resolved_at"
+	// FieldResolvedByID holds the string denoting the resolved_by_id field in the database.
+	FieldResolvedByID = "resolved_by_id"
 	// FieldCreatedAt holds the string denoting the created_at field in the database.
 	FieldCreatedAt = "created_at"
 	// FieldUpdatedAt holds the string denoting the updated_at field in the database.
@@ -48,6 +54,8 @@ const (
 	EdgeTargetUser = "target_user"
 	// EdgeEvidenceMedia holds the string denoting the evidence_media edge name in mutations.
 	EdgeEvidenceMedia = "evidence_media"
+	// EdgeResolvedBy holds the string denoting the resolved_by edge name in mutations.
+	EdgeResolvedBy = "resolved_by"
 	// Table holds the table name of the report in the database.
 	Table = "reports"
 	// ReporterTable is the table that holds the reporter relation/edge.
@@ -83,6 +91,13 @@ const (
 	// EvidenceMediaInverseTable is the table name for the Media entity.
 	// It exists in this package in order to avoid circular dependency with the "media" package.
 	EvidenceMediaInverseTable = "media"
+	// ResolvedByTable is the table that holds the resolved_by relation/edge.
+	ResolvedByTable = "reports"
+	// ResolvedByInverseTable is the table name for the User entity.
+	// It exists in this package in order to avoid circular dependency with the "user" package.
+	ResolvedByInverseTable = "users"
+	// ResolvedByColumn is the table column denoting the resolved_by relation/edge.
+	ResolvedByColumn = "resolved_by_id"
 )
 
 // Columns holds all SQL columns for report fields.
@@ -97,6 +112,9 @@ var Columns = []string{
 	FieldMessageID,
 	FieldGroupID,
 	FieldTargetUserID,
+	FieldResolutionNotes,
+	FieldResolvedAt,
+	FieldResolvedByID,
 	FieldCreatedAt,
 	FieldUpdatedAt,
 }
@@ -241,6 +259,21 @@ func ByTargetUserID(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldTargetUserID, opts...).ToFunc()
 }
 
+// ByResolutionNotes orders the results by the resolution_notes field.
+func ByResolutionNotes(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldResolutionNotes, opts...).ToFunc()
+}
+
+// ByResolvedAt orders the results by the resolved_at field.
+func ByResolvedAt(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldResolvedAt, opts...).ToFunc()
+}
+
+// ByResolvedByID orders the results by the resolved_by_id field.
+func ByResolvedByID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldResolvedByID, opts...).ToFunc()
+}
+
 // ByCreatedAt orders the results by the created_at field.
 func ByCreatedAt(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldCreatedAt, opts...).ToFunc()
@@ -292,6 +325,13 @@ func ByEvidenceMedia(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
 		sqlgraph.OrderByNeighborTerms(s, newEvidenceMediaStep(), append([]sql.OrderTerm{term}, terms...)...)
 	}
 }
+
+// ByResolvedByField orders the results by resolved_by field.
+func ByResolvedByField(field string, opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newResolvedByStep(), sql.OrderByField(field, opts...))
+	}
+}
 func newReporterStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
@@ -325,5 +365,12 @@ func newEvidenceMediaStep() *sqlgraph.Step {
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(EvidenceMediaInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.M2M, false, EvidenceMediaTable, EvidenceMediaPrimaryKey...),
+	)
+}
+func newResolvedByStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(ResolvedByInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.M2O, false, ResolvedByTable, ResolvedByColumn),
 	)
 }

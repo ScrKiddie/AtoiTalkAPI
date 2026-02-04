@@ -6,6 +6,7 @@ import (
 	"AtoiTalkAPI/ent/groupchat"
 	"AtoiTalkAPI/ent/groupmember"
 	"AtoiTalkAPI/ent/message"
+	"AtoiTalkAPI/ent/user"
 	"AtoiTalkAPI/internal/helper"
 	"AtoiTalkAPI/internal/model"
 	"AtoiTalkAPI/internal/websocket"
@@ -171,7 +172,10 @@ func (s *GroupChatService) GetGroupByInviteCode(ctx context.Context, inviteCode 
 	}
 
 	memberCount, err := s.client.GroupMember.Query().
-		Where(groupmember.GroupChatID(gc.ID)).
+		Where(
+			groupmember.GroupChatID(gc.ID),
+			groupmember.HasUserWith(user.DeletedAtIsNil()),
+		).
 		Count(ctx)
 	if err != nil {
 		slog.Error("Failed to count group members", "error", err)

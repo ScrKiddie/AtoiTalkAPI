@@ -122,6 +122,48 @@ func (_c *ReportCreate) SetNillableTargetUserID(v *uuid.UUID) *ReportCreate {
 	return _c
 }
 
+// SetResolutionNotes sets the "resolution_notes" field.
+func (_c *ReportCreate) SetResolutionNotes(v string) *ReportCreate {
+	_c.mutation.SetResolutionNotes(v)
+	return _c
+}
+
+// SetNillableResolutionNotes sets the "resolution_notes" field if the given value is not nil.
+func (_c *ReportCreate) SetNillableResolutionNotes(v *string) *ReportCreate {
+	if v != nil {
+		_c.SetResolutionNotes(*v)
+	}
+	return _c
+}
+
+// SetResolvedAt sets the "resolved_at" field.
+func (_c *ReportCreate) SetResolvedAt(v time.Time) *ReportCreate {
+	_c.mutation.SetResolvedAt(v)
+	return _c
+}
+
+// SetNillableResolvedAt sets the "resolved_at" field if the given value is not nil.
+func (_c *ReportCreate) SetNillableResolvedAt(v *time.Time) *ReportCreate {
+	if v != nil {
+		_c.SetResolvedAt(*v)
+	}
+	return _c
+}
+
+// SetResolvedByID sets the "resolved_by_id" field.
+func (_c *ReportCreate) SetResolvedByID(v uuid.UUID) *ReportCreate {
+	_c.mutation.SetResolvedByID(v)
+	return _c
+}
+
+// SetNillableResolvedByID sets the "resolved_by_id" field if the given value is not nil.
+func (_c *ReportCreate) SetNillableResolvedByID(v *uuid.UUID) *ReportCreate {
+	if v != nil {
+		_c.SetResolvedByID(*v)
+	}
+	return _c
+}
+
 // SetCreatedAt sets the "created_at" field.
 func (_c *ReportCreate) SetCreatedAt(v time.Time) *ReportCreate {
 	_c.mutation.SetCreatedAt(v)
@@ -197,6 +239,11 @@ func (_c *ReportCreate) AddEvidenceMedia(v ...*Media) *ReportCreate {
 		ids[i] = v[i].ID
 	}
 	return _c.AddEvidenceMediumIDs(ids...)
+}
+
+// SetResolvedBy sets the "resolved_by" edge to the User entity.
+func (_c *ReportCreate) SetResolvedBy(v *User) *ReportCreate {
+	return _c.SetResolvedByID(v.ID)
 }
 
 // Mutation returns the ReportMutation object of the builder.
@@ -346,6 +393,14 @@ func (_c *ReportCreate) createSpec() (*Report, *sqlgraph.CreateSpec) {
 		_spec.SetField(report.FieldStatus, field.TypeEnum, value)
 		_node.Status = value
 	}
+	if value, ok := _c.mutation.ResolutionNotes(); ok {
+		_spec.SetField(report.FieldResolutionNotes, field.TypeString, value)
+		_node.ResolutionNotes = &value
+	}
+	if value, ok := _c.mutation.ResolvedAt(); ok {
+		_spec.SetField(report.FieldResolvedAt, field.TypeTime, value)
+		_node.ResolvedAt = &value
+	}
 	if value, ok := _c.mutation.CreatedAt(); ok {
 		_spec.SetField(report.FieldCreatedAt, field.TypeTime, value)
 		_node.CreatedAt = value
@@ -436,6 +491,23 @@ func (_c *ReportCreate) createSpec() (*Report, *sqlgraph.CreateSpec) {
 		for _, k := range nodes {
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.ResolvedByIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: false,
+			Table:   report.ResolvedByTable,
+			Columns: []string{report.ResolvedByColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_node.ResolvedByID = &nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
 	return _node, _spec
@@ -613,6 +685,60 @@ func (u *ReportUpsert) UpdateTargetUserID() *ReportUpsert {
 // ClearTargetUserID clears the value of the "target_user_id" field.
 func (u *ReportUpsert) ClearTargetUserID() *ReportUpsert {
 	u.SetNull(report.FieldTargetUserID)
+	return u
+}
+
+// SetResolutionNotes sets the "resolution_notes" field.
+func (u *ReportUpsert) SetResolutionNotes(v string) *ReportUpsert {
+	u.Set(report.FieldResolutionNotes, v)
+	return u
+}
+
+// UpdateResolutionNotes sets the "resolution_notes" field to the value that was provided on create.
+func (u *ReportUpsert) UpdateResolutionNotes() *ReportUpsert {
+	u.SetExcluded(report.FieldResolutionNotes)
+	return u
+}
+
+// ClearResolutionNotes clears the value of the "resolution_notes" field.
+func (u *ReportUpsert) ClearResolutionNotes() *ReportUpsert {
+	u.SetNull(report.FieldResolutionNotes)
+	return u
+}
+
+// SetResolvedAt sets the "resolved_at" field.
+func (u *ReportUpsert) SetResolvedAt(v time.Time) *ReportUpsert {
+	u.Set(report.FieldResolvedAt, v)
+	return u
+}
+
+// UpdateResolvedAt sets the "resolved_at" field to the value that was provided on create.
+func (u *ReportUpsert) UpdateResolvedAt() *ReportUpsert {
+	u.SetExcluded(report.FieldResolvedAt)
+	return u
+}
+
+// ClearResolvedAt clears the value of the "resolved_at" field.
+func (u *ReportUpsert) ClearResolvedAt() *ReportUpsert {
+	u.SetNull(report.FieldResolvedAt)
+	return u
+}
+
+// SetResolvedByID sets the "resolved_by_id" field.
+func (u *ReportUpsert) SetResolvedByID(v uuid.UUID) *ReportUpsert {
+	u.Set(report.FieldResolvedByID, v)
+	return u
+}
+
+// UpdateResolvedByID sets the "resolved_by_id" field to the value that was provided on create.
+func (u *ReportUpsert) UpdateResolvedByID() *ReportUpsert {
+	u.SetExcluded(report.FieldResolvedByID)
+	return u
+}
+
+// ClearResolvedByID clears the value of the "resolved_by_id" field.
+func (u *ReportUpsert) ClearResolvedByID() *ReportUpsert {
+	u.SetNull(report.FieldResolvedByID)
 	return u
 }
 
@@ -826,6 +952,69 @@ func (u *ReportUpsertOne) UpdateTargetUserID() *ReportUpsertOne {
 func (u *ReportUpsertOne) ClearTargetUserID() *ReportUpsertOne {
 	return u.Update(func(s *ReportUpsert) {
 		s.ClearTargetUserID()
+	})
+}
+
+// SetResolutionNotes sets the "resolution_notes" field.
+func (u *ReportUpsertOne) SetResolutionNotes(v string) *ReportUpsertOne {
+	return u.Update(func(s *ReportUpsert) {
+		s.SetResolutionNotes(v)
+	})
+}
+
+// UpdateResolutionNotes sets the "resolution_notes" field to the value that was provided on create.
+func (u *ReportUpsertOne) UpdateResolutionNotes() *ReportUpsertOne {
+	return u.Update(func(s *ReportUpsert) {
+		s.UpdateResolutionNotes()
+	})
+}
+
+// ClearResolutionNotes clears the value of the "resolution_notes" field.
+func (u *ReportUpsertOne) ClearResolutionNotes() *ReportUpsertOne {
+	return u.Update(func(s *ReportUpsert) {
+		s.ClearResolutionNotes()
+	})
+}
+
+// SetResolvedAt sets the "resolved_at" field.
+func (u *ReportUpsertOne) SetResolvedAt(v time.Time) *ReportUpsertOne {
+	return u.Update(func(s *ReportUpsert) {
+		s.SetResolvedAt(v)
+	})
+}
+
+// UpdateResolvedAt sets the "resolved_at" field to the value that was provided on create.
+func (u *ReportUpsertOne) UpdateResolvedAt() *ReportUpsertOne {
+	return u.Update(func(s *ReportUpsert) {
+		s.UpdateResolvedAt()
+	})
+}
+
+// ClearResolvedAt clears the value of the "resolved_at" field.
+func (u *ReportUpsertOne) ClearResolvedAt() *ReportUpsertOne {
+	return u.Update(func(s *ReportUpsert) {
+		s.ClearResolvedAt()
+	})
+}
+
+// SetResolvedByID sets the "resolved_by_id" field.
+func (u *ReportUpsertOne) SetResolvedByID(v uuid.UUID) *ReportUpsertOne {
+	return u.Update(func(s *ReportUpsert) {
+		s.SetResolvedByID(v)
+	})
+}
+
+// UpdateResolvedByID sets the "resolved_by_id" field to the value that was provided on create.
+func (u *ReportUpsertOne) UpdateResolvedByID() *ReportUpsertOne {
+	return u.Update(func(s *ReportUpsert) {
+		s.UpdateResolvedByID()
+	})
+}
+
+// ClearResolvedByID clears the value of the "resolved_by_id" field.
+func (u *ReportUpsertOne) ClearResolvedByID() *ReportUpsertOne {
+	return u.Update(func(s *ReportUpsert) {
+		s.ClearResolvedByID()
 	})
 }
 
@@ -1208,6 +1397,69 @@ func (u *ReportUpsertBulk) UpdateTargetUserID() *ReportUpsertBulk {
 func (u *ReportUpsertBulk) ClearTargetUserID() *ReportUpsertBulk {
 	return u.Update(func(s *ReportUpsert) {
 		s.ClearTargetUserID()
+	})
+}
+
+// SetResolutionNotes sets the "resolution_notes" field.
+func (u *ReportUpsertBulk) SetResolutionNotes(v string) *ReportUpsertBulk {
+	return u.Update(func(s *ReportUpsert) {
+		s.SetResolutionNotes(v)
+	})
+}
+
+// UpdateResolutionNotes sets the "resolution_notes" field to the value that was provided on create.
+func (u *ReportUpsertBulk) UpdateResolutionNotes() *ReportUpsertBulk {
+	return u.Update(func(s *ReportUpsert) {
+		s.UpdateResolutionNotes()
+	})
+}
+
+// ClearResolutionNotes clears the value of the "resolution_notes" field.
+func (u *ReportUpsertBulk) ClearResolutionNotes() *ReportUpsertBulk {
+	return u.Update(func(s *ReportUpsert) {
+		s.ClearResolutionNotes()
+	})
+}
+
+// SetResolvedAt sets the "resolved_at" field.
+func (u *ReportUpsertBulk) SetResolvedAt(v time.Time) *ReportUpsertBulk {
+	return u.Update(func(s *ReportUpsert) {
+		s.SetResolvedAt(v)
+	})
+}
+
+// UpdateResolvedAt sets the "resolved_at" field to the value that was provided on create.
+func (u *ReportUpsertBulk) UpdateResolvedAt() *ReportUpsertBulk {
+	return u.Update(func(s *ReportUpsert) {
+		s.UpdateResolvedAt()
+	})
+}
+
+// ClearResolvedAt clears the value of the "resolved_at" field.
+func (u *ReportUpsertBulk) ClearResolvedAt() *ReportUpsertBulk {
+	return u.Update(func(s *ReportUpsert) {
+		s.ClearResolvedAt()
+	})
+}
+
+// SetResolvedByID sets the "resolved_by_id" field.
+func (u *ReportUpsertBulk) SetResolvedByID(v uuid.UUID) *ReportUpsertBulk {
+	return u.Update(func(s *ReportUpsert) {
+		s.SetResolvedByID(v)
+	})
+}
+
+// UpdateResolvedByID sets the "resolved_by_id" field to the value that was provided on create.
+func (u *ReportUpsertBulk) UpdateResolvedByID() *ReportUpsertBulk {
+	return u.Update(func(s *ReportUpsert) {
+		s.UpdateResolvedByID()
+	})
+}
+
+// ClearResolvedByID clears the value of the "resolved_by_id" field.
+func (u *ReportUpsertBulk) ClearResolvedByID() *ReportUpsertBulk {
+	return u.Update(func(s *ReportUpsert) {
+		s.ClearResolvedByID()
 	})
 }
 

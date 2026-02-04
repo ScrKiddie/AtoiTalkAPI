@@ -221,11 +221,11 @@ func init() {
 	// report.ReasonValidator is a validator for the "reason" field. It is called by the builders before save.
 	report.ReasonValidator = reportDescReason.Validators[0].(func(string) error)
 	// reportDescCreatedAt is the schema descriptor for created_at field.
-	reportDescCreatedAt := reportFields[10].Descriptor()
+	reportDescCreatedAt := reportFields[13].Descriptor()
 	// report.DefaultCreatedAt holds the default value on creation for the created_at field.
 	report.DefaultCreatedAt = reportDescCreatedAt.Default.(func() time.Time)
 	// reportDescUpdatedAt is the schema descriptor for updated_at field.
-	reportDescUpdatedAt := reportFields[11].Descriptor()
+	reportDescUpdatedAt := reportFields[14].Descriptor()
 	// report.DefaultUpdatedAt holds the default value on creation for the updated_at field.
 	report.DefaultUpdatedAt = reportDescUpdatedAt.Default.(func() time.Time)
 	// report.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.

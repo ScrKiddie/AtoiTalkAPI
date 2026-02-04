@@ -278,6 +278,9 @@ func (s *AdminService) GetReportDetail(ctx context.Context, reportID uuid.UUID) 
 	}
 
 	var adminNotes *string
+	if r.ResolutionNotes != nil {
+		adminNotes = r.ResolutionNotes
+	}
 
 	return &model.ReportDetailResponse{
 		ID:               r.ID,
@@ -295,7 +298,7 @@ func (s *AdminService) GetReportDetail(ctx context.Context, reportID uuid.UUID) 
 	}, nil
 }
 
-func (s *AdminService) ResolveReport(ctx context.Context, reportID uuid.UUID, req model.ResolveReportRequest) error {
+func (s *AdminService) ResolveReport(ctx context.Context, adminID uuid.UUID, reportID uuid.UUID, req model.ResolveReportRequest) error {
 	if err := s.validator.Struct(req); err != nil {
 		return helper.NewBadRequestError("")
 	}
@@ -318,9 +321,16 @@ func (s *AdminService) ResolveReport(ctx context.Context, reportID uuid.UUID, re
 		return nil
 	}
 
-	err = s.client.Report.UpdateOneID(reportID).
+	update := s.client.Report.UpdateOneID(reportID).
 		SetStatus(report.Status(req.Status)).
-		Exec(ctx)
+		SetResolvedByID(adminID).
+		SetResolvedAt(time.Now().UTC())
+
+	if req.Notes != "" {
+		update.SetResolutionNotes(req.Notes)
+	}
+
+	err = update.Exec(ctx)
 
 	if err != nil {
 		slog.Error("Failed to resolve report", "error", err)

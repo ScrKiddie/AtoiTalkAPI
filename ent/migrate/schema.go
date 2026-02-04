@@ -277,11 +277,14 @@ var (
 		{Name: "description", Type: field.TypeString, Nullable: true, Size: 2147483647},
 		{Name: "evidence_snapshot", Type: field.TypeJSON, Nullable: true},
 		{Name: "status", Type: field.TypeEnum, Enums: []string{"pending", "reviewed", "resolved", "rejected"}, Default: "pending"},
+		{Name: "resolution_notes", Type: field.TypeString, Nullable: true, Size: 2147483647},
+		{Name: "resolved_at", Type: field.TypeTime, Nullable: true},
 		{Name: "created_at", Type: field.TypeTime},
 		{Name: "updated_at", Type: field.TypeTime},
 		{Name: "message_id", Type: field.TypeUUID, Nullable: true},
 		{Name: "group_id", Type: field.TypeUUID, Nullable: true},
 		{Name: "target_user_id", Type: field.TypeUUID, Nullable: true},
+		{Name: "resolved_by_id", Type: field.TypeUUID, Nullable: true},
 		{Name: "reporter_id", Type: field.TypeUUID},
 		{Name: "user_reports_received", Type: field.TypeUUID, Nullable: true},
 	}
@@ -293,31 +296,37 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "reports_messages_message",
-				Columns:    []*schema.Column{ReportsColumns[8]},
+				Columns:    []*schema.Column{ReportsColumns[10]},
 				RefColumns: []*schema.Column{MessagesColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
 			{
 				Symbol:     "reports_group_chats_group",
-				Columns:    []*schema.Column{ReportsColumns[9]},
+				Columns:    []*schema.Column{ReportsColumns[11]},
 				RefColumns: []*schema.Column{GroupChatsColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
 			{
 				Symbol:     "reports_users_target_user",
-				Columns:    []*schema.Column{ReportsColumns[10]},
+				Columns:    []*schema.Column{ReportsColumns[12]},
+				RefColumns: []*schema.Column{UsersColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
+			{
+				Symbol:     "reports_users_resolved_by",
+				Columns:    []*schema.Column{ReportsColumns[13]},
 				RefColumns: []*schema.Column{UsersColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
 			{
 				Symbol:     "reports_users_reports_made",
-				Columns:    []*schema.Column{ReportsColumns[11]},
+				Columns:    []*schema.Column{ReportsColumns[14]},
 				RefColumns: []*schema.Column{UsersColumns[0]},
 				OnDelete:   schema.NoAction,
 			},
 			{
 				Symbol:     "reports_users_reports_received",
-				Columns:    []*schema.Column{ReportsColumns[12]},
+				Columns:    []*schema.Column{ReportsColumns[15]},
 				RefColumns: []*schema.Column{UsersColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
@@ -331,12 +340,12 @@ var (
 			{
 				Name:    "report_created_at",
 				Unique:  false,
-				Columns: []*schema.Column{ReportsColumns[6]},
+				Columns: []*schema.Column{ReportsColumns[8]},
 			},
 			{
 				Name:    "report_reporter_id",
 				Unique:  false,
-				Columns: []*schema.Column{ReportsColumns[11]},
+				Columns: []*schema.Column{ReportsColumns[14]},
 			},
 		},
 	}
@@ -511,6 +520,7 @@ func init() {
 	ReportsTable.ForeignKeys[2].RefTable = UsersTable
 	ReportsTable.ForeignKeys[3].RefTable = UsersTable
 	ReportsTable.ForeignKeys[4].RefTable = UsersTable
+	ReportsTable.ForeignKeys[5].RefTable = UsersTable
 	UsersTable.ForeignKeys[0].RefTable = MediaTable
 	UserBlocksTable.ForeignKeys[0].RefTable = UsersTable
 	UserBlocksTable.ForeignKeys[1].RefTable = UsersTable

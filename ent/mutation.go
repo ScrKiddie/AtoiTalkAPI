@@ -6434,6 +6434,8 @@ type ReportMutation struct {
 	description           *string
 	evidence_snapshot     *map[string]interface{}
 	status                *report.Status
+	resolution_notes      *string
+	resolved_at           *time.Time
 	created_at            *time.Time
 	updated_at            *time.Time
 	clearedFields         map[string]struct{}
@@ -6448,6 +6450,8 @@ type ReportMutation struct {
 	evidence_media        map[uuid.UUID]struct{}
 	removedevidence_media map[uuid.UUID]struct{}
 	clearedevidence_media bool
+	resolved_by           *uuid.UUID
+	clearedresolved_by    bool
 	done                  bool
 	oldValue              func(context.Context) (*Report, error)
 	predicates            []predicate.Report
@@ -6946,6 +6950,153 @@ func (m *ReportMutation) ResetTargetUserID() {
 	delete(m.clearedFields, report.FieldTargetUserID)
 }
 
+// SetResolutionNotes sets the "resolution_notes" field.
+func (m *ReportMutation) SetResolutionNotes(s string) {
+	m.resolution_notes = &s
+}
+
+// ResolutionNotes returns the value of the "resolution_notes" field in the mutation.
+func (m *ReportMutation) ResolutionNotes() (r string, exists bool) {
+	v := m.resolution_notes
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldResolutionNotes returns the old "resolution_notes" field's value of the Report entity.
+// If the Report object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ReportMutation) OldResolutionNotes(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldResolutionNotes is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldResolutionNotes requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldResolutionNotes: %w", err)
+	}
+	return oldValue.ResolutionNotes, nil
+}
+
+// ClearResolutionNotes clears the value of the "resolution_notes" field.
+func (m *ReportMutation) ClearResolutionNotes() {
+	m.resolution_notes = nil
+	m.clearedFields[report.FieldResolutionNotes] = struct{}{}
+}
+
+// ResolutionNotesCleared returns if the "resolution_notes" field was cleared in this mutation.
+func (m *ReportMutation) ResolutionNotesCleared() bool {
+	_, ok := m.clearedFields[report.FieldResolutionNotes]
+	return ok
+}
+
+// ResetResolutionNotes resets all changes to the "resolution_notes" field.
+func (m *ReportMutation) ResetResolutionNotes() {
+	m.resolution_notes = nil
+	delete(m.clearedFields, report.FieldResolutionNotes)
+}
+
+// SetResolvedAt sets the "resolved_at" field.
+func (m *ReportMutation) SetResolvedAt(t time.Time) {
+	m.resolved_at = &t
+}
+
+// ResolvedAt returns the value of the "resolved_at" field in the mutation.
+func (m *ReportMutation) ResolvedAt() (r time.Time, exists bool) {
+	v := m.resolved_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldResolvedAt returns the old "resolved_at" field's value of the Report entity.
+// If the Report object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ReportMutation) OldResolvedAt(ctx context.Context) (v *time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldResolvedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldResolvedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldResolvedAt: %w", err)
+	}
+	return oldValue.ResolvedAt, nil
+}
+
+// ClearResolvedAt clears the value of the "resolved_at" field.
+func (m *ReportMutation) ClearResolvedAt() {
+	m.resolved_at = nil
+	m.clearedFields[report.FieldResolvedAt] = struct{}{}
+}
+
+// ResolvedAtCleared returns if the "resolved_at" field was cleared in this mutation.
+func (m *ReportMutation) ResolvedAtCleared() bool {
+	_, ok := m.clearedFields[report.FieldResolvedAt]
+	return ok
+}
+
+// ResetResolvedAt resets all changes to the "resolved_at" field.
+func (m *ReportMutation) ResetResolvedAt() {
+	m.resolved_at = nil
+	delete(m.clearedFields, report.FieldResolvedAt)
+}
+
+// SetResolvedByID sets the "resolved_by_id" field.
+func (m *ReportMutation) SetResolvedByID(u uuid.UUID) {
+	m.resolved_by = &u
+}
+
+// ResolvedByID returns the value of the "resolved_by_id" field in the mutation.
+func (m *ReportMutation) ResolvedByID() (r uuid.UUID, exists bool) {
+	v := m.resolved_by
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldResolvedByID returns the old "resolved_by_id" field's value of the Report entity.
+// If the Report object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ReportMutation) OldResolvedByID(ctx context.Context) (v *uuid.UUID, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldResolvedByID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldResolvedByID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldResolvedByID: %w", err)
+	}
+	return oldValue.ResolvedByID, nil
+}
+
+// ClearResolvedByID clears the value of the "resolved_by_id" field.
+func (m *ReportMutation) ClearResolvedByID() {
+	m.resolved_by = nil
+	m.clearedFields[report.FieldResolvedByID] = struct{}{}
+}
+
+// ResolvedByIDCleared returns if the "resolved_by_id" field was cleared in this mutation.
+func (m *ReportMutation) ResolvedByIDCleared() bool {
+	_, ok := m.clearedFields[report.FieldResolvedByID]
+	return ok
+}
+
+// ResetResolvedByID resets all changes to the "resolved_by_id" field.
+func (m *ReportMutation) ResetResolvedByID() {
+	m.resolved_by = nil
+	delete(m.clearedFields, report.FieldResolvedByID)
+}
+
 // SetCreatedAt sets the "created_at" field.
 func (m *ReportMutation) SetCreatedAt(t time.Time) {
 	m.created_at = &t
@@ -7180,6 +7331,33 @@ func (m *ReportMutation) ResetEvidenceMedia() {
 	m.removedevidence_media = nil
 }
 
+// ClearResolvedBy clears the "resolved_by" edge to the User entity.
+func (m *ReportMutation) ClearResolvedBy() {
+	m.clearedresolved_by = true
+	m.clearedFields[report.FieldResolvedByID] = struct{}{}
+}
+
+// ResolvedByCleared reports if the "resolved_by" edge to the User entity was cleared.
+func (m *ReportMutation) ResolvedByCleared() bool {
+	return m.ResolvedByIDCleared() || m.clearedresolved_by
+}
+
+// ResolvedByIDs returns the "resolved_by" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// ResolvedByID instead. It exists only for internal usage by the builders.
+func (m *ReportMutation) ResolvedByIDs() (ids []uuid.UUID) {
+	if id := m.resolved_by; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetResolvedBy resets all changes to the "resolved_by" edge.
+func (m *ReportMutation) ResetResolvedBy() {
+	m.resolved_by = nil
+	m.clearedresolved_by = false
+}
+
 // Where appends a list predicates to the ReportMutation builder.
 func (m *ReportMutation) Where(ps ...predicate.Report) {
 	m.predicates = append(m.predicates, ps...)
@@ -7214,7 +7392,7 @@ func (m *ReportMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *ReportMutation) Fields() []string {
-	fields := make([]string, 0, 11)
+	fields := make([]string, 0, 14)
 	if m.target_type != nil {
 		fields = append(fields, report.FieldTargetType)
 	}
@@ -7241,6 +7419,15 @@ func (m *ReportMutation) Fields() []string {
 	}
 	if m.target_user != nil {
 		fields = append(fields, report.FieldTargetUserID)
+	}
+	if m.resolution_notes != nil {
+		fields = append(fields, report.FieldResolutionNotes)
+	}
+	if m.resolved_at != nil {
+		fields = append(fields, report.FieldResolvedAt)
+	}
+	if m.resolved_by != nil {
+		fields = append(fields, report.FieldResolvedByID)
 	}
 	if m.created_at != nil {
 		fields = append(fields, report.FieldCreatedAt)
@@ -7274,6 +7461,12 @@ func (m *ReportMutation) Field(name string) (ent.Value, bool) {
 		return m.GroupID()
 	case report.FieldTargetUserID:
 		return m.TargetUserID()
+	case report.FieldResolutionNotes:
+		return m.ResolutionNotes()
+	case report.FieldResolvedAt:
+		return m.ResolvedAt()
+	case report.FieldResolvedByID:
+		return m.ResolvedByID()
 	case report.FieldCreatedAt:
 		return m.CreatedAt()
 	case report.FieldUpdatedAt:
@@ -7305,6 +7498,12 @@ func (m *ReportMutation) OldField(ctx context.Context, name string) (ent.Value, 
 		return m.OldGroupID(ctx)
 	case report.FieldTargetUserID:
 		return m.OldTargetUserID(ctx)
+	case report.FieldResolutionNotes:
+		return m.OldResolutionNotes(ctx)
+	case report.FieldResolvedAt:
+		return m.OldResolvedAt(ctx)
+	case report.FieldResolvedByID:
+		return m.OldResolvedByID(ctx)
 	case report.FieldCreatedAt:
 		return m.OldCreatedAt(ctx)
 	case report.FieldUpdatedAt:
@@ -7381,6 +7580,27 @@ func (m *ReportMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetTargetUserID(v)
 		return nil
+	case report.FieldResolutionNotes:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetResolutionNotes(v)
+		return nil
+	case report.FieldResolvedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetResolvedAt(v)
+		return nil
+	case report.FieldResolvedByID:
+		v, ok := value.(uuid.UUID)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetResolvedByID(v)
+		return nil
 	case report.FieldCreatedAt:
 		v, ok := value.(time.Time)
 		if !ok {
@@ -7440,6 +7660,15 @@ func (m *ReportMutation) ClearedFields() []string {
 	if m.FieldCleared(report.FieldTargetUserID) {
 		fields = append(fields, report.FieldTargetUserID)
 	}
+	if m.FieldCleared(report.FieldResolutionNotes) {
+		fields = append(fields, report.FieldResolutionNotes)
+	}
+	if m.FieldCleared(report.FieldResolvedAt) {
+		fields = append(fields, report.FieldResolvedAt)
+	}
+	if m.FieldCleared(report.FieldResolvedByID) {
+		fields = append(fields, report.FieldResolvedByID)
+	}
 	return fields
 }
 
@@ -7468,6 +7697,15 @@ func (m *ReportMutation) ClearField(name string) error {
 		return nil
 	case report.FieldTargetUserID:
 		m.ClearTargetUserID()
+		return nil
+	case report.FieldResolutionNotes:
+		m.ClearResolutionNotes()
+		return nil
+	case report.FieldResolvedAt:
+		m.ClearResolvedAt()
+		return nil
+	case report.FieldResolvedByID:
+		m.ClearResolvedByID()
 		return nil
 	}
 	return fmt.Errorf("unknown Report nullable field %s", name)
@@ -7504,6 +7742,15 @@ func (m *ReportMutation) ResetField(name string) error {
 	case report.FieldTargetUserID:
 		m.ResetTargetUserID()
 		return nil
+	case report.FieldResolutionNotes:
+		m.ResetResolutionNotes()
+		return nil
+	case report.FieldResolvedAt:
+		m.ResetResolvedAt()
+		return nil
+	case report.FieldResolvedByID:
+		m.ResetResolvedByID()
+		return nil
 	case report.FieldCreatedAt:
 		m.ResetCreatedAt()
 		return nil
@@ -7516,7 +7763,7 @@ func (m *ReportMutation) ResetField(name string) error {
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *ReportMutation) AddedEdges() []string {
-	edges := make([]string, 0, 5)
+	edges := make([]string, 0, 6)
 	if m.reporter != nil {
 		edges = append(edges, report.EdgeReporter)
 	}
@@ -7531,6 +7778,9 @@ func (m *ReportMutation) AddedEdges() []string {
 	}
 	if m.evidence_media != nil {
 		edges = append(edges, report.EdgeEvidenceMedia)
+	}
+	if m.resolved_by != nil {
+		edges = append(edges, report.EdgeResolvedBy)
 	}
 	return edges
 }
@@ -7561,13 +7811,17 @@ func (m *ReportMutation) AddedIDs(name string) []ent.Value {
 			ids = append(ids, id)
 		}
 		return ids
+	case report.EdgeResolvedBy:
+		if id := m.resolved_by; id != nil {
+			return []ent.Value{*id}
+		}
 	}
 	return nil
 }
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *ReportMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 5)
+	edges := make([]string, 0, 6)
 	if m.removedevidence_media != nil {
 		edges = append(edges, report.EdgeEvidenceMedia)
 	}
@@ -7590,7 +7844,7 @@ func (m *ReportMutation) RemovedIDs(name string) []ent.Value {
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *ReportMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 5)
+	edges := make([]string, 0, 6)
 	if m.clearedreporter {
 		edges = append(edges, report.EdgeReporter)
 	}
@@ -7605,6 +7859,9 @@ func (m *ReportMutation) ClearedEdges() []string {
 	}
 	if m.clearedevidence_media {
 		edges = append(edges, report.EdgeEvidenceMedia)
+	}
+	if m.clearedresolved_by {
+		edges = append(edges, report.EdgeResolvedBy)
 	}
 	return edges
 }
@@ -7623,6 +7880,8 @@ func (m *ReportMutation) EdgeCleared(name string) bool {
 		return m.clearedtarget_user
 	case report.EdgeEvidenceMedia:
 		return m.clearedevidence_media
+	case report.EdgeResolvedBy:
+		return m.clearedresolved_by
 	}
 	return false
 }
@@ -7642,6 +7901,9 @@ func (m *ReportMutation) ClearEdge(name string) error {
 		return nil
 	case report.EdgeTargetUser:
 		m.ClearTargetUser()
+		return nil
+	case report.EdgeResolvedBy:
+		m.ClearResolvedBy()
 		return nil
 	}
 	return fmt.Errorf("unknown Report unique edge %s", name)
@@ -7665,6 +7927,9 @@ func (m *ReportMutation) ResetEdge(name string) error {
 		return nil
 	case report.EdgeEvidenceMedia:
 		m.ResetEvidenceMedia()
+		return nil
+	case report.EdgeResolvedBy:
+		m.ResetResolvedBy()
 		return nil
 	}
 	return fmt.Errorf("unknown Report edge %s", name)

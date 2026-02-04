@@ -86,6 +86,21 @@ func TargetUserID(v uuid.UUID) predicate.Report {
 	return predicate.Report(sql.FieldEQ(FieldTargetUserID, v))
 }
 
+// ResolutionNotes applies equality check predicate on the "resolution_notes" field. It's identical to ResolutionNotesEQ.
+func ResolutionNotes(v string) predicate.Report {
+	return predicate.Report(sql.FieldEQ(FieldResolutionNotes, v))
+}
+
+// ResolvedAt applies equality check predicate on the "resolved_at" field. It's identical to ResolvedAtEQ.
+func ResolvedAt(v time.Time) predicate.Report {
+	return predicate.Report(sql.FieldEQ(FieldResolvedAt, v))
+}
+
+// ResolvedByID applies equality check predicate on the "resolved_by_id" field. It's identical to ResolvedByIDEQ.
+func ResolvedByID(v uuid.UUID) predicate.Report {
+	return predicate.Report(sql.FieldEQ(FieldResolvedByID, v))
+}
+
 // CreatedAt applies equality check predicate on the "created_at" field. It's identical to CreatedAtEQ.
 func CreatedAt(v time.Time) predicate.Report {
 	return predicate.Report(sql.FieldEQ(FieldCreatedAt, v))
@@ -396,6 +411,161 @@ func TargetUserIDNotNil() predicate.Report {
 	return predicate.Report(sql.FieldNotNull(FieldTargetUserID))
 }
 
+// ResolutionNotesEQ applies the EQ predicate on the "resolution_notes" field.
+func ResolutionNotesEQ(v string) predicate.Report {
+	return predicate.Report(sql.FieldEQ(FieldResolutionNotes, v))
+}
+
+// ResolutionNotesNEQ applies the NEQ predicate on the "resolution_notes" field.
+func ResolutionNotesNEQ(v string) predicate.Report {
+	return predicate.Report(sql.FieldNEQ(FieldResolutionNotes, v))
+}
+
+// ResolutionNotesIn applies the In predicate on the "resolution_notes" field.
+func ResolutionNotesIn(vs ...string) predicate.Report {
+	return predicate.Report(sql.FieldIn(FieldResolutionNotes, vs...))
+}
+
+// ResolutionNotesNotIn applies the NotIn predicate on the "resolution_notes" field.
+func ResolutionNotesNotIn(vs ...string) predicate.Report {
+	return predicate.Report(sql.FieldNotIn(FieldResolutionNotes, vs...))
+}
+
+// ResolutionNotesGT applies the GT predicate on the "resolution_notes" field.
+func ResolutionNotesGT(v string) predicate.Report {
+	return predicate.Report(sql.FieldGT(FieldResolutionNotes, v))
+}
+
+// ResolutionNotesGTE applies the GTE predicate on the "resolution_notes" field.
+func ResolutionNotesGTE(v string) predicate.Report {
+	return predicate.Report(sql.FieldGTE(FieldResolutionNotes, v))
+}
+
+// ResolutionNotesLT applies the LT predicate on the "resolution_notes" field.
+func ResolutionNotesLT(v string) predicate.Report {
+	return predicate.Report(sql.FieldLT(FieldResolutionNotes, v))
+}
+
+// ResolutionNotesLTE applies the LTE predicate on the "resolution_notes" field.
+func ResolutionNotesLTE(v string) predicate.Report {
+	return predicate.Report(sql.FieldLTE(FieldResolutionNotes, v))
+}
+
+// ResolutionNotesContains applies the Contains predicate on the "resolution_notes" field.
+func ResolutionNotesContains(v string) predicate.Report {
+	return predicate.Report(sql.FieldContains(FieldResolutionNotes, v))
+}
+
+// ResolutionNotesHasPrefix applies the HasPrefix predicate on the "resolution_notes" field.
+func ResolutionNotesHasPrefix(v string) predicate.Report {
+	return predicate.Report(sql.FieldHasPrefix(FieldResolutionNotes, v))
+}
+
+// ResolutionNotesHasSuffix applies the HasSuffix predicate on the "resolution_notes" field.
+func ResolutionNotesHasSuffix(v string) predicate.Report {
+	return predicate.Report(sql.FieldHasSuffix(FieldResolutionNotes, v))
+}
+
+// ResolutionNotesIsNil applies the IsNil predicate on the "resolution_notes" field.
+func ResolutionNotesIsNil() predicate.Report {
+	return predicate.Report(sql.FieldIsNull(FieldResolutionNotes))
+}
+
+// ResolutionNotesNotNil applies the NotNil predicate on the "resolution_notes" field.
+func ResolutionNotesNotNil() predicate.Report {
+	return predicate.Report(sql.FieldNotNull(FieldResolutionNotes))
+}
+
+// ResolutionNotesEqualFold applies the EqualFold predicate on the "resolution_notes" field.
+func ResolutionNotesEqualFold(v string) predicate.Report {
+	return predicate.Report(sql.FieldEqualFold(FieldResolutionNotes, v))
+}
+
+// ResolutionNotesContainsFold applies the ContainsFold predicate on the "resolution_notes" field.
+func ResolutionNotesContainsFold(v string) predicate.Report {
+	return predicate.Report(sql.FieldContainsFold(FieldResolutionNotes, v))
+}
+
+// ResolvedAtEQ applies the EQ predicate on the "resolved_at" field.
+func ResolvedAtEQ(v time.Time) predicate.Report {
+	return predicate.Report(sql.FieldEQ(FieldResolvedAt, v))
+}
+
+// ResolvedAtNEQ applies the NEQ predicate on the "resolved_at" field.
+func ResolvedAtNEQ(v time.Time) predicate.Report {
+	return predicate.Report(sql.FieldNEQ(FieldResolvedAt, v))
+}
+
+// ResolvedAtIn applies the In predicate on the "resolved_at" field.
+func ResolvedAtIn(vs ...time.Time) predicate.Report {
+	return predicate.Report(sql.FieldIn(FieldResolvedAt, vs...))
+}
+
+// ResolvedAtNotIn applies the NotIn predicate on the "resolved_at" field.
+func ResolvedAtNotIn(vs ...time.Time) predicate.Report {
+	return predicate.Report(sql.FieldNotIn(FieldResolvedAt, vs...))
+}
+
+// ResolvedAtGT applies the GT predicate on the "resolved_at" field.
+func ResolvedAtGT(v time.Time) predicate.Report {
+	return predicate.Report(sql.FieldGT(FieldResolvedAt, v))
+}
+
+// ResolvedAtGTE applies the GTE predicate on the "resolved_at" field.
+func ResolvedAtGTE(v time.Time) predicate.Report {
+	return predicate.Report(sql.FieldGTE(FieldResolvedAt, v))
+}
+
+// ResolvedAtLT applies the LT predicate on the "resolved_at" field.
+func ResolvedAtLT(v time.Time) predicate.Report {
+	return predicate.Report(sql.FieldLT(FieldResolvedAt, v))
+}
+
+// ResolvedAtLTE applies the LTE predicate on the "resolved_at" field.
+func ResolvedAtLTE(v time.Time) predicate.Report {
+	return predicate.Report(sql.FieldLTE(FieldResolvedAt, v))
+}
+
+// ResolvedAtIsNil applies the IsNil predicate on the "resolved_at" field.
+func ResolvedAtIsNil() predicate.Report {
+	return predicate.Report(sql.FieldIsNull(FieldResolvedAt))
+}
+
+// ResolvedAtNotNil applies the NotNil predicate on the "resolved_at" field.
+func ResolvedAtNotNil() predicate.Report {
+	return predicate.Report(sql.FieldNotNull(FieldResolvedAt))
+}
+
+// ResolvedByIDEQ applies the EQ predicate on the "resolved_by_id" field.
+func ResolvedByIDEQ(v uuid.UUID) predicate.Report {
+	return predicate.Report(sql.FieldEQ(FieldResolvedByID, v))
+}
+
+// ResolvedByIDNEQ applies the NEQ predicate on the "resolved_by_id" field.
+func ResolvedByIDNEQ(v uuid.UUID) predicate.Report {
+	return predicate.Report(sql.FieldNEQ(FieldResolvedByID, v))
+}
+
+// ResolvedByIDIn applies the In predicate on the "resolved_by_id" field.
+func ResolvedByIDIn(vs ...uuid.UUID) predicate.Report {
+	return predicate.Report(sql.FieldIn(FieldResolvedByID, vs...))
+}
+
+// ResolvedByIDNotIn applies the NotIn predicate on the "resolved_by_id" field.
+func ResolvedByIDNotIn(vs ...uuid.UUID) predicate.Report {
+	return predicate.Report(sql.FieldNotIn(FieldResolvedByID, vs...))
+}
+
+// ResolvedByIDIsNil applies the IsNil predicate on the "resolved_by_id" field.
+func ResolvedByIDIsNil() predicate.Report {
+	return predicate.Report(sql.FieldIsNull(FieldResolvedByID))
+}
+
+// ResolvedByIDNotNil applies the NotNil predicate on the "resolved_by_id" field.
+func ResolvedByIDNotNil() predicate.Report {
+	return predicate.Report(sql.FieldNotNull(FieldResolvedByID))
+}
+
 // CreatedAtEQ applies the EQ predicate on the "created_at" field.
 func CreatedAtEQ(v time.Time) predicate.Report {
 	return predicate.Report(sql.FieldEQ(FieldCreatedAt, v))
@@ -583,6 +753,29 @@ func HasEvidenceMedia() predicate.Report {
 func HasEvidenceMediaWith(preds ...predicate.Media) predicate.Report {
 	return predicate.Report(func(s *sql.Selector) {
 		step := newEvidenceMediaStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
+// HasResolvedBy applies the HasEdge predicate on the "resolved_by" edge.
+func HasResolvedBy() predicate.Report {
+	return predicate.Report(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, false, ResolvedByTable, ResolvedByColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasResolvedByWith applies the HasEdge predicate on the "resolved_by" edge with a given conditions (other predicates).
+func HasResolvedByWith(preds ...predicate.User) predicate.Report {
+	return predicate.Report(func(s *sql.Selector) {
+		step := newResolvedByStep()
 		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
 			for _, p := range preds {
 				p(s)

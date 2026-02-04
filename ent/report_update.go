@@ -168,6 +168,66 @@ func (_u *ReportUpdate) ClearTargetUserID() *ReportUpdate {
 	return _u
 }
 
+// SetResolutionNotes sets the "resolution_notes" field.
+func (_u *ReportUpdate) SetResolutionNotes(v string) *ReportUpdate {
+	_u.mutation.SetResolutionNotes(v)
+	return _u
+}
+
+// SetNillableResolutionNotes sets the "resolution_notes" field if the given value is not nil.
+func (_u *ReportUpdate) SetNillableResolutionNotes(v *string) *ReportUpdate {
+	if v != nil {
+		_u.SetResolutionNotes(*v)
+	}
+	return _u
+}
+
+// ClearResolutionNotes clears the value of the "resolution_notes" field.
+func (_u *ReportUpdate) ClearResolutionNotes() *ReportUpdate {
+	_u.mutation.ClearResolutionNotes()
+	return _u
+}
+
+// SetResolvedAt sets the "resolved_at" field.
+func (_u *ReportUpdate) SetResolvedAt(v time.Time) *ReportUpdate {
+	_u.mutation.SetResolvedAt(v)
+	return _u
+}
+
+// SetNillableResolvedAt sets the "resolved_at" field if the given value is not nil.
+func (_u *ReportUpdate) SetNillableResolvedAt(v *time.Time) *ReportUpdate {
+	if v != nil {
+		_u.SetResolvedAt(*v)
+	}
+	return _u
+}
+
+// ClearResolvedAt clears the value of the "resolved_at" field.
+func (_u *ReportUpdate) ClearResolvedAt() *ReportUpdate {
+	_u.mutation.ClearResolvedAt()
+	return _u
+}
+
+// SetResolvedByID sets the "resolved_by_id" field.
+func (_u *ReportUpdate) SetResolvedByID(v uuid.UUID) *ReportUpdate {
+	_u.mutation.SetResolvedByID(v)
+	return _u
+}
+
+// SetNillableResolvedByID sets the "resolved_by_id" field if the given value is not nil.
+func (_u *ReportUpdate) SetNillableResolvedByID(v *uuid.UUID) *ReportUpdate {
+	if v != nil {
+		_u.SetResolvedByID(*v)
+	}
+	return _u
+}
+
+// ClearResolvedByID clears the value of the "resolved_by_id" field.
+func (_u *ReportUpdate) ClearResolvedByID() *ReportUpdate {
+	_u.mutation.ClearResolvedByID()
+	return _u
+}
+
 // SetUpdatedAt sets the "updated_at" field.
 func (_u *ReportUpdate) SetUpdatedAt(v time.Time) *ReportUpdate {
 	_u.mutation.SetUpdatedAt(v)
@@ -207,6 +267,11 @@ func (_u *ReportUpdate) AddEvidenceMedia(v ...*Media) *ReportUpdate {
 		ids[i] = v[i].ID
 	}
 	return _u.AddEvidenceMediumIDs(ids...)
+}
+
+// SetResolvedBy sets the "resolved_by" edge to the User entity.
+func (_u *ReportUpdate) SetResolvedBy(v *User) *ReportUpdate {
+	return _u.SetResolvedByID(v.ID)
 }
 
 // Mutation returns the ReportMutation object of the builder.
@@ -257,6 +322,12 @@ func (_u *ReportUpdate) RemoveEvidenceMedia(v ...*Media) *ReportUpdate {
 		ids[i] = v[i].ID
 	}
 	return _u.RemoveEvidenceMediumIDs(ids...)
+}
+
+// ClearResolvedBy clears the "resolved_by" edge to the User entity.
+func (_u *ReportUpdate) ClearResolvedBy() *ReportUpdate {
+	_u.mutation.ClearResolvedBy()
+	return _u
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
@@ -348,6 +419,18 @@ func (_u *ReportUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	}
 	if value, ok := _u.mutation.Status(); ok {
 		_spec.SetField(report.FieldStatus, field.TypeEnum, value)
+	}
+	if value, ok := _u.mutation.ResolutionNotes(); ok {
+		_spec.SetField(report.FieldResolutionNotes, field.TypeString, value)
+	}
+	if _u.mutation.ResolutionNotesCleared() {
+		_spec.ClearField(report.FieldResolutionNotes, field.TypeString)
+	}
+	if value, ok := _u.mutation.ResolvedAt(); ok {
+		_spec.SetField(report.FieldResolvedAt, field.TypeTime, value)
+	}
+	if _u.mutation.ResolvedAtCleared() {
+		_spec.ClearField(report.FieldResolvedAt, field.TypeTime)
 	}
 	if value, ok := _u.mutation.UpdatedAt(); ok {
 		_spec.SetField(report.FieldUpdatedAt, field.TypeTime, value)
@@ -506,6 +589,35 @@ func (_u *ReportUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(media.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.ResolvedByCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: false,
+			Table:   report.ResolvedByTable,
+			Columns: []string{report.ResolvedByColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeUUID),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.ResolvedByIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: false,
+			Table:   report.ResolvedByTable,
+			Columns: []string{report.ResolvedByColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {
@@ -669,6 +781,66 @@ func (_u *ReportUpdateOne) ClearTargetUserID() *ReportUpdateOne {
 	return _u
 }
 
+// SetResolutionNotes sets the "resolution_notes" field.
+func (_u *ReportUpdateOne) SetResolutionNotes(v string) *ReportUpdateOne {
+	_u.mutation.SetResolutionNotes(v)
+	return _u
+}
+
+// SetNillableResolutionNotes sets the "resolution_notes" field if the given value is not nil.
+func (_u *ReportUpdateOne) SetNillableResolutionNotes(v *string) *ReportUpdateOne {
+	if v != nil {
+		_u.SetResolutionNotes(*v)
+	}
+	return _u
+}
+
+// ClearResolutionNotes clears the value of the "resolution_notes" field.
+func (_u *ReportUpdateOne) ClearResolutionNotes() *ReportUpdateOne {
+	_u.mutation.ClearResolutionNotes()
+	return _u
+}
+
+// SetResolvedAt sets the "resolved_at" field.
+func (_u *ReportUpdateOne) SetResolvedAt(v time.Time) *ReportUpdateOne {
+	_u.mutation.SetResolvedAt(v)
+	return _u
+}
+
+// SetNillableResolvedAt sets the "resolved_at" field if the given value is not nil.
+func (_u *ReportUpdateOne) SetNillableResolvedAt(v *time.Time) *ReportUpdateOne {
+	if v != nil {
+		_u.SetResolvedAt(*v)
+	}
+	return _u
+}
+
+// ClearResolvedAt clears the value of the "resolved_at" field.
+func (_u *ReportUpdateOne) ClearResolvedAt() *ReportUpdateOne {
+	_u.mutation.ClearResolvedAt()
+	return _u
+}
+
+// SetResolvedByID sets the "resolved_by_id" field.
+func (_u *ReportUpdateOne) SetResolvedByID(v uuid.UUID) *ReportUpdateOne {
+	_u.mutation.SetResolvedByID(v)
+	return _u
+}
+
+// SetNillableResolvedByID sets the "resolved_by_id" field if the given value is not nil.
+func (_u *ReportUpdateOne) SetNillableResolvedByID(v *uuid.UUID) *ReportUpdateOne {
+	if v != nil {
+		_u.SetResolvedByID(*v)
+	}
+	return _u
+}
+
+// ClearResolvedByID clears the value of the "resolved_by_id" field.
+func (_u *ReportUpdateOne) ClearResolvedByID() *ReportUpdateOne {
+	_u.mutation.ClearResolvedByID()
+	return _u
+}
+
 // SetUpdatedAt sets the "updated_at" field.
 func (_u *ReportUpdateOne) SetUpdatedAt(v time.Time) *ReportUpdateOne {
 	_u.mutation.SetUpdatedAt(v)
@@ -708,6 +880,11 @@ func (_u *ReportUpdateOne) AddEvidenceMedia(v ...*Media) *ReportUpdateOne {
 		ids[i] = v[i].ID
 	}
 	return _u.AddEvidenceMediumIDs(ids...)
+}
+
+// SetResolvedBy sets the "resolved_by" edge to the User entity.
+func (_u *ReportUpdateOne) SetResolvedBy(v *User) *ReportUpdateOne {
+	return _u.SetResolvedByID(v.ID)
 }
 
 // Mutation returns the ReportMutation object of the builder.
@@ -758,6 +935,12 @@ func (_u *ReportUpdateOne) RemoveEvidenceMedia(v ...*Media) *ReportUpdateOne {
 		ids[i] = v[i].ID
 	}
 	return _u.RemoveEvidenceMediumIDs(ids...)
+}
+
+// ClearResolvedBy clears the "resolved_by" edge to the User entity.
+func (_u *ReportUpdateOne) ClearResolvedBy() *ReportUpdateOne {
+	_u.mutation.ClearResolvedBy()
+	return _u
 }
 
 // Where appends a list predicates to the ReportUpdate builder.
@@ -879,6 +1062,18 @@ func (_u *ReportUpdateOne) sqlSave(ctx context.Context) (_node *Report, err erro
 	}
 	if value, ok := _u.mutation.Status(); ok {
 		_spec.SetField(report.FieldStatus, field.TypeEnum, value)
+	}
+	if value, ok := _u.mutation.ResolutionNotes(); ok {
+		_spec.SetField(report.FieldResolutionNotes, field.TypeString, value)
+	}
+	if _u.mutation.ResolutionNotesCleared() {
+		_spec.ClearField(report.FieldResolutionNotes, field.TypeString)
+	}
+	if value, ok := _u.mutation.ResolvedAt(); ok {
+		_spec.SetField(report.FieldResolvedAt, field.TypeTime, value)
+	}
+	if _u.mutation.ResolvedAtCleared() {
+		_spec.ClearField(report.FieldResolvedAt, field.TypeTime)
 	}
 	if value, ok := _u.mutation.UpdatedAt(); ok {
 		_spec.SetField(report.FieldUpdatedAt, field.TypeTime, value)
@@ -1037,6 +1232,35 @@ func (_u *ReportUpdateOne) sqlSave(ctx context.Context) (_node *Report, err erro
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(media.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.ResolvedByCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: false,
+			Table:   report.ResolvedByTable,
+			Columns: []string{report.ResolvedByColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeUUID),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.ResolvedByIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: false,
+			Table:   report.ResolvedByTable,
+			Columns: []string{report.ResolvedByColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {
