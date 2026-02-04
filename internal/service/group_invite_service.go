@@ -31,7 +31,7 @@ func (s *GroupChatService) JoinGroupByInvite(ctx context.Context, userID uuid.UU
 			groupchat.InviteCode(inviteCode),
 			groupchat.HasChatWith(chat.DeletedAtIsNil()),
 		).
-		Select(groupchat.FieldID, groupchat.FieldChatID, groupchat.FieldInviteExpiresAt, groupchat.FieldName, groupchat.FieldAvatarID).
+		Select(groupchat.FieldID, groupchat.FieldChatID, groupchat.FieldInviteExpiresAt, groupchat.FieldName, groupchat.FieldAvatarID, groupchat.FieldIsPublic, groupchat.FieldInviteCode).
 		WithAvatar().
 		WithChat().
 		Only(ctx)
@@ -112,6 +112,20 @@ func (s *GroupChatService) JoinGroupByInvite(ctx context.Context, userID uuid.UU
 		msgResponse = helper.ToMessageResponse(fullMsg, s.storageAdapter, nil)
 	}
 
+	memberCount, err := s.client.GroupMember.Query().
+		Where(
+			groupmember.GroupChatID(gc.ID),
+			groupmember.HasUserWith(user.DeletedAtIsNil()),
+		).
+		Count(ctx)
+	if err != nil {
+		slog.Error("Failed to count group members after join", "error", err)
+	}
+
+	if msgResponse != nil {
+		msgResponse.MemberCount = &memberCount
+	}
+
 	chatListResponse := &model.ChatListResponse{
 		ID:          gc.Edges.Chat.ID,
 		Type:        string(chat.TypeGroup),
@@ -119,6 +133,11 @@ func (s *GroupChatService) JoinGroupByInvite(ctx context.Context, userID uuid.UU
 		Avatar:      avatarURL,
 		LastMessage: msgResponse,
 		UnreadCount: 0,
+		MemberCount: memberCount,
+		IsPublic:    &gc.IsPublic,
+	}
+	if gc.IsPublic {
+		chatListResponse.InviteCode = &gc.InviteCode
 	}
 
 	if s.wsHub != nil {

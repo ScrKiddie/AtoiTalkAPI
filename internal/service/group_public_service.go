@@ -6,6 +6,7 @@ import (
 	"AtoiTalkAPI/ent/groupchat"
 	"AtoiTalkAPI/ent/groupmember"
 	"AtoiTalkAPI/ent/message"
+	"AtoiTalkAPI/ent/user"
 	"AtoiTalkAPI/internal/helper"
 	"AtoiTalkAPI/internal/model"
 	"AtoiTalkAPI/internal/websocket"
@@ -84,7 +85,7 @@ func (s *GroupChatService) JoinPublicGroup(ctx context.Context, userID uuid.UUID
 			groupchat.ChatID(groupID),
 			groupchat.HasChatWith(chat.DeletedAtIsNil()),
 		).
-		Select(groupchat.FieldID, groupchat.FieldChatID, groupchat.FieldName, groupchat.FieldIsPublic, groupchat.FieldAvatarID).
+		Select(groupchat.FieldID, groupchat.FieldChatID, groupchat.FieldName, groupchat.FieldIsPublic, groupchat.FieldAvatarID, groupchat.FieldInviteCode).
 		WithAvatar().
 		WithChat().
 		Only(ctx)
@@ -160,6 +161,20 @@ func (s *GroupChatService) JoinPublicGroup(ctx context.Context, userID uuid.UUID
 		msgResponse = helper.ToMessageResponse(fullMsg, s.storageAdapter, nil)
 	}
 
+	memberCount, err := s.client.GroupMember.Query().
+		Where(
+			groupmember.GroupChatID(gc.ID),
+			groupmember.HasUserWith(user.DeletedAtIsNil()),
+		).
+		Count(ctx)
+	if err != nil {
+		slog.Error("Failed to count group members after public join", "error", err)
+	}
+
+	if msgResponse != nil {
+		msgResponse.MemberCount = &memberCount
+	}
+
 	if s.wsHub != nil && msgResponse != nil {
 		go func() {
 			avatarURL := ""
@@ -174,6 +189,9 @@ func (s *GroupChatService) JoinPublicGroup(ctx context.Context, userID uuid.UUID
 				Avatar:      avatarURL,
 				LastMessage: msgResponse,
 				UnreadCount: 0,
+				MemberCount: memberCount,
+				IsPublic:    &gc.IsPublic,
+				InviteCode:  &gc.InviteCode,
 			}
 
 			s.wsHub.BroadcastToUser(userID, websocket.Event{

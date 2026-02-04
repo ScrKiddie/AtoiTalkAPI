@@ -254,6 +254,10 @@ func (s *GroupChatService) AddMember(ctx context.Context, requestorID uuid.UUID,
 						LastMessage: lastMsgResponse,
 						UnreadCount: 1,
 						MemberCount: memberCount,
+						IsPublic:    &gc.IsPublic,
+					}
+					if gc.IsPublic {
+						chatPayload.InviteCode = &gc.InviteCode
 					}
 
 					s.wsHub.BroadcastToUser(u.ID, websocket.Event{

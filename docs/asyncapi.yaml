@@ -312,7 +312,7 @@ components:
           description: True if group is public (Omitted for private chat)
         invite_code:
           type: string
-          description: Invite code for group chat (Omitted for private chat or non-admin)
+          description: Invite code for group chat. Public groups show to all members, private groups only to admins/owners.
         invite_expires_at:
           type: string
           format: date-time
