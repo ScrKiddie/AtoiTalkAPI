@@ -54,7 +54,7 @@ func Init(appConfig *config.AppConfig, client *ent.Client, validator *validator.
 	messageController := controller.NewMessageController(messageService)
 	mediaController := controller.NewMediaController(mediaService)
 	reportController := controller.NewReportController(reportService)
-	adminController := controller.NewAdminController(adminService, validator)
+	adminController := controller.NewAdminController(adminService, groupChatService, validator)
 	wsController := controller.NewWebSocketController(wsHub)
 
 	authMiddleware := middleware.NewAuthMiddleware(authService, repo.Session)

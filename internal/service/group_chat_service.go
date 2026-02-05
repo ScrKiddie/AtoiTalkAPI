@@ -293,7 +293,7 @@ func (s *GroupChatService) CreateGroupChat(ctx context.Context, creatorID uuid.U
 	return chatListResponse, nil
 }
 
-func (s *GroupChatService) UpdateGroupChat(ctx context.Context, requestorID uuid.UUID, groupID uuid.UUID, req model.UpdateGroupChatRequest) (*model.ChatListResponse, error) {
+func (s *GroupChatService) UpdateGroupChat(ctx context.Context, requestorID uuid.UUID, groupID uuid.UUID, req model.UpdateGroupChatRequest, isAdmin bool) (*model.ChatListResponse, error) {
 	if err := s.validator.Struct(req); err != nil {
 		return nil, helper.NewBadRequestError("")
 	}
@@ -330,22 +330,28 @@ func (s *GroupChatService) UpdateGroupChat(ctx context.Context, requestorID uuid
 		return nil, helper.NewInternalServerError("")
 	}
 
-	requestorMember, err := tx.GroupMember.Query().
-		Where(
-			groupmember.GroupChatID(gc.ID),
-			groupmember.UserID(requestorID),
-		).
-		Only(ctx)
-	if err != nil {
-		if ent.IsNotFound(err) {
-			return nil, helper.NewForbiddenError("You are not a member of this group")
+	var requestorRole groupmember.Role
+	if !isAdmin {
+		requestorMember, err := tx.GroupMember.Query().
+			Where(
+				groupmember.GroupChatID(gc.ID),
+				groupmember.UserID(requestorID),
+			).
+			Only(ctx)
+		if err != nil {
+			if ent.IsNotFound(err) {
+				return nil, helper.NewForbiddenError("You are not a member of this group")
+			}
+			slog.Error("Failed to query requestor membership", "error", err)
+			return nil, helper.NewInternalServerError("")
 		}
-		slog.Error("Failed to query requestor membership", "error", err)
-		return nil, helper.NewInternalServerError("")
-	}
 
-	if requestorMember.Role != groupmember.RoleOwner && requestorMember.Role != groupmember.RoleAdmin {
-		return nil, helper.NewForbiddenError("Only admins or owners can update group info")
+		if requestorMember.Role != groupmember.RoleOwner && requestorMember.Role != groupmember.RoleAdmin {
+			return nil, helper.NewForbiddenError("Only admins or owners can update group info")
+		}
+		requestorRole = requestorMember.Role
+	} else {
+		requestorRole = groupmember.RoleOwner
 	}
 
 	update := tx.GroupChat.UpdateOne(gc)
@@ -474,7 +480,7 @@ func (s *GroupChatService) UpdateGroupChat(ctx context.Context, requestorID uuid
 		if gc.Edges.Avatar != nil {
 			avatarURL = s.storageAdapter.GetPublicURL(gc.Edges.Avatar.FileName)
 		}
-		myRole := string(requestorMember.Role)
+		myRole := string(requestorRole)
 		return &model.ChatListResponse{
 			ID:          gc.Edges.Chat.ID,
 			Type:        string(chat.TypeGroup),
@@ -627,7 +633,7 @@ func (s *GroupChatService) UpdateGroupChat(ctx context.Context, requestorID uuid
 		}
 	}
 
-	myRole := string(requestorMember.Role)
+	myRole := string(requestorRole)
 
 	return &model.ChatListResponse{
 		ID:              gc.Edges.Chat.ID,
@@ -642,7 +648,7 @@ func (s *GroupChatService) UpdateGroupChat(ctx context.Context, requestorID uuid
 	}, nil
 }
 
-func (s *GroupChatService) DeleteGroup(ctx context.Context, userID, groupID uuid.UUID) error {
+func (s *GroupChatService) DeleteGroup(ctx context.Context, userID, groupID uuid.UUID, isAdmin bool) error {
 	tx, err := s.client.Tx(ctx)
 	if err != nil {
 		slog.Error("Failed to start transaction", "error", err)
@@ -665,22 +671,24 @@ func (s *GroupChatService) DeleteGroup(ctx context.Context, userID, groupID uuid
 		return helper.NewInternalServerError("")
 	}
 
-	member, err := tx.GroupMember.Query().
-		Where(
-			groupmember.GroupChatID(gc.ID),
-			groupmember.UserID(userID),
-		).
-		Only(ctx)
-	if err != nil {
-		if ent.IsNotFound(err) {
-			return helper.NewForbiddenError("You are not a member of this group")
+	if !isAdmin {
+		member, err := tx.GroupMember.Query().
+			Where(
+				groupmember.GroupChatID(gc.ID),
+				groupmember.UserID(userID),
+			).
+			Only(ctx)
+		if err != nil {
+			if ent.IsNotFound(err) {
+				return helper.NewForbiddenError("You are not a member of this group")
+			}
+			slog.Error("Failed to query requestor membership", "error", err)
+			return helper.NewInternalServerError("")
 		}
-		slog.Error("Failed to query requestor membership", "error", err)
-		return helper.NewInternalServerError("")
-	}
 
-	if member.Role != groupmember.RoleOwner {
-		return helper.NewForbiddenError("Only owner can delete the group")
+		if member.Role != groupmember.RoleOwner {
+			return helper.NewForbiddenError("Only owner can delete the group")
+		}
 	}
 
 	err = tx.Chat.UpdateOneID(groupID).SetDeletedAt(time.Now().UTC()).Exec(ctx)

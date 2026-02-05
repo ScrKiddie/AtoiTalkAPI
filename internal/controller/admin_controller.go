@@ -15,14 +15,16 @@ import (
 )
 
 type AdminController struct {
-	adminService *service.AdminService
-	validator    *validator.Validate
+	adminService     *service.AdminService
+	groupChatService *service.GroupChatService
+	validator        *validator.Validate
 }
 
-func NewAdminController(adminService *service.AdminService, validator *validator.Validate) *AdminController {
+func NewAdminController(adminService *service.AdminService, groupChatService *service.GroupChatService, validator *validator.Validate) *AdminController {
 	return &AdminController{
-		adminService: adminService,
-		validator:    validator,
+		adminService:     adminService,
+		groupChatService: groupChatService,
+		validator:        validator,
 	}
 }
 
@@ -462,7 +464,7 @@ func (c *AdminController) GetGroupDetail(w http.ResponseWriter, r *http.Request)
 // @Security     BearerAuth
 // @Router       /api/admin/groups/{groupID} [delete]
 func (c *AdminController) DissolveGroup(w http.ResponseWriter, r *http.Request) {
-	_, ok := r.Context().Value(middleware.UserContextKey).(*model.UserDTO)
+	userContext, ok := r.Context().Value(middleware.UserContextKey).(*model.UserDTO)
 	if !ok {
 		helper.WriteError(w, helper.NewUnauthorizedError(""))
 		return
@@ -475,7 +477,7 @@ func (c *AdminController) DissolveGroup(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	if err := c.adminService.DissolveGroup(r.Context(), groupID); err != nil {
+	if err := c.groupChatService.DeleteGroup(r.Context(), userContext.ID, groupID, true); err != nil {
 		helper.WriteError(w, err)
 		return
 	}
@@ -496,7 +498,7 @@ func (c *AdminController) DissolveGroup(w http.ResponseWriter, r *http.Request) 
 // @Security     BearerAuth
 // @Router       /api/admin/groups/{groupID}/reset [post]
 func (c *AdminController) ResetGroupInfo(w http.ResponseWriter, r *http.Request) {
-	_, ok := r.Context().Value(middleware.UserContextKey).(*model.UserDTO)
+	userContext, ok := r.Context().Value(middleware.UserContextKey).(*model.UserDTO)
 	if !ok {
 		helper.WriteError(w, helper.NewUnauthorizedError(""))
 		return
@@ -515,10 +517,83 @@ func (c *AdminController) ResetGroupInfo(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	if err := c.adminService.ResetGroupInfo(r.Context(), groupID, req); err != nil {
+	updateReq := model.UpdateGroupChatRequest{}
+
+	if req.ResetName {
+		defaultName := "Group " + groupID.String()[:8]
+		updateReq.Name = &defaultName
+	}
+	if req.ResetDescription {
+		emptyDesc := ""
+		updateReq.Description = &emptyDesc
+	}
+	if req.ResetAvatar {
+		updateReq.DeleteAvatar = true
+	}
+
+	if updateReq.Name != nil || updateReq.Description != nil || updateReq.DeleteAvatar {
+		if _, err := c.groupChatService.UpdateGroupChat(r.Context(), userContext.ID, groupID, updateReq, true); err != nil {
+			helper.WriteError(w, err)
+			return
+		}
+	}
+
+	helper.WriteSuccess(w, nil)
+}
+
+// GetGroupMembers godoc
+// @Summary      Get Group Members
+// @Description  Get list of members in a group. Requires Admin.
+// @Tags         admin
+// @Accept       json
+// @Produce      json
+// @Param        groupID path string true "Group Chat ID (UUID)"
+// @Param        query query string false "Search query"
+// @Param        cursor query string false "Pagination cursor"
+// @Param        limit query int false "Number of items per page (default 20, max 50)"
+// @Success      200  {object}  helper.ResponseWithPagination{data=[]model.GroupMemberDTO}
+// @Failure      400  {object}  helper.ResponseError
+// @Failure      403  {object}  helper.ResponseError
+// @Failure      404  {object}  helper.ResponseError
+// @Security     BearerAuth
+// @Router       /api/admin/groups/{groupID}/members [get]
+func (c *AdminController) GetGroupMembers(w http.ResponseWriter, r *http.Request) {
+	requestorID, ok := r.Context().Value(middleware.UserContextKey).(*model.UserDTO)
+	if !ok {
+		helper.WriteError(w, helper.NewUnauthorizedError(""))
+		return
+	}
+
+	groupIDStr := chi.URLParam(r, "groupID")
+	groupID, err := uuid.Parse(groupIDStr)
+	if err != nil {
+		helper.WriteError(w, helper.NewBadRequestError("Invalid Group ID"))
+		return
+	}
+
+	query := r.URL.Query().Get("query")
+	cursor := r.URL.Query().Get("cursor")
+	limitStr := r.URL.Query().Get("limit")
+
+	limit := 20
+	if limitStr != "" {
+		if l, err := strconv.Atoi(limitStr); err == nil {
+			limit = l
+		}
+	}
+
+	req := model.SearchGroupMembersRequest{
+		GroupID: groupID,
+		Query:   query,
+		Cursor:  cursor,
+		Limit:   limit,
+	}
+
+	members, nextCursor, hasNext, err := c.groupChatService.SearchGroupMembers(r.Context(), requestorID.ID, req, true)
+	if err != nil {
 		helper.WriteError(w, err)
 		return
 	}
 
-	helper.WriteSuccess(w, nil)
+	helper.WriteSuccessWithPagination(w, members, nextCursor, hasNext)
 }

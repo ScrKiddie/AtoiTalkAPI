@@ -4,8 +4,6 @@ import (
 	"AtoiTalkAPI/ent"
 	"AtoiTalkAPI/ent/chat"
 	"AtoiTalkAPI/ent/groupchat"
-	"AtoiTalkAPI/ent/groupmember"
-	"AtoiTalkAPI/ent/user"
 	"AtoiTalkAPI/internal/helper"
 	"context"
 	"fmt"
@@ -77,11 +75,7 @@ func (r *GroupChatRepository) SearchPublicGroups(ctx context.Context, queryStr s
 		Select(groupchat.FieldID, groupchat.FieldChatID, groupchat.FieldName, groupchat.FieldDescription, groupchat.FieldAvatarID).
 		Order(ent.Asc(groupchat.FieldName), ent.Asc(groupchat.FieldID)).
 		Limit(limit + 1).
-		WithAvatar().
-		WithMembers(func(mq *ent.GroupMemberQuery) {
-			mq.Select(groupmember.FieldID, groupmember.FieldUserID)
-			mq.Where(groupmember.HasUserWith(user.DeletedAtIsNil()))
-		})
+		WithAvatar()
 
 	groups, err := query.All(ctx)
 	if err != nil {

@@ -2,7 +2,6 @@ package service
 
 import (
 	"AtoiTalkAPI/ent"
-	"AtoiTalkAPI/ent/chat"
 	"AtoiTalkAPI/ent/groupchat"
 	"AtoiTalkAPI/ent/groupmember"
 	"AtoiTalkAPI/ent/message"
@@ -641,8 +640,7 @@ func (s *AdminService) GetGroups(ctx context.Context, req model.AdminGetGroupLis
 	}
 
 	query := s.client.GroupChat.Query().
-		WithChat().
-		WithMembers()
+		WithChat()
 
 	if req.Query != "" {
 		query = query.Where(groupchat.NameContainsFold(req.Query))
@@ -681,11 +679,16 @@ func (s *AdminService) GetGroups(ctx context.Context, req model.AdminGetGroupLis
 		if g.Edges.Chat != nil {
 			createdAt = g.Edges.Chat.CreatedAt.Format(time.RFC3339)
 		}
+
+		memberCount, _ := g.QueryMembers().
+			Where(groupmember.HasUserWith(user.DeletedAtIsNil())).
+			Count(ctx)
+
 		data = append(data, model.AdminGroupListResponse{
 			ID:          g.ID,
 			ChatID:      g.ChatID,
 			Name:        g.Name,
-			MemberCount: len(g.Edges.Members),
+			MemberCount: memberCount,
 			IsPublic:    g.IsPublic,
 			CreatedAt:   createdAt,
 		})
@@ -700,7 +703,6 @@ func (s *AdminService) GetGroupDetail(ctx context.Context, groupID uuid.UUID) (*
 		WithChat().
 		WithCreator().
 		WithAvatar().
-		WithMembers().
 		Only(ctx)
 	if err != nil {
 		if ent.IsNotFound(err) {
@@ -709,6 +711,10 @@ func (s *AdminService) GetGroupDetail(ctx context.Context, groupID uuid.UUID) (*
 		slog.Error("Failed to get group detail", "error", err)
 		return nil, helper.NewInternalServerError("")
 	}
+
+	memberCount, _ := g.QueryMembers().
+		Where(groupmember.HasUserWith(user.DeletedAtIsNil())).
+		Count(ctx)
 
 	messageCount := 0
 	if g.Edges.Chat != nil {
@@ -723,7 +729,7 @@ func (s *AdminService) GetGroupDetail(ctx context.Context, groupID uuid.UUID) (*
 		Name:          g.Name,
 		Description:   g.Description,
 		IsPublic:      g.IsPublic,
-		MemberCount:   len(g.Edges.Members),
+		MemberCount:   memberCount,
 		TotalMessages: messageCount,
 	}
 
@@ -744,123 +750,4 @@ func (s *AdminService) GetGroupDetail(ctx context.Context, groupID uuid.UUID) (*
 	}
 
 	return resp, nil
-}
-
-func (s *AdminService) DissolveGroup(ctx context.Context, groupID uuid.UUID) error {
-	g, err := s.client.GroupChat.Query().
-		Where(groupchat.ID(groupID)).
-		WithChat().
-		Only(ctx)
-	if err != nil {
-		if ent.IsNotFound(err) {
-			return helper.NewNotFoundError("Group not found")
-		}
-		return helper.NewInternalServerError("")
-	}
-
-	members, _ := s.client.GroupMember.Query().
-		Where(groupmember.GroupChatID(g.ID)).
-		All(ctx)
-
-	if g.Edges.Chat != nil {
-		now := time.Now().UTC()
-		_, err = s.client.Chat.UpdateOneID(g.Edges.Chat.ID).
-			SetDeletedAt(now).
-			Save(ctx)
-		if err != nil {
-			slog.Error("Failed to dissolve group", "error", err)
-			return helper.NewInternalServerError("Failed to dissolve group")
-		}
-	}
-
-	if s.wsHub != nil {
-		for _, m := range members {
-			s.wsHub.BroadcastToUser(m.UserID, websocket.Event{
-				Type: websocket.EventChatDelete,
-				Payload: map[string]interface{}{
-					"chat_id": groupID,
-				},
-				Meta: &websocket.EventMeta{
-					Timestamp: time.Now().UTC().UnixMilli(),
-					ChatID:    groupID,
-				},
-			})
-		}
-	}
-
-	return nil
-}
-
-func (s *AdminService) ResetGroupInfo(ctx context.Context, groupID uuid.UUID, req model.ResetGroupInfoRequest) error {
-	g, err := s.client.GroupChat.Query().
-		Where(groupchat.ID(groupID)).
-		WithAvatar().
-		Only(ctx)
-	if err != nil {
-		if ent.IsNotFound(err) {
-			return helper.NewNotFoundError("Group not found")
-		}
-		return helper.NewInternalServerError("")
-	}
-
-	update := s.client.GroupChat.UpdateOne(g)
-
-	if req.ResetDescription {
-		update.ClearDescription()
-	}
-
-	if req.ResetName {
-		update.SetName("Group " + g.ID.String()[:8])
-	}
-
-	if req.ResetAvatar {
-		if g.Edges.Avatar != nil {
-
-			update.ClearAvatar()
-		}
-	}
-
-	if err := update.Exec(ctx); err != nil {
-		slog.Error("Failed to reset group info", "error", err)
-		return helper.NewInternalServerError("Failed to reset group info")
-	}
-
-	if s.wsHub != nil {
-		updatedGroup, err := s.client.GroupChat.Query().
-			Where(groupchat.ID(groupID)).
-			WithChat().
-			WithAvatar().
-			Only(ctx)
-
-		if err == nil {
-			var avatarURL string
-			if updatedGroup.Edges.Avatar != nil {
-				avatarURL = s.storageAdapter.GetPublicURL(updatedGroup.Edges.Avatar.FileName)
-			}
-
-			myRole := "member"
-
-			chatPayload := model.ChatListResponse{
-				ID:          updatedGroup.Edges.Chat.ID,
-				Type:        string(chat.TypeGroup),
-				Name:        updatedGroup.Name,
-				Description: updatedGroup.Description,
-				IsPublic:    &updatedGroup.IsPublic,
-				Avatar:      avatarURL,
-				MyRole:      &myRole,
-			}
-			chatPayload.MyRole = nil
-
-			s.wsHub.BroadcastToChat(updatedGroup.Edges.Chat.ID, websocket.Event{
-				Type:    websocket.EventChatUpdate,
-				Payload: chatPayload,
-				Meta: &websocket.EventMeta{
-					Timestamp: time.Now().UTC().UnixMilli(),
-					ChatID:    updatedGroup.Edges.Chat.ID,
-				},
-			})
-		}
-	}
-
-	return nil
 }

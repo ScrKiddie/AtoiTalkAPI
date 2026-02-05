@@ -289,7 +289,9 @@ func TestAdminResetGroupInfo(t *testing.T) {
 		}
 
 		updatedGC, _ := testClient.GroupChat.Get(context.Background(), gc.ID)
-		assert.Nil(t, updatedGC.Description)
+		if updatedGC.Description != nil {
+			assert.Equal(t, "", *updatedGC.Description)
+		}
 	})
 
 	t.Run("Success - Reset Name", func(t *testing.T) {

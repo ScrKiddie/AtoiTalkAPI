@@ -13,7 +13,7 @@ import (
 	"github.com/google/uuid"
 )
 
-func (s *GroupChatService) SearchGroupMembers(ctx context.Context, userID uuid.UUID, req model.SearchGroupMembersRequest) ([]model.GroupMemberDTO, string, bool, error) {
+func (s *GroupChatService) SearchGroupMembers(ctx context.Context, userID uuid.UUID, req model.SearchGroupMembersRequest, isAdmin bool) ([]model.GroupMemberDTO, string, bool, error) {
 	if err := s.validator.Struct(req); err != nil {
 		return nil, "", false, helper.NewBadRequestError("")
 	}
@@ -36,18 +36,20 @@ func (s *GroupChatService) SearchGroupMembers(ctx context.Context, userID uuid.U
 		return nil, "", false, helper.NewInternalServerError("")
 	}
 
-	isMember, err := s.client.GroupMember.Query().
-		Where(
-			groupmember.GroupChatID(gc.ID),
-			groupmember.UserID(userID),
-		).
-		Exist(ctx)
-	if err != nil {
-		slog.Error("Failed to check group membership", "error", err)
-		return nil, "", false, helper.NewInternalServerError("")
-	}
-	if !isMember {
-		return nil, "", false, helper.NewForbiddenError("You are not a member of this group")
+	if !isAdmin {
+		isMember, err := s.client.GroupMember.Query().
+			Where(
+				groupmember.GroupChatID(gc.ID),
+				groupmember.UserID(userID),
+			).
+			Exist(ctx)
+		if err != nil {
+			slog.Error("Failed to check group membership", "error", err)
+			return nil, "", false, helper.NewInternalServerError("")
+		}
+		if !isMember {
+			return nil, "", false, helper.NewForbiddenError("You are not a member of this group")
+		}
 	}
 
 	members, nextCursor, hasNext, err := s.repo.GroupMember.SearchGroupMembers(ctx, gc.ID, req.Query, req.Cursor, req.Limit)

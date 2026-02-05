@@ -45,13 +45,13 @@ func (s *GroupChatService) SearchPublicGroups(ctx context.Context, userID uuid.U
 			avatarURL = s.storageAdapter.GetPublicURL(g.Edges.Avatar.FileName)
 		}
 
-		isMember := false
-		for _, m := range g.Edges.Members {
-			if m.UserID == userID {
-				isMember = true
-				break
-			}
-		}
+		isMember, _ := g.QueryMembers().
+			Where(groupmember.UserID(userID)).
+			Exist(ctx)
+
+		memberCount, _ := g.QueryMembers().
+			Where(groupmember.HasUserWith(user.DeletedAtIsNil())).
+			Count(ctx)
 
 		description := ""
 		if g.Description != nil {
@@ -64,7 +64,7 @@ func (s *GroupChatService) SearchPublicGroups(ctx context.Context, userID uuid.U
 			Name:        g.Name,
 			Description: description,
 			Avatar:      avatarURL,
-			MemberCount: len(g.Edges.Members),
+			MemberCount: memberCount,
 			IsMember:    isMember,
 		})
 	}

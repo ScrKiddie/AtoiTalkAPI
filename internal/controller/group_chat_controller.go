@@ -170,7 +170,7 @@ func (c *GroupChatController) UpdateGroupChat(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	resp, err := c.groupChatService.UpdateGroupChat(r.Context(), userContext.ID, groupID, req)
+	resp, err := c.groupChatService.UpdateGroupChat(r.Context(), userContext.ID, groupID, req, false)
 	if err != nil {
 		helper.WriteError(w, err)
 		return
@@ -230,7 +230,7 @@ func (c *GroupChatController) SearchGroupMembers(w http.ResponseWriter, r *http.
 		Limit:   limit,
 	}
 
-	members, nextCursor, hasNext, err := c.groupChatService.SearchGroupMembers(r.Context(), userContext.ID, req)
+	members, nextCursor, hasNext, err := c.groupChatService.SearchGroupMembers(r.Context(), userContext.ID, req, false)
 	if err != nil {
 		helper.WriteError(w, err)
 		return
@@ -501,7 +501,7 @@ func (c *GroupChatController) DeleteGroup(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	err = c.groupChatService.DeleteGroup(r.Context(), userContext.ID, groupID)
+	err = c.groupChatService.DeleteGroup(r.Context(), userContext.ID, groupID, false)
 	if err != nil {
 		helper.WriteError(w, err)
 		return

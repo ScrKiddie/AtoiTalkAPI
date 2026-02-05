@@ -112,6 +112,7 @@ func (route *Route) Register() {
 
 				r.Get("/admin/groups", route.adminController.GetGroups)
 				r.Get("/admin/groups/{groupID}", route.adminController.GetGroupDetail)
+				r.Get("/admin/groups/{groupID}/members", route.adminController.GetGroupMembers)
 				r.Delete("/admin/groups/{groupID}", route.adminController.DissolveGroup)
 				r.Post("/admin/groups/{groupID}/reset", route.adminController.ResetGroupInfo)
 			})
