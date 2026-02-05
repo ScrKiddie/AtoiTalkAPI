@@ -847,7 +847,8 @@ func TestWebSocketUpdateGroupVisibility(t *testing.T) {
 	if event2 != nil {
 		payload := event2.Payload.(map[string]interface{})
 		assert.True(t, payload["is_public"].(bool))
-		assert.Nil(t, payload["invite_code"], "Member should NOT see invite_code")
+
+		assert.NotNil(t, payload["invite_code"], "Member SHOULD see invite_code for public group")
 	}
 
 	event3 := waitForEvent(t, conn3, websocket.EventChatUpdate, 2*time.Second)
@@ -855,7 +856,8 @@ func TestWebSocketUpdateGroupVisibility(t *testing.T) {
 	if event3 != nil {
 		payload := event3.Payload.(map[string]interface{})
 		assert.True(t, payload["is_public"].(bool))
-		assert.Nil(t, payload["invite_code"], "Admin should NOT see invite_code in general broadcast for public group")
+
+		assert.NotNil(t, payload["invite_code"], "Admin SHOULD see invite_code for public group")
 	}
 
 	updateBody2 := &bytes.Buffer{}

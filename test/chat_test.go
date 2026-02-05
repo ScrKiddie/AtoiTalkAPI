@@ -449,7 +449,7 @@ func TestGetChatByID(t *testing.T) {
 		json.Unmarshal(rr.Body.Bytes(), &resp)
 		data := resp.Data.(map[string]interface{})
 
-		assert.Equal(t, "membertest", data["invite_code"])
+		assert.Nil(t, data["invite_code"])
 		assert.Nil(t, data["invite_expires_at"], "Regular member should NOT see invite_expires_at")
 	})
 

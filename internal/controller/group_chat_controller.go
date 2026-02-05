@@ -566,7 +566,7 @@ func (c *GroupChatController) SearchPublicGroups(w http.ResponseWriter, r *http.
 // @Accept       json
 // @Produce      json
 // @Param        groupID path string true "Group Chat ID (UUID)"
-// @Success      200  {object}  helper.ResponseSuccess{data=model.MessageResponse}
+// @Success      200  {object}  helper.ResponseSuccess{data=model.ChatListResponse}
 // @Failure      400  {object}  helper.ResponseError
 // @Failure      401  {object}  helper.ResponseError
 // @Failure      403  {object}  helper.ResponseError

@@ -63,7 +63,8 @@ func TestAdminWS_ResetGroupInfo(t *testing.T) {
 		ResetDescription: true,
 	}
 	payloadBytes, _ := json.Marshal(resetPayload)
-	req, _ := http.NewRequest("POST", "/api/admin/groups/"+group.ID.String()+"/reset", bytes.NewBuffer(payloadBytes))
+
+	req, _ := http.NewRequest("POST", "/api/admin/groups/"+chat.ID.String()+"/reset", bytes.NewBuffer(payloadBytes))
 	req.Header.Set("Authorization", "Bearer "+adminToken)
 	req.Header.Set("Content-Type", "application/json")
 
@@ -106,7 +107,18 @@ func TestAdminWS_ResolveReport_DeleteMessage(t *testing.T) {
 	user1 := createTestUser(t, "user_rr")
 	user1Token, _ := helper.GenerateJWT(testConfig.JWTSecret, testConfig.JWTExp, user1.ID)
 
+	user2 := createTestUser(t, "user_rr_2")
+
 	chat, _ := testClient.Chat.Create().SetType("private").Save(context.Background())
+
+	_, err := testClient.PrivateChat.Create().
+		SetChat(chat).
+		SetUser1(user1).
+		SetUser2(user2).
+		Save(context.Background())
+	if err != nil {
+		t.Fatalf("Failed to create private chat: %v", err)
+	}
 
 	msg, err := testClient.Message.Create().
 		SetChat(chat).

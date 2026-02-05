@@ -212,7 +212,7 @@ func TestAdminDissolveGroup(t *testing.T) {
 			SaveX(context.Background())
 		testClient.GroupMember.Create().SetGroupChat(gc).SetUser(admin).SetRole(groupmember.RoleOwner).SaveX(context.Background())
 
-		req, _ := http.NewRequest("DELETE", fmt.Sprintf("/api/admin/groups/%s", gc.ID), nil)
+		req, _ := http.NewRequest("DELETE", fmt.Sprintf("/api/admin/groups/%s", gc.ChatID), nil)
 		req.Header.Set("Authorization", "Bearer "+adminToken)
 
 		rr := executeRequest(req)
@@ -241,7 +241,7 @@ func TestAdminDissolveGroup(t *testing.T) {
 			SetInviteCode(fmt.Sprintf("NODISSOLVE%d", time.Now().UnixNano())).
 			SaveX(context.Background())
 
-		req, _ := http.NewRequest("DELETE", fmt.Sprintf("/api/admin/groups/%s", gc.ID), nil)
+		req, _ := http.NewRequest("DELETE", fmt.Sprintf("/api/admin/groups/%s", gc.ChatID), nil)
 		req.Header.Set("Authorization", "Bearer "+regularToken)
 
 		rr := executeRequest(req)
@@ -279,7 +279,8 @@ func TestAdminResetGroupInfo(t *testing.T) {
 			ResetDescription: true,
 		}
 		body, _ := json.Marshal(reqBody)
-		req, _ := http.NewRequest("POST", fmt.Sprintf("/api/admin/groups/%s/reset", gc.ID), bytes.NewBuffer(body))
+
+		req, _ := http.NewRequest("POST", fmt.Sprintf("/api/admin/groups/%s/reset", gc.ChatID), bytes.NewBuffer(body))
 		req.Header.Set("Content-Type", "application/json")
 		req.Header.Set("Authorization", "Bearer "+adminToken)
 
@@ -307,7 +308,8 @@ func TestAdminResetGroupInfo(t *testing.T) {
 			ResetName: true,
 		}
 		body, _ := json.Marshal(reqBody)
-		req, _ := http.NewRequest("POST", fmt.Sprintf("/api/admin/groups/%s/reset", gc.ID), bytes.NewBuffer(body))
+
+		req, _ := http.NewRequest("POST", fmt.Sprintf("/api/admin/groups/%s/reset", gc.ChatID), bytes.NewBuffer(body))
 		req.Header.Set("Content-Type", "application/json")
 		req.Header.Set("Authorization", "Bearer "+adminToken)
 
@@ -343,7 +345,8 @@ func TestAdminResetGroupInfo(t *testing.T) {
 			ResetAvatar: true,
 		}
 		body, _ := json.Marshal(reqBody)
-		req, _ := http.NewRequest("POST", fmt.Sprintf("/api/admin/groups/%s/reset", gc.ID), bytes.NewBuffer(body))
+
+		req, _ := http.NewRequest("POST", fmt.Sprintf("/api/admin/groups/%s/reset", gc.ChatID), bytes.NewBuffer(body))
 		req.Header.Set("Content-Type", "application/json")
 		req.Header.Set("Authorization", "Bearer "+adminToken)
 

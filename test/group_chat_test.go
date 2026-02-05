@@ -1372,8 +1372,15 @@ func TestJoinPublicGroup(t *testing.T) {
 		var resp helper.ResponseSuccess
 		json.Unmarshal(rr.Body.Bytes(), &resp)
 		dataMap := resp.Data.(map[string]interface{})
-		assert.Equal(t, "system_join", dataMap["type"])
-		assert.Equal(t, u2.ID.String(), dataMap["sender_id"])
+
+		assert.Equal(t, "Public Group", dataMap["name"])
+		assert.Equal(t, "group", dataMap["type"])
+		assert.True(t, dataMap["is_public"].(bool))
+
+		lastMsg, ok := dataMap["last_message"].(map[string]interface{})
+		assert.True(t, ok)
+		assert.Equal(t, "system_join", lastMsg["type"])
+		assert.Equal(t, u2.ID.String(), lastMsg["sender_id"])
 
 		isMember, _ := testClient.GroupMember.Query().Where(groupmember.GroupChatID(gc1.ID), groupmember.UserID(u2.ID)).Exist(context.Background())
 		assert.True(t, isMember)

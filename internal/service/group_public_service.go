@@ -72,7 +72,7 @@ func (s *GroupChatService) SearchPublicGroups(ctx context.Context, userID uuid.U
 	return groupDTOs, nextCursor, hasNext, nil
 }
 
-func (s *GroupChatService) JoinPublicGroup(ctx context.Context, userID uuid.UUID, groupID uuid.UUID) (*model.MessageResponse, error) {
+func (s *GroupChatService) JoinPublicGroup(ctx context.Context, userID uuid.UUID, groupID uuid.UUID) (*model.ChatListResponse, error) {
 	tx, err := s.client.Tx(ctx)
 	if err != nil {
 		slog.Error("Failed to start transaction", "error", err)
@@ -175,28 +175,28 @@ func (s *GroupChatService) JoinPublicGroup(ctx context.Context, userID uuid.UUID
 		msgResponse.MemberCount = &memberCount
 	}
 
+	avatarURL := ""
+	if gc.Edges.Avatar != nil {
+		avatarURL = s.storageAdapter.GetPublicURL(gc.Edges.Avatar.FileName)
+	}
+
+	chatResponse := &model.ChatListResponse{
+		ID:          gc.Edges.Chat.ID,
+		Type:        string(chat.TypeGroup),
+		Name:        gc.Name,
+		Avatar:      avatarURL,
+		LastMessage: msgResponse,
+		UnreadCount: 0,
+		MemberCount: memberCount,
+		IsPublic:    &gc.IsPublic,
+		InviteCode:  &gc.InviteCode,
+	}
+
 	if s.wsHub != nil && msgResponse != nil {
 		go func() {
-			avatarURL := ""
-			if gc.Edges.Avatar != nil {
-				avatarURL = s.storageAdapter.GetPublicURL(gc.Edges.Avatar.FileName)
-			}
-
-			chatPayload := model.ChatListResponse{
-				ID:          gc.Edges.Chat.ID,
-				Type:        string(chat.TypeGroup),
-				Name:        gc.Name,
-				Avatar:      avatarURL,
-				LastMessage: msgResponse,
-				UnreadCount: 0,
-				MemberCount: memberCount,
-				IsPublic:    &gc.IsPublic,
-				InviteCode:  &gc.InviteCode,
-			}
-
 			s.wsHub.BroadcastToUser(userID, websocket.Event{
 				Type:    websocket.EventChatNew,
-				Payload: chatPayload,
+				Payload: chatResponse,
 				Meta: &websocket.EventMeta{
 					Timestamp: time.Now().UTC().UnixMilli(),
 					ChatID:    groupID,
@@ -216,5 +216,5 @@ func (s *GroupChatService) JoinPublicGroup(ctx context.Context, userID uuid.UUID
 		}()
 	}
 
-	return msgResponse, nil
+	return chatResponse, nil
 }

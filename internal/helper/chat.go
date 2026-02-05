@@ -111,6 +111,10 @@ func MapChatToResponse(userID uuid.UUID, c *ent.Chat, blockedMap map[uuid.UUID]B
 			avatar = urlGen.GetPublicURL(gc.Edges.Avatar.FileName)
 		}
 
+		if gc.IsPublic {
+			inviteCode = &gc.InviteCode
+		}
+
 		if len(gc.Edges.Members) > 0 {
 			member := gc.Edges.Members[0]
 			unreadCount = member.UnreadCount
@@ -121,13 +125,11 @@ func MapChatToResponse(userID uuid.UUID, c *ent.Chat, blockedMap map[uuid.UUID]B
 				lastReadAt = &t
 			}
 
-			if gc.IsPublic || member.Role == groupmember.RoleOwner || member.Role == groupmember.RoleAdmin {
+			if member.Role == groupmember.RoleOwner || member.Role == groupmember.RoleAdmin {
 				inviteCode = &gc.InviteCode
-				if member.Role == groupmember.RoleOwner || member.Role == groupmember.RoleAdmin {
-					if gc.InviteExpiresAt != nil {
-						t := gc.InviteExpiresAt.Format(time.RFC3339)
-						inviteExpiresAt = &t
-					}
+				if gc.InviteExpiresAt != nil {
+					t := gc.InviteExpiresAt.Format(time.RFC3339)
+					inviteExpiresAt = &t
 				}
 			}
 		}
