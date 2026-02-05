@@ -680,17 +680,12 @@ func (s *AdminService) GetGroups(ctx context.Context, req model.AdminGetGroupLis
 			createdAt = g.Edges.Chat.CreatedAt.Format(time.RFC3339)
 		}
 
-		memberCount, _ := g.QueryMembers().
-			Where(groupmember.HasUserWith(user.DeletedAtIsNil())).
-			Count(ctx)
-
 		data = append(data, model.AdminGroupListResponse{
-			ID:          g.ID,
-			ChatID:      g.ChatID,
-			Name:        g.Name,
-			MemberCount: memberCount,
-			IsPublic:    g.IsPublic,
-			CreatedAt:   createdAt,
+			ID:        g.ID,
+			ChatID:    g.ChatID,
+			Name:      g.Name,
+			IsPublic:  g.IsPublic,
+			CreatedAt: createdAt,
 		})
 	}
 

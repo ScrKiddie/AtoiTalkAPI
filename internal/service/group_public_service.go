@@ -38,20 +38,36 @@ func (s *GroupChatService) SearchPublicGroups(ctx context.Context, userID uuid.U
 		return nil, "", false, helper.NewInternalServerError("")
 	}
 
+	groupIDs := make([]uuid.UUID, len(groups))
+	for i, g := range groups {
+		groupIDs[i] = g.ID
+	}
+
+	joinedGroups := make(map[uuid.UUID]bool)
+	if len(groupIDs) > 0 {
+		memberships, err := s.client.GroupMember.Query().
+			Where(
+				groupmember.UserID(userID),
+				groupmember.GroupChatIDIn(groupIDs...),
+			).
+			Select(groupmember.FieldGroupChatID).
+			All(ctx)
+		
+		if err == nil {
+			for _, m := range memberships {
+				joinedGroups[m.GroupChatID] = true
+			}
+		} else {
+			slog.Error("Failed to batch check group memberships", "error", err)
+		}
+	}
+
 	var groupDTOs []model.PublicGroupDTO
 	for _, g := range groups {
 		avatarURL := ""
 		if g.Edges.Avatar != nil {
 			avatarURL = s.storageAdapter.GetPublicURL(g.Edges.Avatar.FileName)
 		}
-
-		isMember, _ := g.QueryMembers().
-			Where(groupmember.UserID(userID)).
-			Exist(ctx)
-
-		memberCount, _ := g.QueryMembers().
-			Where(groupmember.HasUserWith(user.DeletedAtIsNil())).
-			Count(ctx)
 
 		description := ""
 		if g.Description != nil {
@@ -64,8 +80,7 @@ func (s *GroupChatService) SearchPublicGroups(ctx context.Context, userID uuid.U
 			Name:        g.Name,
 			Description: description,
 			Avatar:      avatarURL,
-			MemberCount: memberCount,
-			IsMember:    isMember,
+			IsMember:    joinedGroups[g.ID],
 		})
 	}
 
