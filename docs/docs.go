@@ -656,6 +656,9 @@ const docTemplate = `{
                     "id": {
                         "type": "string"
                     },
+                    "sender_id": {
+                        "type": "string"
+                    },
                     "sender_name": {
                         "type": "string"
                     },

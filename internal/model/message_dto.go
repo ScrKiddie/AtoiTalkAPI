@@ -57,6 +57,7 @@ type MessageResponse struct {
 
 type ReplyPreviewDTO struct {
 	ID         uuid.UUID              `json:"id"`
+	SenderID   *uuid.UUID             `json:"sender_id,omitempty"`
 	SenderName string                 `json:"sender_name"`
 	Type       string                 `json:"type"`
 	Content    string                 `json:"content,omitempty"`

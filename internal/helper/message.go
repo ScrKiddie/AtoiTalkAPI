@@ -4,6 +4,8 @@ import (
 	"AtoiTalkAPI/ent"
 	"AtoiTalkAPI/internal/model"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 func ToMessageResponse(msg *ent.Message, urlGen URLGenerator, hiddenAt *time.Time) *model.MessageResponse {
@@ -71,13 +73,21 @@ func ToMessageResponse(msg *ent.Message, urlGen URLGenerator, hiddenAt *time.Tim
 		var replyDeletedAt *string
 		var replyActionData map[string]interface{}
 		replySenderName := ""
+		var replySenderID *uuid.UUID
 
 		if reply.Edges.Sender != nil {
 			if reply.Edges.Sender.DeletedAt != nil {
 				replySenderName = ""
-			} else if reply.Edges.Sender.FullName != nil {
-				replySenderName = *reply.Edges.Sender.FullName
+				replySenderID = nil
+			} else {
+				if reply.Edges.Sender.FullName != nil {
+					replySenderName = *reply.Edges.Sender.FullName
+				}
+				replySenderID = &reply.Edges.Sender.ID
 			}
+		} else if reply.SenderID != nil {
+
+			replySenderID = reply.SenderID
 		}
 
 		if reply.DeletedAt != nil {
@@ -94,6 +104,7 @@ func ToMessageResponse(msg *ent.Message, urlGen URLGenerator, hiddenAt *time.Tim
 
 		replyPreview = &model.ReplyPreviewDTO{
 			ID:         reply.ID,
+			SenderID:   replySenderID,
 			SenderName: replySenderName,
 			Type:       string(reply.Type),
 			Content:    replyContent,
