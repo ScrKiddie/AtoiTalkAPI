@@ -207,7 +207,7 @@ func (s *GroupChatService) AddMember(ctx context.Context, requestorID uuid.UUID,
 
 	if err == nil {
 		for i, fullMsg := range fullMsgs {
-			msgResponse := helper.ToMessageResponse(fullMsg, s.storageAdapter, nil)
+			msgResponse := helper.ToMessageResponse(fullMsg, s.storageAdapter, nil, string(requestorMember.Role))
 			msgResponse.MemberCount = &memberCount
 
 			if i < len(newMembers) {
@@ -367,7 +367,7 @@ func (s *GroupChatService) LeaveGroup(ctx context.Context, userID uuid.UUID, gro
 
 	var msgResponse *model.MessageResponse
 	if err == nil {
-		msgResponse = helper.ToMessageResponse(fullMsg, s.storageAdapter, nil)
+		msgResponse = helper.ToMessageResponse(fullMsg, s.storageAdapter, nil, string(groupmember.RoleMember))
 		msgResponse.MemberCount = &memberCount
 	}
 
@@ -501,7 +501,7 @@ func (s *GroupChatService) KickMember(ctx context.Context, requestorID uuid.UUID
 
 	var msgResponse *model.MessageResponse
 	if err == nil {
-		msgResponse = helper.ToMessageResponse(fullMsg, s.storageAdapter, nil)
+		msgResponse = helper.ToMessageResponse(fullMsg, s.storageAdapter, nil, string(requestorMember.Role))
 		msgResponse.MemberCount = &memberCount
 		if targetMember.Edges.User != nil && targetMember.Edges.User.FullName != nil {
 			if msgResponse.ActionData == nil {

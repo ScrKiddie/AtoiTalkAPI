@@ -28,6 +28,7 @@ type MessageResponse struct {
 	SenderID     *uuid.UUID `json:"sender_id,omitempty"`
 	SenderName   string     `json:"sender_name,omitempty"`
 	SenderAvatar string     `json:"sender_avatar,omitempty"`
+	SenderRole   string     `json:"sender_role,omitempty"`
 	Type         string     `json:"type"`
 	Content      string     `json:"content,omitempty"`
 	// ActionData contains metadata for system messages.

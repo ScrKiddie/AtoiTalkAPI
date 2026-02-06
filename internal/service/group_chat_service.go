@@ -246,7 +246,7 @@ func (s *GroupChatService) CreateGroupChat(ctx context.Context, creatorID uuid.U
 
 	var lastMsgResp *model.MessageResponse
 	if err == nil {
-		lastMsgResp = helper.ToMessageResponse(fullMsg, s.storageAdapter, nil)
+		lastMsgResp = helper.ToMessageResponse(fullMsg, s.storageAdapter, nil, string(groupmember.RoleOwner))
 	}
 
 	var inviteExpiresAt *string
@@ -544,7 +544,7 @@ func (s *GroupChatService) UpdateGroupChat(ctx context.Context, requestorID uuid
 				WithSender().
 				Only(context.Background())
 
-			msgResponse := helper.ToMessageResponse(fullMsg, s.storageAdapter, nil)
+			msgResponse := helper.ToMessageResponse(fullMsg, s.storageAdapter, nil, string(requestorRole))
 
 			s.wsHub.BroadcastToChat(gc.ChatID, websocket.Event{
 				Type:    websocket.EventMessageNew,

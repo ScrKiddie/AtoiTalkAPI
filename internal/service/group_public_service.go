@@ -173,7 +173,7 @@ func (s *GroupChatService) JoinPublicGroup(ctx context.Context, userID uuid.UUID
 
 	var msgResponse *model.MessageResponse
 	if err == nil {
-		msgResponse = helper.ToMessageResponse(fullMsg, s.storageAdapter, nil)
+		msgResponse = helper.ToMessageResponse(fullMsg, s.storageAdapter, nil, string(groupmember.RoleMember))
 	}
 
 	memberCount, err := s.client.GroupMember.Query().

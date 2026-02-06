@@ -137,7 +137,7 @@ func MapChatToResponse(userID uuid.UUID, c *ent.Chat, blockedMap map[uuid.UUID]B
 
 	var lastMsgResp *model.MessageResponse
 	if c.Edges.LastMessage != nil {
-		lastMsgResp = ToMessageResponse(c.Edges.LastMessage, urlGen, hiddenAt)
+		lastMsgResp = ToMessageResponse(c.Edges.LastMessage, urlGen, hiddenAt, "")
 	}
 
 	return &model.ChatListResponse{

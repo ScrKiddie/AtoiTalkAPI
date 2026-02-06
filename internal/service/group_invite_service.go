@@ -109,7 +109,7 @@ func (s *GroupChatService) JoinGroupByInvite(ctx context.Context, userID uuid.UU
 
 	var msgResponse *model.MessageResponse
 	if err == nil {
-		msgResponse = helper.ToMessageResponse(fullMsg, s.storageAdapter, nil)
+		msgResponse = helper.ToMessageResponse(fullMsg, s.storageAdapter, nil, string(groupmember.RoleMember))
 	}
 
 	memberCount, err := s.client.GroupMember.Query().

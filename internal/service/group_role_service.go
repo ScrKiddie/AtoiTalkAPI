@@ -142,7 +142,7 @@ func (s *GroupChatService) UpdateMemberRole(ctx context.Context, requestorID uui
 
 	var msgResponse *model.MessageResponse
 	if err == nil {
-		msgResponse = helper.ToMessageResponse(fullMsg, s.storageAdapter, nil)
+		msgResponse = helper.ToMessageResponse(fullMsg, s.storageAdapter, nil, string(groupmember.RoleOwner))
 		if targetMember.Edges.User != nil && targetMember.Edges.User.FullName != nil {
 			if msgResponse.ActionData == nil {
 				msgResponse.ActionData = make(map[string]interface{})
@@ -293,7 +293,7 @@ func (s *GroupChatService) TransferOwnership(ctx context.Context, requestorID uu
 
 	var msgResponse *model.MessageResponse
 	if err == nil {
-		msgResponse = helper.ToMessageResponse(fullMsg, s.storageAdapter, nil)
+		msgResponse = helper.ToMessageResponse(fullMsg, s.storageAdapter, nil, string(groupmember.RoleOwner))
 		if targetMember.Edges.User != nil && targetMember.Edges.User.FullName != nil {
 			if msgResponse.ActionData == nil {
 				msgResponse.ActionData = make(map[string]interface{})

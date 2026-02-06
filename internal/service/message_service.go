@@ -97,6 +97,8 @@ func (s *MessageService) SendMessage(ctx context.Context, userID uuid.UUID, req 
 		return nil, helper.NewInternalServerError("")
 	}
 
+	var senderRole string
+
 	if chatInfo.Type == chat.TypePrivate && chatInfo.Edges.PrivateChat != nil {
 		pc := chatInfo.Edges.PrivateChat
 		var otherUserID uuid.UUID
@@ -148,6 +150,7 @@ func (s *MessageService) SendMessage(ctx context.Context, userID uuid.UUID, req 
 		if len(chatInfo.Edges.GroupChat.Edges.Members) == 0 {
 			return nil, helper.NewForbiddenError("")
 		}
+		senderRole = string(chatInfo.Edges.GroupChat.Edges.Members[0].Role)
 	} else {
 		return nil, helper.NewInternalServerError("")
 	}
@@ -294,7 +297,7 @@ func (s *MessageService) SendMessage(ctx context.Context, userID uuid.UUID, req 
 		return nil, helper.NewInternalServerError("")
 	}
 
-	resp := helper.ToMessageResponse(fullMsg, s.storageAdapter, nil)
+	resp := helper.ToMessageResponse(fullMsg, s.storageAdapter, nil, senderRole)
 
 	if s.wsHub != nil && resp != nil {
 		go s.wsHub.BroadcastToChat(req.ChatID, websocket.Event{
@@ -334,7 +337,9 @@ func (s *MessageService) EditMessage(ctx context.Context, userID uuid.UUID, mess
 
 	msg, err := tx.Message.Query().
 		Where(message.ID(messageID)).
-		WithChat().
+		WithChat(func(q *ent.ChatQuery) {
+			q.WithGroupChat()
+		}).
 		WithAttachments().
 		Only(ctx)
 
@@ -364,6 +369,19 @@ func (s *MessageService) EditMessage(ctx context.Context, userID uuid.UUID, mess
 
 	if time.Since(msg.CreatedAt) > 15*time.Minute {
 		return nil, helper.NewBadRequestError("Message is too old to edit")
+	}
+
+	var senderRole string
+	if msg.Edges.Chat.Type == chat.TypeGroup && msg.Edges.Chat.Edges.GroupChat != nil {
+		member, err := tx.GroupMember.Query().
+			Where(
+				groupmember.GroupChatID(msg.Edges.Chat.Edges.GroupChat.ID),
+				groupmember.UserID(userID),
+			).
+			Only(ctx)
+		if err == nil {
+			senderRole = string(member.Role)
+		}
 	}
 
 	currentAttachmentIDs := make(map[uuid.UUID]bool)
@@ -415,7 +433,7 @@ func (s *MessageService) EditMessage(ctx context.Context, userID uuid.UUID, mess
 			return nil, helper.NewInternalServerError("")
 		}
 
-		return helper.ToMessageResponse(fullMsg, s.storageAdapter, nil), nil
+		return helper.ToMessageResponse(fullMsg, s.storageAdapter, nil, senderRole), nil
 	}
 
 	if len(toLink) > 0 {
@@ -483,7 +501,7 @@ func (s *MessageService) EditMessage(ctx context.Context, userID uuid.UUID, mess
 		return nil, helper.NewInternalServerError("")
 	}
 
-	resp := helper.ToMessageResponse(fullMsg, s.storageAdapter, nil)
+	resp := helper.ToMessageResponse(fullMsg, s.storageAdapter, nil, senderRole)
 
 	if s.wsHub != nil && resp != nil {
 		go s.wsHub.BroadcastToChat(msg.ChatID, websocket.Event{
@@ -626,6 +644,37 @@ func (s *MessageService) GetMessages(ctx context.Context, userID uuid.UUID, req 
 		}
 	}
 
+	senderRoleMap := make(map[uuid.UUID]string)
+	if chatInfo.Type == chat.TypeGroup && chatInfo.Edges.GroupChat != nil {
+		senderIDs := make([]uuid.UUID, 0)
+		seenSenders := make(map[uuid.UUID]bool)
+		for _, m := range messages {
+			if m.SenderID != nil && !seenSenders[*m.SenderID] {
+				senderIDs = append(senderIDs, *m.SenderID)
+				seenSenders[*m.SenderID] = true
+			}
+		}
+
+		if len(senderIDs) > 0 {
+			members, err := s.client.GroupMember.Query().
+				Where(
+					groupmember.GroupChatID(chatInfo.Edges.GroupChat.ID),
+					groupmember.UserIDIn(senderIDs...),
+					groupmember.HasUserWith(user.DeletedAtIsNil()),
+				).
+				Select(groupmember.FieldUserID, groupmember.FieldRole).
+				All(ctx)
+
+			if err == nil {
+				for _, m := range members {
+					senderRoleMap[m.UserID] = string(m.Role)
+				}
+			} else {
+				slog.Error("Failed to batch fetch sender roles", "error", err)
+			}
+		}
+	}
+
 	hasNext := false
 	var nextCursor string
 	hasPrev := false
@@ -679,7 +728,11 @@ func (s *MessageService) GetMessages(ctx context.Context, userID uuid.UUID, req 
 
 	var response []model.MessageResponse
 	for _, msg := range messages {
-		resp := helper.ToMessageResponse(msg, s.storageAdapter, hiddenAt)
+		var role string
+		if msg.SenderID != nil {
+			role = senderRoleMap[*msg.SenderID]
+		}
+		resp := helper.ToMessageResponse(msg, s.storageAdapter, hiddenAt, role)
 		if resp != nil {
 
 			if resp.ActionData != nil {

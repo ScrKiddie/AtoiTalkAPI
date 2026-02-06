@@ -8,7 +8,7 @@ import (
 	"github.com/google/uuid"
 )
 
-func ToMessageResponse(msg *ent.Message, urlGen URLGenerator, hiddenAt *time.Time) *model.MessageResponse {
+func ToMessageResponse(msg *ent.Message, urlGen URLGenerator, hiddenAt *time.Time, senderRole string) *model.MessageResponse {
 	if msg == nil {
 		return nil
 	}
@@ -120,6 +120,7 @@ func ToMessageResponse(msg *ent.Message, urlGen URLGenerator, hiddenAt *time.Tim
 		SenderID:     senderID,
 		SenderName:   senderName,
 		SenderAvatar: senderAvatar,
+		SenderRole:   senderRole,
 		Type:         string(msg.Type),
 		Content:      content,
 		ActionData:   actionData,

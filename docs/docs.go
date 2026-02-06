@@ -569,6 +569,9 @@ const docTemplate = `{
                     "sender_name": {
                         "type": "string"
                     },
+                    "sender_role": {
+                        "type": "string"
+                    },
                     "type": {
                         "type": "string"
                     }
