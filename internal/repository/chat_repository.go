@@ -78,6 +78,7 @@ func (r *ChatRepository) GetChats(ctx context.Context, userID uuid.UUID, querySt
 	query := r.client.Chat.Query().
 		Where(
 			chat.DeletedAtIsNil(),
+			chat.LastMessageAtNotNil(),
 			chat.Or(
 				chat.HasPrivateChatWith(privatechat.Or(privatechat.User1ID(userID), privatechat.User2ID(userID))),
 				chat.HasGroupChatWith(groupchat.HasMembersWith(groupmember.UserID(userID))),

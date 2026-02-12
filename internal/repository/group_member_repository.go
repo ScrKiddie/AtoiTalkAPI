@@ -32,7 +32,10 @@ func (r *GroupMemberRepository) SearchGroupMembers(ctx context.Context, groupID 
 	}
 
 	queryBuilder := r.client.GroupMember.Query().
-		Where(groupmember.GroupChatID(groupID)).
+		Where(
+			groupmember.GroupChatID(groupID),
+			groupmember.HasUserWith(user.DeletedAtIsNil()),
+		).
 		Order(ent.Asc(groupmember.FieldJoinedAt), ent.Asc(groupmember.FieldID)).
 		Limit(limit + 1).
 		WithUser(func(uq *ent.UserQuery) {
