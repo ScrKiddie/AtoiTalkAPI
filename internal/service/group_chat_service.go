@@ -227,10 +227,20 @@ func (s *GroupChatService) CreateGroupChat(ctx context.Context, creatorID uuid.U
 	}
 
 	if fileToUpload != nil {
-
 		if err := s.storageAdapter.StoreFromReader(fileToUpload, fileContentType, fileUploadPath, true); err != nil {
 			slog.Error("Failed to store group avatar after db commit", "error", err)
 
+			if avatarMedia != nil {
+				cleanupCtx := context.Background()
+				_, unlinkErr := s.client.GroupChat.UpdateOneID(newGroupChat.ID).ClearAvatar().Save(cleanupCtx)
+				if unlinkErr != nil {
+					slog.Error("Failed to unlink group avatar after file upload failure", "error", unlinkErr, "groupID", newGroupChat.ID)
+				} else {
+					if delErr := s.client.Media.DeleteOneID(avatarMedia.ID).Exec(cleanupCtx); delErr != nil {
+						slog.Error("Failed to delete orphan media record after file upload failure", "error", delErr, "mediaID", avatarMedia.ID)
+					}
+				}
+			}
 		}
 	}
 
@@ -417,6 +427,7 @@ func (s *GroupChatService) UpdateGroupChat(ctx context.Context, requestorID uuid
 	var fileToUpload multipart.File
 	var fileUploadPath string
 	var fileContentType string
+	var newMediaID uuid.UUID
 
 	if req.DeleteAvatar {
 		update.ClearAvatar()
@@ -464,6 +475,7 @@ func (s *GroupChatService) UpdateGroupChat(ctx context.Context, requestorID uuid
 		}
 
 		update.SetAvatar(media)
+		newMediaID = media.ID
 
 		systemMessages = append(systemMessages, tx.Message.Create().
 			SetChatID(gc.ChatID).
@@ -523,10 +535,20 @@ func (s *GroupChatService) UpdateGroupChat(ctx context.Context, requestorID uuid
 	}
 
 	if fileToUpload != nil {
-
 		if err := s.storageAdapter.StoreFromReader(fileToUpload, fileContentType, fileUploadPath, true); err != nil {
 			slog.Error("Failed to store group avatar after db commit", "error", err)
 
+			if newMediaID != uuid.Nil {
+				cleanupCtx := context.Background()
+				_, unlinkErr := s.client.GroupChat.UpdateOneID(updatedGroup.ID).ClearAvatar().Save(cleanupCtx)
+				if unlinkErr != nil {
+					slog.Error("Failed to unlink group avatar after file upload failure", "error", unlinkErr, "groupID", updatedGroup.ID)
+				} else {
+					if delErr := s.client.Media.DeleteOneID(newMediaID).Exec(cleanupCtx); delErr != nil {
+						slog.Error("Failed to delete orphan media record after file upload failure", "error", delErr, "mediaID", newMediaID)
+					}
+				}
+			}
 		}
 	}
 

@@ -107,6 +107,7 @@ func (c *AdminController) UnbanUser(w http.ResponseWriter, r *http.Request) {
 // @Tags         admin
 // @Accept       json
 // @Produce      json
+// @Param        query query string false "Search query (reason, reporter name/username)"
 // @Param        status query string false "Filter by status (pending, reviewed, resolved, rejected)"
 // @Param        limit query int false "Limit (default 20)"
 // @Param        cursor query string false "Cursor for pagination"
@@ -124,6 +125,7 @@ func (c *AdminController) GetReports(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	query := r.URL.Query().Get("query")
 	status := r.URL.Query().Get("status")
 	cursor := r.URL.Query().Get("cursor")
 	limitStr := r.URL.Query().Get("limit")
@@ -136,6 +138,7 @@ func (c *AdminController) GetReports(w http.ResponseWriter, r *http.Request) {
 	}
 
 	req := model.GetReportsRequest{
+		Query:  query,
 		Status: status,
 		Cursor: cursor,
 		Limit:  limit,

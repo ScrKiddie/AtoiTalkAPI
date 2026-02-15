@@ -97,6 +97,7 @@ func (s *UserService) GetCurrentUser(ctx context.Context, userID uuid.UUID) (*mo
 		FullName:    fullName,
 		Avatar:      avatarURL,
 		Bio:         bio,
+		Role:        string(u.Role),
 		HasPassword: u.PasswordHash != nil,
 		IsOnline:    &isOnline,
 	}, nil
@@ -140,7 +141,7 @@ func (s *UserService) GetUserProfile(ctx context.Context, currentUserID uuid.UUI
 			user.ID(targetUserID),
 			user.DeletedAtIsNil(),
 		).
-		Select(user.FieldID, user.FieldUsername, user.FieldFullName, user.FieldBio, user.FieldLastSeenAt, user.FieldAvatarID, user.FieldIsBanned, user.FieldBannedUntil).
+		Select(user.FieldID, user.FieldUsername, user.FieldFullName, user.FieldBio, user.FieldLastSeenAt, user.FieldAvatarID, user.FieldIsBanned, user.FieldBannedUntil, user.FieldRole).
 		WithAvatar().
 		Only(ctx)
 
@@ -199,6 +200,7 @@ func (s *UserService) GetUserProfile(ctx context.Context, currentUserID uuid.UUI
 		FullName:         fullName,
 		Avatar:           avatarURL,
 		Bio:              bio,
+		Role:             string(u.Role),
 		HasPassword:      false,
 		IsBlockedByMe:    &isBlockedByMe,
 		IsBlockedByOther: &isBlockedByOther,
@@ -336,6 +338,7 @@ func (s *UserService) UpdateProfile(ctx context.Context, userID uuid.UUID, req m
 			FullName:    fullName,
 			Avatar:      avatarURL,
 			Bio:         bio,
+			Role:        string(u.Role),
 			HasPassword: u.PasswordHash != nil,
 			IsOnline:    &isOnline,
 		}
@@ -470,6 +473,7 @@ func (s *UserService) UpdateProfile(ctx context.Context, userID uuid.UUID, req m
 		FullName:    fullName,
 		Avatar:      avatarURL,
 		Bio:         bio,
+		Role:        string(updatedUser.Role),
 		HasPassword: updatedUser.PasswordHash != nil,
 		IsOnline:    &isOnline,
 	}
@@ -598,6 +602,7 @@ func (s *UserService) SearchUsers(ctx context.Context, currentUserID uuid.UUID, 
 			FullName:    fullName,
 			Avatar:      avatarURL,
 			Bio:         bio,
+			Role:        string(u.Role),
 			HasPassword: false,
 		}
 
@@ -662,6 +667,7 @@ func (s *UserService) GetBlockedUsers(ctx context.Context, currentUserID uuid.UU
 			FullName:      fullName,
 			Avatar:        avatarURL,
 			Bio:           bio,
+			Role:          string(u.Role),
 			IsBlockedByMe: &isBlockedByMe,
 		})
 	}

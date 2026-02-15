@@ -86,6 +86,8 @@ func (s *ReportService) CreateReport(ctx context.Context, reporterID uuid.UUID, 
 			return helper.NewInternalServerError("")
 		}
 
+		var groupID *uuid.UUID
+
 		if chatInfo.Type == chat.TypePrivate {
 			if chatInfo.Edges.PrivateChat == nil {
 				return helper.NewInternalServerError("")
@@ -98,6 +100,8 @@ func (s *ReportService) CreateReport(ctx context.Context, reporterID uuid.UUID, 
 			if chatInfo.Edges.GroupChat == nil {
 				return helper.NewInternalServerError("")
 			}
+			groupID = &chatInfo.Edges.GroupChat.ID
+
 			isMember, err := s.client.GroupMember.Query().
 				Where(
 					groupmember.GroupChatID(chatInfo.Edges.GroupChat.ID),
@@ -112,23 +116,50 @@ func (s *ReportService) CreateReport(ctx context.Context, reporterID uuid.UUID, 
 			}
 		}
 
-		attachments := make([]string, 0)
+		attachments := make([]map[string]interface{}, 0)
 		for _, att := range msg.Edges.Attachments {
-			attachments = append(attachments, att.FileName)
+			attData := map[string]interface{}{
+				"id":            att.ID,
+				"file_name":     att.FileName,
+				"original_name": att.OriginalName,
+				"file_size":     att.FileSize,
+				"mime_type":     att.MimeType,
+				"url":           s.storageAdapter.GetPublicURL(att.FileName),
+			}
+			attachments = append(attachments, attData)
 			mediaIDsToProtect = append(mediaIDsToProtect, att.ID)
 		}
 
 		senderID := ""
+		senderUsername := ""
+		senderName := ""
+
 		if msg.SenderID != nil {
 			senderID = msg.SenderID.String()
 		}
+		if msg.Edges.Sender != nil {
+			if msg.Edges.Sender.Username != nil {
+				senderUsername = *msg.Edges.Sender.Username
+			}
+			if msg.Edges.Sender.FullName != nil {
+				senderName = *msg.Edges.Sender.FullName
+			}
+		}
 
 		evidenceData = map[string]interface{}{
-			"content":     msg.Content,
-			"sender_id":   senderID,
-			"sent_at":     msg.CreatedAt,
-			"attachments": attachments,
-			"is_edited":   msg.EditedAt != nil,
+			"content":         msg.Content,
+			"sender_id":       senderID,
+			"sender_username": senderUsername,
+			"sender_name":     senderName,
+			"sent_at":         msg.CreatedAt,
+			"attachments":     attachments,
+			"is_edited":       msg.EditedAt != nil,
+			"chat_id":         msg.ChatID,
+			"chat_type":       string(chatInfo.Type),
+		}
+
+		if groupID != nil {
+			evidenceData["group_id"] = *groupID
 		}
 
 	case "group":
@@ -163,6 +194,8 @@ func (s *ReportService) CreateReport(ctx context.Context, reporterID uuid.UUID, 
 		}
 
 		evidenceData = map[string]interface{}{
+			"group_id":    group.ID,
+			"chat_id":     group.ChatID,
 			"name":        group.Name,
 			"description": group.Description,
 			"avatar":      avatarURL,
@@ -198,6 +231,7 @@ func (s *ReportService) CreateReport(ctx context.Context, reporterID uuid.UUID, 
 		}
 
 		evidenceData = map[string]interface{}{
+			"user_id":   u.ID,
 			"username":  u.Username,
 			"full_name": u.FullName,
 			"bio":       u.Bio,

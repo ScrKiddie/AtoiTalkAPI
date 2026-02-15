@@ -34,20 +34,25 @@ type ReportListResponse struct {
 }
 
 type ReportDetailResponse struct {
-	ID             uuid.UUID `json:"id"`
-	TargetType     string    `json:"target_type"`
-	Reason         string    `json:"reason"`
-	Description    *string   `json:"description,omitempty"`
-	Status         string    `json:"status"`
-	ReporterID     uuid.UUID `json:"reporter_id"`
-	ReporterName   string    `json:"reporter_name"`
-	ReporterAvatar string    `json:"reporter_avatar"`
+	ID                uuid.UUID              `json:"id"`
+	TargetType        string                 `json:"target_type"`
+	TargetID          *uuid.UUID             `json:"target_id,omitempty"` // ID of the reported entity (User ID, Group ID, or Message ID)
+	TargetIsDeleted   bool                   `json:"target_is_deleted"`   // Indicates if the target entity has been soft-deleted
+	TargetIsBanned    bool                   `json:"target_is_banned"`    // Indicates if the target user (or sender of message) is banned
+	Reason            string                 `json:"reason"`
+	Description       *string                `json:"description,omitempty"`
+	Status            string                 `json:"status"`
+	ReporterID        uuid.UUID              `json:"reporter_id"`
+	ReporterName      string                 `json:"reporter_name"`
+	ReporterAvatar    string                 `json:"reporter_avatar"`
+	ReporterIsDeleted bool                   `json:"reporter_is_deleted"` // Indicates if the reporter user has been soft-deleted
+	ReporterIsBanned  bool                   `json:"reporter_is_banned"`  // Indicates if the reporter user is banned
 	// EvidenceSnapshot contains a snapshot of the reported entity at the time of reporting.
 	//
 	// Structure depends on TargetType:
-	// - message: { "content": string, "sender_id": uuid, "sent_at": time, "attachments": []string, "is_edited": bool }
-	// - group: { "name": string, "description": string, "avatar": string, "created_by": uuid }
-	// - user: { "username": string, "full_name": string, "bio": string, "avatar": string }
+	// - message: { "content": string, "sender_id": uuid, "sender_username": string, "sender_name": string, "sent_at": time, "attachments": []object{id, file_name, original_name, file_size, mime_type, url}, "is_edited": bool, "chat_id": uuid, "chat_type": string, "group_id": uuid (optional) }
+	// - group: { "group_id": uuid, "chat_id": uuid, "name": string, "description": string, "avatar": string, "created_by": uuid }
+	// - user: { "user_id": uuid, "username": string, "full_name": string, "bio": string, "avatar": string }
 	EvidenceSnapshot map[string]interface{} `json:"evidence_snapshot"`
 	AdminNotes       *string                `json:"admin_notes,omitempty"`
 	CreatedAt        string                 `json:"created_at"`
@@ -55,6 +60,7 @@ type ReportDetailResponse struct {
 }
 
 type GetReportsRequest struct {
+	Query  string `json:"query" validate:"omitempty"`
 	Status string `json:"status" validate:"omitempty,oneof=pending reviewed resolved rejected"`
 	Limit  int    `json:"limit" validate:"omitempty,gt=0,max=50"`
 	Cursor string `json:"cursor" validate:"omitempty"`

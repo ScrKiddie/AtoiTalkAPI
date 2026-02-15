@@ -3,6 +3,7 @@ package helper
 import (
 	"AtoiTalkAPI/ent"
 	"AtoiTalkAPI/internal/model"
+	"time"
 )
 
 func ToGroupMemberDTO(m *ent.GroupMember, urlGen URLGenerator) model.GroupMemberDTO {
@@ -26,6 +27,11 @@ func ToGroupMemberDTO(m *ent.GroupMember, urlGen URLGenerator) model.GroupMember
 		username = *user.Username
 	}
 
+	isBanned := user.IsBanned
+	if isBanned && user.BannedUntil != nil && time.Now().After(*user.BannedUntil) {
+		isBanned = false
+	}
+
 	return model.GroupMemberDTO{
 		ID:       m.ID,
 		UserID:   user.ID,
@@ -34,5 +40,6 @@ func ToGroupMemberDTO(m *ent.GroupMember, urlGen URLGenerator) model.GroupMember
 		Avatar:   avatarURL,
 		Role:     string(m.Role),
 		JoinedAt: m.JoinedAt.String(),
+		IsBanned: isBanned,
 	}
 }

@@ -6,6598 +6,5251 @@ import "github.com/swaggo/swag/v2"
 
 const docTemplate = `{
     "schemes": {{ marshal .Schemes }},
-    "components": {
-        "schemas": {
-            "data": {
-                "properties": {
-                    "data": {
-                        "items": {
-                            "$ref": "#/components/schemas/model.UserDTO"
-                        },
-                        "type": "array"
-                    }
-                },
-                "type": "object"
-            },
-            "helper.PaginationMeta": {
-                "properties": {
-                    "has_next": {
-                        "type": "boolean"
-                    },
-                    "has_prev": {
-                        "type": "boolean"
-                    },
-                    "next_cursor": {
-                        "type": "string"
-                    },
-                    "prev_cursor": {
-                        "type": "string"
-                    }
-                },
-                "type": "object"
-            },
-            "helper.ResponseError": {
-                "properties": {
-                    "error": {
-                        "type": "string"
-                    }
-                },
-                "type": "object"
-            },
-            "helper.ResponseSuccess": {
-                "allOf": [
-                    {
-                        "$ref": "#/components/schemas/data"
-                    }
-                ],
-                "properties": {
-                    "data": {}
-                },
-                "type": "object"
-            },
-            "helper.ResponseWithPagination": {
-                "allOf": [
-                    {
-                        "$ref": "#/components/schemas/data"
-                    }
-                ],
-                "properties": {
-                    "data": {},
-                    "meta": {
-                        "$ref": "#/components/schemas/helper.PaginationMeta"
-                    }
-                },
-                "type": "object"
-            },
-            "model.AddGroupMemberRequest": {
-                "properties": {
-                    "user_ids": {
-                        "items": {
-                            "type": "string"
-                        },
-                        "minItems": 1,
-                        "type": "array",
-                        "uniqueItems": false
-                    }
-                },
-                "required": [
-                    "user_ids"
-                ],
-                "type": "object"
-            },
-            "model.AdminUserDetailResponse": {
-                "properties": {
-                    "avatar": {
-                        "type": "string"
-                    },
-                    "ban_reason": {
-                        "type": "string"
-                    },
-                    "banned_until": {
-                        "type": "string"
-                    },
-                    "bio": {
-                        "type": "string"
-                    },
-                    "created_at": {
-                        "type": "string"
-                    },
-                    "email": {
-                        "type": "string"
-                    },
-                    "full_name": {
-                        "type": "string"
-                    },
-                    "id": {
-                        "type": "string"
-                    },
-                    "is_banned": {
-                        "type": "boolean"
-                    },
-                    "last_seen_at": {
-                        "type": "string"
-                    },
-                    "role": {
-                        "type": "string"
-                    },
-                    "total_groups": {
-                        "type": "integer"
-                    },
-                    "total_messages": {
-                        "type": "integer"
-                    },
-                    "username": {
-                        "type": "string"
-                    }
-                },
-                "type": "object"
-            },
-            "model.AdminUserListResponse": {
-                "properties": {
-                    "created_at": {
-                        "type": "string"
-                    },
-                    "email": {
-                        "type": "string"
-                    },
-                    "full_name": {
-                        "type": "string"
-                    },
-                    "id": {
-                        "type": "string"
-                    },
-                    "is_banned": {
-                        "type": "boolean"
-                    },
-                    "role": {
-                        "type": "string"
-                    },
-                    "username": {
-                        "type": "string"
-                    }
-                },
-                "type": "object"
-            },
-            "model.AuthResponse": {
-                "properties": {
-                    "token": {
-                        "type": "string"
-                    },
-                    "user": {
-                        "$ref": "#/components/schemas/model.UserDTO"
-                    }
-                },
-                "type": "object"
-            },
-            "model.BanUserRequest": {
-                "properties": {
-                    "duration_hours": {
-                        "minimum": 0,
-                        "type": "integer"
-                    },
-                    "reason": {
-                        "type": "string"
-                    },
-                    "target_user_id": {
-                        "type": "string"
-                    }
-                },
-                "required": [
-                    "reason",
-                    "target_user_id"
-                ],
-                "type": "object"
-            },
-            "model.ChangeEmailRequest": {
-                "properties": {
-                    "code": {
-                        "type": "string"
-                    },
-                    "email": {
-                        "type": "string"
-                    }
-                },
-                "required": [
-                    "code",
-                    "email"
-                ],
-                "type": "object"
-            },
-            "model.ChangePasswordRequest": {
-                "properties": {
-                    "confirm_password": {
-                        "type": "string"
-                    },
-                    "new_password": {
-                        "maxLength": 72,
-                        "minLength": 8,
-                        "type": "string"
-                    },
-                    "old_password": {
-                        "type": "string"
-                    }
-                },
-                "required": [
-                    "confirm_password",
-                    "new_password"
-                ],
-                "type": "object"
-            },
-            "model.ChatListResponse": {
-                "properties": {
-                    "avatar": {
-                        "type": "string"
-                    },
-                    "description": {
-                        "type": "string"
-                    },
-                    "hidden_at": {
-                        "type": "string"
-                    },
-                    "id": {
-                        "type": "string"
-                    },
-                    "invite_code": {
-                        "type": "string"
-                    },
-                    "invite_expires_at": {
-                        "type": "string"
-                    },
-                    "is_blocked_by_me": {
-                        "type": "boolean"
-                    },
-                    "is_blocked_by_other": {
-                        "type": "boolean"
-                    },
-                    "is_online": {
-                        "type": "boolean"
-                    },
-                    "is_public": {
-                        "type": "boolean"
-                    },
-                    "last_message": {
-                        "$ref": "#/components/schemas/model.MessageResponse"
-                    },
-                    "last_read_at": {
-                        "type": "string"
-                    },
-                    "member_count": {
-                        "type": "integer"
-                    },
-                    "my_role": {
-                        "type": "string"
-                    },
-                    "name": {
-                        "type": "string"
-                    },
-                    "other_last_read_at": {
-                        "type": "string"
-                    },
-                    "other_user_id": {
-                        "type": "string"
-                    },
-                    "other_user_is_banned": {
-                        "type": "boolean"
-                    },
-                    "other_user_is_deleted": {
-                        "type": "boolean"
-                    },
-                    "type": {
-                        "type": "string"
-                    },
-                    "unread_count": {
-                        "type": "integer"
-                    }
-                },
-                "type": "object"
-            },
-            "model.ChatResponse": {
-                "properties": {
-                    "created_at": {
-                        "type": "string"
-                    },
-                    "id": {
-                        "type": "string"
-                    },
-                    "type": {
-                        "type": "string"
-                    }
-                },
-                "type": "object"
-            },
-            "model.CreatePrivateChatRequest": {
-                "properties": {
-                    "target_user_id": {
-                        "type": "string"
-                    }
-                },
-                "required": [
-                    "target_user_id"
-                ],
-                "type": "object"
-            },
-            "model.CreateReportRequest": {
-                "properties": {
-                    "description": {
-                        "type": "string"
-                    },
-                    "group_id": {
-                        "type": "string"
-                    },
-                    "message_id": {
-                        "type": "string"
-                    },
-                    "reason": {
-                        "type": "string"
-                    },
-                    "target_type": {
-                        "enum": [
-                            "message",
-                            "group",
-                            "user"
-                        ],
-                        "type": "string"
-                    },
-                    "target_user_id": {
-                        "type": "string"
-                    }
-                },
-                "required": [
-                    "reason",
-                    "target_type"
-                ],
-                "type": "object"
-            },
-            "model.DashboardStatsResponse": {
-                "properties": {
-                    "active_reports": {
-                        "type": "integer"
-                    },
-                    "total_groups": {
-                        "type": "integer"
-                    },
-                    "total_messages": {
-                        "type": "integer"
-                    },
-                    "total_users": {
-                        "type": "integer"
-                    }
-                },
-                "type": "object"
-            },
-            "model.DeleteAccountRequest": {
-                "properties": {
-                    "password": {
-                        "type": "string"
-                    }
-                },
-                "type": "object"
-            },
-            "model.EditMessageRequest": {
-                "properties": {
-                    "attachment_ids": {
-                        "items": {
-                            "type": "string"
-                        },
-                        "type": "array",
-                        "uniqueItems": false
-                    },
-                    "content": {
-                        "type": "string"
-                    }
-                },
-                "type": "object"
-            },
-            "model.GoogleLoginRequest": {
-                "properties": {
-                    "code": {
-                        "type": "string"
-                    }
-                },
-                "required": [
-                    "code"
-                ],
-                "type": "object"
-            },
-            "model.GroupInviteResponse": {
-                "properties": {
-                    "expires_at": {
-                        "type": "string"
-                    },
-                    "invite_code": {
-                        "type": "string"
-                    }
-                },
-                "type": "object"
-            },
-            "model.GroupMemberDTO": {
-                "properties": {
-                    "avatar": {
-                        "type": "string"
-                    },
-                    "full_name": {
-                        "type": "string"
-                    },
-                    "id": {
-                        "type": "string"
-                    },
-                    "joined_at": {
-                        "type": "string"
-                    },
-                    "role": {
-                        "type": "string"
-                    },
-                    "user_id": {
-                        "type": "string"
-                    },
-                    "username": {
-                        "type": "string"
-                    }
-                },
-                "type": "object"
-            },
-            "model.GroupPreviewDTO": {
-                "properties": {
-                    "avatar": {
-                        "type": "string"
-                    },
-                    "description": {
-                        "type": "string"
-                    },
-                    "id": {
-                        "type": "string"
-                    },
-                    "is_public": {
-                        "type": "boolean"
-                    },
-                    "member_count": {
-                        "type": "integer"
-                    },
-                    "name": {
-                        "type": "string"
-                    }
-                },
-                "type": "object"
-            },
-            "model.JoinGroupByInviteRequest": {
-                "properties": {
-                    "invite_code": {
-                        "type": "string"
-                    }
-                },
-                "required": [
-                    "invite_code"
-                ],
-                "type": "object"
-            },
-            "model.LoginRequest": {
-                "properties": {
-                    "captcha_token": {
-                        "type": "string"
-                    },
-                    "email": {
-                        "type": "string"
-                    },
-                    "password": {
-                        "maxLength": 72,
-                        "minLength": 8,
-                        "type": "string"
-                    }
-                },
-                "required": [
-                    "captcha_token",
-                    "email",
-                    "password"
-                ],
-                "type": "object"
-            },
-            "model.MediaDTO": {
-                "properties": {
-                    "file_name": {
-                        "type": "string"
-                    },
-                    "file_size": {
-                        "type": "integer"
-                    },
-                    "id": {
-                        "type": "string"
-                    },
-                    "mime_type": {
-                        "type": "string"
-                    },
-                    "original_name": {
-                        "type": "string"
-                    },
-                    "url": {
-                        "type": "string"
-                    }
-                },
-                "type": "object"
-            },
-            "model.MediaURLResponse": {
-                "properties": {
-                    "url": {
-                        "type": "string"
-                    }
-                },
-                "type": "object"
-            },
-            "model.MessageResponse": {
-                "properties": {
-                    "action_data": {
-                        "additionalProperties": {},
-                        "description": "ActionData contains metadata for system messages.\n\nStructure depends on Type:\n- system_create: { \"initial_name\": string }\n- system_rename: { \"old_name\": string, \"new_name\": string }\n- system_description: { \"old_description\": string, \"new_description\": string }\n- system_avatar: { \"action\": \"updated\" | \"removed\" }\n- system_add: { \"target_id\": uuid, \"actor_id\": uuid, \"target_name\": string }\n- system_join: (empty, relies on sender_id)\n- system_leave: (empty, relies on sender_id)\n- system_kick: { \"target_id\": uuid, \"actor_id\": uuid, \"target_name\": string }\n- system_promote: { \"target_id\": uuid, \"actor_id\": uuid, \"new_role\": \"admin\" | \"owner\", \"target_name\": string, \"action\": \"ownership_transferred\" (optional) }\n- system_demote: { \"target_id\": uuid, \"actor_id\": uuid, \"new_role\": \"member\", \"target_name\": string }\n- system_visibility: { \"new_visibility\": \"public\" | \"private\" }\n\nNote: \"target_name\" is injected dynamically by the backend for display convenience.",
-                        "type": "object"
-                    },
-                    "attachments": {
-                        "items": {
-                            "$ref": "#/components/schemas/model.MediaDTO"
-                        },
-                        "type": "array",
-                        "uniqueItems": false
-                    },
-                    "chat_id": {
-                        "type": "string"
-                    },
-                    "content": {
-                        "type": "string"
-                    },
-                    "created_at": {
-                        "type": "string"
-                    },
-                    "deleted_at": {
-                        "type": "string"
-                    },
-                    "edited_at": {
-                        "type": "string"
-                    },
-                    "id": {
-                        "type": "string"
-                    },
-                    "member_count": {
-                        "type": "integer"
-                    },
-                    "reply_to": {
-                        "$ref": "#/components/schemas/model.ReplyPreviewDTO"
-                    },
-                    "sender_avatar": {
-                        "type": "string"
-                    },
-                    "sender_id": {
-                        "type": "string"
-                    },
-                    "sender_name": {
-                        "type": "string"
-                    },
-                    "sender_role": {
-                        "type": "string"
-                    },
-                    "type": {
-                        "type": "string"
-                    }
-                },
-                "type": "object"
-            },
-            "model.PublicGroupDTO": {
-                "properties": {
-                    "avatar": {
-                        "type": "string"
-                    },
-                    "chat_id": {
-                        "type": "string"
-                    },
-                    "description": {
-                        "type": "string"
-                    },
-                    "id": {
-                        "type": "string"
-                    },
-                    "is_member": {
-                        "type": "boolean"
-                    },
-                    "member_count": {
-                        "type": "integer"
-                    },
-                    "name": {
-                        "type": "string"
-                    }
-                },
-                "type": "object"
-            },
-            "model.RegisterUserRequest": {
-                "properties": {
-                    "captcha_token": {
-                        "type": "string"
-                    },
-                    "code": {
-                        "type": "string"
-                    },
-                    "email": {
-                        "type": "string"
-                    },
-                    "full_name": {
-                        "maxLength": 100,
-                        "minLength": 3,
-                        "type": "string"
-                    },
-                    "password": {
-                        "maxLength": 72,
-                        "minLength": 8,
-                        "type": "string"
-                    },
-                    "username": {
-                        "maxLength": 50,
-                        "minLength": 3,
-                        "type": "string"
-                    }
-                },
-                "required": [
-                    "captcha_token",
-                    "code",
-                    "email",
-                    "full_name",
-                    "password",
-                    "username"
-                ],
-                "type": "object"
-            },
-            "model.ReplyPreviewDTO": {
-                "properties": {
-                    "action_data": {
-                        "additionalProperties": {},
-                        "type": "object"
-                    },
-                    "content": {
-                        "type": "string"
-                    },
-                    "created_at": {
-                        "type": "string"
-                    },
-                    "deleted_at": {
-                        "type": "string"
-                    },
-                    "id": {
-                        "type": "string"
-                    },
-                    "sender_id": {
-                        "type": "string"
-                    },
-                    "sender_name": {
-                        "type": "string"
-                    },
-                    "type": {
-                        "type": "string"
-                    }
-                },
-                "type": "object"
-            },
-            "model.ReportDetailResponse": {
-                "properties": {
-                    "admin_notes": {
-                        "type": "string"
-                    },
-                    "created_at": {
-                        "type": "string"
-                    },
-                    "description": {
-                        "type": "string"
-                    },
-                    "evidence_snapshot": {
-                        "additionalProperties": {},
-                        "description": "EvidenceSnapshot contains a snapshot of the reported entity at the time of reporting.\n\nStructure depends on TargetType:\n- message: { \"content\": string, \"sender_id\": uuid, \"sent_at\": time, \"attachments\": []string, \"is_edited\": bool }\n- group: { \"name\": string, \"description\": string, \"avatar\": string, \"created_by\": uuid }\n- user: { \"username\": string, \"full_name\": string, \"bio\": string, \"avatar\": string }",
-                        "type": "object"
-                    },
-                    "id": {
-                        "type": "string"
-                    },
-                    "reason": {
-                        "type": "string"
-                    },
-                    "reporter_avatar": {
-                        "type": "string"
-                    },
-                    "reporter_id": {
-                        "type": "string"
-                    },
-                    "reporter_name": {
-                        "type": "string"
-                    },
-                    "status": {
-                        "type": "string"
-                    },
-                    "target_type": {
-                        "type": "string"
-                    },
-                    "updated_at": {
-                        "type": "string"
-                    }
-                },
-                "type": "object"
-            },
-            "model.ReportListResponse": {
-                "properties": {
-                    "created_at": {
-                        "type": "string"
-                    },
-                    "id": {
-                        "type": "string"
-                    },
-                    "reason": {
-                        "type": "string"
-                    },
-                    "reporter_name": {
-                        "type": "string"
-                    },
-                    "status": {
-                        "type": "string"
-                    },
-                    "target_type": {
-                        "type": "string"
-                    }
-                },
-                "type": "object"
-            },
-            "model.ResetGroupInfoRequest": {
-                "properties": {
-                    "reset_avatar": {
-                        "type": "boolean"
-                    },
-                    "reset_description": {
-                        "type": "boolean"
-                    },
-                    "reset_name": {
-                        "type": "boolean"
-                    }
-                },
-                "type": "object"
-            },
-            "model.ResetPasswordRequest": {
-                "properties": {
-                    "captcha_token": {
-                        "type": "string"
-                    },
-                    "code": {
-                        "type": "string"
-                    },
-                    "confirm_password": {
-                        "type": "string"
-                    },
-                    "email": {
-                        "type": "string"
-                    },
-                    "password": {
-                        "maxLength": 72,
-                        "minLength": 8,
-                        "type": "string"
-                    }
-                },
-                "required": [
-                    "captcha_token",
-                    "code",
-                    "confirm_password",
-                    "email",
-                    "password"
-                ],
-                "type": "object"
-            },
-            "model.ResetUserInfoRequest": {
-                "properties": {
-                    "reset_avatar": {
-                        "type": "boolean"
-                    },
-                    "reset_bio": {
-                        "type": "boolean"
-                    },
-                    "reset_name": {
-                        "type": "boolean"
-                    },
-                    "target_user_id": {
-                        "type": "string"
-                    }
-                },
-                "required": [
-                    "target_user_id"
-                ],
-                "type": "object"
-            },
-            "model.ResolveReportRequest": {
-                "properties": {
-                    "notes": {
-                        "type": "string"
-                    },
-                    "status": {
-                        "enum": [
-                            "resolved",
-                            "rejected"
-                        ],
-                        "type": "string"
-                    }
-                },
-                "required": [
-                    "status"
-                ],
-                "type": "object"
-            },
-            "model.SendMessageRequest": {
-                "properties": {
-                    "attachment_ids": {
-                        "items": {
-                            "type": "string"
-                        },
-                        "type": "array",
-                        "uniqueItems": false
-                    },
-                    "chat_id": {
-                        "type": "string"
-                    },
-                    "content": {
-                        "type": "string"
-                    },
-                    "reply_to_id": {
-                        "type": "string"
-                    }
-                },
-                "required": [
-                    "chat_id"
-                ],
-                "type": "object"
-            },
-            "model.SendOTPRequest": {
-                "properties": {
-                    "captcha_token": {
-                        "type": "string"
-                    },
-                    "email": {
-                        "type": "string"
-                    },
-                    "mode": {
-                        "enum": [
-                            "register",
-                            "reset",
-                            "change_email"
-                        ],
-                        "type": "string"
-                    }
-                },
-                "required": [
-                    "captcha_token",
-                    "email",
-                    "mode"
-                ],
-                "type": "object"
-            },
-            "model.TransferGroupOwnershipRequest": {
-                "properties": {
-                    "new_owner_id": {
-                        "type": "string"
-                    }
-                },
-                "required": [
-                    "new_owner_id"
-                ],
-                "type": "object"
-            },
-            "model.UpdateGroupMemberRoleRequest": {
-                "properties": {
-                    "role": {
-                        "enum": [
-                            "admin",
-                            "member"
-                        ],
-                        "type": "string"
-                    }
-                },
-                "required": [
-                    "role"
-                ],
-                "type": "object"
-            },
-            "model.UserDTO": {
-                "properties": {
-                    "avatar": {
-                        "type": "string"
-                    },
-                    "bio": {
-                        "type": "string"
-                    },
-                    "email": {
-                        "type": "string"
-                    },
-                    "full_name": {
-                        "type": "string"
-                    },
-                    "has_password": {
-                        "type": "boolean"
-                    },
-                    "id": {
-                        "type": "string"
-                    },
-                    "is_blocked_by_me": {
-                        "type": "boolean"
-                    },
-                    "is_blocked_by_other": {
-                        "type": "boolean"
-                    },
-                    "is_online": {
-                        "type": "boolean"
-                    },
-                    "last_seen_at": {
-                        "type": "string"
-                    },
-                    "private_chat_id": {
-                        "type": "string"
-                    },
-                    "role": {
-                        "type": "string"
-                    },
-                    "username": {
-                        "type": "string"
-                    }
-                },
-                "type": "object"
-            }
-        }
-    },
+    "swagger": "2.0",
     "info": {
         "description": "{{escape .Description}}",
         "title": "{{.Title}}",
+        "contact": {},
         "version": "{{.Version}}"
     },
-    "externalDocs": {
-        "description": "",
-        "url": ""
-    },
+    "host": "{{.Host}}",
+    "basePath": "{{.BasePath}}",
     "paths": {
         "/api/account": {
             "delete": {
-                "description": "Soft delete user account. Requires password confirmation if set. User must transfer ownership of groups first.",
-                "requestBody": {
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "oneOf": [
-                                    {
-                                        "type": "object"
-                                    },
-                                    {
-                                        "$ref": "#/components/schemas/model.DeleteAccountRequest",
-                                        "summary": "request",
-                                        "description": "Delete Account Request"
-                                    }
-                                ]
-                            }
-                        }
-                    },
-                    "description": "Delete Account Request",
-                    "required": true
-                },
-                "responses": {
-                    "200": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseSuccess"
-                                }
-                            }
-                        },
-                        "description": "OK"
-                    },
-                    "400": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Bad Request"
-                    },
-                    "401": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Unauthorized"
-                    },
-                    "403": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Forbidden"
-                    },
-                    "429": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Too Many Requests"
-                    },
-                    "500": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Internal Server Error"
-                    }
-                },
                 "security": [
                     {
                         "BearerAuth": []
                     }
                 ],
-                "summary": "Delete Account",
+                "description": "Soft delete user account. Requires password confirmation if set. User must transfer ownership of groups first.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
                 "tags": [
                     "account"
-                ]
+                ],
+                "summary": "Delete Account",
+                "parameters": [
+                    {
+                        "description": "Delete Account Request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.DeleteAccountRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseSuccess"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "429": {
+                        "description": "Too Many Requests",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    }
+                }
             }
         },
         "/api/account/email": {
             "put": {
-                "description": "Change user email. Requires OTP verification.",
-                "requestBody": {
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "oneOf": [
-                                    {
-                                        "type": "object"
-                                    },
-                                    {
-                                        "$ref": "#/components/schemas/model.ChangeEmailRequest",
-                                        "summary": "request",
-                                        "description": "Change Email Request"
-                                    }
-                                ]
-                            }
-                        }
-                    },
-                    "description": "Change Email Request",
-                    "required": true
-                },
-                "responses": {
-                    "200": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseSuccess"
-                                }
-                            }
-                        },
-                        "description": "OK"
-                    },
-                    "400": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Bad Request"
-                    },
-                    "401": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Unauthorized"
-                    },
-                    "409": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Conflict"
-                    },
-                    "429": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Too Many Requests"
-                    },
-                    "500": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Internal Server Error"
-                    }
-                },
                 "security": [
                     {
                         "BearerAuth": []
                     }
                 ],
-                "summary": "Change Email",
+                "description": "Change user email. Requires OTP verification.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
                 "tags": [
                     "account"
-                ]
+                ],
+                "summary": "Change Email",
+                "parameters": [
+                    {
+                        "description": "Change Email Request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.ChangeEmailRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseSuccess"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "429": {
+                        "description": "Too Many Requests",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    }
+                }
             }
         },
         "/api/account/password": {
             "put": {
-                "description": "Change user password. Requires old password if one is set.",
-                "requestBody": {
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "oneOf": [
-                                    {
-                                        "type": "object"
-                                    },
-                                    {
-                                        "$ref": "#/components/schemas/model.ChangePasswordRequest",
-                                        "summary": "request",
-                                        "description": "Change Password Request"
-                                    }
-                                ]
-                            }
-                        }
-                    },
-                    "description": "Change Password Request",
-                    "required": true
-                },
-                "responses": {
-                    "200": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseSuccess"
-                                }
-                            }
-                        },
-                        "description": "OK"
-                    },
-                    "400": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Bad Request"
-                    },
-                    "401": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Unauthorized"
-                    },
-                    "404": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Not Found"
-                    },
-                    "429": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Too Many Requests"
-                    },
-                    "500": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Internal Server Error"
-                    }
-                },
                 "security": [
                     {
                         "BearerAuth": []
                     }
                 ],
-                "summary": "Change Password",
+                "description": "Change user password. Requires old password if one is set.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
                 "tags": [
                     "account"
-                ]
+                ],
+                "summary": "Change Password",
+                "parameters": [
+                    {
+                        "description": "Change Password Request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.ChangePasswordRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseSuccess"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "429": {
+                        "description": "Too Many Requests",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    }
+                }
             }
         },
         "/api/admin/dashboard": {
             "get": {
-                "description": "Get high-level statistics for the admin dashboard. Requires Admin privileges.",
-                "requestBody": {
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "type": "object"
-                            }
-                        }
-                    }
-                },
-                "responses": {
-                    "200": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "allOf": [
-                                        {
-                                            "$ref": "#/components/schemas/data"
-                                        }
-                                    ],
-                                    "properties": {
-                                        "data": {}
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        },
-                        "description": "OK"
-                    },
-                    "401": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Unauthorized"
-                    },
-                    "403": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Forbidden"
-                    },
-                    "500": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Internal Server Error"
-                    }
-                },
                 "security": [
                     {
                         "BearerAuth": []
                     }
                 ],
-                "summary": "Get Dashboard Stats",
+                "description": "Get high-level statistics for the admin dashboard. Requires Admin privileges.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
                 "tags": [
                     "admin"
-                ]
+                ],
+                "summary": "Get Dashboard Stats",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/helper.ResponseSuccess"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/model.DashboardStatsResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    }
+                }
             }
         },
         "/api/admin/groups": {
             "get": {
-                "description": "List and search groups with pagination. Requires Admin.",
-                "parameters": [
-                    {
-                        "description": "Search by name",
-                        "in": "query",
-                        "name": "query",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "description": "Limit",
-                        "in": "query",
-                        "name": "limit",
-                        "schema": {
-                            "type": "integer"
-                        }
-                    },
-                    {
-                        "description": "Pagination cursor",
-                        "in": "query",
-                        "name": "cursor",
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseWithPagination"
-                                }
-                            }
-                        },
-                        "description": "OK"
-                    },
-                    "403": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Forbidden"
-                    }
-                },
                 "security": [
                     {
                         "BearerAuth": []
                     }
                 ],
-                "summary": "List Groups",
+                "description": "List and search groups with pagination. Requires Admin.",
+                "produces": [
+                    "application/json"
+                ],
                 "tags": [
                     "admin"
-                ]
+                ],
+                "summary": "List Groups",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Search by name",
+                        "name": "query",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Limit",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Pagination cursor",
+                        "name": "cursor",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseWithPagination"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    }
+                }
             }
         },
         "/api/admin/groups/{groupID}": {
-            "delete": {
-                "description": "Soft delete a group. Requires Admin.",
-                "parameters": [
-                    {
-                        "description": "Group ID",
-                        "in": "path",
-                        "name": "groupID",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseSuccess"
-                                }
-                            }
-                        },
-                        "description": "OK"
-                    },
-                    "404": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Not Found"
-                    }
-                },
+            "get": {
                 "security": [
                     {
                         "BearerAuth": []
                     }
                 ],
-                "summary": "Dissolve Group",
+                "description": "Get detailed group information. Requires Admin.",
+                "produces": [
+                    "application/json"
+                ],
                 "tags": [
                     "admin"
-                ]
-            },
-            "get": {
-                "description": "Get detailed group information. Requires Admin.",
-                "parameters": [
-                    {
-                        "description": "Group ID",
-                        "in": "path",
-                        "name": "groupID",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseSuccess"
-                                }
-                            }
-                        },
-                        "description": "OK"
-                    },
-                    "404": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Not Found"
-                    }
-                },
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
                 ],
                 "summary": "Get Group Detail",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Group ID",
+                        "name": "groupID",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseSuccess"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Soft delete a group. Requires Admin.",
+                "produces": [
+                    "application/json"
+                ],
                 "tags": [
                     "admin"
-                ]
+                ],
+                "summary": "Dissolve Group",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Group ID",
+                        "name": "groupID",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseSuccess"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    }
+                }
             }
         },
         "/api/admin/groups/{groupID}/members": {
             "get": {
-                "description": "Get list of members in a group. Requires Admin.",
-                "parameters": [
-                    {
-                        "description": "Group Chat ID (UUID)",
-                        "in": "path",
-                        "name": "groupID",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "description": "Search query",
-                        "in": "query",
-                        "name": "query",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "description": "Pagination cursor",
-                        "in": "query",
-                        "name": "cursor",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "description": "Number of items per page (default 20, max 50)",
-                        "in": "query",
-                        "name": "limit",
-                        "schema": {
-                            "type": "integer"
-                        }
-                    }
-                ],
-                "requestBody": {
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "type": "object"
-                            }
-                        }
-                    }
-                },
-                "responses": {
-                    "200": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "allOf": [
-                                        {
-                                            "$ref": "#/components/schemas/data"
-                                        }
-                                    ],
-                                    "properties": {
-                                        "data": {},
-                                        "meta": {
-                                            "$ref": "#/components/schemas/helper.PaginationMeta"
-                                        }
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        },
-                        "description": "OK"
-                    },
-                    "400": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Bad Request"
-                    },
-                    "403": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Forbidden"
-                    },
-                    "404": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Not Found"
-                    }
-                },
                 "security": [
                     {
                         "BearerAuth": []
                     }
                 ],
-                "summary": "Get Group Members",
+                "description": "Get list of members in a group. Requires Admin.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
                 "tags": [
                     "admin"
-                ]
+                ],
+                "summary": "Get Group Members",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Group Chat ID (UUID)",
+                        "name": "groupID",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Search query",
+                        "name": "query",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Pagination cursor",
+                        "name": "cursor",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Number of items per page (default 20, max 50)",
+                        "name": "limit",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/helper.ResponseWithPagination"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/definitions/model.GroupMemberDTO"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    }
+                }
             }
         },
         "/api/admin/groups/{groupID}/reset": {
             "post": {
-                "description": "Reset group's avatar, description, or name. Requires Admin.",
-                "parameters": [
-                    {
-                        "description": "Group ID",
-                        "in": "path",
-                        "name": "groupID",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                ],
-                "requestBody": {
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "oneOf": [
-                                    {
-                                        "type": "object"
-                                    },
-                                    {
-                                        "$ref": "#/components/schemas/model.ResetGroupInfoRequest",
-                                        "summary": "req",
-                                        "description": "Reset Request"
-                                    }
-                                ]
-                            }
-                        }
-                    },
-                    "description": "Reset Request",
-                    "required": true
-                },
-                "responses": {
-                    "200": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseSuccess"
-                                }
-                            }
-                        },
-                        "description": "OK"
-                    },
-                    "400": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Bad Request"
-                    }
-                },
                 "security": [
                     {
                         "BearerAuth": []
                     }
                 ],
-                "summary": "Reset Group Info",
+                "description": "Reset group's avatar, description, or name. Requires Admin.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
                 "tags": [
                     "admin"
-                ]
+                ],
+                "summary": "Reset Group Info",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Group ID",
+                        "name": "groupID",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Reset Request",
+                        "name": "req",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.ResetGroupInfoRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseSuccess"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    }
+                }
             }
         },
         "/api/admin/reports": {
             "get": {
-                "description": "Get a list of reports. Requires Admin privileges.",
-                "parameters": [
-                    {
-                        "description": "Filter by status (pending, reviewed, resolved, rejected)",
-                        "in": "query",
-                        "name": "status",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "description": "Limit (default 20)",
-                        "in": "query",
-                        "name": "limit",
-                        "schema": {
-                            "type": "integer"
-                        }
-                    },
-                    {
-                        "description": "Cursor for pagination",
-                        "in": "query",
-                        "name": "cursor",
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                ],
-                "requestBody": {
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "type": "object"
-                            }
-                        }
-                    }
-                },
-                "responses": {
-                    "200": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "allOf": [
-                                        {
-                                            "$ref": "#/components/schemas/data"
-                                        }
-                                    ],
-                                    "properties": {
-                                        "data": {},
-                                        "meta": {
-                                            "$ref": "#/components/schemas/helper.PaginationMeta"
-                                        }
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        },
-                        "description": "OK"
-                    },
-                    "400": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Bad Request"
-                    },
-                    "403": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Forbidden"
-                    },
-                    "429": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Too Many Requests"
-                    },
-                    "500": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Internal Server Error"
-                    }
-                },
                 "security": [
                     {
                         "BearerAuth": []
                     }
                 ],
-                "summary": "Get Reports",
+                "description": "Get a list of reports. Requires Admin privileges.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
                 "tags": [
                     "admin"
-                ]
+                ],
+                "summary": "Get Reports",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Search query (reason, reporter name/username)",
+                        "name": "query",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by status (pending, reviewed, resolved, rejected)",
+                        "name": "status",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Limit (default 20)",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Cursor for pagination",
+                        "name": "cursor",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/helper.ResponseWithPagination"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/definitions/model.ReportListResponse"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "429": {
+                        "description": "Too Many Requests",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    }
+                }
             }
         },
         "/api/admin/reports/{reportID}": {
             "get": {
-                "description": "Get detailed information about a report including evidence snapshot. Requires Admin privileges.",
-                "parameters": [
-                    {
-                        "description": "Report ID (UUID)",
-                        "in": "path",
-                        "name": "reportID",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                ],
-                "requestBody": {
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "type": "object"
-                            }
-                        }
-                    }
-                },
-                "responses": {
-                    "200": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "allOf": [
-                                        {
-                                            "$ref": "#/components/schemas/data"
-                                        }
-                                    ],
-                                    "properties": {
-                                        "data": {}
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        },
-                        "description": "OK"
-                    },
-                    "400": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Bad Request"
-                    },
-                    "403": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Forbidden"
-                    },
-                    "404": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Not Found"
-                    },
-                    "429": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Too Many Requests"
-                    },
-                    "500": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Internal Server Error"
-                    }
-                },
                 "security": [
                     {
                         "BearerAuth": []
                     }
                 ],
-                "summary": "Get Report Detail",
+                "description": "Get detailed information about a report including evidence snapshot. Requires Admin privileges.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
                 "tags": [
                     "admin"
-                ]
+                ],
+                "summary": "Get Report Detail",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Report ID (UUID)",
+                        "name": "reportID",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/helper.ResponseSuccess"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/model.ReportDetailResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "429": {
+                        "description": "Too Many Requests",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    }
+                }
             }
         },
         "/api/admin/reports/{reportID}/resolve": {
             "put": {
-                "description": "Update the status of a report (e.g., to resolved or rejected). Requires Admin privileges.",
-                "parameters": [
-                    {
-                        "description": "Report ID (UUID)",
-                        "in": "path",
-                        "name": "reportID",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                ],
-                "requestBody": {
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "oneOf": [
-                                    {
-                                        "type": "object"
-                                    },
-                                    {
-                                        "$ref": "#/components/schemas/model.ResolveReportRequest",
-                                        "summary": "request",
-                                        "description": "Resolve Request"
-                                    }
-                                ]
-                            }
-                        }
-                    },
-                    "description": "Resolve Request",
-                    "required": true
-                },
-                "responses": {
-                    "200": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseSuccess"
-                                }
-                            }
-                        },
-                        "description": "OK"
-                    },
-                    "400": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Bad Request"
-                    },
-                    "403": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Forbidden"
-                    },
-                    "404": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Not Found"
-                    },
-                    "429": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Too Many Requests"
-                    },
-                    "500": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Internal Server Error"
-                    }
-                },
                 "security": [
                     {
                         "BearerAuth": []
                     }
                 ],
-                "summary": "Resolve Report",
+                "description": "Update the status of a report (e.g., to resolved or rejected). Requires Admin privileges.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
                 "tags": [
                     "admin"
-                ]
+                ],
+                "summary": "Resolve Report",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Report ID (UUID)",
+                        "name": "reportID",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Resolve Request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.ResolveReportRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseSuccess"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "429": {
+                        "description": "Too Many Requests",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    }
+                }
             }
         },
         "/api/admin/users": {
             "get": {
-                "description": "Get paginated list of users with optional filtering. Requires Admin.",
-                "parameters": [
-                    {
-                        "description": "Search query (username, email, or full name)",
-                        "in": "query",
-                        "name": "query",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "description": "Filter by role (user, admin)",
-                        "in": "query",
-                        "name": "role",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "description": "Limit (default 20)",
-                        "in": "query",
-                        "name": "limit",
-                        "schema": {
-                            "type": "integer"
-                        }
-                    }
-                ],
-                "requestBody": {
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "type": "object"
-                            }
-                        }
-                    }
-                },
-                "responses": {
-                    "200": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "allOf": [
-                                        {
-                                            "$ref": "#/components/schemas/data"
-                                        }
-                                    ],
-                                    "properties": {
-                                        "data": {},
-                                        "meta": {
-                                            "$ref": "#/components/schemas/helper.PaginationMeta"
-                                        }
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        },
-                        "description": "OK"
-                    },
-                    "403": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Forbidden"
-                    },
-                    "500": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Internal Server Error"
-                    }
-                },
                 "security": [
                     {
                         "BearerAuth": []
                     }
                 ],
-                "summary": "Get Users List",
+                "description": "Get paginated list of users with optional filtering. Requires Admin.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
                 "tags": [
                     "admin"
-                ]
+                ],
+                "summary": "Get Users List",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Search query (username, email, or full name)",
+                        "name": "query",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by role (user, admin)",
+                        "name": "role",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Limit (default 20)",
+                        "name": "limit",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/helper.ResponseWithPagination"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/definitions/model.AdminUserListResponse"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    }
+                }
             }
         },
         "/api/admin/users/ban": {
             "post": {
-                "description": "Ban a user permanently or temporarily. Requires Admin privileges.",
-                "requestBody": {
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "oneOf": [
-                                    {
-                                        "type": "object"
-                                    },
-                                    {
-                                        "$ref": "#/components/schemas/model.BanUserRequest",
-                                        "summary": "request",
-                                        "description": "Ban Request"
-                                    }
-                                ]
-                            }
-                        }
-                    },
-                    "description": "Ban Request",
-                    "required": true
-                },
-                "responses": {
-                    "200": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseSuccess"
-                                }
-                            }
-                        },
-                        "description": "OK"
-                    },
-                    "400": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Bad Request"
-                    },
-                    "403": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Forbidden"
-                    },
-                    "404": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Not Found"
-                    },
-                    "429": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Too Many Requests"
-                    },
-                    "500": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Internal Server Error"
-                    }
-                },
                 "security": [
                     {
                         "BearerAuth": []
                     }
                 ],
-                "summary": "Ban User",
+                "description": "Ban a user permanently or temporarily. Requires Admin privileges.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
                 "tags": [
                     "admin"
-                ]
+                ],
+                "summary": "Ban User",
+                "parameters": [
+                    {
+                        "description": "Ban Request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.BanUserRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseSuccess"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "429": {
+                        "description": "Too Many Requests",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    }
+                }
             }
         },
         "/api/admin/users/{userID}": {
             "get": {
-                "description": "Get detailed user info including stats. Requires Admin.",
-                "parameters": [
-                    {
-                        "description": "User ID",
-                        "in": "path",
-                        "name": "userID",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                ],
-                "requestBody": {
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "type": "object"
-                            }
-                        }
-                    }
-                },
-                "responses": {
-                    "200": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "allOf": [
-                                        {
-                                            "$ref": "#/components/schemas/data"
-                                        }
-                                    ],
-                                    "properties": {
-                                        "data": {}
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        },
-                        "description": "OK"
-                    },
-                    "400": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Bad Request"
-                    },
-                    "404": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Not Found"
-                    }
-                },
                 "security": [
                     {
                         "BearerAuth": []
                     }
                 ],
-                "summary": "Get User Detail",
+                "description": "Get detailed user info including stats. Requires Admin.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
                 "tags": [
                     "admin"
-                ]
+                ],
+                "summary": "Get User Detail",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "User ID",
+                        "name": "userID",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/helper.ResponseSuccess"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/model.AdminUserDetailResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    }
+                }
             }
         },
         "/api/admin/users/{userID}/reset": {
             "post": {
-                "description": "Reset user's avatar, bio, or name. Requires Admin.",
-                "parameters": [
-                    {
-                        "description": "User ID",
-                        "in": "path",
-                        "name": "userID",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                ],
-                "requestBody": {
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "oneOf": [
-                                    {
-                                        "type": "object"
-                                    },
-                                    {
-                                        "$ref": "#/components/schemas/model.ResetUserInfoRequest",
-                                        "summary": "req",
-                                        "description": "Reset Request"
-                                    }
-                                ]
-                            }
-                        }
-                    },
-                    "description": "Reset Request",
-                    "required": true
-                },
-                "responses": {
-                    "200": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseSuccess"
-                                }
-                            }
-                        },
-                        "description": "OK"
-                    },
-                    "400": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Bad Request"
-                    },
-                    "500": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Internal Server Error"
-                    }
-                },
                 "security": [
                     {
                         "BearerAuth": []
                     }
                 ],
-                "summary": "Reset User Info",
+                "description": "Reset user's avatar, bio, or name. Requires Admin.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
                 "tags": [
                     "admin"
-                ]
+                ],
+                "summary": "Reset User Info",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "User ID",
+                        "name": "userID",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Reset Request",
+                        "name": "req",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.ResetUserInfoRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseSuccess"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    }
+                }
             }
         },
         "/api/admin/users/{userID}/unban": {
             "post": {
-                "description": "Lift a ban from a user. Requires Admin privileges.",
-                "parameters": [
-                    {
-                        "description": "User ID (UUID)",
-                        "in": "path",
-                        "name": "userID",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                ],
-                "requestBody": {
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "type": "object"
-                            }
-                        }
-                    }
-                },
-                "responses": {
-                    "200": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseSuccess"
-                                }
-                            }
-                        },
-                        "description": "OK"
-                    },
-                    "400": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Bad Request"
-                    },
-                    "403": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Forbidden"
-                    },
-                    "404": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Not Found"
-                    },
-                    "429": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Too Many Requests"
-                    },
-                    "500": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Internal Server Error"
-                    }
-                },
                 "security": [
                     {
                         "BearerAuth": []
                     }
                 ],
-                "summary": "Unban User",
+                "description": "Lift a ban from a user. Requires Admin privileges.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
                 "tags": [
                     "admin"
-                ]
+                ],
+                "summary": "Unban User",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "User ID (UUID)",
+                        "name": "userID",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseSuccess"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "429": {
+                        "description": "Too Many Requests",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    }
+                }
             }
         },
         "/api/auth/google": {
             "post": {
                 "description": "Exchange Google ID Token for App Token and User Info",
-                "requestBody": {
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "oneOf": [
-                                    {
-                                        "type": "object"
-                                    },
-                                    {
-                                        "$ref": "#/components/schemas/model.GoogleLoginRequest",
-                                        "summary": "request",
-                                        "description": "Google Login Request"
-                                    }
-                                ]
-                            }
-                        }
-                    },
-                    "description": "Google Login Request",
-                    "required": true
-                },
-                "responses": {
-                    "200": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "allOf": [
-                                        {
-                                            "$ref": "#/components/schemas/data"
-                                        }
-                                    ],
-                                    "properties": {
-                                        "data": {}
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        },
-                        "description": "OK"
-                    },
-                    "400": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Bad Request"
-                    },
-                    "429": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Too Many Requests"
-                    },
-                    "500": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Internal Server Error"
-                    }
-                },
-                "summary": "Google Exchange",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
                 "tags": [
                     "auth"
-                ]
+                ],
+                "summary": "Google Exchange",
+                "parameters": [
+                    {
+                        "description": "Google Login Request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.GoogleLoginRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/helper.ResponseSuccess"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/model.AuthResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "429": {
+                        "description": "Too Many Requests",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    }
+                }
             }
         },
         "/api/auth/login": {
             "post": {
                 "description": "Login with email and password",
-                "requestBody": {
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "oneOf": [
-                                    {
-                                        "type": "object"
-                                    },
-                                    {
-                                        "$ref": "#/components/schemas/model.LoginRequest",
-                                        "summary": "request",
-                                        "description": "Login Request"
-                                    }
-                                ]
-                            }
-                        }
-                    },
-                    "description": "Login Request",
-                    "required": true
-                },
-                "responses": {
-                    "200": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "allOf": [
-                                        {
-                                            "$ref": "#/components/schemas/data"
-                                        }
-                                    ],
-                                    "properties": {
-                                        "data": {}
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        },
-                        "description": "OK"
-                    },
-                    "400": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Bad Request"
-                    },
-                    "401": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Unauthorized"
-                    },
-                    "429": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Too Many Requests"
-                    },
-                    "500": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Internal Server Error"
-                    }
-                },
-                "summary": "Login",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
                 "tags": [
                     "auth"
-                ]
+                ],
+                "summary": "Login",
+                "parameters": [
+                    {
+                        "description": "Login Request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.LoginRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/helper.ResponseSuccess"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/model.AuthResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "429": {
+                        "description": "Too Many Requests",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    }
+                }
             }
         },
         "/api/auth/logout": {
             "post": {
-                "description": "Invalidate the current access token and disconnect WebSocket.",
-                "requestBody": {
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "type": "object"
-                            }
-                        }
-                    }
-                },
-                "responses": {
-                    "200": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseSuccess"
-                                }
-                            }
-                        },
-                        "description": "OK"
-                    },
-                    "401": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Unauthorized"
-                    },
-                    "429": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Too Many Requests"
-                    },
-                    "500": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Internal Server Error"
-                    }
-                },
                 "security": [
                     {
                         "BearerAuth": []
                     }
                 ],
-                "summary": "Logout",
+                "description": "Invalidate the current access token and disconnect WebSocket.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
                 "tags": [
                     "auth"
-                ]
+                ],
+                "summary": "Logout",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseSuccess"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "429": {
+                        "description": "Too Many Requests",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    }
+                }
             }
         },
         "/api/auth/register": {
             "post": {
                 "description": "Register a new user with email, password, and OTP verification.",
-                "requestBody": {
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "oneOf": [
-                                    {
-                                        "type": "object"
-                                    },
-                                    {
-                                        "$ref": "#/components/schemas/model.RegisterUserRequest",
-                                        "summary": "request",
-                                        "description": "Register User Request"
-                                    }
-                                ]
-                            }
-                        }
-                    },
-                    "description": "Register User Request",
-                    "required": true
-                },
-                "responses": {
-                    "200": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "allOf": [
-                                        {
-                                            "$ref": "#/components/schemas/data"
-                                        }
-                                    ],
-                                    "properties": {
-                                        "data": {}
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        },
-                        "description": "OK"
-                    },
-                    "400": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Bad Request"
-                    },
-                    "409": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Conflict"
-                    },
-                    "429": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Too Many Requests"
-                    },
-                    "500": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Internal Server Error"
-                    }
-                },
-                "summary": "Register User",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
                 "tags": [
                     "auth"
-                ]
+                ],
+                "summary": "Register User",
+                "parameters": [
+                    {
+                        "description": "Register User Request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.RegisterUserRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/helper.ResponseSuccess"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/model.AuthResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "429": {
+                        "description": "Too Many Requests",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    }
+                }
             }
         },
         "/api/auth/reset-password": {
             "post": {
                 "description": "Reset user password using OTP verification.",
-                "requestBody": {
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "oneOf": [
-                                    {
-                                        "type": "object"
-                                    },
-                                    {
-                                        "$ref": "#/components/schemas/model.ResetPasswordRequest",
-                                        "summary": "request",
-                                        "description": "Reset Password Request"
-                                    }
-                                ]
-                            }
-                        }
-                    },
-                    "description": "Reset Password Request",
-                    "required": true
-                },
-                "responses": {
-                    "200": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseSuccess"
-                                }
-                            }
-                        },
-                        "description": "OK"
-                    },
-                    "400": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Bad Request"
-                    },
-                    "404": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Not Found"
-                    },
-                    "429": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Too Many Requests"
-                    },
-                    "500": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Internal Server Error"
-                    }
-                },
-                "summary": "Reset Password",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
                 "tags": [
                     "auth"
-                ]
+                ],
+                "summary": "Reset Password",
+                "parameters": [
+                    {
+                        "description": "Reset Password Request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.ResetPasswordRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseSuccess"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "429": {
+                        "description": "Too Many Requests",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    }
+                }
             }
         },
         "/api/chats": {
             "get": {
-                "description": "Get a paginated list of user's chats, sorted by last message time. Can be searched.",
-                "parameters": [
-                    {
-                        "description": "Search query for chat name",
-                        "in": "query",
-                        "name": "query",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "description": "Pagination cursor",
-                        "in": "query",
-                        "name": "cursor",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "description": "Number of items per page (default 20, max 50)",
-                        "in": "query",
-                        "name": "limit",
-                        "schema": {
-                            "type": "integer"
-                        }
-                    }
-                ],
-                "requestBody": {
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "type": "object"
-                            }
-                        }
-                    }
-                },
-                "responses": {
-                    "200": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "allOf": [
-                                        {
-                                            "$ref": "#/components/schemas/data"
-                                        }
-                                    ],
-                                    "properties": {
-                                        "data": {},
-                                        "meta": {
-                                            "$ref": "#/components/schemas/helper.PaginationMeta"
-                                        }
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        },
-                        "description": "OK"
-                    },
-                    "400": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Bad Request"
-                    },
-                    "401": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Unauthorized"
-                    },
-                    "429": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Too Many Requests"
-                    },
-                    "500": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Internal Server Error"
-                    }
-                },
                 "security": [
                     {
                         "BearerAuth": []
                     }
                 ],
-                "summary": "Get Chat List",
+                "description": "Get a paginated list of user's chats, sorted by last message time. Can be searched.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
                 "tags": [
                     "chat"
-                ]
+                ],
+                "summary": "Get Chat List",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Search query for chat name",
+                        "name": "query",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Pagination cursor",
+                        "name": "cursor",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Number of items per page (default 20, max 50)",
+                        "name": "limit",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/helper.ResponseWithPagination"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/definitions/model.ChatListResponse"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "429": {
+                        "description": "Too Many Requests",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    }
+                }
             }
         },
         "/api/chats/group": {
             "post": {
-                "description": "Create a new group chat with multiple members and an optional avatar.",
-                "requestBody": {
-                    "content": {
-                        "application/x-www-form-urlencoded": {
-                            "schema": {
-                                "oneOf": [
-                                    {
-                                        "title": "name",
-                                        "type": "string"
-                                    },
-                                    {
-                                        "title": "description",
-                                        "type": "string"
-                                    },
-                                    {
-                                        "title": "member_ids",
-                                        "type": "string"
-                                    },
-                                    {
-                                        "title": "avatar",
-                                        "type": "file"
-                                    },
-                                    {
-                                        "title": "is_public",
-                                        "type": "boolean"
-                                    }
-                                ]
-                            }
-                        },
-                        "multipart/form-data": {
-                            "schema": {
-                                "type": "object"
-                            }
-                        }
-                    },
-                    "description": "Group Name | Group Description | JSON Array of Member IDs (UUIDs) | Group Avatar Image | Is Public Group"
-                },
-                "responses": {
-                    "200": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "allOf": [
-                                        {
-                                            "$ref": "#/components/schemas/data"
-                                        }
-                                    ],
-                                    "properties": {
-                                        "data": {}
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        },
-                        "description": "OK"
-                    },
-                    "400": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Bad Request"
-                    },
-                    "401": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Unauthorized"
-                    },
-                    "403": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Forbidden"
-                    },
-                    "429": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Too Many Requests"
-                    },
-                    "500": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Internal Server Error"
-                    }
-                },
                 "security": [
                     {
                         "BearerAuth": []
                     }
                 ],
-                "summary": "Create Group Chat",
+                "description": "Create a new group chat with multiple members and an optional avatar.",
+                "consumes": [
+                    "multipart/form-data"
+                ],
+                "produces": [
+                    "application/json"
+                ],
                 "tags": [
                     "chat"
-                ]
+                ],
+                "summary": "Create Group Chat",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Group Name",
+                        "name": "name",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Group Description",
+                        "name": "description",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "description": "JSON Array of Member IDs (UUIDs)",
+                        "name": "member_ids",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "file",
+                        "description": "Group Avatar Image",
+                        "name": "avatar",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "Is Public Group",
+                        "name": "is_public",
+                        "in": "formData"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/helper.ResponseSuccess"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/model.ChatListResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "429": {
+                        "description": "Too Many Requests",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    }
+                }
             }
         },
         "/api/chats/group/invite/{inviteCode}": {
             "get": {
                 "description": "Get basic group info using an invite code. Useful for previewing before joining.",
-                "parameters": [
-                    {
-                        "description": "Invite Code",
-                        "in": "path",
-                        "name": "inviteCode",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
+                "consumes": [
+                    "application/json"
                 ],
-                "requestBody": {
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "type": "object"
-                            }
-                        }
-                    }
-                },
-                "responses": {
-                    "200": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "allOf": [
-                                        {
-                                            "$ref": "#/components/schemas/data"
-                                        }
-                                    ],
-                                    "properties": {
-                                        "data": {}
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        },
-                        "description": "OK"
-                    },
-                    "400": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Bad Request"
-                    },
-                    "404": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Not Found"
-                    },
-                    "429": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Too Many Requests"
-                    },
-                    "500": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Internal Server Error"
-                    }
-                },
-                "summary": "Get Group Preview by Invite Code",
+                "produces": [
+                    "application/json"
+                ],
                 "tags": [
                     "chat"
-                ]
+                ],
+                "summary": "Get Group Preview by Invite Code",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Invite Code",
+                        "name": "inviteCode",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/helper.ResponseSuccess"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/model.GroupPreviewDTO"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "429": {
+                        "description": "Too Many Requests",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    }
+                }
             }
         },
         "/api/chats/group/join/invite": {
             "post": {
-                "description": "Join a private or public group using an invite code.",
-                "requestBody": {
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "oneOf": [
-                                    {
-                                        "type": "object"
-                                    },
-                                    {
-                                        "$ref": "#/components/schemas/model.JoinGroupByInviteRequest",
-                                        "summary": "request",
-                                        "description": "Join Request"
-                                    }
-                                ]
-                            }
-                        }
-                    },
-                    "description": "Join Request",
-                    "required": true
-                },
-                "responses": {
-                    "200": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "allOf": [
-                                        {
-                                            "$ref": "#/components/schemas/data"
-                                        }
-                                    ],
-                                    "properties": {
-                                        "data": {}
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        },
-                        "description": "OK"
-                    },
-                    "400": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Bad Request"
-                    },
-                    "401": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Unauthorized"
-                    },
-                    "404": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Not Found"
-                    },
-                    "429": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Too Many Requests"
-                    },
-                    "500": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Internal Server Error"
-                    }
-                },
                 "security": [
                     {
                         "BearerAuth": []
                     }
                 ],
-                "summary": "Join Group by Invite Code",
+                "description": "Join a private or public group using an invite code.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
                 "tags": [
                     "chat"
-                ]
+                ],
+                "summary": "Join Group by Invite Code",
+                "parameters": [
+                    {
+                        "description": "Join Request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.JoinGroupByInviteRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/helper.ResponseSuccess"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/model.ChatListResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "429": {
+                        "description": "Too Many Requests",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    }
+                }
             }
         },
         "/api/chats/group/public": {
             "get": {
-                "description": "Search for public groups by name or description.",
-                "parameters": [
-                    {
-                        "description": "Search query",
-                        "in": "query",
-                        "name": "query",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "description": "Pagination cursor",
-                        "in": "query",
-                        "name": "cursor",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "description": "Number of items per page (default 20, max 50)",
-                        "in": "query",
-                        "name": "limit",
-                        "schema": {
-                            "type": "integer"
-                        }
-                    }
-                ],
-                "requestBody": {
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "type": "object"
-                            }
-                        }
-                    }
-                },
-                "responses": {
-                    "200": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "allOf": [
-                                        {
-                                            "$ref": "#/components/schemas/data"
-                                        }
-                                    ],
-                                    "properties": {
-                                        "data": {},
-                                        "meta": {
-                                            "$ref": "#/components/schemas/helper.PaginationMeta"
-                                        }
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        },
-                        "description": "OK"
-                    },
-                    "400": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Bad Request"
-                    },
-                    "401": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Unauthorized"
-                    },
-                    "429": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Too Many Requests"
-                    },
-                    "500": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Internal Server Error"
-                    }
-                },
                 "security": [
                     {
                         "BearerAuth": []
                     }
                 ],
-                "summary": "Search Public Groups",
+                "description": "Search for public groups by name or description.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
                 "tags": [
                     "chat"
-                ]
+                ],
+                "summary": "Search Public Groups",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Search query",
+                        "name": "query",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Pagination cursor",
+                        "name": "cursor",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Number of items per page (default 20, max 50)",
+                        "name": "limit",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/helper.ResponseWithPagination"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/definitions/model.PublicGroupDTO"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "429": {
+                        "description": "Too Many Requests",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    }
+                }
             }
         },
         "/api/chats/group/{groupID}": {
-            "delete": {
-                "description": "Soft delete a group chat. Only owner can perform this action.",
-                "parameters": [
-                    {
-                        "description": "Group Chat ID (UUID)",
-                        "in": "path",
-                        "name": "groupID",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                ],
-                "requestBody": {
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "type": "object"
-                            }
-                        }
-                    }
-                },
-                "responses": {
-                    "200": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseSuccess"
-                                }
-                            }
-                        },
-                        "description": "OK"
-                    },
-                    "400": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Bad Request"
-                    },
-                    "401": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Unauthorized"
-                    },
-                    "403": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Forbidden"
-                    },
-                    "404": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Not Found"
-                    },
-                    "429": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Too Many Requests"
-                    },
-                    "500": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Internal Server Error"
-                    }
-                },
+            "put": {
                 "security": [
                     {
                         "BearerAuth": []
                     }
                 ],
-                "summary": "Delete Group",
+                "description": "Update group name, description, avatar, or visibility. Only owners or admins can perform this action.",
+                "consumes": [
+                    "multipart/form-data"
+                ],
+                "produces": [
+                    "application/json"
+                ],
                 "tags": [
                     "chat"
-                ]
-            },
-            "put": {
-                "description": "Update group name, description, avatar, or visibility. Only owners or admins can perform this action.",
-                "parameters": [
-                    {
-                        "description": "Group Chat ID (UUID)",
-                        "in": "path",
-                        "name": "groupID",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                ],
-                "requestBody": {
-                    "content": {
-                        "application/x-www-form-urlencoded": {
-                            "schema": {
-                                "oneOf": [
-                                    {
-                                        "title": "name",
-                                        "type": "string"
-                                    },
-                                    {
-                                        "title": "description",
-                                        "type": "string"
-                                    },
-                                    {
-                                        "title": "avatar",
-                                        "type": "file"
-                                    },
-                                    {
-                                        "title": "delete_avatar",
-                                        "type": "boolean"
-                                    },
-                                    {
-                                        "title": "is_public",
-                                        "type": "boolean"
-                                    }
-                                ]
-                            }
-                        },
-                        "multipart/form-data": {
-                            "schema": {
-                                "type": "object"
-                            }
-                        }
-                    },
-                    "description": "Group Name | Group Description | Group Avatar Image | Delete Avatar (Set to true to delete current avatar) | Is Public Group"
-                },
-                "responses": {
-                    "200": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "allOf": [
-                                        {
-                                            "$ref": "#/components/schemas/data"
-                                        }
-                                    ],
-                                    "properties": {
-                                        "data": {}
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        },
-                        "description": "OK"
-                    },
-                    "400": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Bad Request"
-                    },
-                    "401": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Unauthorized"
-                    },
-                    "403": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Forbidden"
-                    },
-                    "404": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Not Found"
-                    },
-                    "429": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Too Many Requests"
-                    },
-                    "500": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Internal Server Error"
-                    }
-                },
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
                 ],
                 "summary": "Update Group Chat Info",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Group Chat ID (UUID)",
+                        "name": "groupID",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Group Name",
+                        "name": "name",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Group Description",
+                        "name": "description",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "file",
+                        "description": "Group Avatar Image",
+                        "name": "avatar",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "Delete Avatar (Set to true to delete current avatar)",
+                        "name": "delete_avatar",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "Is Public Group",
+                        "name": "is_public",
+                        "in": "formData"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/helper.ResponseSuccess"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/model.ChatListResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "429": {
+                        "description": "Too Many Requests",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Soft delete a group chat. Only owner can perform this action.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
                 "tags": [
                     "chat"
-                ]
+                ],
+                "summary": "Delete Group",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Group Chat ID (UUID)",
+                        "name": "groupID",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseSuccess"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "429": {
+                        "description": "Too Many Requests",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    }
+                }
             }
         },
         "/api/chats/group/{groupID}/invite": {
             "put": {
-                "description": "Reset the invite code for a group. Only admins or owners can perform this action.",
-                "parameters": [
-                    {
-                        "description": "Group Chat ID (UUID)",
-                        "in": "path",
-                        "name": "groupID",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                ],
-                "requestBody": {
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "type": "object"
-                            }
-                        }
-                    }
-                },
-                "responses": {
-                    "200": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "allOf": [
-                                        {
-                                            "$ref": "#/components/schemas/data"
-                                        }
-                                    ],
-                                    "properties": {
-                                        "data": {}
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        },
-                        "description": "OK"
-                    },
-                    "400": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Bad Request"
-                    },
-                    "401": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Unauthorized"
-                    },
-                    "403": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Forbidden"
-                    },
-                    "404": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Not Found"
-                    },
-                    "429": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Too Many Requests"
-                    },
-                    "500": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Internal Server Error"
-                    }
-                },
                 "security": [
                     {
                         "BearerAuth": []
                     }
                 ],
-                "summary": "Reset Group Invite Code",
+                "description": "Reset the invite code for a group. Only admins or owners can perform this action.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
                 "tags": [
                     "chat"
-                ]
+                ],
+                "summary": "Reset Group Invite Code",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Group Chat ID (UUID)",
+                        "name": "groupID",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/helper.ResponseSuccess"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/model.GroupInviteResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "429": {
+                        "description": "Too Many Requests",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    }
+                }
             }
         },
         "/api/chats/group/{groupID}/join": {
             "post": {
-                "description": "Join a public group chat.",
-                "parameters": [
-                    {
-                        "description": "Group Chat ID (UUID)",
-                        "in": "path",
-                        "name": "groupID",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                ],
-                "requestBody": {
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "type": "object"
-                            }
-                        }
-                    }
-                },
-                "responses": {
-                    "200": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "allOf": [
-                                        {
-                                            "$ref": "#/components/schemas/data"
-                                        }
-                                    ],
-                                    "properties": {
-                                        "data": {}
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        },
-                        "description": "OK"
-                    },
-                    "400": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Bad Request"
-                    },
-                    "401": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Unauthorized"
-                    },
-                    "403": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Forbidden"
-                    },
-                    "404": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Not Found"
-                    },
-                    "409": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Conflict"
-                    },
-                    "429": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Too Many Requests"
-                    },
-                    "500": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Internal Server Error"
-                    }
-                },
                 "security": [
                     {
                         "BearerAuth": []
                     }
                 ],
-                "summary": "Join Public Group",
+                "description": "Join a public group chat.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
                 "tags": [
                     "chat"
-                ]
+                ],
+                "summary": "Join Public Group",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Group Chat ID (UUID)",
+                        "name": "groupID",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/helper.ResponseSuccess"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/model.ChatListResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "429": {
+                        "description": "Too Many Requests",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    }
+                }
             }
         },
         "/api/chats/group/{groupID}/leave": {
             "post": {
-                "description": "Leave a group chat. Owner cannot leave without transferring ownership first.",
-                "parameters": [
-                    {
-                        "description": "Group Chat ID (UUID)",
-                        "in": "path",
-                        "name": "groupID",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                ],
-                "requestBody": {
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "type": "object"
-                            }
-                        }
-                    }
-                },
-                "responses": {
-                    "200": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "allOf": [
-                                        {
-                                            "$ref": "#/components/schemas/data"
-                                        }
-                                    ],
-                                    "properties": {
-                                        "data": {}
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        },
-                        "description": "OK"
-                    },
-                    "400": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Bad Request"
-                    },
-                    "401": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Unauthorized"
-                    },
-                    "404": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Not Found"
-                    },
-                    "429": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Too Many Requests"
-                    },
-                    "500": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Internal Server Error"
-                    }
-                },
                 "security": [
                     {
                         "BearerAuth": []
                     }
                 ],
-                "summary": "Leave Group",
+                "description": "Leave a group chat. Owner cannot leave without transferring ownership first.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
                 "tags": [
                     "chat"
-                ]
+                ],
+                "summary": "Leave Group",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Group Chat ID (UUID)",
+                        "name": "groupID",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/helper.ResponseSuccess"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/model.MessageResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "429": {
+                        "description": "Too Many Requests",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    }
+                }
             }
         },
         "/api/chats/group/{groupID}/members": {
             "get": {
-                "description": "Search for members in a group chat by username or full name.",
-                "parameters": [
-                    {
-                        "description": "Group Chat ID (UUID)",
-                        "in": "path",
-                        "name": "groupID",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "description": "Search query",
-                        "in": "query",
-                        "name": "query",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "description": "Pagination cursor",
-                        "in": "query",
-                        "name": "cursor",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "description": "Number of items per page (default 20, max 50)",
-                        "in": "query",
-                        "name": "limit",
-                        "schema": {
-                            "type": "integer"
-                        }
-                    }
-                ],
-                "requestBody": {
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "type": "object"
-                            }
-                        }
-                    }
-                },
-                "responses": {
-                    "200": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "allOf": [
-                                        {
-                                            "$ref": "#/components/schemas/data"
-                                        }
-                                    ],
-                                    "properties": {
-                                        "data": {},
-                                        "meta": {
-                                            "$ref": "#/components/schemas/helper.PaginationMeta"
-                                        }
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        },
-                        "description": "OK"
-                    },
-                    "400": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Bad Request"
-                    },
-                    "401": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Unauthorized"
-                    },
-                    "403": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Forbidden"
-                    },
-                    "404": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Not Found"
-                    },
-                    "429": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Too Many Requests"
-                    },
-                    "500": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Internal Server Error"
-                    }
-                },
                 "security": [
                     {
                         "BearerAuth": []
                     }
+                ],
+                "description": "Search for members in a group chat by username or full name.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "chat"
                 ],
                 "summary": "Search Group Members",
-                "tags": [
-                    "chat"
-                ]
-            },
-            "post": {
-                "description": "Add new members to a group chat. Only owners or admins can perform this action.",
                 "parameters": [
                     {
+                        "type": "string",
                         "description": "Group Chat ID (UUID)",
-                        "in": "path",
                         "name": "groupID",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Search query",
+                        "name": "query",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Pagination cursor",
+                        "name": "cursor",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Number of items per page (default 20, max 50)",
+                        "name": "limit",
+                        "in": "query"
                     }
                 ],
-                "requestBody": {
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "oneOf": [
-                                    {
-                                        "type": "object"
-                                    },
-                                    {
-                                        "$ref": "#/components/schemas/model.AddGroupMemberRequest",
-                                        "summary": "request",
-                                        "description": "Add Member Request"
-                                    }
-                                ]
-                            }
-                        }
-                    },
-                    "description": "Add Member Request",
-                    "required": true
-                },
                 "responses": {
                     "200": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "allOf": [
-                                        {
-                                            "$ref": "#/components/schemas/data"
-                                        }
-                                    ],
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/helper.ResponseWithPagination"
+                                },
+                                {
+                                    "type": "object",
                                     "properties": {
-                                        "data": {}
-                                    },
-                                    "type": "object"
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/definitions/model.GroupMemberDTO"
+                                            }
+                                        }
+                                    }
                                 }
-                            }
-                        },
-                        "description": "OK"
+                            ]
+                        }
                     },
                     "400": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Bad Request"
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
                     },
                     "401": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Unauthorized"
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
                     },
                     "403": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Forbidden"
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
                     },
                     "404": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Not Found"
-                    },
-                    "409": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Conflict"
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
                     },
                     "429": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Too Many Requests"
+                        "description": "Too Many Requests",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
                     },
                     "500": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Internal Server Error"
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
                     }
-                },
+                }
+            },
+            "post": {
                 "security": [
                     {
                         "BearerAuth": []
                     }
                 ],
-                "summary": "Add Member to Group",
+                "description": "Add new members to a group chat. Only owners or admins can perform this action.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
                 "tags": [
                     "chat"
-                ]
+                ],
+                "summary": "Add Member to Group",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Group Chat ID (UUID)",
+                        "name": "groupID",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Add Member Request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.AddGroupMemberRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/helper.ResponseSuccess"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/definitions/model.MessageResponse"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "429": {
+                        "description": "Too Many Requests",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    }
+                }
             }
         },
         "/api/chats/group/{groupID}/members/{userID}/kick": {
             "post": {
-                "description": "Kick a member from a group chat. Only owners or admins can perform this action.",
-                "parameters": [
-                    {
-                        "description": "Group Chat ID (UUID)",
-                        "in": "path",
-                        "name": "groupID",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "description": "Target User ID (UUID)",
-                        "in": "path",
-                        "name": "userID",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                ],
-                "requestBody": {
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "type": "object"
-                            }
-                        }
-                    }
-                },
-                "responses": {
-                    "200": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "allOf": [
-                                        {
-                                            "$ref": "#/components/schemas/data"
-                                        }
-                                    ],
-                                    "properties": {
-                                        "data": {}
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        },
-                        "description": "OK"
-                    },
-                    "400": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Bad Request"
-                    },
-                    "401": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Unauthorized"
-                    },
-                    "403": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Forbidden"
-                    },
-                    "404": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Not Found"
-                    },
-                    "429": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Too Many Requests"
-                    },
-                    "500": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Internal Server Error"
-                    }
-                },
                 "security": [
                     {
                         "BearerAuth": []
                     }
                 ],
-                "summary": "Kick Member from Group",
+                "description": "Kick a member from a group chat. Only owners or admins can perform this action.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
                 "tags": [
                     "chat"
-                ]
+                ],
+                "summary": "Kick Member from Group",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Group Chat ID (UUID)",
+                        "name": "groupID",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Target User ID (UUID)",
+                        "name": "userID",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/helper.ResponseSuccess"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/model.MessageResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "429": {
+                        "description": "Too Many Requests",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    }
+                }
             }
         },
         "/api/chats/group/{groupID}/members/{userID}/role": {
             "put": {
-                "description": "Promote or demote a group member. Only owner can perform this action.",
-                "parameters": [
-                    {
-                        "description": "Group Chat ID (UUID)",
-                        "in": "path",
-                        "name": "groupID",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "description": "Target User ID (UUID)",
-                        "in": "path",
-                        "name": "userID",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                ],
-                "requestBody": {
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "oneOf": [
-                                    {
-                                        "type": "object"
-                                    },
-                                    {
-                                        "$ref": "#/components/schemas/model.UpdateGroupMemberRoleRequest",
-                                        "summary": "request",
-                                        "description": "Update Role Request"
-                                    }
-                                ]
-                            }
-                        }
-                    },
-                    "description": "Update Role Request",
-                    "required": true
-                },
-                "responses": {
-                    "200": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "allOf": [
-                                        {
-                                            "$ref": "#/components/schemas/data"
-                                        }
-                                    ],
-                                    "properties": {
-                                        "data": {}
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        },
-                        "description": "OK"
-                    },
-                    "400": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Bad Request"
-                    },
-                    "401": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Unauthorized"
-                    },
-                    "403": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Forbidden"
-                    },
-                    "404": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Not Found"
-                    },
-                    "429": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Too Many Requests"
-                    },
-                    "500": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Internal Server Error"
-                    }
-                },
                 "security": [
                     {
                         "BearerAuth": []
                     }
                 ],
-                "summary": "Update Member Role",
+                "description": "Promote or demote a group member. Only owner can perform this action.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
                 "tags": [
                     "chat"
-                ]
+                ],
+                "summary": "Update Member Role",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Group Chat ID (UUID)",
+                        "name": "groupID",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Target User ID (UUID)",
+                        "name": "userID",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Update Role Request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.UpdateGroupMemberRoleRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/helper.ResponseSuccess"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/model.MessageResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "429": {
+                        "description": "Too Many Requests",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    }
+                }
             }
         },
         "/api/chats/group/{groupID}/transfer": {
             "post": {
-                "description": "Transfer group ownership to another member. Only owner can perform this action.",
-                "parameters": [
-                    {
-                        "description": "Group Chat ID (UUID)",
-                        "in": "path",
-                        "name": "groupID",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                ],
-                "requestBody": {
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "oneOf": [
-                                    {
-                                        "type": "object"
-                                    },
-                                    {
-                                        "$ref": "#/components/schemas/model.TransferGroupOwnershipRequest",
-                                        "summary": "request",
-                                        "description": "Transfer Ownership Request"
-                                    }
-                                ]
-                            }
-                        }
-                    },
-                    "description": "Transfer Ownership Request",
-                    "required": true
-                },
-                "responses": {
-                    "200": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "allOf": [
-                                        {
-                                            "$ref": "#/components/schemas/data"
-                                        }
-                                    ],
-                                    "properties": {
-                                        "data": {}
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        },
-                        "description": "OK"
-                    },
-                    "400": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Bad Request"
-                    },
-                    "401": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Unauthorized"
-                    },
-                    "403": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Forbidden"
-                    },
-                    "404": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Not Found"
-                    },
-                    "429": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Too Many Requests"
-                    },
-                    "500": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Internal Server Error"
-                    }
-                },
                 "security": [
                     {
                         "BearerAuth": []
                     }
                 ],
-                "summary": "Transfer Ownership",
+                "description": "Transfer group ownership to another member. Only owner can perform this action.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
                 "tags": [
                     "chat"
-                ]
+                ],
+                "summary": "Transfer Ownership",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Group Chat ID (UUID)",
+                        "name": "groupID",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Transfer Ownership Request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.TransferGroupOwnershipRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/helper.ResponseSuccess"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/model.MessageResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "429": {
+                        "description": "Too Many Requests",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    }
+                }
             }
         },
         "/api/chats/private": {
             "post": {
-                "description": "Create a new private chat with another user. If it already exists, returns the existing chat.",
-                "requestBody": {
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "oneOf": [
-                                    {
-                                        "type": "object"
-                                    },
-                                    {
-                                        "$ref": "#/components/schemas/model.CreatePrivateChatRequest",
-                                        "summary": "request",
-                                        "description": "Create Private Chat Request"
-                                    }
-                                ]
-                            }
-                        }
-                    },
-                    "description": "Create Private Chat Request",
-                    "required": true
-                },
-                "responses": {
-                    "200": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "allOf": [
-                                        {
-                                            "$ref": "#/components/schemas/data"
-                                        }
-                                    ],
-                                    "properties": {
-                                        "data": {}
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        },
-                        "description": "OK"
-                    },
-                    "400": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Bad Request"
-                    },
-                    "401": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Unauthorized"
-                    },
-                    "404": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Not Found"
-                    },
-                    "429": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Too Many Requests"
-                    },
-                    "500": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Internal Server Error"
-                    }
-                },
                 "security": [
                     {
                         "BearerAuth": []
                     }
                 ],
-                "summary": "Create Private Chat",
+                "description": "Create a new private chat with another user. If it already exists, returns the existing chat.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
                 "tags": [
                     "chat"
-                ]
+                ],
+                "summary": "Create Private Chat",
+                "parameters": [
+                    {
+                        "description": "Create Private Chat Request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.CreatePrivateChatRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/helper.ResponseSuccess"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/model.ChatResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "429": {
+                        "description": "Too Many Requests",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    }
+                }
             }
         },
         "/api/chats/{chatID}/messages": {
             "get": {
-                "description": "Get a paginated list of messages from a chat. Supports bidirectional pagination and jumping to a specific message.",
-                "parameters": [
-                    {
-                        "description": "Chat ID (UUID)",
-                        "in": "path",
-                        "name": "chatID",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "description": "Pagination cursor (Base64 encoded message ID)",
-                        "in": "query",
-                        "name": "cursor",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "description": "Jump to message ID (UUID)",
-                        "in": "query",
-                        "name": "around_message_id",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "description": "Number of messages to fetch (default 20, max 50)",
-                        "in": "query",
-                        "name": "limit",
-                        "schema": {
-                            "type": "integer"
-                        }
-                    },
-                    {
-                        "description": "Pagination direction: 'older' (default) or 'newer'",
-                        "in": "query",
-                        "name": "direction",
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                ],
-                "requestBody": {
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "type": "object"
-                            }
-                        }
-                    }
-                },
-                "responses": {
-                    "200": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "allOf": [
-                                        {
-                                            "$ref": "#/components/schemas/data"
-                                        }
-                                    ],
-                                    "properties": {
-                                        "data": {},
-                                        "meta": {
-                                            "$ref": "#/components/schemas/helper.PaginationMeta"
-                                        }
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        },
-                        "description": "OK"
-                    },
-                    "400": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Bad Request"
-                    },
-                    "401": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Unauthorized"
-                    },
-                    "403": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Forbidden"
-                    },
-                    "429": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Too Many Requests"
-                    },
-                    "500": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Internal Server Error"
-                    }
-                },
                 "security": [
                     {
                         "BearerAuth": []
                     }
                 ],
-                "summary": "Get Messages",
+                "description": "Get a paginated list of messages from a chat. Supports bidirectional pagination and jumping to a specific message.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
                 "tags": [
                     "message"
-                ]
+                ],
+                "summary": "Get Messages",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Chat ID (UUID)",
+                        "name": "chatID",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Pagination cursor (Base64 encoded message ID)",
+                        "name": "cursor",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Jump to message ID (UUID)",
+                        "name": "around_message_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Number of messages to fetch (default 20, max 50)",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Pagination direction: 'older' (default) or 'newer'",
+                        "name": "direction",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/helper.ResponseWithPagination"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/definitions/model.MessageResponse"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "429": {
+                        "description": "Too Many Requests",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    }
+                }
             }
         },
         "/api/chats/{id}": {
             "get": {
-                "description": "Get detailed information about a single chat.",
-                "parameters": [
-                    {
-                        "description": "Chat ID (UUID)",
-                        "in": "path",
-                        "name": "id",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                ],
-                "requestBody": {
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "type": "object"
-                            }
-                        }
-                    }
-                },
-                "responses": {
-                    "200": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "allOf": [
-                                        {
-                                            "$ref": "#/components/schemas/data"
-                                        }
-                                    ],
-                                    "properties": {
-                                        "data": {}
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        },
-                        "description": "OK"
-                    },
-                    "400": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Bad Request"
-                    },
-                    "401": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Unauthorized"
-                    },
-                    "404": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Not Found"
-                    },
-                    "429": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Too Many Requests"
-                    },
-                    "500": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Internal Server Error"
-                    }
-                },
                 "security": [
                     {
                         "BearerAuth": []
                     }
                 ],
-                "summary": "Get Chat by ID",
+                "description": "Get detailed information about a single chat.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
                 "tags": [
                     "chat"
-                ]
+                ],
+                "summary": "Get Chat by ID",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Chat ID (UUID)",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/helper.ResponseSuccess"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/model.ChatListResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "429": {
+                        "description": "Too Many Requests",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    }
+                }
             }
         },
         "/api/chats/{id}/hide": {
             "post": {
-                "description": "Hide a private chat from the chat list. It will reappear if a new message is sent or received.",
-                "parameters": [
-                    {
-                        "description": "Chat ID (UUID)",
-                        "in": "path",
-                        "name": "id",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                ],
-                "requestBody": {
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "type": "object"
-                            }
-                        }
-                    }
-                },
-                "responses": {
-                    "200": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseSuccess"
-                                }
-                            }
-                        },
-                        "description": "OK"
-                    },
-                    "400": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Bad Request"
-                    },
-                    "401": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Unauthorized"
-                    },
-                    "404": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Not Found"
-                    },
-                    "429": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Too Many Requests"
-                    },
-                    "500": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Internal Server Error"
-                    }
-                },
                 "security": [
                     {
                         "BearerAuth": []
                     }
                 ],
-                "summary": "Hide Chat",
+                "description": "Hide a private chat from the chat list. It will reappear if a new message is sent or received.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
                 "tags": [
                     "chat"
-                ]
+                ],
+                "summary": "Hide Chat",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Chat ID (UUID)",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseSuccess"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "429": {
+                        "description": "Too Many Requests",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    }
+                }
             }
         },
         "/api/chats/{id}/read": {
             "post": {
-                "description": "Mark all messages in a chat as read for the current user.",
-                "parameters": [
-                    {
-                        "description": "Chat ID (UUID)",
-                        "in": "path",
-                        "name": "id",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                ],
-                "requestBody": {
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "type": "object"
-                            }
-                        }
-                    }
-                },
-                "responses": {
-                    "200": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseSuccess"
-                                }
-                            }
-                        },
-                        "description": "OK"
-                    },
-                    "400": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Bad Request"
-                    },
-                    "401": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Unauthorized"
-                    },
-                    "404": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Not Found"
-                    },
-                    "429": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Too Many Requests"
-                    },
-                    "500": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Internal Server Error"
-                    }
-                },
                 "security": [
                     {
                         "BearerAuth": []
                     }
                 ],
-                "summary": "Mark Chat as Read",
+                "description": "Mark all messages in a chat as read for the current user.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
                 "tags": [
                     "chat"
-                ]
+                ],
+                "summary": "Mark Chat as Read",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Chat ID (UUID)",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseSuccess"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "429": {
+                        "description": "Too Many Requests",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    }
+                }
             }
         },
         "/api/media/upload": {
             "post": {
-                "description": "Upload a file (image, video, file, audio) to be used as attachment.",
-                "requestBody": {
-                    "content": {
-                        "application/x-www-form-urlencoded": {
-                            "schema": {
-                                "title": "file",
-                                "type": "file"
-                            }
-                        },
-                        "multipart/form-data": {
-                            "schema": {
-                                "type": "object"
-                            }
-                        }
-                    },
-                    "description": "File to upload",
-                    "required": true
-                },
-                "responses": {
-                    "200": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "allOf": [
-                                        {
-                                            "$ref": "#/components/schemas/data"
-                                        }
-                                    ],
-                                    "properties": {
-                                        "data": {}
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        },
-                        "description": "OK"
-                    },
-                    "400": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Bad Request"
-                    },
-                    "401": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Unauthorized"
-                    },
-                    "429": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Too Many Requests"
-                    },
-                    "500": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Internal Server Error"
-                    }
-                },
                 "security": [
                     {
                         "BearerAuth": []
                     }
                 ],
-                "summary": "Upload Media",
+                "description": "Upload a file (image, video, file, audio) to be used as attachment.",
+                "consumes": [
+                    "multipart/form-data"
+                ],
+                "produces": [
+                    "application/json"
+                ],
                 "tags": [
                     "media"
-                ]
+                ],
+                "summary": "Upload Media",
+                "parameters": [
+                    {
+                        "type": "file",
+                        "description": "File to upload",
+                        "name": "file",
+                        "in": "formData",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/helper.ResponseSuccess"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/model.MediaDTO"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "429": {
+                        "description": "Too Many Requests",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    }
+                }
             }
         },
         "/api/media/{mediaID}/url": {
             "get": {
-                "description": "Get a new presigned URL for a media file if the previous one has expired.",
-                "parameters": [
-                    {
-                        "description": "Media ID (UUID)",
-                        "in": "path",
-                        "name": "mediaID",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                ],
-                "requestBody": {
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "type": "object"
-                            }
-                        }
-                    }
-                },
-                "responses": {
-                    "200": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "allOf": [
-                                        {
-                                            "$ref": "#/components/schemas/data"
-                                        }
-                                    ],
-                                    "properties": {
-                                        "data": {}
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        },
-                        "description": "OK"
-                    },
-                    "400": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Bad Request"
-                    },
-                    "401": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Unauthorized"
-                    },
-                    "403": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Forbidden"
-                    },
-                    "404": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Not Found"
-                    },
-                    "500": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Internal Server Error"
-                    }
-                },
                 "security": [
                     {
                         "BearerAuth": []
                     }
                 ],
-                "summary": "Refresh Media URL",
+                "description": "Get a new presigned URL for a media file if the previous one has expired.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
                 "tags": [
                     "media"
-                ]
+                ],
+                "summary": "Refresh Media URL",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Media ID (UUID)",
+                        "name": "mediaID",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/helper.ResponseSuccess"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/model.MediaURLResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    }
+                }
             }
         },
         "/api/messages": {
             "post": {
-                "description": "Send a message to a chat (private or group). Supports text and attachments (via IDs).",
-                "requestBody": {
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "oneOf": [
-                                    {
-                                        "type": "object"
-                                    },
-                                    {
-                                        "$ref": "#/components/schemas/model.SendMessageRequest",
-                                        "summary": "request",
-                                        "description": "Send Message Request"
-                                    }
-                                ]
-                            }
-                        }
-                    },
-                    "description": "Send Message Request",
-                    "required": true
-                },
-                "responses": {
-                    "200": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "allOf": [
-                                        {
-                                            "$ref": "#/components/schemas/data"
-                                        }
-                                    ],
-                                    "properties": {
-                                        "data": {}
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        },
-                        "description": "OK"
-                    },
-                    "400": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Bad Request"
-                    },
-                    "401": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Unauthorized"
-                    },
-                    "404": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Not Found"
-                    },
-                    "429": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Too Many Requests"
-                    },
-                    "500": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Internal Server Error"
-                    }
-                },
                 "security": [
                     {
                         "BearerAuth": []
                     }
                 ],
-                "summary": "Send Message",
+                "description": "Send a message to a chat (private or group). Supports text and attachments (via IDs).",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
                 "tags": [
                     "message"
-                ]
+                ],
+                "summary": "Send Message",
+                "parameters": [
+                    {
+                        "description": "Send Message Request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.SendMessageRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/helper.ResponseSuccess"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/model.MessageResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "429": {
+                        "description": "Too Many Requests",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    }
+                }
             }
         },
         "/api/messages/{messageID}": {
-            "delete": {
-                "description": "Soft delete a message. Only the sender can delete their own message.",
-                "parameters": [
-                    {
-                        "description": "Message ID (UUID)",
-                        "in": "path",
-                        "name": "messageID",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                ],
-                "requestBody": {
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "type": "object"
-                            }
-                        }
-                    }
-                },
-                "responses": {
-                    "200": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseSuccess"
-                                }
-                            }
-                        },
-                        "description": "OK"
-                    },
-                    "400": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Bad Request"
-                    },
-                    "401": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Unauthorized"
-                    },
-                    "403": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Forbidden"
-                    },
-                    "404": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Not Found"
-                    },
-                    "429": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Too Many Requests"
-                    },
-                    "500": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Internal Server Error"
-                    }
-                },
+            "put": {
                 "security": [
                     {
                         "BearerAuth": []
                     }
                 ],
-                "summary": "Delete Message",
+                "description": "Edit a message's content and/or attachments.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
                 "tags": [
                     "message"
-                ]
-            },
-            "put": {
-                "description": "Edit a message's content and/or attachments.",
-                "parameters": [
-                    {
-                        "description": "Message ID (UUID)",
-                        "in": "path",
-                        "name": "messageID",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                ],
-                "requestBody": {
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "oneOf": [
-                                    {
-                                        "type": "object"
-                                    },
-                                    {
-                                        "$ref": "#/components/schemas/model.EditMessageRequest",
-                                        "summary": "request",
-                                        "description": "Edit Message Request"
-                                    }
-                                ]
-                            }
-                        }
-                    },
-                    "description": "Edit Message Request",
-                    "required": true
-                },
-                "responses": {
-                    "200": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "allOf": [
-                                        {
-                                            "$ref": "#/components/schemas/data"
-                                        }
-                                    ],
-                                    "properties": {
-                                        "data": {}
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        },
-                        "description": "OK"
-                    },
-                    "400": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Bad Request"
-                    },
-                    "401": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Unauthorized"
-                    },
-                    "403": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Forbidden"
-                    },
-                    "404": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Not Found"
-                    },
-                    "429": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Too Many Requests"
-                    },
-                    "500": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Internal Server Error"
-                    }
-                },
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
                 ],
                 "summary": "Edit Message",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Message ID (UUID)",
+                        "name": "messageID",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Edit Message Request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.EditMessageRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/helper.ResponseSuccess"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/model.MessageResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "429": {
+                        "description": "Too Many Requests",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Soft delete a message. Only the sender can delete their own message.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
                 "tags": [
                     "message"
-                ]
+                ],
+                "summary": "Delete Message",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Message ID (UUID)",
+                        "name": "messageID",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseSuccess"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "429": {
+                        "description": "Too Many Requests",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    }
+                }
             }
         },
         "/api/otp/send": {
             "post": {
                 "description": "Sends an OTP code to the user's email for registration or password reset.",
-                "requestBody": {
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "oneOf": [
-                                    {
-                                        "type": "object"
-                                    },
-                                    {
-                                        "$ref": "#/components/schemas/model.SendOTPRequest",
-                                        "summary": "request",
-                                        "description": "Send OTP Request"
-                                    }
-                                ]
-                            }
-                        }
-                    },
-                    "description": "Send OTP Request",
-                    "required": true
-                },
-                "responses": {
-                    "200": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseSuccess"
-                                }
-                            }
-                        },
-                        "description": "OK"
-                    },
-                    "400": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Bad Request"
-                    },
-                    "404": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Not Found"
-                    },
-                    "409": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Conflict"
-                    },
-                    "429": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Too Many Requests"
-                    },
-                    "500": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Internal Server Error"
-                    }
-                },
-                "summary": "Send OTP",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
                 "tags": [
                     "otp"
-                ]
+                ],
+                "summary": "Send OTP",
+                "parameters": [
+                    {
+                        "description": "Send OTP Request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.SendOTPRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseSuccess"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "429": {
+                        "description": "Too Many Requests",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    }
+                }
             }
         },
         "/api/reports": {
             "post": {
-                "description": "Report a message, group, or user. Server will automatically snapshot the evidence.",
-                "requestBody": {
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "oneOf": [
-                                    {
-                                        "type": "object"
-                                    },
-                                    {
-                                        "$ref": "#/components/schemas/model.CreateReportRequest",
-                                        "summary": "request",
-                                        "description": "Report Request"
-                                    }
-                                ]
-                            }
-                        }
-                    },
-                    "description": "Report Request",
-                    "required": true
-                },
-                "responses": {
-                    "200": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseSuccess"
-                                }
-                            }
-                        },
-                        "description": "OK"
-                    },
-                    "400": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Bad Request"
-                    },
-                    "401": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Unauthorized"
-                    },
-                    "404": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Not Found"
-                    },
-                    "429": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Too Many Requests"
-                    },
-                    "500": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Internal Server Error"
-                    }
-                },
                 "security": [
                     {
                         "BearerAuth": []
                     }
                 ],
-                "summary": "Create Report",
+                "description": "Report a message, group, or user. Server will automatically snapshot the evidence.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
                 "tags": [
                     "report"
-                ]
+                ],
+                "summary": "Create Report",
+                "parameters": [
+                    {
+                        "description": "Report Request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.CreateReportRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseSuccess"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "429": {
+                        "description": "Too Many Requests",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    }
+                }
             }
         },
         "/api/user/current": {
             "get": {
-                "description": "Get the currently logged-in user's profile.",
-                "requestBody": {
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "type": "object"
-                            }
-                        }
-                    }
-                },
-                "responses": {
-                    "200": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "allOf": [
-                                        {
-                                            "$ref": "#/components/schemas/data"
-                                        }
-                                    ],
-                                    "properties": {
-                                        "data": {}
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        },
-                        "description": "OK"
-                    },
-                    "401": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Unauthorized"
-                    },
-                    "429": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Too Many Requests"
-                    },
-                    "500": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Internal Server Error"
-                    }
-                },
                 "security": [
                     {
                         "BearerAuth": []
                     }
                 ],
-                "summary": "Get Current User",
+                "description": "Get the currently logged-in user's profile.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
                 "tags": [
                     "user"
-                ]
+                ],
+                "summary": "Get Current User",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/helper.ResponseSuccess"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/model.UserDTO"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "429": {
+                        "description": "Too Many Requests",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    }
+                }
             }
         },
         "/api/user/profile": {
             "put": {
-                "description": "Update user's full name, bio, and avatar.",
-                "requestBody": {
-                    "content": {
-                        "application/x-www-form-urlencoded": {
-                            "schema": {
-                                "oneOf": [
-                                    {
-                                        "title": "username",
-                                        "type": "string"
-                                    },
-                                    {
-                                        "title": "full_name",
-                                        "type": "string"
-                                    },
-                                    {
-                                        "title": "bio",
-                                        "type": "string"
-                                    },
-                                    {
-                                        "title": "avatar",
-                                        "type": "file"
-                                    },
-                                    {
-                                        "title": "delete_avatar",
-                                        "type": "boolean"
-                                    }
-                                ]
-                            }
-                        },
-                        "multipart/form-data": {
-                            "schema": {
-                                "type": "object"
-                            }
-                        }
-                    },
-                    "description": "Username | Full Name | Bio | Avatar Image | Delete Avatar"
-                },
-                "responses": {
-                    "200": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "allOf": [
-                                        {
-                                            "$ref": "#/components/schemas/data"
-                                        }
-                                    ],
-                                    "properties": {
-                                        "data": {}
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        },
-                        "description": "OK"
-                    },
-                    "400": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Bad Request"
-                    },
-                    "401": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Unauthorized"
-                    },
-                    "404": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Not Found"
-                    },
-                    "429": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Too Many Requests"
-                    },
-                    "500": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Internal Server Error"
-                    }
-                },
                 "security": [
                     {
                         "BearerAuth": []
                     }
                 ],
-                "summary": "Update User Profile",
+                "description": "Update user's full name, bio, and avatar.",
+                "consumes": [
+                    "multipart/form-data"
+                ],
+                "produces": [
+                    "application/json"
+                ],
                 "tags": [
                     "user"
-                ]
+                ],
+                "summary": "Update User Profile",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Username",
+                        "name": "username",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Full Name",
+                        "name": "full_name",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Bio",
+                        "name": "bio",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "file",
+                        "description": "Avatar Image",
+                        "name": "avatar",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "Delete Avatar",
+                        "name": "delete_avatar",
+                        "in": "formData"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/helper.ResponseSuccess"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/model.UserDTO"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "429": {
+                        "description": "Too Many Requests",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    }
+                }
             }
         },
         "/api/users": {
             "get": {
-                "description": "Search users by name or email with cursor-based pagination.",
-                "parameters": [
-                    {
-                        "description": "Search query (name or email)",
-                        "in": "query",
-                        "name": "query",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "description": "Pagination cursor",
-                        "in": "query",
-                        "name": "cursor",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "description": "Number of items per page (default 10, max 50)",
-                        "in": "query",
-                        "name": "limit",
-                        "schema": {
-                            "type": "integer"
-                        }
-                    },
-                    {
-                        "description": "Include private chat ID if exists",
-                        "in": "query",
-                        "name": "include_chat_id",
-                        "schema": {
-                            "type": "boolean"
-                        }
-                    },
-                    {
-                        "description": "Exclude users who are members of this group ID",
-                        "in": "query",
-                        "name": "exclude_group_id",
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                ],
-                "requestBody": {
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "type": "object"
-                            }
-                        }
-                    }
-                },
-                "responses": {
-                    "200": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "allOf": [
-                                        {
-                                            "$ref": "#/components/schemas/data"
-                                        }
-                                    ],
-                                    "properties": {
-                                        "data": {},
-                                        "meta": {
-                                            "$ref": "#/components/schemas/helper.PaginationMeta"
-                                        }
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        },
-                        "description": "OK"
-                    },
-                    "400": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Bad Request"
-                    },
-                    "401": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Unauthorized"
-                    },
-                    "429": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Too Many Requests"
-                    },
-                    "500": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Internal Server Error"
-                    }
-                },
                 "security": [
                     {
                         "BearerAuth": []
                     }
                 ],
-                "summary": "Search Users",
+                "description": "Search users by name or email with cursor-based pagination.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
                 "tags": [
                     "user"
-                ]
+                ],
+                "summary": "Search Users",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Search query (name or email)",
+                        "name": "query",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Pagination cursor",
+                        "name": "cursor",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Number of items per page (default 10, max 50)",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "Include private chat ID if exists",
+                        "name": "include_chat_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Exclude users who are members of this group ID",
+                        "name": "exclude_group_id",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/helper.ResponseWithPagination"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/definitions/model.UserDTO"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "429": {
+                        "description": "Too Many Requests",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    }
+                }
             }
         },
         "/api/users/blocked": {
             "get": {
-                "description": "Get a list of users blocked by the current user.",
-                "parameters": [
-                    {
-                        "description": "Search query (name or username)",
-                        "in": "query",
-                        "name": "query",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "description": "Pagination cursor",
-                        "in": "query",
-                        "name": "cursor",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "description": "Number of items per page (default 10, max 50)",
-                        "in": "query",
-                        "name": "limit",
-                        "schema": {
-                            "type": "integer"
-                        }
-                    }
-                ],
-                "requestBody": {
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "type": "object"
-                            }
-                        }
-                    }
-                },
-                "responses": {
-                    "200": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "allOf": [
-                                        {
-                                            "$ref": "#/components/schemas/data"
-                                        }
-                                    ],
-                                    "properties": {
-                                        "data": {},
-                                        "meta": {
-                                            "$ref": "#/components/schemas/helper.PaginationMeta"
-                                        }
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        },
-                        "description": "OK"
-                    },
-                    "400": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Bad Request"
-                    },
-                    "401": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Unauthorized"
-                    },
-                    "429": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Too Many Requests"
-                    },
-                    "500": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Internal Server Error"
-                    }
-                },
                 "security": [
                     {
                         "BearerAuth": []
                     }
                 ],
-                "summary": "Get Blocked Users",
+                "description": "Get a list of users blocked by the current user.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
                 "tags": [
                     "user"
-                ]
+                ],
+                "summary": "Get Blocked Users",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Search query (name or username)",
+                        "name": "query",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Pagination cursor",
+                        "name": "cursor",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Number of items per page (default 10, max 50)",
+                        "name": "limit",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/helper.ResponseWithPagination"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/definitions/model.UserDTO"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "429": {
+                        "description": "Too Many Requests",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    }
+                }
             }
         },
         "/api/users/{id}": {
             "get": {
-                "description": "Get another user's profile by ID.",
-                "parameters": [
-                    {
-                        "description": "User ID (UUID)",
-                        "in": "path",
-                        "name": "id",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                ],
-                "requestBody": {
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "type": "object"
-                            }
-                        }
-                    }
-                },
-                "responses": {
-                    "200": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "allOf": [
-                                        {
-                                            "$ref": "#/components/schemas/data"
-                                        }
-                                    ],
-                                    "properties": {
-                                        "data": {}
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        },
-                        "description": "OK"
-                    },
-                    "400": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Bad Request"
-                    },
-                    "401": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Unauthorized"
-                    },
-                    "404": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Not Found"
-                    },
-                    "429": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Too Many Requests"
-                    },
-                    "500": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Internal Server Error"
-                    }
-                },
                 "security": [
                     {
                         "BearerAuth": []
                     }
                 ],
-                "summary": "Get User Profile",
+                "description": "Get another user's profile by ID.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
                 "tags": [
                     "user"
-                ]
+                ],
+                "summary": "Get User Profile",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "User ID (UUID)",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/helper.ResponseSuccess"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/model.UserDTO"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "429": {
+                        "description": "Too Many Requests",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    }
+                }
             }
         },
         "/api/users/{id}/block": {
             "post": {
-                "description": "Block a user by their ID.",
-                "parameters": [
-                    {
-                        "description": "User ID to block (UUID)",
-                        "in": "path",
-                        "name": "id",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                ],
-                "requestBody": {
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "type": "object"
-                            }
-                        }
-                    }
-                },
-                "responses": {
-                    "200": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseSuccess"
-                                }
-                            }
-                        },
-                        "description": "OK"
-                    },
-                    "400": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Bad Request"
-                    },
-                    "401": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Unauthorized"
-                    },
-                    "404": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Not Found"
-                    },
-                    "429": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Too Many Requests"
-                    },
-                    "500": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Internal Server Error"
-                    }
-                },
                 "security": [
                     {
                         "BearerAuth": []
                     }
                 ],
-                "summary": "Block a User",
+                "description": "Block a user by their ID.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
                 "tags": [
                     "user"
-                ]
+                ],
+                "summary": "Block a User",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "User ID to block (UUID)",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseSuccess"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "429": {
+                        "description": "Too Many Requests",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    }
+                }
             }
         },
         "/api/users/{id}/unblock": {
             "post": {
-                "description": "Unblock a user by their ID.",
-                "parameters": [
-                    {
-                        "description": "User ID to unblock (UUID)",
-                        "in": "path",
-                        "name": "id",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                ],
-                "requestBody": {
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "type": "object"
-                            }
-                        }
-                    }
-                },
-                "responses": {
-                    "200": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseSuccess"
-                                }
-                            }
-                        },
-                        "description": "OK"
-                    },
-                    "400": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Bad Request"
-                    },
-                    "401": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Unauthorized"
-                    },
-                    "429": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Too Many Requests"
-                    },
-                    "500": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Internal Server Error"
-                    }
-                },
                 "security": [
                     {
                         "BearerAuth": []
                     }
                 ],
-                "summary": "Unblock a User",
+                "description": "Unblock a user by their ID.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
                 "tags": [
                     "user"
-                ]
+                ],
+                "summary": "Unblock a User",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "User ID to unblock (UUID)",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseSuccess"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "429": {
+                        "description": "Too Many Requests",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    }
+                }
             }
         },
         "/ws": {
             "get": {
-                "description": "Upgrade HTTP connection to WebSocket. Requires Bearer token in Authorization header or 'token' query param.",
-                "responses": {
-                    "101": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "string"
-                                }
-                            }
-                        },
-                        "description": "Switching Protocols"
-                    },
-                    "401": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/helper.ResponseError"
-                                }
-                            }
-                        },
-                        "description": "Unauthorized"
-                    }
-                },
                 "security": [
                     {
                         "BearerAuth": []
                     }
                 ],
-                "summary": "WebSocket Connection",
+                "description": "Upgrade HTTP connection to WebSocket. Requires Bearer token in Authorization header or 'token' query param.",
                 "tags": [
                     "websocket"
-                ]
+                ],
+                "summary": "WebSocket Connection",
+                "responses": {
+                    "101": {
+                        "description": "Switching Protocols",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    }
+                }
             }
         }
     },
-    "openapi": "3.1.0"
+    "definitions": {
+        "helper.PaginationMeta": {
+            "type": "object",
+            "properties": {
+                "has_next": {
+                    "type": "boolean"
+                },
+                "has_prev": {
+                    "type": "boolean"
+                },
+                "next_cursor": {
+                    "type": "string"
+                },
+                "prev_cursor": {
+                    "type": "string"
+                }
+            }
+        },
+        "helper.ResponseError": {
+            "type": "object",
+            "properties": {
+                "error": {
+                    "type": "string"
+                }
+            }
+        },
+        "helper.ResponseSuccess": {
+            "type": "object",
+            "properties": {
+                "data": {}
+            }
+        },
+        "helper.ResponseWithPagination": {
+            "type": "object",
+            "properties": {
+                "data": {},
+                "meta": {
+                    "$ref": "#/definitions/helper.PaginationMeta"
+                }
+            }
+        },
+        "model.AddGroupMemberRequest": {
+            "type": "object",
+            "required": [
+                "user_ids"
+            ],
+            "properties": {
+                "user_ids": {
+                    "type": "array",
+                    "minItems": 1,
+                    "items": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
+        "model.AdminUserDetailResponse": {
+            "type": "object",
+            "properties": {
+                "avatar": {
+                    "type": "string"
+                },
+                "ban_reason": {
+                    "type": "string"
+                },
+                "banned_until": {
+                    "type": "string"
+                },
+                "bio": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "email": {
+                    "type": "string"
+                },
+                "full_name": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "is_banned": {
+                    "type": "boolean"
+                },
+                "last_seen_at": {
+                    "type": "string"
+                },
+                "role": {
+                    "type": "string"
+                },
+                "total_groups": {
+                    "type": "integer"
+                },
+                "total_messages": {
+                    "type": "integer"
+                },
+                "username": {
+                    "type": "string"
+                }
+            }
+        },
+        "model.AdminUserListResponse": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string"
+                },
+                "email": {
+                    "type": "string"
+                },
+                "full_name": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "is_banned": {
+                    "type": "boolean"
+                },
+                "role": {
+                    "type": "string"
+                },
+                "username": {
+                    "type": "string"
+                }
+            }
+        },
+        "model.AuthResponse": {
+            "type": "object",
+            "properties": {
+                "token": {
+                    "type": "string"
+                },
+                "user": {
+                    "$ref": "#/definitions/model.UserDTO"
+                }
+            }
+        },
+        "model.BanUserRequest": {
+            "type": "object",
+            "required": [
+                "reason",
+                "target_user_id"
+            ],
+            "properties": {
+                "duration_hours": {
+                    "type": "integer",
+                    "minimum": 0
+                },
+                "reason": {
+                    "type": "string"
+                },
+                "target_user_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "model.ChangeEmailRequest": {
+            "type": "object",
+            "required": [
+                "code",
+                "email"
+            ],
+            "properties": {
+                "code": {
+                    "type": "string"
+                },
+                "email": {
+                    "type": "string"
+                }
+            }
+        },
+        "model.ChangePasswordRequest": {
+            "type": "object",
+            "required": [
+                "confirm_password",
+                "new_password"
+            ],
+            "properties": {
+                "confirm_password": {
+                    "type": "string"
+                },
+                "new_password": {
+                    "type": "string",
+                    "maxLength": 72,
+                    "minLength": 8
+                },
+                "old_password": {
+                    "type": "string"
+                }
+            }
+        },
+        "model.ChatListResponse": {
+            "type": "object",
+            "properties": {
+                "avatar": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "hidden_at": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "invite_code": {
+                    "type": "string"
+                },
+                "invite_expires_at": {
+                    "type": "string"
+                },
+                "is_blocked_by_me": {
+                    "type": "boolean"
+                },
+                "is_blocked_by_other": {
+                    "type": "boolean"
+                },
+                "is_online": {
+                    "type": "boolean"
+                },
+                "is_public": {
+                    "type": "boolean"
+                },
+                "last_message": {
+                    "$ref": "#/definitions/model.MessageResponse"
+                },
+                "last_read_at": {
+                    "type": "string"
+                },
+                "member_count": {
+                    "type": "integer"
+                },
+                "my_role": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "other_last_read_at": {
+                    "type": "string"
+                },
+                "other_user_id": {
+                    "type": "string"
+                },
+                "other_user_is_banned": {
+                    "type": "boolean"
+                },
+                "other_user_is_deleted": {
+                    "type": "boolean"
+                },
+                "type": {
+                    "type": "string"
+                },
+                "unread_count": {
+                    "type": "integer"
+                }
+            }
+        },
+        "model.ChatResponse": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "type": {
+                    "type": "string"
+                }
+            }
+        },
+        "model.CreatePrivateChatRequest": {
+            "type": "object",
+            "required": [
+                "target_user_id"
+            ],
+            "properties": {
+                "target_user_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "model.CreateReportRequest": {
+            "type": "object",
+            "required": [
+                "reason",
+                "target_type"
+            ],
+            "properties": {
+                "description": {
+                    "type": "string"
+                },
+                "group_id": {
+                    "type": "string"
+                },
+                "message_id": {
+                    "type": "string"
+                },
+                "reason": {
+                    "type": "string"
+                },
+                "target_type": {
+                    "type": "string",
+                    "enum": [
+                        "message",
+                        "group",
+                        "user"
+                    ]
+                },
+                "target_user_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "model.DashboardStatsResponse": {
+            "type": "object",
+            "properties": {
+                "active_reports": {
+                    "type": "integer"
+                },
+                "total_groups": {
+                    "type": "integer"
+                },
+                "total_messages": {
+                    "type": "integer"
+                },
+                "total_users": {
+                    "type": "integer"
+                }
+            }
+        },
+        "model.DeleteAccountRequest": {
+            "type": "object",
+            "properties": {
+                "password": {
+                    "type": "string"
+                }
+            }
+        },
+        "model.EditMessageRequest": {
+            "type": "object",
+            "properties": {
+                "attachment_ids": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "content": {
+                    "type": "string"
+                }
+            }
+        },
+        "model.GoogleLoginRequest": {
+            "type": "object",
+            "required": [
+                "code"
+            ],
+            "properties": {
+                "code": {
+                    "type": "string"
+                }
+            }
+        },
+        "model.GroupInviteResponse": {
+            "type": "object",
+            "properties": {
+                "expires_at": {
+                    "type": "string"
+                },
+                "invite_code": {
+                    "type": "string"
+                }
+            }
+        },
+        "model.GroupMemberDTO": {
+            "type": "object",
+            "properties": {
+                "avatar": {
+                    "type": "string"
+                },
+                "full_name": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "is_banned": {
+                    "type": "boolean"
+                },
+                "joined_at": {
+                    "type": "string"
+                },
+                "role": {
+                    "type": "string"
+                },
+                "user_id": {
+                    "type": "string"
+                },
+                "username": {
+                    "type": "string"
+                }
+            }
+        },
+        "model.GroupPreviewDTO": {
+            "type": "object",
+            "properties": {
+                "avatar": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "is_public": {
+                    "type": "boolean"
+                },
+                "member_count": {
+                    "type": "integer"
+                },
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
+        "model.JoinGroupByInviteRequest": {
+            "type": "object",
+            "required": [
+                "invite_code"
+            ],
+            "properties": {
+                "invite_code": {
+                    "type": "string"
+                }
+            }
+        },
+        "model.LoginRequest": {
+            "type": "object",
+            "required": [
+                "captcha_token",
+                "email",
+                "password"
+            ],
+            "properties": {
+                "captcha_token": {
+                    "type": "string"
+                },
+                "email": {
+                    "type": "string"
+                },
+                "password": {
+                    "type": "string",
+                    "maxLength": 72,
+                    "minLength": 8
+                }
+            }
+        },
+        "model.MediaDTO": {
+            "type": "object",
+            "properties": {
+                "file_name": {
+                    "type": "string"
+                },
+                "file_size": {
+                    "type": "integer"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "mime_type": {
+                    "type": "string"
+                },
+                "original_name": {
+                    "type": "string"
+                },
+                "url": {
+                    "type": "string"
+                }
+            }
+        },
+        "model.MediaURLResponse": {
+            "type": "object",
+            "properties": {
+                "url": {
+                    "type": "string"
+                }
+            }
+        },
+        "model.MessageResponse": {
+            "type": "object",
+            "properties": {
+                "action_data": {
+                    "description": "ActionData contains metadata for system messages.\n\nStructure depends on Type:\n- system_create: { \"initial_name\": string }\n- system_rename: { \"old_name\": string, \"new_name\": string }\n- system_description: { \"old_description\": string, \"new_description\": string }\n- system_avatar: { \"action\": \"updated\" | \"removed\" }\n- system_add: { \"target_id\": uuid, \"actor_id\": uuid, \"target_name\": string }\n- system_join: (empty, relies on sender_id)\n- system_leave: (empty, relies on sender_id)\n- system_kick: { \"target_id\": uuid, \"actor_id\": uuid, \"target_name\": string }\n- system_promote: { \"target_id\": uuid, \"actor_id\": uuid, \"new_role\": \"admin\" | \"owner\", \"target_name\": string, \"action\": \"ownership_transferred\" (optional) }\n- system_demote: { \"target_id\": uuid, \"actor_id\": uuid, \"new_role\": \"member\", \"target_name\": string }\n- system_visibility: { \"new_visibility\": \"public\" | \"private\" }\n\nNote: \"target_name\" is injected dynamically by the backend for display convenience.",
+                    "type": "object",
+                    "additionalProperties": true
+                },
+                "attachments": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/model.MediaDTO"
+                    }
+                },
+                "chat_id": {
+                    "type": "string"
+                },
+                "content": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "deleted_at": {
+                    "type": "string"
+                },
+                "edited_at": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "member_count": {
+                    "type": "integer"
+                },
+                "reply_to": {
+                    "$ref": "#/definitions/model.ReplyPreviewDTO"
+                },
+                "sender_avatar": {
+                    "type": "string"
+                },
+                "sender_id": {
+                    "type": "string"
+                },
+                "sender_name": {
+                    "type": "string"
+                },
+                "sender_role": {
+                    "type": "string"
+                },
+                "type": {
+                    "type": "string"
+                }
+            }
+        },
+        "model.PublicGroupDTO": {
+            "type": "object",
+            "properties": {
+                "avatar": {
+                    "type": "string"
+                },
+                "chat_id": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "is_member": {
+                    "type": "boolean"
+                },
+                "member_count": {
+                    "type": "integer"
+                },
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
+        "model.RegisterUserRequest": {
+            "type": "object",
+            "required": [
+                "captcha_token",
+                "code",
+                "email",
+                "full_name",
+                "password",
+                "username"
+            ],
+            "properties": {
+                "captcha_token": {
+                    "type": "string"
+                },
+                "code": {
+                    "type": "string"
+                },
+                "email": {
+                    "type": "string"
+                },
+                "full_name": {
+                    "type": "string",
+                    "maxLength": 100,
+                    "minLength": 3
+                },
+                "password": {
+                    "type": "string",
+                    "maxLength": 72,
+                    "minLength": 8
+                },
+                "username": {
+                    "type": "string",
+                    "maxLength": 50,
+                    "minLength": 3
+                }
+            }
+        },
+        "model.ReplyPreviewDTO": {
+            "type": "object",
+            "properties": {
+                "action_data": {
+                    "type": "object",
+                    "additionalProperties": true
+                },
+                "content": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "deleted_at": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "sender_id": {
+                    "type": "string"
+                },
+                "sender_name": {
+                    "type": "string"
+                },
+                "type": {
+                    "type": "string"
+                }
+            }
+        },
+        "model.ReportDetailResponse": {
+            "type": "object",
+            "properties": {
+                "admin_notes": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "evidence_snapshot": {
+                    "description": "EvidenceSnapshot contains a snapshot of the reported entity at the time of reporting.\n\nStructure depends on TargetType:\n- message: { \"content\": string, \"sender_id\": uuid, \"sender_username\": string, \"sender_name\": string, \"sent_at\": time, \"attachments\": []object{id, file_name, original_name, file_size, mime_type, url}, \"is_edited\": bool, \"chat_id\": uuid, \"chat_type\": string, \"group_id\": uuid (optional) }\n- group: { \"group_id\": uuid, \"chat_id\": uuid, \"name\": string, \"description\": string, \"avatar\": string, \"created_by\": uuid }\n- user: { \"user_id\": uuid, \"username\": string, \"full_name\": string, \"bio\": string, \"avatar\": string }",
+                    "type": "object",
+                    "additionalProperties": true
+                },
+                "id": {
+                    "type": "string"
+                },
+                "reason": {
+                    "type": "string"
+                },
+                "reporter_avatar": {
+                    "type": "string"
+                },
+                "reporter_id": {
+                    "type": "string"
+                },
+                "reporter_is_banned": {
+                    "description": "Indicates if the reporter user is banned",
+                    "type": "boolean"
+                },
+                "reporter_is_deleted": {
+                    "description": "Indicates if the reporter user has been soft-deleted",
+                    "type": "boolean"
+                },
+                "reporter_name": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string"
+                },
+                "target_id": {
+                    "description": "ID of the reported entity (User ID, Group ID, or Message ID)",
+                    "type": "string"
+                },
+                "target_is_banned": {
+                    "description": "Indicates if the target user (or sender of message) is banned",
+                    "type": "boolean"
+                },
+                "target_is_deleted": {
+                    "description": "Indicates if the target entity has been soft-deleted",
+                    "type": "boolean"
+                },
+                "target_type": {
+                    "type": "string"
+                },
+                "updated_at": {
+                    "type": "string"
+                }
+            }
+        },
+        "model.ReportListResponse": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "reason": {
+                    "type": "string"
+                },
+                "reporter_name": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string"
+                },
+                "target_type": {
+                    "type": "string"
+                }
+            }
+        },
+        "model.ResetGroupInfoRequest": {
+            "type": "object",
+            "properties": {
+                "reset_avatar": {
+                    "type": "boolean"
+                },
+                "reset_description": {
+                    "type": "boolean"
+                },
+                "reset_name": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "model.ResetPasswordRequest": {
+            "type": "object",
+            "required": [
+                "captcha_token",
+                "code",
+                "confirm_password",
+                "email",
+                "password"
+            ],
+            "properties": {
+                "captcha_token": {
+                    "type": "string"
+                },
+                "code": {
+                    "type": "string"
+                },
+                "confirm_password": {
+                    "type": "string"
+                },
+                "email": {
+                    "type": "string"
+                },
+                "password": {
+                    "type": "string",
+                    "maxLength": 72,
+                    "minLength": 8
+                }
+            }
+        },
+        "model.ResetUserInfoRequest": {
+            "type": "object",
+            "required": [
+                "target_user_id"
+            ],
+            "properties": {
+                "reset_avatar": {
+                    "type": "boolean"
+                },
+                "reset_bio": {
+                    "type": "boolean"
+                },
+                "reset_name": {
+                    "type": "boolean"
+                },
+                "target_user_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "model.ResolveReportRequest": {
+            "type": "object",
+            "required": [
+                "status"
+            ],
+            "properties": {
+                "notes": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string",
+                    "enum": [
+                        "resolved",
+                        "rejected"
+                    ]
+                }
+            }
+        },
+        "model.SendMessageRequest": {
+            "type": "object",
+            "required": [
+                "chat_id"
+            ],
+            "properties": {
+                "attachment_ids": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "chat_id": {
+                    "type": "string"
+                },
+                "content": {
+                    "type": "string"
+                },
+                "reply_to_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "model.SendOTPRequest": {
+            "type": "object",
+            "required": [
+                "captcha_token",
+                "email",
+                "mode"
+            ],
+            "properties": {
+                "captcha_token": {
+                    "type": "string"
+                },
+                "email": {
+                    "type": "string"
+                },
+                "mode": {
+                    "type": "string",
+                    "enum": [
+                        "register",
+                        "reset",
+                        "change_email"
+                    ]
+                }
+            }
+        },
+        "model.TransferGroupOwnershipRequest": {
+            "type": "object",
+            "required": [
+                "new_owner_id"
+            ],
+            "properties": {
+                "new_owner_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "model.UpdateGroupMemberRoleRequest": {
+            "type": "object",
+            "required": [
+                "role"
+            ],
+            "properties": {
+                "role": {
+                    "type": "string",
+                    "enum": [
+                        "admin",
+                        "member"
+                    ]
+                }
+            }
+        },
+        "model.UserDTO": {
+            "type": "object",
+            "properties": {
+                "avatar": {
+                    "type": "string"
+                },
+                "bio": {
+                    "type": "string"
+                },
+                "email": {
+                    "type": "string"
+                },
+                "full_name": {
+                    "type": "string"
+                },
+                "has_password": {
+                    "type": "boolean"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "is_banned": {
+                    "type": "boolean"
+                },
+                "is_blocked_by_me": {
+                    "type": "boolean"
+                },
+                "is_blocked_by_other": {
+                    "type": "boolean"
+                },
+                "is_online": {
+                    "type": "boolean"
+                },
+                "last_seen_at": {
+                    "type": "string"
+                },
+                "private_chat_id": {
+                    "type": "string"
+                },
+                "role": {
+                    "type": "string"
+                },
+                "username": {
+                    "type": "string"
+                }
+            }
+        }
+    }
 }`
 
 // SwaggerInfo holds exported Swagger Info so clients can modify it
 var SwaggerInfo = &swag.Spec{
 	Version:          "",
+	Host:             "",
+	BasePath:         "",
+	Schemes:          []string{},
 	Title:            "",
 	Description:      "",
 	InfoInstanceName: "swagger",

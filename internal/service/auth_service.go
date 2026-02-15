@@ -178,7 +178,8 @@ func (s *AuthService) Login(ctx context.Context, req model.LoginRequest) (*model
 	if u.IsBanned {
 		if u.BannedUntil != nil {
 			if time.Now().Before(*u.BannedUntil) {
-				return nil, helper.NewForbiddenError(fmt.Sprintf("Account suspended until %s", u.BannedUntil.Format(time.RFC1123)))
+
+				return nil, helper.NewForbiddenError(fmt.Sprintf("Account suspended until %s", u.BannedUntil.UTC().Format(time.RFC3339)))
 			}
 
 			_, err := s.client.User.UpdateOne(u).
@@ -306,7 +307,8 @@ func (s *AuthService) GoogleExchange(ctx context.Context, req model.GoogleLoginR
 	if u != nil && u.IsBanned {
 		if u.BannedUntil != nil {
 			if time.Now().Before(*u.BannedUntil) {
-				return nil, helper.NewForbiddenError(fmt.Sprintf("Account suspended until %s", u.BannedUntil.Format(time.RFC1123)))
+
+				return nil, helper.NewForbiddenError(fmt.Sprintf("Account suspended until %s", u.BannedUntil.UTC().Format(time.RFC3339)))
 			}
 
 			_, err := s.client.User.UpdateOne(u).

@@ -2,6 +2,7 @@ package service
 
 import (
 	"AtoiTalkAPI/ent"
+	"AtoiTalkAPI/ent/chat"
 	"AtoiTalkAPI/ent/groupchat"
 	"AtoiTalkAPI/ent/groupmember"
 	"AtoiTalkAPI/ent/message"
@@ -19,6 +20,7 @@ import (
 	"strings"
 	"time"
 
+	"entgo.io/ent/dialect/sql"
 	"github.com/go-playground/validator/v10"
 	"github.com/google/uuid"
 )
@@ -180,6 +182,25 @@ func (s *AdminService) GetReports(ctx context.Context, req model.GetReportsReque
 		query = query.Where(report.StatusEQ(report.Status(req.Status)))
 	}
 
+	if req.Query != "" {
+		lowerQuery := strings.ToLower(req.Query)
+		query = query.Where(
+			report.Or(
+				report.ReasonContainsFold(req.Query),
+				report.HasReporterWith(
+					user.Or(
+						func(s *sql.Selector) {
+							s.Where(sql.HasPrefix(sql.Lower(s.C(user.FieldUsername)), lowerQuery))
+						},
+						func(s *sql.Selector) {
+							s.Where(sql.HasPrefix(sql.Lower(s.C(user.FieldFullName)), lowerQuery))
+						},
+					),
+				),
+			),
+		)
+	}
+
 	if req.Cursor != "" {
 		decodedBytes, err := base64.URLEncoding.DecodeString(req.Cursor)
 		if err == nil {
@@ -233,6 +254,7 @@ func (s *AdminService) GetReportDetail(ctx context.Context, reportID uuid.UUID) 
 	r, err := s.client.Report.Query().
 		Where(report.ID(reportID)).
 		WithReporter(func(q *ent.UserQuery) {
+			q.Select(user.FieldID, user.FieldFullName, user.FieldAvatarID, user.FieldDeletedAt, user.FieldIsBanned, user.FieldBannedUntil)
 			q.WithAvatar()
 		}).
 		Only(ctx)
@@ -247,7 +269,18 @@ func (s *AdminService) GetReportDetail(ctx context.Context, reportID uuid.UUID) 
 
 	reporterName := "Unknown"
 	reporterAvatar := ""
+	reporterIsDeleted := true
+	reporterIsBanned := false
+
 	if r.Edges.Reporter != nil {
+		if r.Edges.Reporter.DeletedAt == nil {
+			reporterIsDeleted = false
+		}
+		if r.Edges.Reporter.IsBanned {
+			if r.Edges.Reporter.BannedUntil == nil || time.Now().Before(*r.Edges.Reporter.BannedUntil) {
+				reporterIsBanned = true
+			}
+		}
 		if r.Edges.Reporter.FullName != nil {
 			reporterName = *r.Edges.Reporter.FullName
 		}
@@ -258,18 +291,25 @@ func (s *AdminService) GetReportDetail(ctx context.Context, reportID uuid.UUID) 
 
 	if r.TargetType == report.TargetTypeMessage && r.EvidenceSnapshot != nil {
 		if attachments, ok := r.EvidenceSnapshot["attachments"].([]interface{}); ok {
-			var refreshedAttachments []string
+			var refreshedAttachments []interface{}
 			for _, att := range attachments {
-				if fileName, ok := att.(string); ok {
 
+				if fileName, ok := att.(string); ok {
 					url, err := s.storageAdapter.GetPresignedURL(fileName, 15*time.Minute)
 					if err == nil {
 						refreshedAttachments = append(refreshedAttachments, url)
 					} else {
-						slog.Error("Failed to refresh presigned URL for report evidence", "error", err, "file", fileName)
-
 						refreshedAttachments = append(refreshedAttachments, fileName)
 					}
+				} else if attMap, ok := att.(map[string]interface{}); ok {
+
+					if fileName, ok := attMap["file_name"].(string); ok {
+						url, err := s.storageAdapter.GetPresignedURL(fileName, 15*time.Minute)
+						if err == nil {
+							attMap["url"] = url
+						}
+					}
+					refreshedAttachments = append(refreshedAttachments, attMap)
 				}
 			}
 			r.EvidenceSnapshot["attachments"] = refreshedAttachments
@@ -281,19 +321,85 @@ func (s *AdminService) GetReportDetail(ctx context.Context, reportID uuid.UUID) 
 		adminNotes = r.ResolutionNotes
 	}
 
+	var targetID *uuid.UUID
+	targetIsDeleted := true
+	targetIsBanned := false
+
+	switch r.TargetType {
+	case report.TargetTypeUser:
+		if r.TargetUserID != nil {
+			targetID = r.TargetUserID
+			u, err := s.client.User.Query().
+				Where(user.ID(*r.TargetUserID)).
+				Select(user.FieldID, user.FieldDeletedAt, user.FieldIsBanned, user.FieldBannedUntil).
+				Only(ctx)
+			if err == nil {
+				if u.DeletedAt == nil {
+					targetIsDeleted = false
+				}
+				if u.IsBanned {
+					if u.BannedUntil == nil || time.Now().Before(*u.BannedUntil) {
+						targetIsBanned = true
+					}
+				}
+			}
+		}
+	case report.TargetTypeGroup:
+		if r.GroupID != nil {
+			targetID = r.GroupID
+
+			exists, _ := s.client.GroupChat.Query().
+				Where(
+					groupchat.ID(*r.GroupID),
+					groupchat.HasChatWith(chat.DeletedAtIsNil()),
+				).
+				Exist(ctx)
+			if exists {
+				targetIsDeleted = false
+			}
+		}
+	case report.TargetTypeMessage:
+		if r.MessageID != nil {
+			targetID = r.MessageID
+			msg, err := s.client.Message.Query().
+				Where(message.ID(*r.MessageID)).
+				WithSender(func(q *ent.UserQuery) {
+					q.Select(user.FieldID, user.FieldIsBanned, user.FieldBannedUntil)
+				}).
+				Only(ctx)
+			if err == nil {
+				if msg.DeletedAt == nil {
+					targetIsDeleted = false
+				}
+				if msg.Edges.Sender != nil {
+					if msg.Edges.Sender.IsBanned {
+						if msg.Edges.Sender.BannedUntil == nil || time.Now().Before(*msg.Edges.Sender.BannedUntil) {
+							targetIsBanned = true
+						}
+					}
+				}
+			}
+		}
+	}
+
 	return &model.ReportDetailResponse{
-		ID:               r.ID,
-		TargetType:       string(r.TargetType),
-		Reason:           r.Reason,
-		Description:      r.Description,
-		Status:           string(r.Status),
-		ReporterID:       r.ReporterID,
-		ReporterName:     reporterName,
-		ReporterAvatar:   reporterAvatar,
-		EvidenceSnapshot: r.EvidenceSnapshot,
-		AdminNotes:       adminNotes,
-		CreatedAt:        r.CreatedAt.Format(time.RFC3339),
-		UpdatedAt:        r.UpdatedAt.Format(time.RFC3339),
+		ID:                r.ID,
+		TargetType:        string(r.TargetType),
+		TargetID:          targetID,
+		TargetIsDeleted:   targetIsDeleted,
+		TargetIsBanned:    targetIsBanned,
+		Reason:            r.Reason,
+		Description:       r.Description,
+		Status:            string(r.Status),
+		ReporterID:        r.ReporterID,
+		ReporterName:      reporterName,
+		ReporterAvatar:    reporterAvatar,
+		ReporterIsDeleted: reporterIsDeleted,
+		ReporterIsBanned:  reporterIsBanned,
+		EvidenceSnapshot:  r.EvidenceSnapshot,
+		AdminNotes:        adminNotes,
+		CreatedAt:         r.CreatedAt.Format(time.RFC3339),
+		UpdatedAt:         r.UpdatedAt.Format(time.RFC3339),
 	}, nil
 }
 
@@ -415,7 +521,8 @@ func (s *AdminService) GetUsers(ctx context.Context, req model.AdminGetUserListR
 		req.Limit = 20
 	}
 
-	query := s.client.User.Query()
+	query := s.client.User.Query().
+		Where(user.DeletedAtIsNil())
 
 	if req.Query != "" {
 		query = query.Where(user.Or(
@@ -438,7 +545,7 @@ func (s *AdminService) GetUsers(ctx context.Context, req model.AdminGetUserListR
 		}
 	}
 
-	query = query.Order(ent.Desc(user.FieldCreatedAt))
+	query = query.Order(ent.Desc(user.FieldID))
 
 	usersList, err := query.Limit(req.Limit + 1).All(ctx)
 	if err != nil {
@@ -558,6 +665,10 @@ func (s *AdminService) ResetUserInfo(ctx context.Context, req model.ResetUserInf
 		return helper.NewNotFoundError("User not found")
 	}
 
+	if u.Role == user.RoleAdmin {
+		return helper.NewForbiddenError("Cannot reset info of another admin")
+	}
+
 	update := s.client.User.UpdateOne(u)
 
 	if req.ResetBio {
@@ -640,6 +751,7 @@ func (s *AdminService) GetGroups(ctx context.Context, req model.AdminGetGroupLis
 	}
 
 	query := s.client.GroupChat.Query().
+		Where(groupchat.HasChatWith(chat.DeletedAtIsNil())).
 		WithChat()
 
 	if req.Query != "" {

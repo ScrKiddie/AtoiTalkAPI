@@ -13,12 +13,13 @@ type UserDTO struct {
 	FullName         string     `json:"full_name"`
 	Avatar           string     `json:"avatar"`
 	Bio              string     `json:"bio,omitempty"`
-	Role             string     `json:"role,omitempty"`
+	Role             string     `json:"role"`
 	HasPassword      bool       `json:"has_password,omitempty"`
 	PrivateChatID    *uuid.UUID `json:"private_chat_id,omitempty"`
 	IsBlockedByMe    *bool      `json:"is_blocked_by_me,omitempty"`
 	IsBlockedByOther *bool      `json:"is_blocked_by_other,omitempty"`
 	IsOnline         *bool      `json:"is_online,omitempty"`
+	IsBanned         *bool      `json:"is_banned,omitempty"`
 	LastSeenAt       *string    `json:"last_seen_at,omitempty"`
 }
 

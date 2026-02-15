@@ -59,6 +59,7 @@ type GroupMemberDTO struct {
 	Avatar   string    `json:"avatar"`
 	Role     string    `json:"role"`
 	JoinedAt string    `json:"joined_at"`
+	IsBanned bool      `json:"is_banned"`
 }
 
 type PublicGroupDTO struct {

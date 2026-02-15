@@ -1,705 +1,691 @@
-components:
-  schemas:
-    data:
-      properties:
-        data:
-          items:
-            $ref: '#/components/schemas/model.UserDTO'
-          type: array
-      type: object
-    helper.PaginationMeta:
-      properties:
-        has_next:
-          type: boolean
-        has_prev:
-          type: boolean
-        next_cursor:
-          type: string
-        prev_cursor:
-          type: string
-      type: object
-    helper.ResponseError:
-      properties:
-        error:
-          type: string
-      type: object
-    helper.ResponseSuccess:
-      allOf:
-      - $ref: '#/components/schemas/data'
-      properties:
-        data: {}
-      type: object
-    helper.ResponseWithPagination:
-      allOf:
-      - $ref: '#/components/schemas/data'
-      properties:
-        data: {}
-        meta:
-          $ref: '#/components/schemas/helper.PaginationMeta'
-      type: object
-    model.AddGroupMemberRequest:
-      properties:
-        user_ids:
-          items:
-            type: string
-          minItems: 1
-          type: array
-          uniqueItems: false
-      required:
-      - user_ids
-      type: object
-    model.AdminUserDetailResponse:
-      properties:
-        avatar:
-          type: string
-        ban_reason:
-          type: string
-        banned_until:
-          type: string
-        bio:
-          type: string
-        created_at:
-          type: string
-        email:
-          type: string
-        full_name:
-          type: string
-        id:
-          type: string
-        is_banned:
-          type: boolean
-        last_seen_at:
-          type: string
-        role:
-          type: string
-        total_groups:
-          type: integer
-        total_messages:
-          type: integer
-        username:
-          type: string
-      type: object
-    model.AdminUserListResponse:
-      properties:
-        created_at:
-          type: string
-        email:
-          type: string
-        full_name:
-          type: string
-        id:
-          type: string
-        is_banned:
-          type: boolean
-        role:
-          type: string
-        username:
-          type: string
-      type: object
-    model.AuthResponse:
-      properties:
-        token:
-          type: string
-        user:
-          $ref: '#/components/schemas/model.UserDTO'
-      type: object
-    model.BanUserRequest:
-      properties:
-        duration_hours:
-          minimum: 0
-          type: integer
-        reason:
-          type: string
-        target_user_id:
-          type: string
-      required:
-      - reason
-      - target_user_id
-      type: object
-    model.ChangeEmailRequest:
-      properties:
-        code:
-          type: string
-        email:
-          type: string
-      required:
-      - code
-      - email
-      type: object
-    model.ChangePasswordRequest:
-      properties:
-        confirm_password:
-          type: string
-        new_password:
-          maxLength: 72
-          minLength: 8
-          type: string
-        old_password:
-          type: string
-      required:
-      - confirm_password
-      - new_password
-      type: object
-    model.ChatListResponse:
-      properties:
-        avatar:
-          type: string
-        description:
-          type: string
-        hidden_at:
-          type: string
-        id:
-          type: string
-        invite_code:
-          type: string
-        invite_expires_at:
-          type: string
-        is_blocked_by_me:
-          type: boolean
-        is_blocked_by_other:
-          type: boolean
-        is_online:
-          type: boolean
-        is_public:
-          type: boolean
-        last_message:
-          $ref: '#/components/schemas/model.MessageResponse'
-        last_read_at:
-          type: string
-        member_count:
-          type: integer
-        my_role:
-          type: string
-        name:
-          type: string
-        other_last_read_at:
-          type: string
-        other_user_id:
-          type: string
-        other_user_is_banned:
-          type: boolean
-        other_user_is_deleted:
-          type: boolean
-        type:
-          type: string
-        unread_count:
-          type: integer
-      type: object
-    model.ChatResponse:
-      properties:
-        created_at:
-          type: string
-        id:
-          type: string
-        type:
-          type: string
-      type: object
-    model.CreatePrivateChatRequest:
-      properties:
-        target_user_id:
-          type: string
-      required:
-      - target_user_id
-      type: object
-    model.CreateReportRequest:
-      properties:
-        description:
-          type: string
-        group_id:
-          type: string
-        message_id:
-          type: string
-        reason:
-          type: string
-        target_type:
-          enum:
-          - message
-          - group
-          - user
-          type: string
-        target_user_id:
-          type: string
-      required:
-      - reason
-      - target_type
-      type: object
-    model.DashboardStatsResponse:
-      properties:
-        active_reports:
-          type: integer
-        total_groups:
-          type: integer
-        total_messages:
-          type: integer
-        total_users:
-          type: integer
-      type: object
-    model.DeleteAccountRequest:
-      properties:
-        password:
-          type: string
-      type: object
-    model.EditMessageRequest:
-      properties:
-        attachment_ids:
-          items:
-            type: string
-          type: array
-          uniqueItems: false
-        content:
-          type: string
-      type: object
-    model.GoogleLoginRequest:
-      properties:
-        code:
-          type: string
-      required:
-      - code
-      type: object
-    model.GroupInviteResponse:
-      properties:
-        expires_at:
-          type: string
-        invite_code:
-          type: string
-      type: object
-    model.GroupMemberDTO:
-      properties:
-        avatar:
-          type: string
-        full_name:
-          type: string
-        id:
-          type: string
-        joined_at:
-          type: string
-        role:
-          type: string
-        user_id:
-          type: string
-        username:
-          type: string
-      type: object
-    model.GroupPreviewDTO:
-      properties:
-        avatar:
-          type: string
-        description:
-          type: string
-        id:
-          type: string
-        is_public:
-          type: boolean
-        member_count:
-          type: integer
-        name:
-          type: string
-      type: object
-    model.JoinGroupByInviteRequest:
-      properties:
-        invite_code:
-          type: string
-      required:
-      - invite_code
-      type: object
-    model.LoginRequest:
-      properties:
-        captcha_token:
-          type: string
-        email:
-          type: string
-        password:
-          maxLength: 72
-          minLength: 8
-          type: string
-      required:
-      - captcha_token
-      - email
-      - password
-      type: object
-    model.MediaDTO:
-      properties:
-        file_name:
-          type: string
-        file_size:
-          type: integer
-        id:
-          type: string
-        mime_type:
-          type: string
-        original_name:
-          type: string
-        url:
-          type: string
-      type: object
-    model.MediaURLResponse:
-      properties:
-        url:
-          type: string
-      type: object
-    model.MessageResponse:
-      properties:
-        action_data:
-          additionalProperties: {}
-          description: |-
-            ActionData contains metadata for system messages.
+definitions:
+  helper.PaginationMeta:
+    properties:
+      has_next:
+        type: boolean
+      has_prev:
+        type: boolean
+      next_cursor:
+        type: string
+      prev_cursor:
+        type: string
+    type: object
+  helper.ResponseError:
+    properties:
+      error:
+        type: string
+    type: object
+  helper.ResponseSuccess:
+    properties:
+      data: {}
+    type: object
+  helper.ResponseWithPagination:
+    properties:
+      data: {}
+      meta:
+        $ref: '#/definitions/helper.PaginationMeta'
+    type: object
+  model.AddGroupMemberRequest:
+    properties:
+      user_ids:
+        items:
+          type: string
+        minItems: 1
+        type: array
+    required:
+    - user_ids
+    type: object
+  model.AdminUserDetailResponse:
+    properties:
+      avatar:
+        type: string
+      ban_reason:
+        type: string
+      banned_until:
+        type: string
+      bio:
+        type: string
+      created_at:
+        type: string
+      email:
+        type: string
+      full_name:
+        type: string
+      id:
+        type: string
+      is_banned:
+        type: boolean
+      last_seen_at:
+        type: string
+      role:
+        type: string
+      total_groups:
+        type: integer
+      total_messages:
+        type: integer
+      username:
+        type: string
+    type: object
+  model.AdminUserListResponse:
+    properties:
+      created_at:
+        type: string
+      email:
+        type: string
+      full_name:
+        type: string
+      id:
+        type: string
+      is_banned:
+        type: boolean
+      role:
+        type: string
+      username:
+        type: string
+    type: object
+  model.AuthResponse:
+    properties:
+      token:
+        type: string
+      user:
+        $ref: '#/definitions/model.UserDTO'
+    type: object
+  model.BanUserRequest:
+    properties:
+      duration_hours:
+        minimum: 0
+        type: integer
+      reason:
+        type: string
+      target_user_id:
+        type: string
+    required:
+    - reason
+    - target_user_id
+    type: object
+  model.ChangeEmailRequest:
+    properties:
+      code:
+        type: string
+      email:
+        type: string
+    required:
+    - code
+    - email
+    type: object
+  model.ChangePasswordRequest:
+    properties:
+      confirm_password:
+        type: string
+      new_password:
+        maxLength: 72
+        minLength: 8
+        type: string
+      old_password:
+        type: string
+    required:
+    - confirm_password
+    - new_password
+    type: object
+  model.ChatListResponse:
+    properties:
+      avatar:
+        type: string
+      description:
+        type: string
+      hidden_at:
+        type: string
+      id:
+        type: string
+      invite_code:
+        type: string
+      invite_expires_at:
+        type: string
+      is_blocked_by_me:
+        type: boolean
+      is_blocked_by_other:
+        type: boolean
+      is_online:
+        type: boolean
+      is_public:
+        type: boolean
+      last_message:
+        $ref: '#/definitions/model.MessageResponse'
+      last_read_at:
+        type: string
+      member_count:
+        type: integer
+      my_role:
+        type: string
+      name:
+        type: string
+      other_last_read_at:
+        type: string
+      other_user_id:
+        type: string
+      other_user_is_banned:
+        type: boolean
+      other_user_is_deleted:
+        type: boolean
+      type:
+        type: string
+      unread_count:
+        type: integer
+    type: object
+  model.ChatResponse:
+    properties:
+      created_at:
+        type: string
+      id:
+        type: string
+      type:
+        type: string
+    type: object
+  model.CreatePrivateChatRequest:
+    properties:
+      target_user_id:
+        type: string
+    required:
+    - target_user_id
+    type: object
+  model.CreateReportRequest:
+    properties:
+      description:
+        type: string
+      group_id:
+        type: string
+      message_id:
+        type: string
+      reason:
+        type: string
+      target_type:
+        enum:
+        - message
+        - group
+        - user
+        type: string
+      target_user_id:
+        type: string
+    required:
+    - reason
+    - target_type
+    type: object
+  model.DashboardStatsResponse:
+    properties:
+      active_reports:
+        type: integer
+      total_groups:
+        type: integer
+      total_messages:
+        type: integer
+      total_users:
+        type: integer
+    type: object
+  model.DeleteAccountRequest:
+    properties:
+      password:
+        type: string
+    type: object
+  model.EditMessageRequest:
+    properties:
+      attachment_ids:
+        items:
+          type: string
+        type: array
+      content:
+        type: string
+    type: object
+  model.GoogleLoginRequest:
+    properties:
+      code:
+        type: string
+    required:
+    - code
+    type: object
+  model.GroupInviteResponse:
+    properties:
+      expires_at:
+        type: string
+      invite_code:
+        type: string
+    type: object
+  model.GroupMemberDTO:
+    properties:
+      avatar:
+        type: string
+      full_name:
+        type: string
+      id:
+        type: string
+      is_banned:
+        type: boolean
+      joined_at:
+        type: string
+      role:
+        type: string
+      user_id:
+        type: string
+      username:
+        type: string
+    type: object
+  model.GroupPreviewDTO:
+    properties:
+      avatar:
+        type: string
+      description:
+        type: string
+      id:
+        type: string
+      is_public:
+        type: boolean
+      member_count:
+        type: integer
+      name:
+        type: string
+    type: object
+  model.JoinGroupByInviteRequest:
+    properties:
+      invite_code:
+        type: string
+    required:
+    - invite_code
+    type: object
+  model.LoginRequest:
+    properties:
+      captcha_token:
+        type: string
+      email:
+        type: string
+      password:
+        maxLength: 72
+        minLength: 8
+        type: string
+    required:
+    - captcha_token
+    - email
+    - password
+    type: object
+  model.MediaDTO:
+    properties:
+      file_name:
+        type: string
+      file_size:
+        type: integer
+      id:
+        type: string
+      mime_type:
+        type: string
+      original_name:
+        type: string
+      url:
+        type: string
+    type: object
+  model.MediaURLResponse:
+    properties:
+      url:
+        type: string
+    type: object
+  model.MessageResponse:
+    properties:
+      action_data:
+        additionalProperties: true
+        description: |-
+          ActionData contains metadata for system messages.
 
-            Structure depends on Type:
-            - system_create: { "initial_name": string }
-            - system_rename: { "old_name": string, "new_name": string }
-            - system_description: { "old_description": string, "new_description": string }
-            - system_avatar: { "action": "updated" | "removed" }
-            - system_add: { "target_id": uuid, "actor_id": uuid, "target_name": string }
-            - system_join: (empty, relies on sender_id)
-            - system_leave: (empty, relies on sender_id)
-            - system_kick: { "target_id": uuid, "actor_id": uuid, "target_name": string }
-            - system_promote: { "target_id": uuid, "actor_id": uuid, "new_role": "admin" | "owner", "target_name": string, "action": "ownership_transferred" (optional) }
-            - system_demote: { "target_id": uuid, "actor_id": uuid, "new_role": "member", "target_name": string }
-            - system_visibility: { "new_visibility": "public" | "private" }
+          Structure depends on Type:
+          - system_create: { "initial_name": string }
+          - system_rename: { "old_name": string, "new_name": string }
+          - system_description: { "old_description": string, "new_description": string }
+          - system_avatar: { "action": "updated" | "removed" }
+          - system_add: { "target_id": uuid, "actor_id": uuid, "target_name": string }
+          - system_join: (empty, relies on sender_id)
+          - system_leave: (empty, relies on sender_id)
+          - system_kick: { "target_id": uuid, "actor_id": uuid, "target_name": string }
+          - system_promote: { "target_id": uuid, "actor_id": uuid, "new_role": "admin" | "owner", "target_name": string, "action": "ownership_transferred" (optional) }
+          - system_demote: { "target_id": uuid, "actor_id": uuid, "new_role": "member", "target_name": string }
+          - system_visibility: { "new_visibility": "public" | "private" }
 
-            Note: "target_name" is injected dynamically by the backend for display convenience.
-          type: object
-        attachments:
-          items:
-            $ref: '#/components/schemas/model.MediaDTO'
-          type: array
-          uniqueItems: false
-        chat_id:
-          type: string
-        content:
-          type: string
-        created_at:
-          type: string
-        deleted_at:
-          type: string
-        edited_at:
-          type: string
-        id:
-          type: string
-        member_count:
-          type: integer
-        reply_to:
-          $ref: '#/components/schemas/model.ReplyPreviewDTO'
-        sender_avatar:
-          type: string
-        sender_id:
-          type: string
-        sender_name:
-          type: string
-        sender_role:
-          type: string
-        type:
-          type: string
-      type: object
-    model.PublicGroupDTO:
-      properties:
-        avatar:
-          type: string
-        chat_id:
-          type: string
-        description:
-          type: string
-        id:
-          type: string
-        is_member:
-          type: boolean
-        member_count:
-          type: integer
-        name:
-          type: string
-      type: object
-    model.RegisterUserRequest:
-      properties:
-        captcha_token:
-          type: string
-        code:
-          type: string
-        email:
-          type: string
-        full_name:
-          maxLength: 100
-          minLength: 3
-          type: string
-        password:
-          maxLength: 72
-          minLength: 8
-          type: string
-        username:
-          maxLength: 50
-          minLength: 3
-          type: string
-      required:
-      - captcha_token
-      - code
-      - email
-      - full_name
-      - password
-      - username
-      type: object
-    model.ReplyPreviewDTO:
-      properties:
-        action_data:
-          additionalProperties: {}
-          type: object
-        content:
-          type: string
-        created_at:
-          type: string
-        deleted_at:
-          type: string
-        id:
-          type: string
-        sender_id:
-          type: string
-        sender_name:
-          type: string
-        type:
-          type: string
-      type: object
-    model.ReportDetailResponse:
-      properties:
-        admin_notes:
-          type: string
-        created_at:
-          type: string
-        description:
-          type: string
-        evidence_snapshot:
-          additionalProperties: {}
-          description: |-
-            EvidenceSnapshot contains a snapshot of the reported entity at the time of reporting.
+          Note: "target_name" is injected dynamically by the backend for display convenience.
+        type: object
+      attachments:
+        items:
+          $ref: '#/definitions/model.MediaDTO'
+        type: array
+      chat_id:
+        type: string
+      content:
+        type: string
+      created_at:
+        type: string
+      deleted_at:
+        type: string
+      edited_at:
+        type: string
+      id:
+        type: string
+      member_count:
+        type: integer
+      reply_to:
+        $ref: '#/definitions/model.ReplyPreviewDTO'
+      sender_avatar:
+        type: string
+      sender_id:
+        type: string
+      sender_name:
+        type: string
+      sender_role:
+        type: string
+      type:
+        type: string
+    type: object
+  model.PublicGroupDTO:
+    properties:
+      avatar:
+        type: string
+      chat_id:
+        type: string
+      description:
+        type: string
+      id:
+        type: string
+      is_member:
+        type: boolean
+      member_count:
+        type: integer
+      name:
+        type: string
+    type: object
+  model.RegisterUserRequest:
+    properties:
+      captcha_token:
+        type: string
+      code:
+        type: string
+      email:
+        type: string
+      full_name:
+        maxLength: 100
+        minLength: 3
+        type: string
+      password:
+        maxLength: 72
+        minLength: 8
+        type: string
+      username:
+        maxLength: 50
+        minLength: 3
+        type: string
+    required:
+    - captcha_token
+    - code
+    - email
+    - full_name
+    - password
+    - username
+    type: object
+  model.ReplyPreviewDTO:
+    properties:
+      action_data:
+        additionalProperties: true
+        type: object
+      content:
+        type: string
+      created_at:
+        type: string
+      deleted_at:
+        type: string
+      id:
+        type: string
+      sender_id:
+        type: string
+      sender_name:
+        type: string
+      type:
+        type: string
+    type: object
+  model.ReportDetailResponse:
+    properties:
+      admin_notes:
+        type: string
+      created_at:
+        type: string
+      description:
+        type: string
+      evidence_snapshot:
+        additionalProperties: true
+        description: |-
+          EvidenceSnapshot contains a snapshot of the reported entity at the time of reporting.
 
-            Structure depends on TargetType:
-            - message: { "content": string, "sender_id": uuid, "sent_at": time, "attachments": []string, "is_edited": bool }
-            - group: { "name": string, "description": string, "avatar": string, "created_by": uuid }
-            - user: { "username": string, "full_name": string, "bio": string, "avatar": string }
-          type: object
-        id:
+          Structure depends on TargetType:
+          - message: { "content": string, "sender_id": uuid, "sender_username": string, "sender_name": string, "sent_at": time, "attachments": []object{id, file_name, original_name, file_size, mime_type, url}, "is_edited": bool, "chat_id": uuid, "chat_type": string, "group_id": uuid (optional) }
+          - group: { "group_id": uuid, "chat_id": uuid, "name": string, "description": string, "avatar": string, "created_by": uuid }
+          - user: { "user_id": uuid, "username": string, "full_name": string, "bio": string, "avatar": string }
+        type: object
+      id:
+        type: string
+      reason:
+        type: string
+      reporter_avatar:
+        type: string
+      reporter_id:
+        type: string
+      reporter_is_banned:
+        description: Indicates if the reporter user is banned
+        type: boolean
+      reporter_is_deleted:
+        description: Indicates if the reporter user has been soft-deleted
+        type: boolean
+      reporter_name:
+        type: string
+      status:
+        type: string
+      target_id:
+        description: ID of the reported entity (User ID, Group ID, or Message ID)
+        type: string
+      target_is_banned:
+        description: Indicates if the target user (or sender of message) is banned
+        type: boolean
+      target_is_deleted:
+        description: Indicates if the target entity has been soft-deleted
+        type: boolean
+      target_type:
+        type: string
+      updated_at:
+        type: string
+    type: object
+  model.ReportListResponse:
+    properties:
+      created_at:
+        type: string
+      id:
+        type: string
+      reason:
+        type: string
+      reporter_name:
+        type: string
+      status:
+        type: string
+      target_type:
+        type: string
+    type: object
+  model.ResetGroupInfoRequest:
+    properties:
+      reset_avatar:
+        type: boolean
+      reset_description:
+        type: boolean
+      reset_name:
+        type: boolean
+    type: object
+  model.ResetPasswordRequest:
+    properties:
+      captcha_token:
+        type: string
+      code:
+        type: string
+      confirm_password:
+        type: string
+      email:
+        type: string
+      password:
+        maxLength: 72
+        minLength: 8
+        type: string
+    required:
+    - captcha_token
+    - code
+    - confirm_password
+    - email
+    - password
+    type: object
+  model.ResetUserInfoRequest:
+    properties:
+      reset_avatar:
+        type: boolean
+      reset_bio:
+        type: boolean
+      reset_name:
+        type: boolean
+      target_user_id:
+        type: string
+    required:
+    - target_user_id
+    type: object
+  model.ResolveReportRequest:
+    properties:
+      notes:
+        type: string
+      status:
+        enum:
+        - resolved
+        - rejected
+        type: string
+    required:
+    - status
+    type: object
+  model.SendMessageRequest:
+    properties:
+      attachment_ids:
+        items:
           type: string
-        reason:
-          type: string
-        reporter_avatar:
-          type: string
-        reporter_id:
-          type: string
-        reporter_name:
-          type: string
-        status:
-          type: string
-        target_type:
-          type: string
-        updated_at:
-          type: string
-      type: object
-    model.ReportListResponse:
-      properties:
-        created_at:
-          type: string
-        id:
-          type: string
-        reason:
-          type: string
-        reporter_name:
-          type: string
-        status:
-          type: string
-        target_type:
-          type: string
-      type: object
-    model.ResetGroupInfoRequest:
-      properties:
-        reset_avatar:
-          type: boolean
-        reset_description:
-          type: boolean
-        reset_name:
-          type: boolean
-      type: object
-    model.ResetPasswordRequest:
-      properties:
-        captcha_token:
-          type: string
-        code:
-          type: string
-        confirm_password:
-          type: string
-        email:
-          type: string
-        password:
-          maxLength: 72
-          minLength: 8
-          type: string
-      required:
-      - captcha_token
-      - code
-      - confirm_password
-      - email
-      - password
-      type: object
-    model.ResetUserInfoRequest:
-      properties:
-        reset_avatar:
-          type: boolean
-        reset_bio:
-          type: boolean
-        reset_name:
-          type: boolean
-        target_user_id:
-          type: string
-      required:
-      - target_user_id
-      type: object
-    model.ResolveReportRequest:
-      properties:
-        notes:
-          type: string
-        status:
-          enum:
-          - resolved
-          - rejected
-          type: string
-      required:
-      - status
-      type: object
-    model.SendMessageRequest:
-      properties:
-        attachment_ids:
-          items:
-            type: string
-          type: array
-          uniqueItems: false
-        chat_id:
-          type: string
-        content:
-          type: string
-        reply_to_id:
-          type: string
-      required:
-      - chat_id
-      type: object
-    model.SendOTPRequest:
-      properties:
-        captcha_token:
-          type: string
-        email:
-          type: string
-        mode:
-          enum:
-          - register
-          - reset
-          - change_email
-          type: string
-      required:
-      - captcha_token
-      - email
-      - mode
-      type: object
-    model.TransferGroupOwnershipRequest:
-      properties:
-        new_owner_id:
-          type: string
-      required:
-      - new_owner_id
-      type: object
-    model.UpdateGroupMemberRoleRequest:
-      properties:
-        role:
-          enum:
-          - admin
-          - member
-          type: string
-      required:
-      - role
-      type: object
-    model.UserDTO:
-      properties:
-        avatar:
-          type: string
-        bio:
-          type: string
-        email:
-          type: string
-        full_name:
-          type: string
-        has_password:
-          type: boolean
-        id:
-          type: string
-        is_blocked_by_me:
-          type: boolean
-        is_blocked_by_other:
-          type: boolean
-        is_online:
-          type: boolean
-        last_seen_at:
-          type: string
-        private_chat_id:
-          type: string
-        role:
-          type: string
-        username:
-          type: string
-      type: object
-externalDocs:
-  description: ""
-  url: ""
+        type: array
+      chat_id:
+        type: string
+      content:
+        type: string
+      reply_to_id:
+        type: string
+    required:
+    - chat_id
+    type: object
+  model.SendOTPRequest:
+    properties:
+      captcha_token:
+        type: string
+      email:
+        type: string
+      mode:
+        enum:
+        - register
+        - reset
+        - change_email
+        type: string
+    required:
+    - captcha_token
+    - email
+    - mode
+    type: object
+  model.TransferGroupOwnershipRequest:
+    properties:
+      new_owner_id:
+        type: string
+    required:
+    - new_owner_id
+    type: object
+  model.UpdateGroupMemberRoleRequest:
+    properties:
+      role:
+        enum:
+        - admin
+        - member
+        type: string
+    required:
+    - role
+    type: object
+  model.UserDTO:
+    properties:
+      avatar:
+        type: string
+      bio:
+        type: string
+      email:
+        type: string
+      full_name:
+        type: string
+      has_password:
+        type: boolean
+      id:
+        type: string
+      is_banned:
+        type: boolean
+      is_blocked_by_me:
+        type: boolean
+      is_blocked_by_other:
+        type: boolean
+      is_online:
+        type: boolean
+      last_seen_at:
+        type: string
+      private_chat_id:
+        type: string
+      role:
+        type: string
+      username:
+        type: string
+    type: object
 info:
-  title: ""
-  version: ""
-openapi: 3.1.0
+  contact: {}
 paths:
   /api/account:
     delete:
+      consumes:
+      - application/json
       description: Soft delete user account. Requires password confirmation if set.
         User must transfer ownership of groups first.
-      requestBody:
-        content:
-          application/json:
-            schema:
-              oneOf:
-              - type: object
-              - $ref: '#/components/schemas/model.DeleteAccountRequest'
-                description: Delete Account Request
-                summary: request
-        description: Delete Account Request
+      parameters:
+      - description: Delete Account Request
+        in: body
+        name: request
         required: true
+        schema:
+          $ref: '#/definitions/model.DeleteAccountRequest'
+      produces:
+      - application/json
       responses:
         "200":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseSuccess'
           description: OK
+          schema:
+            $ref: '#/definitions/helper.ResponseSuccess'
         "400":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Bad Request
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
         "401":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Unauthorized
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
         "403":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Forbidden
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
         "429":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Too Many Requests
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
         "500":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Internal Server Error
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
       security:
       - BearerAuth: []
       summary: Delete Account
@@ -707,55 +693,43 @@ paths:
       - account
   /api/account/email:
     put:
+      consumes:
+      - application/json
       description: Change user email. Requires OTP verification.
-      requestBody:
-        content:
-          application/json:
-            schema:
-              oneOf:
-              - type: object
-              - $ref: '#/components/schemas/model.ChangeEmailRequest'
-                description: Change Email Request
-                summary: request
-        description: Change Email Request
+      parameters:
+      - description: Change Email Request
+        in: body
+        name: request
         required: true
+        schema:
+          $ref: '#/definitions/model.ChangeEmailRequest'
+      produces:
+      - application/json
       responses:
         "200":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseSuccess'
           description: OK
+          schema:
+            $ref: '#/definitions/helper.ResponseSuccess'
         "400":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Bad Request
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
         "401":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Unauthorized
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
         "409":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Conflict
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
         "429":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Too Many Requests
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
         "500":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Internal Server Error
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
       security:
       - BearerAuth: []
       summary: Change Email
@@ -763,55 +737,43 @@ paths:
       - account
   /api/account/password:
     put:
+      consumes:
+      - application/json
       description: Change user password. Requires old password if one is set.
-      requestBody:
-        content:
-          application/json:
-            schema:
-              oneOf:
-              - type: object
-              - $ref: '#/components/schemas/model.ChangePasswordRequest'
-                description: Change Password Request
-                summary: request
-        description: Change Password Request
+      parameters:
+      - description: Change Password Request
+        in: body
+        name: request
         required: true
+        schema:
+          $ref: '#/definitions/model.ChangePasswordRequest'
+      produces:
+      - application/json
       responses:
         "200":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseSuccess'
           description: OK
+          schema:
+            $ref: '#/definitions/helper.ResponseSuccess'
         "400":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Bad Request
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
         "401":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Unauthorized
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
         "404":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Not Found
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
         "429":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Too Many Requests
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
         "500":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Internal Server Error
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
       security:
       - BearerAuth: []
       summary: Change Password
@@ -819,42 +781,34 @@ paths:
       - account
   /api/admin/dashboard:
     get:
+      consumes:
+      - application/json
       description: Get high-level statistics for the admin dashboard. Requires Admin
         privileges.
-      requestBody:
-        content:
-          application/json:
-            schema:
-              type: object
+      produces:
+      - application/json
       responses:
         "200":
-          content:
-            application/json:
-              schema:
-                allOf:
-                - $ref: '#/components/schemas/data'
-                properties:
-                  data: {}
-                type: object
           description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/helper.ResponseSuccess'
+            - properties:
+                data:
+                  $ref: '#/definitions/model.DashboardStatsResponse'
+              type: object
         "401":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Unauthorized
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
         "403":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Forbidden
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
         "500":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Internal Server Error
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
       security:
       - BearerAuth: []
       summary: Get Dashboard Stats
@@ -867,31 +821,26 @@ paths:
       - description: Search by name
         in: query
         name: query
-        schema:
-          type: string
+        type: string
       - description: Limit
         in: query
         name: limit
-        schema:
-          type: integer
+        type: integer
       - description: Pagination cursor
         in: query
         name: cursor
-        schema:
-          type: string
+        type: string
+      produces:
+      - application/json
       responses:
         "200":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseWithPagination'
           description: OK
+          schema:
+            $ref: '#/definitions/helper.ResponseWithPagination'
         "403":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Forbidden
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
       security:
       - BearerAuth: []
       summary: List Groups
@@ -905,21 +854,18 @@ paths:
         in: path
         name: groupID
         required: true
-        schema:
-          type: string
+        type: string
+      produces:
+      - application/json
       responses:
         "200":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseSuccess'
           description: OK
+          schema:
+            $ref: '#/definitions/helper.ResponseSuccess'
         "404":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Not Found
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
       security:
       - BearerAuth: []
       summary: Dissolve Group
@@ -932,21 +878,18 @@ paths:
         in: path
         name: groupID
         required: true
-        schema:
-          type: string
+        type: string
+      produces:
+      - application/json
       responses:
         "200":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseSuccess'
           description: OK
+          schema:
+            $ref: '#/definitions/helper.ResponseSuccess'
         "404":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Not Found
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
       security:
       - BearerAuth: []
       summary: Get Group Detail
@@ -954,65 +897,53 @@ paths:
       - admin
   /api/admin/groups/{groupID}/members:
     get:
+      consumes:
+      - application/json
       description: Get list of members in a group. Requires Admin.
       parameters:
       - description: Group Chat ID (UUID)
         in: path
         name: groupID
         required: true
-        schema:
-          type: string
+        type: string
       - description: Search query
         in: query
         name: query
-        schema:
-          type: string
+        type: string
       - description: Pagination cursor
         in: query
         name: cursor
-        schema:
-          type: string
+        type: string
       - description: Number of items per page (default 20, max 50)
         in: query
         name: limit
-        schema:
-          type: integer
-      requestBody:
-        content:
-          application/json:
-            schema:
-              type: object
+        type: integer
+      produces:
+      - application/json
       responses:
         "200":
-          content:
-            application/json:
-              schema:
-                allOf:
-                - $ref: '#/components/schemas/data'
-                properties:
-                  data: {}
-                  meta:
-                    $ref: '#/components/schemas/helper.PaginationMeta'
-                type: object
           description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/helper.ResponseWithPagination'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/model.GroupMemberDTO'
+                  type: array
+              type: object
         "400":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Bad Request
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
         "403":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Forbidden
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
         "404":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Not Found
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
       security:
       - BearerAuth: []
       summary: Get Group Members
@@ -1020,38 +951,32 @@ paths:
       - admin
   /api/admin/groups/{groupID}/reset:
     post:
+      consumes:
+      - application/json
       description: Reset group's avatar, description, or name. Requires Admin.
       parameters:
       - description: Group ID
         in: path
         name: groupID
         required: true
-        schema:
-          type: string
-      requestBody:
-        content:
-          application/json:
-            schema:
-              oneOf:
-              - type: object
-              - $ref: '#/components/schemas/model.ResetGroupInfoRequest'
-                description: Reset Request
-                summary: req
-        description: Reset Request
+        type: string
+      - description: Reset Request
+        in: body
+        name: req
         required: true
+        schema:
+          $ref: '#/definitions/model.ResetGroupInfoRequest'
+      produces:
+      - application/json
       responses:
         "200":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseSuccess'
           description: OK
+          schema:
+            $ref: '#/definitions/helper.ResponseSuccess'
         "400":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Bad Request
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
       security:
       - BearerAuth: []
       summary: Reset Group Info
@@ -1059,65 +984,56 @@ paths:
       - admin
   /api/admin/reports:
     get:
+      consumes:
+      - application/json
       description: Get a list of reports. Requires Admin privileges.
       parameters:
+      - description: Search query (reason, reporter name/username)
+        in: query
+        name: query
+        type: string
       - description: Filter by status (pending, reviewed, resolved, rejected)
         in: query
         name: status
-        schema:
-          type: string
+        type: string
       - description: Limit (default 20)
         in: query
         name: limit
-        schema:
-          type: integer
+        type: integer
       - description: Cursor for pagination
         in: query
         name: cursor
-        schema:
-          type: string
-      requestBody:
-        content:
-          application/json:
-            schema:
-              type: object
+        type: string
+      produces:
+      - application/json
       responses:
         "200":
-          content:
-            application/json:
-              schema:
-                allOf:
-                - $ref: '#/components/schemas/data'
-                properties:
-                  data: {}
-                  meta:
-                    $ref: '#/components/schemas/helper.PaginationMeta'
-                type: object
           description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/helper.ResponseWithPagination'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/model.ReportListResponse'
+                  type: array
+              type: object
         "400":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Bad Request
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
         "403":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Forbidden
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
         "429":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Too Many Requests
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
         "500":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Internal Server Error
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
       security:
       - BearerAuth: []
       summary: Get Reports
@@ -1125,6 +1041,8 @@ paths:
       - admin
   /api/admin/reports/{reportID}:
     get:
+      consumes:
+      - application/json
       description: Get detailed information about a report including evidence snapshot.
         Requires Admin privileges.
       parameters:
@@ -1132,54 +1050,39 @@ paths:
         in: path
         name: reportID
         required: true
-        schema:
-          type: string
-      requestBody:
-        content:
-          application/json:
-            schema:
-              type: object
+        type: string
+      produces:
+      - application/json
       responses:
         "200":
-          content:
-            application/json:
-              schema:
-                allOf:
-                - $ref: '#/components/schemas/data'
-                properties:
-                  data: {}
-                type: object
           description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/helper.ResponseSuccess'
+            - properties:
+                data:
+                  $ref: '#/definitions/model.ReportDetailResponse'
+              type: object
         "400":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Bad Request
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
         "403":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Forbidden
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
         "404":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Not Found
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
         "429":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Too Many Requests
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
         "500":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Internal Server Error
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
       security:
       - BearerAuth: []
       summary: Get Report Detail
@@ -1187,6 +1090,8 @@ paths:
       - admin
   /api/admin/reports/{reportID}/resolve:
     put:
+      consumes:
+      - application/json
       description: Update the status of a report (e.g., to resolved or rejected).
         Requires Admin privileges.
       parameters:
@@ -1194,56 +1099,40 @@ paths:
         in: path
         name: reportID
         required: true
-        schema:
-          type: string
-      requestBody:
-        content:
-          application/json:
-            schema:
-              oneOf:
-              - type: object
-              - $ref: '#/components/schemas/model.ResolveReportRequest'
-                description: Resolve Request
-                summary: request
-        description: Resolve Request
+        type: string
+      - description: Resolve Request
+        in: body
+        name: request
         required: true
+        schema:
+          $ref: '#/definitions/model.ResolveReportRequest'
+      produces:
+      - application/json
       responses:
         "200":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseSuccess'
           description: OK
+          schema:
+            $ref: '#/definitions/helper.ResponseSuccess'
         "400":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Bad Request
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
         "403":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Forbidden
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
         "404":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Not Found
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
         "429":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Too Many Requests
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
         "500":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Internal Server Error
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
       security:
       - BearerAuth: []
       summary: Resolve Report
@@ -1251,53 +1140,44 @@ paths:
       - admin
   /api/admin/users:
     get:
+      consumes:
+      - application/json
       description: Get paginated list of users with optional filtering. Requires Admin.
       parameters:
       - description: Search query (username, email, or full name)
         in: query
         name: query
-        schema:
-          type: string
+        type: string
       - description: Filter by role (user, admin)
         in: query
         name: role
-        schema:
-          type: string
+        type: string
       - description: Limit (default 20)
         in: query
         name: limit
-        schema:
-          type: integer
-      requestBody:
-        content:
-          application/json:
-            schema:
-              type: object
+        type: integer
+      produces:
+      - application/json
       responses:
         "200":
-          content:
-            application/json:
-              schema:
-                allOf:
-                - $ref: '#/components/schemas/data'
-                properties:
-                  data: {}
-                  meta:
-                    $ref: '#/components/schemas/helper.PaginationMeta'
-                type: object
           description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/helper.ResponseWithPagination'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/model.AdminUserListResponse'
+                  type: array
+              type: object
         "403":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Forbidden
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
         "500":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Internal Server Error
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
       security:
       - BearerAuth: []
       summary: Get Users List
@@ -1305,42 +1185,35 @@ paths:
       - admin
   /api/admin/users/{userID}:
     get:
+      consumes:
+      - application/json
       description: Get detailed user info including stats. Requires Admin.
       parameters:
       - description: User ID
         in: path
         name: userID
         required: true
-        schema:
-          type: string
-      requestBody:
-        content:
-          application/json:
-            schema:
-              type: object
+        type: string
+      produces:
+      - application/json
       responses:
         "200":
-          content:
-            application/json:
-              schema:
-                allOf:
-                - $ref: '#/components/schemas/data'
-                properties:
-                  data: {}
-                type: object
           description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/helper.ResponseSuccess'
+            - properties:
+                data:
+                  $ref: '#/definitions/model.AdminUserDetailResponse'
+              type: object
         "400":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Bad Request
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
         "404":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Not Found
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
       security:
       - BearerAuth: []
       summary: Get User Detail
@@ -1348,44 +1221,36 @@ paths:
       - admin
   /api/admin/users/{userID}/reset:
     post:
+      consumes:
+      - application/json
       description: Reset user's avatar, bio, or name. Requires Admin.
       parameters:
       - description: User ID
         in: path
         name: userID
         required: true
-        schema:
-          type: string
-      requestBody:
-        content:
-          application/json:
-            schema:
-              oneOf:
-              - type: object
-              - $ref: '#/components/schemas/model.ResetUserInfoRequest'
-                description: Reset Request
-                summary: req
-        description: Reset Request
+        type: string
+      - description: Reset Request
+        in: body
+        name: req
         required: true
+        schema:
+          $ref: '#/definitions/model.ResetUserInfoRequest'
+      produces:
+      - application/json
       responses:
         "200":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseSuccess'
           description: OK
+          schema:
+            $ref: '#/definitions/helper.ResponseSuccess'
         "400":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Bad Request
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
         "500":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Internal Server Error
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
       security:
       - BearerAuth: []
       summary: Reset User Info
@@ -1393,56 +1258,42 @@ paths:
       - admin
   /api/admin/users/{userID}/unban:
     post:
+      consumes:
+      - application/json
       description: Lift a ban from a user. Requires Admin privileges.
       parameters:
       - description: User ID (UUID)
         in: path
         name: userID
         required: true
-        schema:
-          type: string
-      requestBody:
-        content:
-          application/json:
-            schema:
-              type: object
+        type: string
+      produces:
+      - application/json
       responses:
         "200":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseSuccess'
           description: OK
+          schema:
+            $ref: '#/definitions/helper.ResponseSuccess'
         "400":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Bad Request
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
         "403":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Forbidden
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
         "404":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Not Found
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
         "429":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Too Many Requests
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
         "500":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Internal Server Error
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
       security:
       - BearerAuth: []
       summary: Unban User
@@ -1450,55 +1301,43 @@ paths:
       - admin
   /api/admin/users/ban:
     post:
+      consumes:
+      - application/json
       description: Ban a user permanently or temporarily. Requires Admin privileges.
-      requestBody:
-        content:
-          application/json:
-            schema:
-              oneOf:
-              - type: object
-              - $ref: '#/components/schemas/model.BanUserRequest'
-                description: Ban Request
-                summary: request
-        description: Ban Request
+      parameters:
+      - description: Ban Request
+        in: body
+        name: request
         required: true
+        schema:
+          $ref: '#/definitions/model.BanUserRequest'
+      produces:
+      - application/json
       responses:
         "200":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseSuccess'
           description: OK
+          schema:
+            $ref: '#/definitions/helper.ResponseSuccess'
         "400":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Bad Request
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
         "403":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Forbidden
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
         "404":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Not Found
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
         "429":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Too Many Requests
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
         "500":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Internal Server Error
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
       security:
       - BearerAuth: []
       summary: Ban User
@@ -1506,135 +1345,110 @@ paths:
       - admin
   /api/auth/google:
     post:
+      consumes:
+      - application/json
       description: Exchange Google ID Token for App Token and User Info
-      requestBody:
-        content:
-          application/json:
-            schema:
-              oneOf:
-              - type: object
-              - $ref: '#/components/schemas/model.GoogleLoginRequest'
-                description: Google Login Request
-                summary: request
-        description: Google Login Request
+      parameters:
+      - description: Google Login Request
+        in: body
+        name: request
         required: true
+        schema:
+          $ref: '#/definitions/model.GoogleLoginRequest'
+      produces:
+      - application/json
       responses:
         "200":
-          content:
-            application/json:
-              schema:
-                allOf:
-                - $ref: '#/components/schemas/data'
-                properties:
-                  data: {}
-                type: object
           description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/helper.ResponseSuccess'
+            - properties:
+                data:
+                  $ref: '#/definitions/model.AuthResponse'
+              type: object
         "400":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Bad Request
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
         "429":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Too Many Requests
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
         "500":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Internal Server Error
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
       summary: Google Exchange
       tags:
       - auth
   /api/auth/login:
     post:
+      consumes:
+      - application/json
       description: Login with email and password
-      requestBody:
-        content:
-          application/json:
-            schema:
-              oneOf:
-              - type: object
-              - $ref: '#/components/schemas/model.LoginRequest'
-                description: Login Request
-                summary: request
-        description: Login Request
+      parameters:
+      - description: Login Request
+        in: body
+        name: request
         required: true
+        schema:
+          $ref: '#/definitions/model.LoginRequest'
+      produces:
+      - application/json
       responses:
         "200":
-          content:
-            application/json:
-              schema:
-                allOf:
-                - $ref: '#/components/schemas/data'
-                properties:
-                  data: {}
-                type: object
           description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/helper.ResponseSuccess'
+            - properties:
+                data:
+                  $ref: '#/definitions/model.AuthResponse'
+              type: object
         "400":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Bad Request
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
         "401":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Unauthorized
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
         "429":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Too Many Requests
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
         "500":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Internal Server Error
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
       summary: Login
       tags:
       - auth
   /api/auth/logout:
     post:
+      consumes:
+      - application/json
       description: Invalidate the current access token and disconnect WebSocket.
-      requestBody:
-        content:
-          application/json:
-            schema:
-              type: object
+      produces:
+      - application/json
       responses:
         "200":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseSuccess'
           description: OK
+          schema:
+            $ref: '#/definitions/helper.ResponseSuccess'
         "401":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Unauthorized
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
         "429":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Too Many Requests
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
         "500":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Internal Server Error
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
       security:
       - BearerAuth: []
       summary: Logout
@@ -1642,166 +1456,134 @@ paths:
       - auth
   /api/auth/register:
     post:
+      consumes:
+      - application/json
       description: Register a new user with email, password, and OTP verification.
-      requestBody:
-        content:
-          application/json:
-            schema:
-              oneOf:
-              - type: object
-              - $ref: '#/components/schemas/model.RegisterUserRequest'
-                description: Register User Request
-                summary: request
-        description: Register User Request
+      parameters:
+      - description: Register User Request
+        in: body
+        name: request
         required: true
+        schema:
+          $ref: '#/definitions/model.RegisterUserRequest'
+      produces:
+      - application/json
       responses:
         "200":
-          content:
-            application/json:
-              schema:
-                allOf:
-                - $ref: '#/components/schemas/data'
-                properties:
-                  data: {}
-                type: object
           description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/helper.ResponseSuccess'
+            - properties:
+                data:
+                  $ref: '#/definitions/model.AuthResponse'
+              type: object
         "400":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Bad Request
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
         "409":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Conflict
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
         "429":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Too Many Requests
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
         "500":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Internal Server Error
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
       summary: Register User
       tags:
       - auth
   /api/auth/reset-password:
     post:
+      consumes:
+      - application/json
       description: Reset user password using OTP verification.
-      requestBody:
-        content:
-          application/json:
-            schema:
-              oneOf:
-              - type: object
-              - $ref: '#/components/schemas/model.ResetPasswordRequest'
-                description: Reset Password Request
-                summary: request
-        description: Reset Password Request
+      parameters:
+      - description: Reset Password Request
+        in: body
+        name: request
         required: true
+        schema:
+          $ref: '#/definitions/model.ResetPasswordRequest'
+      produces:
+      - application/json
       responses:
         "200":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseSuccess'
           description: OK
+          schema:
+            $ref: '#/definitions/helper.ResponseSuccess'
         "400":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Bad Request
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
         "404":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Not Found
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
         "429":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Too Many Requests
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
         "500":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Internal Server Error
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
       summary: Reset Password
       tags:
       - auth
   /api/chats:
     get:
+      consumes:
+      - application/json
       description: Get a paginated list of user's chats, sorted by last message time.
         Can be searched.
       parameters:
       - description: Search query for chat name
         in: query
         name: query
-        schema:
-          type: string
+        type: string
       - description: Pagination cursor
         in: query
         name: cursor
-        schema:
-          type: string
+        type: string
       - description: Number of items per page (default 20, max 50)
         in: query
         name: limit
-        schema:
-          type: integer
-      requestBody:
-        content:
-          application/json:
-            schema:
-              type: object
+        type: integer
+      produces:
+      - application/json
       responses:
         "200":
-          content:
-            application/json:
-              schema:
-                allOf:
-                - $ref: '#/components/schemas/data'
-                properties:
-                  data: {}
-                  meta:
-                    $ref: '#/components/schemas/helper.PaginationMeta'
-                type: object
           description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/helper.ResponseWithPagination'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/model.ChatListResponse'
+                  type: array
+              type: object
         "400":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Bad Request
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
         "401":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Unauthorized
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
         "429":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Too Many Requests
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
         "500":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Internal Server Error
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
       security:
       - BearerAuth: []
       summary: Get Chat List
@@ -1809,6 +1591,8 @@ paths:
       - chat
   /api/chats/{chatID}/messages:
     get:
+      consumes:
+      - application/json
       description: Get a paginated list of messages from a chat. Supports bidirectional
         pagination and jumping to a specific message.
       parameters:
@@ -1816,76 +1600,57 @@ paths:
         in: path
         name: chatID
         required: true
-        schema:
-          type: string
+        type: string
       - description: Pagination cursor (Base64 encoded message ID)
         in: query
         name: cursor
-        schema:
-          type: string
+        type: string
       - description: Jump to message ID (UUID)
         in: query
         name: around_message_id
-        schema:
-          type: string
+        type: string
       - description: Number of messages to fetch (default 20, max 50)
         in: query
         name: limit
-        schema:
-          type: integer
+        type: integer
       - description: 'Pagination direction: ''older'' (default) or ''newer'''
         in: query
         name: direction
-        schema:
-          type: string
-      requestBody:
-        content:
-          application/json:
-            schema:
-              type: object
+        type: string
+      produces:
+      - application/json
       responses:
         "200":
-          content:
-            application/json:
-              schema:
-                allOf:
-                - $ref: '#/components/schemas/data'
-                properties:
-                  data: {}
-                  meta:
-                    $ref: '#/components/schemas/helper.PaginationMeta'
-                type: object
           description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/helper.ResponseWithPagination'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/model.MessageResponse'
+                  type: array
+              type: object
         "400":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Bad Request
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
         "401":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Unauthorized
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
         "403":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Forbidden
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
         "429":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Too Many Requests
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
         "500":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Internal Server Error
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
       security:
       - BearerAuth: []
       summary: Get Messages
@@ -1893,60 +1658,47 @@ paths:
       - message
   /api/chats/{id}:
     get:
+      consumes:
+      - application/json
       description: Get detailed information about a single chat.
       parameters:
       - description: Chat ID (UUID)
         in: path
         name: id
         required: true
-        schema:
-          type: string
-      requestBody:
-        content:
-          application/json:
-            schema:
-              type: object
+        type: string
+      produces:
+      - application/json
       responses:
         "200":
-          content:
-            application/json:
-              schema:
-                allOf:
-                - $ref: '#/components/schemas/data'
-                properties:
-                  data: {}
-                type: object
           description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/helper.ResponseSuccess'
+            - properties:
+                data:
+                  $ref: '#/definitions/model.ChatListResponse'
+              type: object
         "400":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Bad Request
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
         "401":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Unauthorized
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
         "404":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Not Found
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
         "429":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Too Many Requests
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
         "500":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Internal Server Error
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
       security:
       - BearerAuth: []
       summary: Get Chat by ID
@@ -1954,6 +1706,8 @@ paths:
       - chat
   /api/chats/{id}/hide:
     post:
+      consumes:
+      - application/json
       description: Hide a private chat from the chat list. It will reappear if a new
         message is sent or received.
       parameters:
@@ -1961,50 +1715,34 @@ paths:
         in: path
         name: id
         required: true
-        schema:
-          type: string
-      requestBody:
-        content:
-          application/json:
-            schema:
-              type: object
+        type: string
+      produces:
+      - application/json
       responses:
         "200":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseSuccess'
           description: OK
+          schema:
+            $ref: '#/definitions/helper.ResponseSuccess'
         "400":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Bad Request
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
         "401":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Unauthorized
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
         "404":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Not Found
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
         "429":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Too Many Requests
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
         "500":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Internal Server Error
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
       security:
       - BearerAuth: []
       summary: Hide Chat
@@ -2012,56 +1750,42 @@ paths:
       - chat
   /api/chats/{id}/read:
     post:
+      consumes:
+      - application/json
       description: Mark all messages in a chat as read for the current user.
       parameters:
       - description: Chat ID (UUID)
         in: path
         name: id
         required: true
-        schema:
-          type: string
-      requestBody:
-        content:
-          application/json:
-            schema:
-              type: object
+        type: string
+      produces:
+      - application/json
       responses:
         "200":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseSuccess'
           description: OK
+          schema:
+            $ref: '#/definitions/helper.ResponseSuccess'
         "400":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Bad Request
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
         "401":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Unauthorized
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
         "404":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Not Found
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
         "429":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Too Many Requests
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
         "500":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Internal Server Error
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
       security:
       - BearerAuth: []
       summary: Mark Chat as Read
@@ -2069,68 +1793,64 @@ paths:
       - chat
   /api/chats/group:
     post:
+      consumes:
+      - multipart/form-data
       description: Create a new group chat with multiple members and an optional avatar.
-      requestBody:
-        content:
-          application/x-www-form-urlencoded:
-            schema:
-              oneOf:
-              - title: name
-                type: string
-              - title: description
-                type: string
-              - title: member_ids
-                type: string
-              - title: avatar
-                type: file
-              - title: is_public
-                type: boolean
-          multipart/form-data:
-            schema:
-              type: object
-        description: Group Name | Group Description | JSON Array of Member IDs (UUIDs)
-          | Group Avatar Image | Is Public Group
+      parameters:
+      - description: Group Name
+        in: formData
+        name: name
+        required: true
+        type: string
+      - description: Group Description
+        in: formData
+        name: description
+        type: string
+      - description: JSON Array of Member IDs (UUIDs)
+        in: formData
+        name: member_ids
+        required: true
+        type: string
+      - description: Group Avatar Image
+        in: formData
+        name: avatar
+        type: file
+      - description: Is Public Group
+        in: formData
+        name: is_public
+        type: boolean
+      produces:
+      - application/json
       responses:
         "200":
-          content:
-            application/json:
-              schema:
-                allOf:
-                - $ref: '#/components/schemas/data'
-                properties:
-                  data: {}
-                type: object
           description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/helper.ResponseSuccess'
+            - properties:
+                data:
+                  $ref: '#/definitions/model.ChatListResponse'
+              type: object
         "400":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Bad Request
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
         "401":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Unauthorized
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
         "403":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Forbidden
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
         "429":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Too Many Requests
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
         "500":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Internal Server Error
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
       security:
       - BearerAuth: []
       summary: Create Group Chat
@@ -2138,68 +1858,54 @@ paths:
       - chat
   /api/chats/group/{groupID}:
     delete:
+      consumes:
+      - application/json
       description: Soft delete a group chat. Only owner can perform this action.
       parameters:
       - description: Group Chat ID (UUID)
         in: path
         name: groupID
         required: true
-        schema:
-          type: string
-      requestBody:
-        content:
-          application/json:
-            schema:
-              type: object
+        type: string
+      produces:
+      - application/json
       responses:
         "200":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseSuccess'
           description: OK
+          schema:
+            $ref: '#/definitions/helper.ResponseSuccess'
         "400":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Bad Request
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
         "401":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Unauthorized
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
         "403":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Forbidden
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
         "404":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Not Found
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
         "429":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Too Many Requests
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
         "500":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Internal Server Error
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
       security:
       - BearerAuth: []
       summary: Delete Group
       tags:
       - chat
     put:
+      consumes:
+      - multipart/form-data
       description: Update group name, description, avatar, or visibility. Only owners
         or admins can perform this action.
       parameters:
@@ -2207,75 +1913,63 @@ paths:
         in: path
         name: groupID
         required: true
-        schema:
-          type: string
-      requestBody:
-        content:
-          application/x-www-form-urlencoded:
-            schema:
-              oneOf:
-              - title: name
-                type: string
-              - title: description
-                type: string
-              - title: avatar
-                type: file
-              - title: delete_avatar
-                type: boolean
-              - title: is_public
-                type: boolean
-          multipart/form-data:
-            schema:
-              type: object
-        description: Group Name | Group Description | Group Avatar Image | Delete
-          Avatar (Set to true to delete current avatar) | Is Public Group
+        type: string
+      - description: Group Name
+        in: formData
+        name: name
+        type: string
+      - description: Group Description
+        in: formData
+        name: description
+        type: string
+      - description: Group Avatar Image
+        in: formData
+        name: avatar
+        type: file
+      - description: Delete Avatar (Set to true to delete current avatar)
+        in: formData
+        name: delete_avatar
+        type: boolean
+      - description: Is Public Group
+        in: formData
+        name: is_public
+        type: boolean
+      produces:
+      - application/json
       responses:
         "200":
-          content:
-            application/json:
-              schema:
-                allOf:
-                - $ref: '#/components/schemas/data'
-                properties:
-                  data: {}
-                type: object
           description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/helper.ResponseSuccess'
+            - properties:
+                data:
+                  $ref: '#/definitions/model.ChatListResponse'
+              type: object
         "400":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Bad Request
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
         "401":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Unauthorized
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
         "403":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Forbidden
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
         "404":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Not Found
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
         "429":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Too Many Requests
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
         "500":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Internal Server Error
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
       security:
       - BearerAuth: []
       summary: Update Group Chat Info
@@ -2283,6 +1977,8 @@ paths:
       - chat
   /api/chats/group/{groupID}/invite:
     put:
+      consumes:
+      - application/json
       description: Reset the invite code for a group. Only admins or owners can perform
         this action.
       parameters:
@@ -2290,60 +1986,43 @@ paths:
         in: path
         name: groupID
         required: true
-        schema:
-          type: string
-      requestBody:
-        content:
-          application/json:
-            schema:
-              type: object
+        type: string
+      produces:
+      - application/json
       responses:
         "200":
-          content:
-            application/json:
-              schema:
-                allOf:
-                - $ref: '#/components/schemas/data'
-                properties:
-                  data: {}
-                type: object
           description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/helper.ResponseSuccess'
+            - properties:
+                data:
+                  $ref: '#/definitions/model.GroupInviteResponse'
+              type: object
         "400":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Bad Request
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
         "401":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Unauthorized
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
         "403":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Forbidden
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
         "404":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Not Found
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
         "429":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Too Many Requests
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
         "500":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Internal Server Error
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
       security:
       - BearerAuth: []
       summary: Reset Group Invite Code
@@ -2351,72 +2030,55 @@ paths:
       - chat
   /api/chats/group/{groupID}/join:
     post:
+      consumes:
+      - application/json
       description: Join a public group chat.
       parameters:
       - description: Group Chat ID (UUID)
         in: path
         name: groupID
         required: true
-        schema:
-          type: string
-      requestBody:
-        content:
-          application/json:
-            schema:
-              type: object
+        type: string
+      produces:
+      - application/json
       responses:
         "200":
-          content:
-            application/json:
-              schema:
-                allOf:
-                - $ref: '#/components/schemas/data'
-                properties:
-                  data: {}
-                type: object
           description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/helper.ResponseSuccess'
+            - properties:
+                data:
+                  $ref: '#/definitions/model.ChatListResponse'
+              type: object
         "400":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Bad Request
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
         "401":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Unauthorized
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
         "403":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Forbidden
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
         "404":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Not Found
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
         "409":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Conflict
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
         "429":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Too Many Requests
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
         "500":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Internal Server Error
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
       security:
       - BearerAuth: []
       summary: Join Public Group
@@ -2424,6 +2086,8 @@ paths:
       - chat
   /api/chats/group/{groupID}/leave:
     post:
+      consumes:
+      - application/json
       description: Leave a group chat. Owner cannot leave without transferring ownership
         first.
       parameters:
@@ -2431,54 +2095,39 @@ paths:
         in: path
         name: groupID
         required: true
-        schema:
-          type: string
-      requestBody:
-        content:
-          application/json:
-            schema:
-              type: object
+        type: string
+      produces:
+      - application/json
       responses:
         "200":
-          content:
-            application/json:
-              schema:
-                allOf:
-                - $ref: '#/components/schemas/data'
-                properties:
-                  data: {}
-                type: object
           description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/helper.ResponseSuccess'
+            - properties:
+                data:
+                  $ref: '#/definitions/model.MessageResponse'
+              type: object
         "400":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Bad Request
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
         "401":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Unauthorized
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
         "404":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Not Found
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
         "429":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Too Many Requests
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
         "500":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Internal Server Error
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
       security:
       - BearerAuth: []
       summary: Leave Group
@@ -2486,89 +2135,73 @@ paths:
       - chat
   /api/chats/group/{groupID}/members:
     get:
+      consumes:
+      - application/json
       description: Search for members in a group chat by username or full name.
       parameters:
       - description: Group Chat ID (UUID)
         in: path
         name: groupID
         required: true
-        schema:
-          type: string
+        type: string
       - description: Search query
         in: query
         name: query
-        schema:
-          type: string
+        type: string
       - description: Pagination cursor
         in: query
         name: cursor
-        schema:
-          type: string
+        type: string
       - description: Number of items per page (default 20, max 50)
         in: query
         name: limit
-        schema:
-          type: integer
-      requestBody:
-        content:
-          application/json:
-            schema:
-              type: object
+        type: integer
+      produces:
+      - application/json
       responses:
         "200":
-          content:
-            application/json:
-              schema:
-                allOf:
-                - $ref: '#/components/schemas/data'
-                properties:
-                  data: {}
-                  meta:
-                    $ref: '#/components/schemas/helper.PaginationMeta'
-                type: object
           description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/helper.ResponseWithPagination'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/model.GroupMemberDTO'
+                  type: array
+              type: object
         "400":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Bad Request
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
         "401":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Unauthorized
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
         "403":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Forbidden
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
         "404":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Not Found
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
         "429":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Too Many Requests
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
         "500":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Internal Server Error
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
       security:
       - BearerAuth: []
       summary: Search Group Members
       tags:
       - chat
     post:
+      consumes:
+      - application/json
       description: Add new members to a group chat. Only owners or admins can perform
         this action.
       parameters:
@@ -2576,72 +2209,55 @@ paths:
         in: path
         name: groupID
         required: true
-        schema:
-          type: string
-      requestBody:
-        content:
-          application/json:
-            schema:
-              oneOf:
-              - type: object
-              - $ref: '#/components/schemas/model.AddGroupMemberRequest'
-                description: Add Member Request
-                summary: request
-        description: Add Member Request
+        type: string
+      - description: Add Member Request
+        in: body
+        name: request
         required: true
+        schema:
+          $ref: '#/definitions/model.AddGroupMemberRequest'
+      produces:
+      - application/json
       responses:
         "200":
-          content:
-            application/json:
-              schema:
-                allOf:
-                - $ref: '#/components/schemas/data'
-                properties:
-                  data: {}
-                type: object
           description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/helper.ResponseSuccess'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/model.MessageResponse'
+                  type: array
+              type: object
         "400":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Bad Request
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
         "401":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Unauthorized
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
         "403":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Forbidden
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
         "404":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Not Found
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
         "409":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Conflict
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
         "429":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Too Many Requests
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
         "500":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Internal Server Error
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
       security:
       - BearerAuth: []
       summary: Add Member to Group
@@ -2649,6 +2265,8 @@ paths:
       - chat
   /api/chats/group/{groupID}/members/{userID}/kick:
     post:
+      consumes:
+      - application/json
       description: Kick a member from a group chat. Only owners or admins can perform
         this action.
       parameters:
@@ -2656,66 +2274,48 @@ paths:
         in: path
         name: groupID
         required: true
-        schema:
-          type: string
+        type: string
       - description: Target User ID (UUID)
         in: path
         name: userID
         required: true
-        schema:
-          type: string
-      requestBody:
-        content:
-          application/json:
-            schema:
-              type: object
+        type: string
+      produces:
+      - application/json
       responses:
         "200":
-          content:
-            application/json:
-              schema:
-                allOf:
-                - $ref: '#/components/schemas/data'
-                properties:
-                  data: {}
-                type: object
           description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/helper.ResponseSuccess'
+            - properties:
+                data:
+                  $ref: '#/definitions/model.MessageResponse'
+              type: object
         "400":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Bad Request
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
         "401":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Unauthorized
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
         "403":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Forbidden
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
         "404":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Not Found
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
         "429":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Too Many Requests
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
         "500":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Internal Server Error
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
       security:
       - BearerAuth: []
       summary: Kick Member from Group
@@ -2723,78 +2323,62 @@ paths:
       - chat
   /api/chats/group/{groupID}/members/{userID}/role:
     put:
+      consumes:
+      - application/json
       description: Promote or demote a group member. Only owner can perform this action.
       parameters:
       - description: Group Chat ID (UUID)
         in: path
         name: groupID
         required: true
-        schema:
-          type: string
+        type: string
       - description: Target User ID (UUID)
         in: path
         name: userID
         required: true
-        schema:
-          type: string
-      requestBody:
-        content:
-          application/json:
-            schema:
-              oneOf:
-              - type: object
-              - $ref: '#/components/schemas/model.UpdateGroupMemberRoleRequest'
-                description: Update Role Request
-                summary: request
-        description: Update Role Request
+        type: string
+      - description: Update Role Request
+        in: body
+        name: request
         required: true
+        schema:
+          $ref: '#/definitions/model.UpdateGroupMemberRoleRequest'
+      produces:
+      - application/json
       responses:
         "200":
-          content:
-            application/json:
-              schema:
-                allOf:
-                - $ref: '#/components/schemas/data'
-                properties:
-                  data: {}
-                type: object
           description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/helper.ResponseSuccess'
+            - properties:
+                data:
+                  $ref: '#/definitions/model.MessageResponse'
+              type: object
         "400":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Bad Request
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
         "401":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Unauthorized
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
         "403":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Forbidden
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
         "404":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Not Found
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
         "429":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Too Many Requests
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
         "500":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Internal Server Error
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
       security:
       - BearerAuth: []
       summary: Update Member Role
@@ -2802,6 +2386,8 @@ paths:
       - chat
   /api/chats/group/{groupID}/transfer:
     post:
+      consumes:
+      - application/json
       description: Transfer group ownership to another member. Only owner can perform
         this action.
       parameters:
@@ -2809,66 +2395,49 @@ paths:
         in: path
         name: groupID
         required: true
-        schema:
-          type: string
-      requestBody:
-        content:
-          application/json:
-            schema:
-              oneOf:
-              - type: object
-              - $ref: '#/components/schemas/model.TransferGroupOwnershipRequest'
-                description: Transfer Ownership Request
-                summary: request
-        description: Transfer Ownership Request
+        type: string
+      - description: Transfer Ownership Request
+        in: body
+        name: request
         required: true
+        schema:
+          $ref: '#/definitions/model.TransferGroupOwnershipRequest'
+      produces:
+      - application/json
       responses:
         "200":
-          content:
-            application/json:
-              schema:
-                allOf:
-                - $ref: '#/components/schemas/data'
-                properties:
-                  data: {}
-                type: object
           description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/helper.ResponseSuccess'
+            - properties:
+                data:
+                  $ref: '#/definitions/model.MessageResponse'
+              type: object
         "400":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Bad Request
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
         "401":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Unauthorized
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
         "403":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Forbidden
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
         "404":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Not Found
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
         "429":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Too Many Requests
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
         "500":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Internal Server Error
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
       security:
       - BearerAuth: []
       summary: Transfer Ownership
@@ -2876,6 +2445,8 @@ paths:
       - chat
   /api/chats/group/invite/{inviteCode}:
     get:
+      consumes:
+      - application/json
       description: Get basic group info using an invite code. Useful for previewing
         before joining.
       parameters:
@@ -2883,106 +2454,82 @@ paths:
         in: path
         name: inviteCode
         required: true
-        schema:
-          type: string
-      requestBody:
-        content:
-          application/json:
-            schema:
-              type: object
+        type: string
+      produces:
+      - application/json
       responses:
         "200":
-          content:
-            application/json:
-              schema:
-                allOf:
-                - $ref: '#/components/schemas/data'
-                properties:
-                  data: {}
-                type: object
           description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/helper.ResponseSuccess'
+            - properties:
+                data:
+                  $ref: '#/definitions/model.GroupPreviewDTO'
+              type: object
         "400":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Bad Request
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
         "404":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Not Found
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
         "429":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Too Many Requests
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
         "500":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Internal Server Error
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
       summary: Get Group Preview by Invite Code
       tags:
       - chat
   /api/chats/group/join/invite:
     post:
+      consumes:
+      - application/json
       description: Join a private or public group using an invite code.
-      requestBody:
-        content:
-          application/json:
-            schema:
-              oneOf:
-              - type: object
-              - $ref: '#/components/schemas/model.JoinGroupByInviteRequest'
-                description: Join Request
-                summary: request
-        description: Join Request
+      parameters:
+      - description: Join Request
+        in: body
+        name: request
         required: true
+        schema:
+          $ref: '#/definitions/model.JoinGroupByInviteRequest'
+      produces:
+      - application/json
       responses:
         "200":
-          content:
-            application/json:
-              schema:
-                allOf:
-                - $ref: '#/components/schemas/data'
-                properties:
-                  data: {}
-                type: object
           description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/helper.ResponseSuccess'
+            - properties:
+                data:
+                  $ref: '#/definitions/model.ChatListResponse'
+              type: object
         "400":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Bad Request
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
         "401":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Unauthorized
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
         "404":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Not Found
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
         "429":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Too Many Requests
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
         "500":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Internal Server Error
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
       security:
       - BearerAuth: []
       summary: Join Group by Invite Code
@@ -2990,65 +2537,52 @@ paths:
       - chat
   /api/chats/group/public:
     get:
+      consumes:
+      - application/json
       description: Search for public groups by name or description.
       parameters:
       - description: Search query
         in: query
         name: query
-        schema:
-          type: string
+        type: string
       - description: Pagination cursor
         in: query
         name: cursor
-        schema:
-          type: string
+        type: string
       - description: Number of items per page (default 20, max 50)
         in: query
         name: limit
-        schema:
-          type: integer
-      requestBody:
-        content:
-          application/json:
-            schema:
-              type: object
+        type: integer
+      produces:
+      - application/json
       responses:
         "200":
-          content:
-            application/json:
-              schema:
-                allOf:
-                - $ref: '#/components/schemas/data'
-                properties:
-                  data: {}
-                  meta:
-                    $ref: '#/components/schemas/helper.PaginationMeta'
-                type: object
           description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/helper.ResponseWithPagination'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/model.PublicGroupDTO'
+                  type: array
+              type: object
         "400":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Bad Request
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
         "401":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Unauthorized
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
         "429":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Too Many Requests
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
         "500":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Internal Server Error
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
       security:
       - BearerAuth: []
       summary: Search Public Groups
@@ -3056,60 +2590,49 @@ paths:
       - chat
   /api/chats/private:
     post:
+      consumes:
+      - application/json
       description: Create a new private chat with another user. If it already exists,
         returns the existing chat.
-      requestBody:
-        content:
-          application/json:
-            schema:
-              oneOf:
-              - type: object
-              - $ref: '#/components/schemas/model.CreatePrivateChatRequest'
-                description: Create Private Chat Request
-                summary: request
-        description: Create Private Chat Request
+      parameters:
+      - description: Create Private Chat Request
+        in: body
+        name: request
         required: true
+        schema:
+          $ref: '#/definitions/model.CreatePrivateChatRequest'
+      produces:
+      - application/json
       responses:
         "200":
-          content:
-            application/json:
-              schema:
-                allOf:
-                - $ref: '#/components/schemas/data'
-                properties:
-                  data: {}
-                type: object
           description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/helper.ResponseSuccess'
+            - properties:
+                data:
+                  $ref: '#/definitions/model.ChatResponse'
+              type: object
         "400":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Bad Request
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
         "401":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Unauthorized
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
         "404":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Not Found
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
         "429":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Too Many Requests
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
         "500":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Internal Server Error
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
       security:
       - BearerAuth: []
       summary: Create Private Chat
@@ -3117,6 +2640,8 @@ paths:
       - chat
   /api/media/{mediaID}/url:
     get:
+      consumes:
+      - application/json
       description: Get a new presigned URL for a media file if the previous one has
         expired.
       parameters:
@@ -3124,54 +2649,39 @@ paths:
         in: path
         name: mediaID
         required: true
-        schema:
-          type: string
-      requestBody:
-        content:
-          application/json:
-            schema:
-              type: object
+        type: string
+      produces:
+      - application/json
       responses:
         "200":
-          content:
-            application/json:
-              schema:
-                allOf:
-                - $ref: '#/components/schemas/data'
-                properties:
-                  data: {}
-                type: object
           description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/helper.ResponseSuccess'
+            - properties:
+                data:
+                  $ref: '#/definitions/model.MediaURLResponse'
+              type: object
         "400":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Bad Request
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
         "401":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Unauthorized
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
         "403":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Forbidden
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
         "404":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Not Found
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
         "500":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Internal Server Error
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
       security:
       - BearerAuth: []
       summary: Refresh Media URL
@@ -3179,53 +2689,43 @@ paths:
       - media
   /api/media/upload:
     post:
+      consumes:
+      - multipart/form-data
       description: Upload a file (image, video, file, audio) to be used as attachment.
-      requestBody:
-        content:
-          application/x-www-form-urlencoded:
-            schema:
-              title: file
-              type: file
-          multipart/form-data:
-            schema:
-              type: object
-        description: File to upload
+      parameters:
+      - description: File to upload
+        in: formData
+        name: file
         required: true
+        type: file
+      produces:
+      - application/json
       responses:
         "200":
-          content:
-            application/json:
-              schema:
-                allOf:
-                - $ref: '#/components/schemas/data'
-                properties:
-                  data: {}
-                type: object
           description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/helper.ResponseSuccess'
+            - properties:
+                data:
+                  $ref: '#/definitions/model.MediaDTO'
+              type: object
         "400":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Bad Request
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
         "401":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Unauthorized
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
         "429":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Too Many Requests
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
         "500":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Internal Server Error
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
       security:
       - BearerAuth: []
       summary: Upload Media
@@ -3233,60 +2733,49 @@ paths:
       - media
   /api/messages:
     post:
+      consumes:
+      - application/json
       description: Send a message to a chat (private or group). Supports text and
         attachments (via IDs).
-      requestBody:
-        content:
-          application/json:
-            schema:
-              oneOf:
-              - type: object
-              - $ref: '#/components/schemas/model.SendMessageRequest'
-                description: Send Message Request
-                summary: request
-        description: Send Message Request
+      parameters:
+      - description: Send Message Request
+        in: body
+        name: request
         required: true
+        schema:
+          $ref: '#/definitions/model.SendMessageRequest'
+      produces:
+      - application/json
       responses:
         "200":
-          content:
-            application/json:
-              schema:
-                allOf:
-                - $ref: '#/components/schemas/data'
-                properties:
-                  data: {}
-                type: object
           description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/helper.ResponseSuccess'
+            - properties:
+                data:
+                  $ref: '#/definitions/model.MessageResponse'
+              type: object
         "400":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Bad Request
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
         "401":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Unauthorized
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
         "404":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Not Found
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
         "429":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Too Many Requests
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
         "500":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Internal Server Error
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
       security:
       - BearerAuth: []
       summary: Send Message
@@ -3294,134 +2783,103 @@ paths:
       - message
   /api/messages/{messageID}:
     delete:
+      consumes:
+      - application/json
       description: Soft delete a message. Only the sender can delete their own message.
       parameters:
       - description: Message ID (UUID)
         in: path
         name: messageID
         required: true
-        schema:
-          type: string
-      requestBody:
-        content:
-          application/json:
-            schema:
-              type: object
+        type: string
+      produces:
+      - application/json
       responses:
         "200":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseSuccess'
           description: OK
+          schema:
+            $ref: '#/definitions/helper.ResponseSuccess'
         "400":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Bad Request
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
         "401":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Unauthorized
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
         "403":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Forbidden
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
         "404":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Not Found
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
         "429":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Too Many Requests
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
         "500":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Internal Server Error
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
       security:
       - BearerAuth: []
       summary: Delete Message
       tags:
       - message
     put:
+      consumes:
+      - application/json
       description: Edit a message's content and/or attachments.
       parameters:
       - description: Message ID (UUID)
         in: path
         name: messageID
         required: true
-        schema:
-          type: string
-      requestBody:
-        content:
-          application/json:
-            schema:
-              oneOf:
-              - type: object
-              - $ref: '#/components/schemas/model.EditMessageRequest'
-                description: Edit Message Request
-                summary: request
-        description: Edit Message Request
+        type: string
+      - description: Edit Message Request
+        in: body
+        name: request
         required: true
+        schema:
+          $ref: '#/definitions/model.EditMessageRequest'
+      produces:
+      - application/json
       responses:
         "200":
-          content:
-            application/json:
-              schema:
-                allOf:
-                - $ref: '#/components/schemas/data'
-                properties:
-                  data: {}
-                type: object
           description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/helper.ResponseSuccess'
+            - properties:
+                data:
+                  $ref: '#/definitions/model.MessageResponse'
+              type: object
         "400":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Bad Request
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
         "401":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Unauthorized
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
         "403":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Forbidden
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
         "404":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Not Found
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
         "429":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Too Many Requests
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
         "500":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Internal Server Error
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
       security:
       - BearerAuth: []
       summary: Edit Message
@@ -3429,111 +2887,87 @@ paths:
       - message
   /api/otp/send:
     post:
+      consumes:
+      - application/json
       description: Sends an OTP code to the user's email for registration or password
         reset.
-      requestBody:
-        content:
-          application/json:
-            schema:
-              oneOf:
-              - type: object
-              - $ref: '#/components/schemas/model.SendOTPRequest'
-                description: Send OTP Request
-                summary: request
-        description: Send OTP Request
+      parameters:
+      - description: Send OTP Request
+        in: body
+        name: request
         required: true
+        schema:
+          $ref: '#/definitions/model.SendOTPRequest'
+      produces:
+      - application/json
       responses:
         "200":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseSuccess'
           description: OK
+          schema:
+            $ref: '#/definitions/helper.ResponseSuccess'
         "400":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Bad Request
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
         "404":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Not Found
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
         "409":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Conflict
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
         "429":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Too Many Requests
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
         "500":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Internal Server Error
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
       summary: Send OTP
       tags:
       - otp
   /api/reports:
     post:
+      consumes:
+      - application/json
       description: Report a message, group, or user. Server will automatically snapshot
         the evidence.
-      requestBody:
-        content:
-          application/json:
-            schema:
-              oneOf:
-              - type: object
-              - $ref: '#/components/schemas/model.CreateReportRequest'
-                description: Report Request
-                summary: request
-        description: Report Request
+      parameters:
+      - description: Report Request
+        in: body
+        name: request
         required: true
+        schema:
+          $ref: '#/definitions/model.CreateReportRequest'
+      produces:
+      - application/json
       responses:
         "200":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseSuccess'
           description: OK
+          schema:
+            $ref: '#/definitions/helper.ResponseSuccess'
         "400":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Bad Request
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
         "401":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Unauthorized
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
         "404":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Not Found
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
         "429":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Too Many Requests
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
         "500":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Internal Server Error
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
       security:
       - BearerAuth: []
       summary: Create Report
@@ -3541,41 +2975,33 @@ paths:
       - report
   /api/user/current:
     get:
+      consumes:
+      - application/json
       description: Get the currently logged-in user's profile.
-      requestBody:
-        content:
-          application/json:
-            schema:
-              type: object
+      produces:
+      - application/json
       responses:
         "200":
-          content:
-            application/json:
-              schema:
-                allOf:
-                - $ref: '#/components/schemas/data'
-                properties:
-                  data: {}
-                type: object
           description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/helper.ResponseSuccess'
+            - properties:
+                data:
+                  $ref: '#/definitions/model.UserDTO'
+              type: object
         "401":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Unauthorized
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
         "429":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Too Many Requests
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
         "500":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Internal Server Error
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
       security:
       - BearerAuth: []
       summary: Get Current User
@@ -3583,67 +3009,63 @@ paths:
       - user
   /api/user/profile:
     put:
+      consumes:
+      - multipart/form-data
       description: Update user's full name, bio, and avatar.
-      requestBody:
-        content:
-          application/x-www-form-urlencoded:
-            schema:
-              oneOf:
-              - title: username
-                type: string
-              - title: full_name
-                type: string
-              - title: bio
-                type: string
-              - title: avatar
-                type: file
-              - title: delete_avatar
-                type: boolean
-          multipart/form-data:
-            schema:
-              type: object
-        description: Username | Full Name | Bio | Avatar Image | Delete Avatar
+      parameters:
+      - description: Username
+        in: formData
+        name: username
+        type: string
+      - description: Full Name
+        in: formData
+        name: full_name
+        required: true
+        type: string
+      - description: Bio
+        in: formData
+        name: bio
+        type: string
+      - description: Avatar Image
+        in: formData
+        name: avatar
+        type: file
+      - description: Delete Avatar
+        in: formData
+        name: delete_avatar
+        type: boolean
+      produces:
+      - application/json
       responses:
         "200":
-          content:
-            application/json:
-              schema:
-                allOf:
-                - $ref: '#/components/schemas/data'
-                properties:
-                  data: {}
-                type: object
           description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/helper.ResponseSuccess'
+            - properties:
+                data:
+                  $ref: '#/definitions/model.UserDTO'
+              type: object
         "400":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Bad Request
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
         "401":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Unauthorized
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
         "404":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Not Found
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
         "429":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Too Many Requests
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
         "500":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Internal Server Error
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
       security:
       - BearerAuth: []
       summary: Update User Profile
@@ -3651,75 +3073,60 @@ paths:
       - user
   /api/users:
     get:
+      consumes:
+      - application/json
       description: Search users by name or email with cursor-based pagination.
       parameters:
       - description: Search query (name or email)
         in: query
         name: query
-        schema:
-          type: string
+        type: string
       - description: Pagination cursor
         in: query
         name: cursor
-        schema:
-          type: string
+        type: string
       - description: Number of items per page (default 10, max 50)
         in: query
         name: limit
-        schema:
-          type: integer
+        type: integer
       - description: Include private chat ID if exists
         in: query
         name: include_chat_id
-        schema:
-          type: boolean
+        type: boolean
       - description: Exclude users who are members of this group ID
         in: query
         name: exclude_group_id
-        schema:
-          type: string
-      requestBody:
-        content:
-          application/json:
-            schema:
-              type: object
+        type: string
+      produces:
+      - application/json
       responses:
         "200":
-          content:
-            application/json:
-              schema:
-                allOf:
-                - $ref: '#/components/schemas/data'
-                properties:
-                  data: {}
-                  meta:
-                    $ref: '#/components/schemas/helper.PaginationMeta'
-                type: object
           description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/helper.ResponseWithPagination'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/model.UserDTO'
+                  type: array
+              type: object
         "400":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Bad Request
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
         "401":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Unauthorized
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
         "429":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Too Many Requests
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
         "500":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Internal Server Error
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
       security:
       - BearerAuth: []
       summary: Search Users
@@ -3727,60 +3134,47 @@ paths:
       - user
   /api/users/{id}:
     get:
+      consumes:
+      - application/json
       description: Get another user's profile by ID.
       parameters:
       - description: User ID (UUID)
         in: path
         name: id
         required: true
-        schema:
-          type: string
-      requestBody:
-        content:
-          application/json:
-            schema:
-              type: object
+        type: string
+      produces:
+      - application/json
       responses:
         "200":
-          content:
-            application/json:
-              schema:
-                allOf:
-                - $ref: '#/components/schemas/data'
-                properties:
-                  data: {}
-                type: object
           description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/helper.ResponseSuccess'
+            - properties:
+                data:
+                  $ref: '#/definitions/model.UserDTO'
+              type: object
         "400":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Bad Request
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
         "401":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Unauthorized
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
         "404":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Not Found
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
         "429":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Too Many Requests
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
         "500":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Internal Server Error
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
       security:
       - BearerAuth: []
       summary: Get User Profile
@@ -3788,56 +3182,42 @@ paths:
       - user
   /api/users/{id}/block:
     post:
+      consumes:
+      - application/json
       description: Block a user by their ID.
       parameters:
       - description: User ID to block (UUID)
         in: path
         name: id
         required: true
-        schema:
-          type: string
-      requestBody:
-        content:
-          application/json:
-            schema:
-              type: object
+        type: string
+      produces:
+      - application/json
       responses:
         "200":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseSuccess'
           description: OK
+          schema:
+            $ref: '#/definitions/helper.ResponseSuccess'
         "400":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Bad Request
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
         "401":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Unauthorized
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
         "404":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Not Found
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
         "429":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Too Many Requests
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
         "500":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Internal Server Error
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
       security:
       - BearerAuth: []
       summary: Block a User
@@ -3845,50 +3225,38 @@ paths:
       - user
   /api/users/{id}/unblock:
     post:
+      consumes:
+      - application/json
       description: Unblock a user by their ID.
       parameters:
       - description: User ID to unblock (UUID)
         in: path
         name: id
         required: true
-        schema:
-          type: string
-      requestBody:
-        content:
-          application/json:
-            schema:
-              type: object
+        type: string
+      produces:
+      - application/json
       responses:
         "200":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseSuccess'
           description: OK
+          schema:
+            $ref: '#/definitions/helper.ResponseSuccess'
         "400":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Bad Request
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
         "401":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Unauthorized
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
         "429":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Too Many Requests
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
         "500":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Internal Server Error
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
       security:
       - BearerAuth: []
       summary: Unblock a User
@@ -3896,65 +3264,52 @@ paths:
       - user
   /api/users/blocked:
     get:
+      consumes:
+      - application/json
       description: Get a list of users blocked by the current user.
       parameters:
       - description: Search query (name or username)
         in: query
         name: query
-        schema:
-          type: string
+        type: string
       - description: Pagination cursor
         in: query
         name: cursor
-        schema:
-          type: string
+        type: string
       - description: Number of items per page (default 10, max 50)
         in: query
         name: limit
-        schema:
-          type: integer
-      requestBody:
-        content:
-          application/json:
-            schema:
-              type: object
+        type: integer
+      produces:
+      - application/json
       responses:
         "200":
-          content:
-            application/json:
-              schema:
-                allOf:
-                - $ref: '#/components/schemas/data'
-                properties:
-                  data: {}
-                  meta:
-                    $ref: '#/components/schemas/helper.PaginationMeta'
-                type: object
           description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/helper.ResponseWithPagination'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/model.UserDTO'
+                  type: array
+              type: object
         "400":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Bad Request
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
         "401":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Unauthorized
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
         "429":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Too Many Requests
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
         "500":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Internal Server Error
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
       security:
       - BearerAuth: []
       summary: Get Blocked Users
@@ -3966,19 +3321,16 @@ paths:
         Authorization header or 'token' query param.
       responses:
         "101":
-          content:
-            application/json:
-              schema:
-                type: string
           description: Switching Protocols
+          schema:
+            type: string
         "401":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/helper.ResponseError'
           description: Unauthorized
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
       security:
       - BearerAuth: []
       summary: WebSocket Connection
       tags:
       - websocket
+swagger: "2.0"
