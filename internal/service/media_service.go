@@ -25,20 +25,27 @@ type MediaService struct {
 	cfg            *config.AppConfig
 	validator      *validator.Validate
 	storageAdapter *adapter.StorageAdapter
+	captchaAdapter *adapter.CaptchaAdapter
 }
 
-func NewMediaService(client *ent.Client, cfg *config.AppConfig, validator *validator.Validate, storageAdapter *adapter.StorageAdapter) *MediaService {
+func NewMediaService(client *ent.Client, cfg *config.AppConfig, validator *validator.Validate, storageAdapter *adapter.StorageAdapter, captchaAdapter *adapter.CaptchaAdapter) *MediaService {
 	return &MediaService{
 		client:         client,
 		cfg:            cfg,
 		validator:      validator,
 		storageAdapter: storageAdapter,
+		captchaAdapter: captchaAdapter,
 	}
 }
 
 func (s *MediaService) UploadMedia(ctx context.Context, userID uuid.UUID, req model.UploadMediaRequest) (*model.MediaDTO, error) {
 	if err := s.validator.Struct(req); err != nil {
 		slog.Warn("Validation failed", "error", err)
+		return nil, helper.NewBadRequestError("")
+	}
+
+	if err := s.captchaAdapter.Verify(req.CaptchaToken, ""); err != nil {
+		slog.Warn("Captcha verification failed", "error", err)
 		return nil, helper.NewBadRequestError("")
 	}
 

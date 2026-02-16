@@ -2698,6 +2698,11 @@ paths:
         name: file
         required: true
         type: file
+      - description: Captcha Token
+        in: formData
+        name: captcha_token
+        required: true
+        type: string
       produces:
       - application/json
       responses:

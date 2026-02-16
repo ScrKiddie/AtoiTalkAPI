@@ -39,7 +39,7 @@ func Init(appConfig *config.AppConfig, client *ent.Client, validator *validator.
 	privateChatService := service.NewPrivateChatService(client, appConfig, validator, wsHub, redisAdapter, storageAdapter)
 	groupChatService := service.NewGroupChatService(client, repo, appConfig, validator, wsHub, storageAdapter, redisAdapter)
 	messageService := service.NewMessageService(client, repo, appConfig, validator, storageAdapter, wsHub)
-	mediaService := service.NewMediaService(client, appConfig, validator, storageAdapter)
+	mediaService := service.NewMediaService(client, appConfig, validator, storageAdapter, captchaAdapter)
 	reportService := service.NewReportService(client, appConfig, validator, storageAdapter)
 
 	adminService := service.NewAdminService(client, appConfig, validator, wsHub, repo, storageAdapter)

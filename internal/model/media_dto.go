@@ -7,7 +7,8 @@ import (
 )
 
 type UploadMediaRequest struct {
-	File *multipart.FileHeader `form:"file" validate:"required"`
+	File         *multipart.FileHeader `form:"file" validate:"required"`
+	CaptchaToken string                `form:"captcha_token" validate:"required"`
 }
 
 type MediaDTO struct {

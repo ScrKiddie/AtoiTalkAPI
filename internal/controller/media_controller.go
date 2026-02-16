@@ -29,6 +29,7 @@ func NewMediaController(mediaService *service.MediaService) *MediaController {
 // @Accept       multipart/form-data
 // @Produce      json
 // @Param        file formData file true "File to upload"
+// @Param        captcha_token formData string true "Captcha Token"
 // @Success      200  {object}  helper.ResponseSuccess{data=model.MediaDTO}
 // @Failure      400  {object}  helper.ResponseError
 // @Failure      401  {object}  helper.ResponseError
@@ -51,8 +52,11 @@ func (c *MediaController) UploadMedia(w http.ResponseWriter, r *http.Request) {
 	}
 	defer file.Close()
 
+	captchaToken := r.FormValue("captcha_token")
+
 	req := model.UploadMediaRequest{
-		File: header,
+		File:         header,
+		CaptchaToken: captchaToken,
 	}
 
 	resp, err := c.mediaService.UploadMedia(r.Context(), user.ID, req)

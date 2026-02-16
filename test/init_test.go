@@ -149,7 +149,7 @@ func TestMain(m *testing.M) {
 	messageService := service.NewMessageService(testClient, repo, testConfig, validator, storageAdapter, testHub)
 	messageController := controller.NewMessageController(messageService)
 
-	mediaService := service.NewMediaService(testClient, testConfig, validator, storageAdapter)
+	mediaService := service.NewMediaService(testClient, testConfig, validator, storageAdapter, captchaAdapter)
 	mediaController := controller.NewMediaController(mediaService)
 
 	reportService := service.NewReportService(testClient, testConfig, validator, storageAdapter)

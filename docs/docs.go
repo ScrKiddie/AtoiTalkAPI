@@ -3223,6 +3223,13 @@ const docTemplate = `{
                         "name": "file",
                         "in": "formData",
                         "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Captcha Token",
+                        "name": "captcha_token",
+                        "in": "formData",
+                        "required": true
                     }
                 ],
                 "responses": {

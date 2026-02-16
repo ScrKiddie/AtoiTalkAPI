@@ -39,6 +39,9 @@ func TestUploadMedia(t *testing.T) {
 
 		imgData := createTestImage(t, 100, 100)
 		_, _ = io.Copy(part, bytes.NewReader(imgData))
+
+		_ = writer.WriteField("captcha_token", "dummy-token")
+
 		_ = writer.Close()
 
 		req, _ := http.NewRequest("POST", "/api/media/upload", body)
@@ -79,6 +82,28 @@ func TestUploadMedia(t *testing.T) {
 	t.Run("Fail - Missing File", func(t *testing.T) {
 		body := &bytes.Buffer{}
 		writer := multipart.NewWriter(body)
+		_ = writer.WriteField("captcha_token", "dummy-token")
+		_ = writer.Close()
+
+		req, _ := http.NewRequest("POST", "/api/media/upload", body)
+		req.Header.Set("Content-Type", writer.FormDataContentType())
+		req.Header.Set("Authorization", "Bearer "+token)
+
+		rr := executeRequest(req)
+		assert.Equal(t, http.StatusBadRequest, rr.Code)
+	})
+
+	t.Run("Fail - Missing Captcha", func(t *testing.T) {
+		body := &bytes.Buffer{}
+		writer := multipart.NewWriter(body)
+
+		h := make(textproto.MIMEHeader)
+		h.Set("Content-Disposition", `form-data; name="file"; filename="test_image.jpg"`)
+		h.Set("Content-Type", "image/jpeg")
+		part, _ := writer.CreatePart(h)
+
+		imgData := createTestImage(t, 100, 100)
+		_, _ = io.Copy(part, bytes.NewReader(imgData))
 		_ = writer.Close()
 
 		req, _ := http.NewRequest("POST", "/api/media/upload", body)
