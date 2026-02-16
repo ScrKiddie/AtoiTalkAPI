@@ -384,7 +384,6 @@ func (s *UserService) UpdateProfile(ctx context.Context, userID uuid.UUID, req m
 		media, err := tx.Media.Create().
 			SetFileName(fileName).SetOriginalName(req.Avatar.Filename).
 			SetFileSize(req.Avatar.Size).SetMimeType(contentType).
-			SetStatus(media.StatusActive).
 			SetCategory(media.CategoryUserAvatar).
 			SetUploaderID(userID).
 			Save(ctx)

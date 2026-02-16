@@ -30,8 +30,6 @@ const (
 	FieldMimeType = "mime_type"
 	// FieldCategory holds the string denoting the category field in the database.
 	FieldCategory = "category"
-	// FieldStatus holds the string denoting the status field in the database.
-	FieldStatus = "status"
 	// FieldMessageID holds the string denoting the message_id field in the database.
 	FieldMessageID = "message_id"
 	// FieldUploadedByID holds the string denoting the uploaded_by_id field in the database.
@@ -93,7 +91,6 @@ var Columns = []string{
 	FieldFileSize,
 	FieldMimeType,
 	FieldCategory,
-	FieldStatus,
 	FieldMessageID,
 	FieldUploadedByID,
 }
@@ -160,33 +157,6 @@ func CategoryValidator(c Category) error {
 	}
 }
 
-// Status defines the type for the "status" enum field.
-type Status string
-
-// StatusPending is the default value of the Status enum.
-const DefaultStatus = StatusPending
-
-// Status values.
-const (
-	StatusPending Status = "pending"
-	StatusActive  Status = "active"
-	StatusFailed  Status = "failed"
-)
-
-func (s Status) String() string {
-	return string(s)
-}
-
-// StatusValidator is a validator for the "status" field enum values. It is called by the builders before save.
-func StatusValidator(s Status) error {
-	switch s {
-	case StatusPending, StatusActive, StatusFailed:
-		return nil
-	default:
-		return fmt.Errorf("media: invalid enum value for status field: %q", s)
-	}
-}
-
 // OrderOption defines the ordering options for the Media queries.
 type OrderOption func(*sql.Selector)
 
@@ -228,11 +198,6 @@ func ByMimeType(opts ...sql.OrderTermOption) OrderOption {
 // ByCategory orders the results by the category field.
 func ByCategory(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldCategory, opts...).ToFunc()
-}
-
-// ByStatus orders the results by the status field.
-func ByStatus(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldStatus, opts...).ToFunc()
 }
 
 // ByMessageID orders the results by the message_id field.

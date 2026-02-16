@@ -181,7 +181,6 @@ func (s *MessageService) SendMessage(ctx context.Context, userID uuid.UUID, req 
 				media.MessageIDIsNil(),
 				media.Not(media.HasUserAvatar()),
 				media.Not(media.HasGroupAvatar()),
-				media.StatusEQ(media.StatusActive),
 				media.HasUploaderWith(user.ID(userID)),
 			).
 			Count(ctx)
@@ -443,7 +442,6 @@ func (s *MessageService) EditMessage(ctx context.Context, userID uuid.UUID, mess
 				media.MessageIDIsNil(),
 				media.Not(media.HasUserAvatar()),
 				media.Not(media.HasGroupAvatar()),
-				media.StatusEQ(media.StatusActive),
 				media.HasUploaderWith(user.ID(userID)),
 			).
 			Count(ctx)

@@ -431,26 +431,6 @@ func CategoryNotIn(vs ...Category) predicate.Media {
 	return predicate.Media(sql.FieldNotIn(FieldCategory, vs...))
 }
 
-// StatusEQ applies the EQ predicate on the "status" field.
-func StatusEQ(v Status) predicate.Media {
-	return predicate.Media(sql.FieldEQ(FieldStatus, v))
-}
-
-// StatusNEQ applies the NEQ predicate on the "status" field.
-func StatusNEQ(v Status) predicate.Media {
-	return predicate.Media(sql.FieldNEQ(FieldStatus, v))
-}
-
-// StatusIn applies the In predicate on the "status" field.
-func StatusIn(vs ...Status) predicate.Media {
-	return predicate.Media(sql.FieldIn(FieldStatus, vs...))
-}
-
-// StatusNotIn applies the NotIn predicate on the "status" field.
-func StatusNotIn(vs ...Status) predicate.Media {
-	return predicate.Media(sql.FieldNotIn(FieldStatus, vs...))
-}
-
 // MessageIDEQ applies the EQ predicate on the "message_id" field.
 func MessageIDEQ(v uuid.UUID) predicate.Media {
 	return predicate.Media(sql.FieldEQ(FieldMessageID, v))

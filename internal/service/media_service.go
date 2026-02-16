@@ -69,7 +69,6 @@ func (s *MediaService) UploadMedia(ctx context.Context, userID uuid.UUID, req mo
 		SetOriginalName(req.File.Filename).
 		SetFileSize(req.File.Size).
 		SetMimeType(contentType).
-		SetStatus(media.StatusActive).
 		SetCategory(media.CategoryMessageAttachment).
 		SetUploaderID(userID).
 		Save(ctx)

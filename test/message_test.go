@@ -3,7 +3,6 @@ package test
 import (
 	"AtoiTalkAPI/ent/chat"
 	"AtoiTalkAPI/ent/groupmember"
-	"AtoiTalkAPI/ent/media"
 	"AtoiTalkAPI/ent/message"
 	"AtoiTalkAPI/ent/privatechat"
 	"AtoiTalkAPI/internal/helper"
@@ -240,7 +239,6 @@ func TestSendMessage(t *testing.T) {
 			SetOriginalName("test.jpg").
 			SetFileSize(1024).
 			SetMimeType("image/jpeg").
-			SetStatus(media.StatusActive).
 			SetUploaderID(u1.ID).
 			Save(context.Background())
 
@@ -292,7 +290,6 @@ func TestSendMessage(t *testing.T) {
 			SetOriginalName("user2.jpg").
 			SetFileSize(1024).
 			SetMimeType("image/jpeg").
-			SetStatus(media.StatusActive).
 			SetUploaderID(u2.ID).
 			Save(context.Background())
 
@@ -320,31 +317,7 @@ func TestSendMessage(t *testing.T) {
 			SetOriginalName("used.jpg").
 			SetFileSize(1024).
 			SetMimeType("image/jpeg").
-			SetStatus(media.StatusActive).
 			SetMessage(otherMsg).
-			SetUploaderID(u1.ID).
-			Save(context.Background())
-
-		reqBody := model.SendMessageRequest{
-			ChatID:        chatEntity.ID,
-			AttachmentIDs: []uuid.UUID{m.ID},
-		}
-		body, _ := json.Marshal(reqBody)
-		req, _ := http.NewRequest("POST", "/api/messages", bytes.NewBuffer(body))
-		req.Header.Set("Content-Type", "application/json")
-		req.Header.Set("Authorization", "Bearer "+token1)
-
-		rr := executeRequest(req)
-		assert.Equal(t, http.StatusBadRequest, rr.Code)
-	})
-
-	t.Run("Fail - Pending Media Rejected", func(t *testing.T) {
-		m, _ := testClient.Media.Create().
-			SetFileName("pending.jpg").
-			SetOriginalName("pending.jpg").
-			SetFileSize(1024).
-			SetMimeType("image/jpeg").
-			SetStatus(media.StatusPending).
 			SetUploaderID(u1.ID).
 			Save(context.Background())
 
@@ -850,7 +823,7 @@ func TestGetMessages(t *testing.T) {
 			SetOriginalName("image.jpg").
 			SetFileSize(12345).
 			SetMimeType("image/jpeg").
-			SetStatus("active").
+			SetMimeType("image/jpeg").
 			SetUploaderID(u1.ID).
 			Save(context.Background())
 
@@ -1084,7 +1057,7 @@ func TestEditMessage(t *testing.T) {
 
 		att1, _ := testClient.Media.Create().
 			SetFileName("att1.jpg").SetOriginalName("att1.jpg").SetFileSize(100).SetMimeType("image/jpeg").
-			SetStatus(media.StatusActive).SetUploaderID(u1.ID).Save(context.Background())
+			SetUploaderID(u1.ID).Save(context.Background())
 
 		msg, _ := testClient.Message.Create().
 			SetChatID(chatEntity.ID).
@@ -1096,7 +1069,7 @@ func TestEditMessage(t *testing.T) {
 
 		att2, _ := testClient.Media.Create().
 			SetFileName("att2.jpg").SetOriginalName("att2.jpg").SetFileSize(100).SetMimeType("image/jpeg").
-			SetStatus(media.StatusActive).SetUploaderID(u1.ID).Save(context.Background())
+			SetUploaderID(u1.ID).Save(context.Background())
 
 		s3Client.PutObject(context.Background(), &s3.PutObjectInput{
 			Bucket: aws.String(testConfig.S3BucketPrivate),
@@ -1199,7 +1172,7 @@ func TestEditMessage(t *testing.T) {
 
 		attOther, _ := testClient.Media.Create().
 			SetFileName("other.jpg").SetOriginalName("other.jpg").SetFileSize(100).SetMimeType("image/jpeg").
-			SetStatus(media.StatusActive).SetUploaderID(u2.ID).Save(context.Background())
+			SetUploaderID(u2.ID).Save(context.Background())
 
 		reqBody := model.EditMessageRequest{
 			Content:       "Steal Attachment",

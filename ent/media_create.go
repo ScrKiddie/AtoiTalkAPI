@@ -94,20 +94,6 @@ func (_c *MediaCreate) SetNillableCategory(v *media.Category) *MediaCreate {
 	return _c
 }
 
-// SetStatus sets the "status" field.
-func (_c *MediaCreate) SetStatus(v media.Status) *MediaCreate {
-	_c.mutation.SetStatus(v)
-	return _c
-}
-
-// SetNillableStatus sets the "status" field if the given value is not nil.
-func (_c *MediaCreate) SetNillableStatus(v *media.Status) *MediaCreate {
-	if v != nil {
-		_c.SetStatus(*v)
-	}
-	return _c
-}
-
 // SetMessageID sets the "message_id" field.
 func (_c *MediaCreate) SetMessageID(v uuid.UUID) *MediaCreate {
 	_c.mutation.SetMessageID(v)
@@ -258,10 +244,6 @@ func (_c *MediaCreate) defaults() {
 		v := media.DefaultCategory
 		_c.mutation.SetCategory(v)
 	}
-	if _, ok := _c.mutation.Status(); !ok {
-		v := media.DefaultStatus
-		_c.mutation.SetStatus(v)
-	}
 	if _, ok := _c.mutation.ID(); !ok {
 		v := media.DefaultID()
 		_c.mutation.SetID(v)
@@ -314,14 +296,6 @@ func (_c *MediaCreate) check() error {
 	if v, ok := _c.mutation.Category(); ok {
 		if err := media.CategoryValidator(v); err != nil {
 			return &ValidationError{Name: "category", err: fmt.Errorf(`ent: validator failed for field "Media.category": %w`, err)}
-		}
-	}
-	if _, ok := _c.mutation.Status(); !ok {
-		return &ValidationError{Name: "status", err: errors.New(`ent: missing required field "Media.status"`)}
-	}
-	if v, ok := _c.mutation.Status(); ok {
-		if err := media.StatusValidator(v); err != nil {
-			return &ValidationError{Name: "status", err: fmt.Errorf(`ent: validator failed for field "Media.status": %w`, err)}
 		}
 	}
 	if _, ok := _c.mutation.UploadedByID(); !ok {
@@ -393,10 +367,6 @@ func (_c *MediaCreate) createSpec() (*Media, *sqlgraph.CreateSpec) {
 	if value, ok := _c.mutation.Category(); ok {
 		_spec.SetField(media.FieldCategory, field.TypeEnum, value)
 		_node.Category = value
-	}
-	if value, ok := _c.mutation.Status(); ok {
-		_spec.SetField(media.FieldStatus, field.TypeEnum, value)
-		_node.Status = value
 	}
 	if nodes := _c.mutation.MessageIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
@@ -610,18 +580,6 @@ func (u *MediaUpsert) UpdateCategory() *MediaUpsert {
 	return u
 }
 
-// SetStatus sets the "status" field.
-func (u *MediaUpsert) SetStatus(v media.Status) *MediaUpsert {
-	u.Set(media.FieldStatus, v)
-	return u
-}
-
-// UpdateStatus sets the "status" field to the value that was provided on create.
-func (u *MediaUpsert) UpdateStatus() *MediaUpsert {
-	u.SetExcluded(media.FieldStatus)
-	return u
-}
-
 // SetMessageID sets the "message_id" field.
 func (u *MediaUpsert) SetMessageID(v uuid.UUID) *MediaUpsert {
 	u.Set(media.FieldMessageID, v)
@@ -791,20 +749,6 @@ func (u *MediaUpsertOne) SetCategory(v media.Category) *MediaUpsertOne {
 func (u *MediaUpsertOne) UpdateCategory() *MediaUpsertOne {
 	return u.Update(func(s *MediaUpsert) {
 		s.UpdateCategory()
-	})
-}
-
-// SetStatus sets the "status" field.
-func (u *MediaUpsertOne) SetStatus(v media.Status) *MediaUpsertOne {
-	return u.Update(func(s *MediaUpsert) {
-		s.SetStatus(v)
-	})
-}
-
-// UpdateStatus sets the "status" field to the value that was provided on create.
-func (u *MediaUpsertOne) UpdateStatus() *MediaUpsertOne {
-	return u.Update(func(s *MediaUpsert) {
-		s.UpdateStatus()
 	})
 }
 
@@ -1149,20 +1093,6 @@ func (u *MediaUpsertBulk) SetCategory(v media.Category) *MediaUpsertBulk {
 func (u *MediaUpsertBulk) UpdateCategory() *MediaUpsertBulk {
 	return u.Update(func(s *MediaUpsert) {
 		s.UpdateCategory()
-	})
-}
-
-// SetStatus sets the "status" field.
-func (u *MediaUpsertBulk) SetStatus(v media.Status) *MediaUpsertBulk {
-	return u.Update(func(s *MediaUpsert) {
-		s.SetStatus(v)
-	})
-}
-
-// UpdateStatus sets the "status" field to the value that was provided on create.
-func (u *MediaUpsertBulk) UpdateStatus() *MediaUpsertBulk {
-	return u.Update(func(s *MediaUpsert) {
-		s.UpdateStatus()
 	})
 }
 

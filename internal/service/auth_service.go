@@ -411,7 +411,6 @@ func (s *AuthService) GoogleExchange(ctx context.Context, req model.GoogleLoginR
 				SetOriginalName(filepath.Base(picture)).
 				SetFileSize(fileSize).
 				SetMimeType(mimeType).
-				SetStatus(media.StatusActive).
 				SetCategory(media.CategoryUserAvatar).
 				SetUploader(u).
 				Save(ctx)

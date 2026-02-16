@@ -4,7 +4,6 @@ import (
 	"AtoiTalkAPI/ent"
 	"AtoiTalkAPI/ent/chat"
 	"AtoiTalkAPI/ent/groupmember"
-	"AtoiTalkAPI/ent/media"
 	"AtoiTalkAPI/ent/message"
 	"AtoiTalkAPI/ent/report"
 	"AtoiTalkAPI/ent/user"
@@ -268,7 +267,7 @@ func TestReportSystem(t *testing.T) {
 
 		m, _ := testClient.Media.Create().
 			SetFileName("evidence.jpg").SetOriginalName("evidence.jpg").SetFileSize(100).SetMimeType("image/jpeg").
-			SetStatus(media.StatusActive).SetUploader(offender).Save(context.Background())
+			SetUploader(offender).Save(context.Background())
 
 		msg, _ := testClient.Message.Create().
 			SetChat(chatEntity).
@@ -317,7 +316,7 @@ func TestReportSystem(t *testing.T) {
 
 		avatar, _ := testClient.Media.Create().
 			SetFileName("bad_avatar.jpg").SetOriginalName("bad.jpg").SetFileSize(100).SetMimeType("image/jpeg").
-			SetStatus(media.StatusActive).SetUploader(offender).Save(context.Background())
+			SetUploader(offender).Save(context.Background())
 
 		testClient.User.UpdateOne(offender).SetAvatar(avatar).SetBio("Bad Bio").ExecX(context.Background())
 

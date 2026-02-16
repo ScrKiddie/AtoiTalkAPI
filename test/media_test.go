@@ -3,7 +3,6 @@ package test
 import (
 	"AtoiTalkAPI/ent/chat"
 	"AtoiTalkAPI/ent/groupmember"
-	"AtoiTalkAPI/ent/media"
 	"AtoiTalkAPI/ent/message"
 	"bytes"
 	"context"
@@ -140,12 +139,12 @@ func TestGetMediaURL(t *testing.T) {
 
 	mediaPrivate, _ := testClient.Media.Create().
 		SetFileName("private.jpg").SetOriginalName("private.jpg").SetFileSize(100).SetMimeType("image/jpeg").
-		SetStatus(media.StatusActive).SetUploader(u1).Save(context.Background())
+		SetUploader(u1).Save(context.Background())
 	testClient.Message.Create().SetChat(chatPrivate).SetSender(u1).SetType(message.TypeRegular).AddAttachments(mediaPrivate).Save(context.Background())
 
 	mediaGroup, _ := testClient.Media.Create().
 		SetFileName("group.jpg").SetOriginalName("group.jpg").SetFileSize(100).SetMimeType("image/jpeg").
-		SetStatus(media.StatusActive).SetUploader(u1).Save(context.Background())
+		SetUploader(u1).Save(context.Background())
 	testClient.Message.Create().SetChat(chatGroup).SetSender(u1).SetType(message.TypeRegular).AddAttachments(mediaGroup).Save(context.Background())
 
 	s3Client.PutObject(context.Background(), &s3.PutObjectInput{

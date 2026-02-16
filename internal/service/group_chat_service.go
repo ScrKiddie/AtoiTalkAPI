@@ -141,7 +141,6 @@ func (s *GroupChatService) CreateGroupChat(ctx context.Context, creatorID uuid.U
 			SetOriginalName(req.Avatar.Filename).
 			SetFileSize(req.Avatar.Size).
 			SetMimeType(contentType).
-			SetStatus(media.StatusActive).
 			SetCategory(media.CategoryGroupAvatar).
 			SetUploaderID(creatorID).
 			Save(ctx)
@@ -465,7 +464,6 @@ func (s *GroupChatService) UpdateGroupChat(ctx context.Context, requestorID uuid
 			SetOriginalName(req.Avatar.Filename).
 			SetFileSize(req.Avatar.Size).
 			SetMimeType(contentType).
-			SetStatus(media.StatusActive).
 			SetCategory(media.CategoryGroupAvatar).
 			SetUploaderID(requestorID).
 			Save(ctx)

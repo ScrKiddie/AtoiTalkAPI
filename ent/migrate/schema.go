@@ -135,7 +135,6 @@ var (
 		{Name: "file_size", Type: field.TypeInt64},
 		{Name: "mime_type", Type: field.TypeString, Size: 100},
 		{Name: "category", Type: field.TypeEnum, Enums: []string{"user_avatar", "group_avatar", "message_attachment"}, Default: "message_attachment"},
-		{Name: "status", Type: field.TypeEnum, Enums: []string{"pending", "active", "failed"}, Default: "pending"},
 		{Name: "message_id", Type: field.TypeUUID, Nullable: true},
 		{Name: "uploaded_by_id", Type: field.TypeUUID},
 	}
@@ -147,13 +146,13 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "media_messages_attachments",
-				Columns:    []*schema.Column{MediaColumns[9]},
+				Columns:    []*schema.Column{MediaColumns[8]},
 				RefColumns: []*schema.Column{MessagesColumns[0]},
 				OnDelete:   schema.Cascade,
 			},
 			{
 				Symbol:     "media_users_uploaded_media",
-				Columns:    []*schema.Column{MediaColumns[10]},
+				Columns:    []*schema.Column{MediaColumns[9]},
 				RefColumns: []*schema.Column{UsersColumns[0]},
 				OnDelete:   schema.Cascade,
 			},

@@ -117,20 +117,6 @@ func (_u *MediaUpdate) SetNillableCategory(v *media.Category) *MediaUpdate {
 	return _u
 }
 
-// SetStatus sets the "status" field.
-func (_u *MediaUpdate) SetStatus(v media.Status) *MediaUpdate {
-	_u.mutation.SetStatus(v)
-	return _u
-}
-
-// SetNillableStatus sets the "status" field if the given value is not nil.
-func (_u *MediaUpdate) SetNillableStatus(v *media.Status) *MediaUpdate {
-	if v != nil {
-		_u.SetStatus(*v)
-	}
-	return _u
-}
-
 // SetMessageID sets the "message_id" field.
 func (_u *MediaUpdate) SetMessageID(v uuid.UUID) *MediaUpdate {
 	_u.mutation.SetMessageID(v)
@@ -347,11 +333,6 @@ func (_u *MediaUpdate) check() error {
 			return &ValidationError{Name: "category", err: fmt.Errorf(`ent: validator failed for field "Media.category": %w`, err)}
 		}
 	}
-	if v, ok := _u.mutation.Status(); ok {
-		if err := media.StatusValidator(v); err != nil {
-			return &ValidationError{Name: "status", err: fmt.Errorf(`ent: validator failed for field "Media.status": %w`, err)}
-		}
-	}
 	if _u.mutation.UploaderCleared() && len(_u.mutation.UploaderIDs()) > 0 {
 		return errors.New(`ent: clearing a required unique edge "Media.uploader"`)
 	}
@@ -396,9 +377,6 @@ func (_u *MediaUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	}
 	if value, ok := _u.mutation.Category(); ok {
 		_spec.SetField(media.FieldCategory, field.TypeEnum, value)
-	}
-	if value, ok := _u.mutation.Status(); ok {
-		_spec.SetField(media.FieldStatus, field.TypeEnum, value)
 	}
 	if _u.mutation.MessageCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -666,20 +644,6 @@ func (_u *MediaUpdateOne) SetNillableCategory(v *media.Category) *MediaUpdateOne
 	return _u
 }
 
-// SetStatus sets the "status" field.
-func (_u *MediaUpdateOne) SetStatus(v media.Status) *MediaUpdateOne {
-	_u.mutation.SetStatus(v)
-	return _u
-}
-
-// SetNillableStatus sets the "status" field if the given value is not nil.
-func (_u *MediaUpdateOne) SetNillableStatus(v *media.Status) *MediaUpdateOne {
-	if v != nil {
-		_u.SetStatus(*v)
-	}
-	return _u
-}
-
 // SetMessageID sets the "message_id" field.
 func (_u *MediaUpdateOne) SetMessageID(v uuid.UUID) *MediaUpdateOne {
 	_u.mutation.SetMessageID(v)
@@ -909,11 +873,6 @@ func (_u *MediaUpdateOne) check() error {
 			return &ValidationError{Name: "category", err: fmt.Errorf(`ent: validator failed for field "Media.category": %w`, err)}
 		}
 	}
-	if v, ok := _u.mutation.Status(); ok {
-		if err := media.StatusValidator(v); err != nil {
-			return &ValidationError{Name: "status", err: fmt.Errorf(`ent: validator failed for field "Media.status": %w`, err)}
-		}
-	}
 	if _u.mutation.UploaderCleared() && len(_u.mutation.UploaderIDs()) > 0 {
 		return errors.New(`ent: clearing a required unique edge "Media.uploader"`)
 	}
@@ -975,9 +934,6 @@ func (_u *MediaUpdateOne) sqlSave(ctx context.Context) (_node *Media, err error)
 	}
 	if value, ok := _u.mutation.Category(); ok {
 		_spec.SetField(media.FieldCategory, field.TypeEnum, value)
-	}
-	if value, ok := _u.mutation.Status(); ok {
-		_spec.SetField(media.FieldStatus, field.TypeEnum, value)
 	}
 	if _u.mutation.MessageCleared() {
 		edge := &sqlgraph.EdgeSpec{
