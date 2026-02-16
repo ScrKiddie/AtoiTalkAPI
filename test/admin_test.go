@@ -565,6 +565,7 @@ func TestAdminDashboard(t *testing.T) {
 			SetTargetType(report.TargetTypeUser).
 			SetTargetUser(user2).
 			SetReason("spam").
+			SetStatus(report.StatusResolved).
 			Save(context.Background())
 
 		req, _ := http.NewRequest("DELETE", fmt.Sprintf("/api/admin/reports/%s", rpt.ID), nil)
@@ -598,12 +599,31 @@ func TestAdminDashboard(t *testing.T) {
 	t.Run("Delete Report - Not Found", func(t *testing.T) {
 		req, _ := http.NewRequest("DELETE", fmt.Sprintf("/api/admin/reports/%s", uuid.New()), nil)
 		req.Header.Set("Authorization", "Bearer "+adminToken)
-
 		rr := executeRequest(req)
 		assert.Equal(t, http.StatusNotFound, rr.Code)
 	})
 
-	t.Run("Delete Report - Check Media Unlinking", func(t *testing.T) {
+	t.Run("Delete Report - Fail Pending Status", func(t *testing.T) {
+
+		rpt, _ := testClient.Report.Create().
+			SetReporter(user1).
+			SetTargetType(report.TargetTypeUser).
+			SetTargetUser(user2).
+			SetReason("spam").
+			SetStatus(report.StatusPending).
+			Save(context.Background())
+
+		req, _ := http.NewRequest("DELETE", fmt.Sprintf("/api/admin/reports/%s", rpt.ID), nil)
+		req.Header.Set("Authorization", "Bearer "+adminToken)
+
+		rr := executeRequest(req)
+		assert.Equal(t, http.StatusBadRequest, rr.Code)
+
+		exists, _ := testClient.Report.Query().Where(report.ID(rpt.ID)).Exist(context.Background())
+		assert.True(t, exists)
+	})
+
+	t.Run("Delete Report - Success Resolved Status", func(t *testing.T) {
 
 		mediaItem, _ := testClient.Media.Create().
 			SetFileName("evidence.jpg").
@@ -618,6 +638,7 @@ func TestAdminDashboard(t *testing.T) {
 			SetTargetType(report.TargetTypeUser).
 			SetTargetUser(user2).
 			SetReason("spam").
+			SetStatus(report.StatusResolved).
 			AddEvidenceMedia(mediaItem).
 			Save(context.Background())
 

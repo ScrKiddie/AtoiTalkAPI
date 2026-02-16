@@ -478,13 +478,23 @@ func (s *AdminService) ResolveReport(ctx context.Context, adminID uuid.UUID, rep
 }
 
 func (s *AdminService) DeleteReport(ctx context.Context, reportID uuid.UUID) error {
-	err := s.client.Report.DeleteOneID(reportID).Exec(ctx)
+	r, err := s.client.Report.Query().Where(report.ID(reportID)).Only(ctx)
 	if err != nil {
 		if ent.IsNotFound(err) {
 			return helper.NewNotFoundError("Report not found")
 		}
+		slog.Error("Failed to fetch report for deletion", "error", err)
+		return helper.NewInternalServerError("Failed to delete report")
+	}
+
+	if r.Status != report.StatusResolved && r.Status != report.StatusRejected {
+		return helper.NewBadRequestError("Cannot delete report that is not resolved or rejected")
+	}
+
+	err = s.client.Report.DeleteOneID(reportID).Exec(ctx)
+	if err != nil {
 		slog.Error("Failed to delete report", "error", err)
-		return helper.NewInternalServerError("")
+		return helper.NewInternalServerError("Failed to delete report")
 	}
 	return nil
 }
@@ -645,7 +655,7 @@ func (s *AdminService) GetUserDetail(ctx context.Context, userID uuid.UUID) (*mo
 		FullName:      &fullName,
 		Bio:           &bio,
 		Role:          string(u.Role),
-		IsBanned:      u.BannedUntil != nil && u.BannedUntil.After(time.Now()),
+		IsBanned:      u.BannedUntil != nil && u.BannedUntil.After(time.Now().UTC()),
 		BanReason:     u.BanReason,
 		CreatedAt:     u.CreatedAt.Format(time.RFC3339),
 		TotalMessages: msgCount,
