@@ -235,6 +235,42 @@ func (c *AdminController) ResolveReport(w http.ResponseWriter, r *http.Request) 
 	helper.WriteSuccess(w, nil)
 }
 
+// DeleteReport godoc
+// @Summary      Delete Report
+// @Description  Delete a report permanently. Requires Admin privileges.
+// @Tags         admin
+// @Accept       json
+// @Produce      json
+// @Param        reportID path string true "Report ID (UUID)"
+// @Success      200  {object}  helper.ResponseSuccess
+// @Failure      400  {object}  helper.ResponseError
+// @Failure      403  {object}  helper.ResponseError
+// @Failure      404  {object}  helper.ResponseError
+// @Failure      500  {object}  helper.ResponseError
+// @Security     BearerAuth
+// @Router       /api/admin/reports/{reportID} [delete]
+func (c *AdminController) DeleteReport(w http.ResponseWriter, r *http.Request) {
+	_, ok := r.Context().Value(middleware.UserContextKey).(*model.UserDTO)
+	if !ok {
+		helper.WriteError(w, helper.NewUnauthorizedError(""))
+		return
+	}
+
+	reportIDStr := chi.URLParam(r, "reportID")
+	reportID, err := uuid.Parse(reportIDStr)
+	if err != nil {
+		helper.WriteError(w, helper.NewBadRequestError("Invalid Report ID"))
+		return
+	}
+
+	if err := c.adminService.DeleteReport(r.Context(), reportID); err != nil {
+		helper.WriteError(w, err)
+		return
+	}
+
+	helper.WriteSuccess(w, nil)
+}
+
 // GetDashboardStats godoc
 // @Summary      Get Dashboard Stats
 // @Description  Get high-level statistics for the admin dashboard. Requires Admin privileges.

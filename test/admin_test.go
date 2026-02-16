@@ -4,6 +4,7 @@ import (
 	"AtoiTalkAPI/ent"
 	"AtoiTalkAPI/ent/chat"
 	"AtoiTalkAPI/ent/groupmember"
+	"AtoiTalkAPI/ent/media"
 	"AtoiTalkAPI/ent/message"
 	"AtoiTalkAPI/ent/report"
 	"AtoiTalkAPI/ent/user"
@@ -557,5 +558,83 @@ func TestAdminDashboard(t *testing.T) {
 		assert.Equal(t, report.StatusResolved, updatedRpt.Status)
 		assert.Equal(t, "Done", *updatedRpt.ResolutionNotes)
 		assert.Equal(t, admin.ID, *updatedRpt.ResolvedByID)
+	})
+	t.Run("Delete Report - Admin Success", func(t *testing.T) {
+		rpt, _ := testClient.Report.Create().
+			SetReporter(user1).
+			SetTargetType(report.TargetTypeUser).
+			SetTargetUser(user2).
+			SetReason("spam").
+			Save(context.Background())
+
+		req, _ := http.NewRequest("DELETE", fmt.Sprintf("/api/admin/reports/%s", rpt.ID), nil)
+		req.Header.Set("Authorization", "Bearer "+adminToken)
+
+		rr := executeRequest(req)
+		assert.Equal(t, http.StatusOK, rr.Code)
+
+		exists, _ := testClient.Report.Query().Where(report.ID(rpt.ID)).Exist(context.Background())
+		assert.False(t, exists)
+	})
+
+	t.Run("Delete Report - User Forbidden", func(t *testing.T) {
+		rpt, _ := testClient.Report.Create().
+			SetReporter(user1).
+			SetTargetType(report.TargetTypeUser).
+			SetTargetUser(user2).
+			SetReason("spam").
+			Save(context.Background())
+
+		req, _ := http.NewRequest("DELETE", fmt.Sprintf("/api/admin/reports/%s", rpt.ID), nil)
+		req.Header.Set("Authorization", "Bearer "+userToken)
+
+		rr := executeRequest(req)
+		assert.Equal(t, http.StatusForbidden, rr.Code)
+
+		exists, _ := testClient.Report.Query().Where(report.ID(rpt.ID)).Exist(context.Background())
+		assert.True(t, exists)
+	})
+
+	t.Run("Delete Report - Not Found", func(t *testing.T) {
+		req, _ := http.NewRequest("DELETE", fmt.Sprintf("/api/admin/reports/%s", uuid.New()), nil)
+		req.Header.Set("Authorization", "Bearer "+adminToken)
+
+		rr := executeRequest(req)
+		assert.Equal(t, http.StatusNotFound, rr.Code)
+	})
+
+	t.Run("Delete Report - Check Media Unlinking", func(t *testing.T) {
+
+		mediaItem, _ := testClient.Media.Create().
+			SetFileName("evidence.jpg").
+			SetOriginalName("evidence.jpg").
+			SetFileSize(1024).
+			SetMimeType("image/jpeg").
+			SetUploader(user2).
+			Save(context.Background())
+
+		rpt, _ := testClient.Report.Create().
+			SetReporter(user1).
+			SetTargetType(report.TargetTypeUser).
+			SetTargetUser(user2).
+			SetReason("spam").
+			AddEvidenceMedia(mediaItem).
+			Save(context.Background())
+
+		hasMedia, _ := rpt.QueryEvidenceMedia().Where(media.ID(mediaItem.ID)).Exist(context.Background())
+		assert.True(t, hasMedia)
+
+		req, _ := http.NewRequest("DELETE", fmt.Sprintf("/api/admin/reports/%s", rpt.ID), nil)
+		req.Header.Set("Authorization", "Bearer "+adminToken)
+		executeRequest(req)
+
+		rptExists, _ := testClient.Report.Query().Where(report.ID(rpt.ID)).Exist(context.Background())
+		assert.False(t, rptExists)
+
+		mediaExists, _ := testClient.Media.Query().Where(media.ID(mediaItem.ID)).Exist(context.Background())
+		assert.True(t, mediaExists)
+
+		linkedReportsCount, _ := mediaItem.QueryReports().Count(context.Background())
+		assert.Equal(t, 0, linkedReportsCount)
 	})
 }

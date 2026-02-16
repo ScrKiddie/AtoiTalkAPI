@@ -477,6 +477,18 @@ func (s *AdminService) ResolveReport(ctx context.Context, adminID uuid.UUID, rep
 	return nil
 }
 
+func (s *AdminService) DeleteReport(ctx context.Context, reportID uuid.UUID) error {
+	err := s.client.Report.DeleteOneID(reportID).Exec(ctx)
+	if err != nil {
+		if ent.IsNotFound(err) {
+			return helper.NewNotFoundError("Report not found")
+		}
+		slog.Error("Failed to delete report", "error", err)
+		return helper.NewInternalServerError("")
+	}
+	return nil
+}
+
 func (s *AdminService) GetDashboardStats(ctx context.Context) (*model.DashboardStatsResponse, error) {
 	totalUsers, err := s.client.User.Query().Count(ctx)
 	if err != nil {

@@ -109,6 +109,7 @@ func (route *Route) Register() {
 				r.Get("/admin/reports", route.adminController.GetReports)
 				r.Get("/admin/reports/{reportID}", route.adminController.GetReportDetail)
 				r.Put("/admin/reports/{reportID}/resolve", route.adminController.ResolveReport)
+				r.Delete("/admin/reports/{reportID}", route.adminController.DeleteReport)
 
 				r.Get("/admin/groups", route.adminController.GetGroups)
 				r.Get("/admin/groups/{groupID}", route.adminController.GetGroupDetail)
