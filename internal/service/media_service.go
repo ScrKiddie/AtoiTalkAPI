@@ -140,7 +140,8 @@ func (s *MediaService) GetMediaURL(ctx context.Context, userID, mediaID uuid.UUI
 	c := m.Edges.Message.Edges.Chat
 	isMember := false
 	if c.Type == chat.TypePrivate && c.Edges.PrivateChat != nil {
-		if c.Edges.PrivateChat.User1ID == userID || c.Edges.PrivateChat.User2ID == userID {
+		pc := c.Edges.PrivateChat
+		if (pc.User1ID != nil && *pc.User1ID == userID) || (pc.User2ID != nil && *pc.User2ID == userID) {
 			isMember = true
 		}
 	} else if c.Type == chat.TypeGroup && c.Edges.GroupChat != nil {

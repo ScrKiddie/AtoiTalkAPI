@@ -321,6 +321,16 @@ func ReporterIDNotIn(vs ...uuid.UUID) predicate.Report {
 	return predicate.Report(sql.FieldNotIn(FieldReporterID, vs...))
 }
 
+// ReporterIDIsNil applies the IsNil predicate on the "reporter_id" field.
+func ReporterIDIsNil() predicate.Report {
+	return predicate.Report(sql.FieldIsNull(FieldReporterID))
+}
+
+// ReporterIDNotNil applies the NotNil predicate on the "reporter_id" field.
+func ReporterIDNotNil() predicate.Report {
+	return predicate.Report(sql.FieldNotNull(FieldReporterID))
+}
+
 // MessageIDEQ applies the EQ predicate on the "message_id" field.
 func MessageIDEQ(v uuid.UUID) predicate.Report {
 	return predicate.Report(sql.FieldEQ(FieldMessageID, v))

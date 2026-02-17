@@ -1069,9 +1069,12 @@ func (_q *UserQuery) loadPrivateChatsAsUser1(ctx context.Context, query *Private
 	}
 	for _, n := range neighbors {
 		fk := n.User1ID
-		node, ok := nodeids[fk]
+		if fk == nil {
+			return fmt.Errorf(`foreign-key "user1_id" is nil for node %v`, n.ID)
+		}
+		node, ok := nodeids[*fk]
 		if !ok {
-			return fmt.Errorf(`unexpected referenced foreign-key "user1_id" returned %v for node %v`, fk, n.ID)
+			return fmt.Errorf(`unexpected referenced foreign-key "user1_id" returned %v for node %v`, *fk, n.ID)
 		}
 		assign(node, n)
 	}
@@ -1099,9 +1102,12 @@ func (_q *UserQuery) loadPrivateChatsAsUser2(ctx context.Context, query *Private
 	}
 	for _, n := range neighbors {
 		fk := n.User2ID
-		node, ok := nodeids[fk]
+		if fk == nil {
+			return fmt.Errorf(`foreign-key "user2_id" is nil for node %v`, n.ID)
+		}
+		node, ok := nodeids[*fk]
 		if !ok {
-			return fmt.Errorf(`unexpected referenced foreign-key "user2_id" returned %v for node %v`, fk, n.ID)
+			return fmt.Errorf(`unexpected referenced foreign-key "user2_id" returned %v for node %v`, *fk, n.ID)
 		}
 		assign(node, n)
 	}
@@ -1129,9 +1135,12 @@ func (_q *UserQuery) loadUploadedMedia(ctx context.Context, query *MediaQuery, n
 	}
 	for _, n := range neighbors {
 		fk := n.UploadedByID
-		node, ok := nodeids[fk]
+		if fk == nil {
+			return fmt.Errorf(`foreign-key "uploaded_by_id" is nil for node %v`, n.ID)
+		}
+		node, ok := nodeids[*fk]
 		if !ok {
-			return fmt.Errorf(`unexpected referenced foreign-key "uploaded_by_id" returned %v for node %v`, fk, n.ID)
+			return fmt.Errorf(`unexpected referenced foreign-key "uploaded_by_id" returned %v for node %v`, *fk, n.ID)
 		}
 		assign(node, n)
 	}
@@ -1220,9 +1229,12 @@ func (_q *UserQuery) loadReportsMade(ctx context.Context, query *ReportQuery, no
 	}
 	for _, n := range neighbors {
 		fk := n.ReporterID
-		node, ok := nodeids[fk]
+		if fk == nil {
+			return fmt.Errorf(`foreign-key "reporter_id" is nil for node %v`, n.ID)
+		}
+		node, ok := nodeids[*fk]
 		if !ok {
-			return fmt.Errorf(`unexpected referenced foreign-key "reporter_id" returned %v for node %v`, fk, n.ID)
+			return fmt.Errorf(`unexpected referenced foreign-key "reporter_id" returned %v for node %v`, *fk, n.ID)
 		}
 		assign(node, n)
 	}

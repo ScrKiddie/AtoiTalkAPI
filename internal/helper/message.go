@@ -54,7 +54,7 @@ func ToMessageResponse(msg *ent.Message, urlGen URLGenerator, hiddenAt *time.Tim
 
 	if msg.Edges.Sender != nil {
 		if msg.Edges.Sender.DeletedAt != nil {
-			senderName = ""
+			senderName = "Deleted User"
 			senderAvatar = ""
 			senderID = nil
 		} else {
@@ -77,7 +77,7 @@ func ToMessageResponse(msg *ent.Message, urlGen URLGenerator, hiddenAt *time.Tim
 
 		if reply.Edges.Sender != nil {
 			if reply.Edges.Sender.DeletedAt != nil {
-				replySenderName = ""
+				replySenderName = "Deleted User"
 				replySenderID = nil
 			} else {
 				if reply.Edges.Sender.FullName != nil {
@@ -86,7 +86,6 @@ func ToMessageResponse(msg *ent.Message, urlGen URLGenerator, hiddenAt *time.Tim
 				replySenderID = &reply.Edges.Sender.ID
 			}
 		} else if reply.SenderID != nil {
-
 			replySenderID = reply.SenderID
 		}
 

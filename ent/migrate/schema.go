@@ -136,7 +136,7 @@ var (
 		{Name: "mime_type", Type: field.TypeString, Size: 100},
 		{Name: "category", Type: field.TypeEnum, Enums: []string{"user_avatar", "group_avatar", "message_attachment"}, Default: "message_attachment"},
 		{Name: "message_id", Type: field.TypeUUID, Nullable: true},
-		{Name: "uploaded_by_id", Type: field.TypeUUID},
+		{Name: "uploaded_by_id", Type: field.TypeUUID, Nullable: true},
 	}
 	// MediaTable holds the schema information for the "media" table.
 	MediaTable = &schema.Table{
@@ -148,13 +148,13 @@ var (
 				Symbol:     "media_messages_attachments",
 				Columns:    []*schema.Column{MediaColumns[8]},
 				RefColumns: []*schema.Column{MessagesColumns[0]},
-				OnDelete:   schema.Cascade,
+				OnDelete:   schema.SetNull,
 			},
 			{
 				Symbol:     "media_users_uploaded_media",
 				Columns:    []*schema.Column{MediaColumns[9]},
 				RefColumns: []*schema.Column{UsersColumns[0]},
-				OnDelete:   schema.Cascade,
+				OnDelete:   schema.SetNull,
 			},
 		},
 	}
@@ -227,8 +227,8 @@ var (
 		{Name: "user1_unread_count", Type: field.TypeInt, Default: 0},
 		{Name: "user2_unread_count", Type: field.TypeInt, Default: 0},
 		{Name: "chat_id", Type: field.TypeUUID, Unique: true},
-		{Name: "user1_id", Type: field.TypeUUID},
-		{Name: "user2_id", Type: field.TypeUUID},
+		{Name: "user1_id", Type: field.TypeUUID, Nullable: true},
+		{Name: "user2_id", Type: field.TypeUUID, Nullable: true},
 	}
 	// PrivateChatsTable holds the schema information for the "private_chats" table.
 	PrivateChatsTable = &schema.Table{
@@ -246,13 +246,13 @@ var (
 				Symbol:     "private_chats_users_private_chats_as_user1",
 				Columns:    []*schema.Column{PrivateChatsColumns[8]},
 				RefColumns: []*schema.Column{UsersColumns[0]},
-				OnDelete:   schema.Cascade,
+				OnDelete:   schema.SetNull,
 			},
 			{
 				Symbol:     "private_chats_users_private_chats_as_user2",
 				Columns:    []*schema.Column{PrivateChatsColumns[9]},
 				RefColumns: []*schema.Column{UsersColumns[0]},
-				OnDelete:   schema.Cascade,
+				OnDelete:   schema.SetNull,
 			},
 		},
 		Indexes: []*schema.Index{
@@ -284,7 +284,7 @@ var (
 		{Name: "group_id", Type: field.TypeUUID, Nullable: true},
 		{Name: "target_user_id", Type: field.TypeUUID, Nullable: true},
 		{Name: "resolved_by_id", Type: field.TypeUUID, Nullable: true},
-		{Name: "reporter_id", Type: field.TypeUUID},
+		{Name: "reporter_id", Type: field.TypeUUID, Nullable: true},
 		{Name: "user_reports_received", Type: field.TypeUUID, Nullable: true},
 	}
 	// ReportsTable holds the schema information for the "reports" table.
@@ -321,7 +321,7 @@ var (
 				Symbol:     "reports_users_reports_made",
 				Columns:    []*schema.Column{ReportsColumns[14]},
 				RefColumns: []*schema.Column{UsersColumns[0]},
-				OnDelete:   schema.NoAction,
+				OnDelete:   schema.SetNull,
 			},
 			{
 				Symbol:     "reports_users_reports_received",

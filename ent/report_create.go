@@ -80,6 +80,14 @@ func (_c *ReportCreate) SetReporterID(v uuid.UUID) *ReportCreate {
 	return _c
 }
 
+// SetNillableReporterID sets the "reporter_id" field if the given value is not nil.
+func (_c *ReportCreate) SetNillableReporterID(v *uuid.UUID) *ReportCreate {
+	if v != nil {
+		_c.SetReporterID(*v)
+	}
+	return _c
+}
+
 // SetMessageID sets the "message_id" field.
 func (_c *ReportCreate) SetMessageID(v uuid.UUID) *ReportCreate {
 	_c.mutation.SetMessageID(v)
@@ -325,17 +333,11 @@ func (_c *ReportCreate) check() error {
 			return &ValidationError{Name: "status", err: fmt.Errorf(`ent: validator failed for field "Report.status": %w`, err)}
 		}
 	}
-	if _, ok := _c.mutation.ReporterID(); !ok {
-		return &ValidationError{Name: "reporter_id", err: errors.New(`ent: missing required field "Report.reporter_id"`)}
-	}
 	if _, ok := _c.mutation.CreatedAt(); !ok {
 		return &ValidationError{Name: "created_at", err: errors.New(`ent: missing required field "Report.created_at"`)}
 	}
 	if _, ok := _c.mutation.UpdatedAt(); !ok {
 		return &ValidationError{Name: "updated_at", err: errors.New(`ent: missing required field "Report.updated_at"`)}
-	}
-	if len(_c.mutation.ReporterIDs()) == 0 {
-		return &ValidationError{Name: "reporter", err: errors.New(`ent: missing required edge "Report.reporter"`)}
 	}
 	return nil
 }
@@ -423,7 +425,7 @@ func (_c *ReportCreate) createSpec() (*Report, *sqlgraph.CreateSpec) {
 		for _, k := range nodes {
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
-		_node.ReporterID = nodes[0]
+		_node.ReporterID = &nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
 	if nodes := _c.mutation.MessageIDs(); len(nodes) > 0 {
@@ -631,6 +633,12 @@ func (u *ReportUpsert) SetReporterID(v uuid.UUID) *ReportUpsert {
 // UpdateReporterID sets the "reporter_id" field to the value that was provided on create.
 func (u *ReportUpsert) UpdateReporterID() *ReportUpsert {
 	u.SetExcluded(report.FieldReporterID)
+	return u
+}
+
+// ClearReporterID clears the value of the "reporter_id" field.
+func (u *ReportUpsert) ClearReporterID() *ReportUpsert {
+	u.SetNull(report.FieldReporterID)
 	return u
 }
 
@@ -889,6 +897,13 @@ func (u *ReportUpsertOne) SetReporterID(v uuid.UUID) *ReportUpsertOne {
 func (u *ReportUpsertOne) UpdateReporterID() *ReportUpsertOne {
 	return u.Update(func(s *ReportUpsert) {
 		s.UpdateReporterID()
+	})
+}
+
+// ClearReporterID clears the value of the "reporter_id" field.
+func (u *ReportUpsertOne) ClearReporterID() *ReportUpsertOne {
+	return u.Update(func(s *ReportUpsert) {
+		s.ClearReporterID()
 	})
 }
 
@@ -1334,6 +1349,13 @@ func (u *ReportUpsertBulk) SetReporterID(v uuid.UUID) *ReportUpsertBulk {
 func (u *ReportUpsertBulk) UpdateReporterID() *ReportUpsertBulk {
 	return u.Update(func(s *ReportUpsert) {
 		s.UpdateReporterID()
+	})
+}
+
+// ClearReporterID clears the value of the "reporter_id" field.
+func (u *ReportUpsertBulk) ClearReporterID() *ReportUpsertBulk {
+	return u.Update(func(s *ReportUpsert) {
+		s.ClearReporterID()
 	})
 }
 

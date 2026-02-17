@@ -481,6 +481,16 @@ func UploadedByIDNotIn(vs ...uuid.UUID) predicate.Media {
 	return predicate.Media(sql.FieldNotIn(FieldUploadedByID, vs...))
 }
 
+// UploadedByIDIsNil applies the IsNil predicate on the "uploaded_by_id" field.
+func UploadedByIDIsNil() predicate.Media {
+	return predicate.Media(sql.FieldIsNull(FieldUploadedByID))
+}
+
+// UploadedByIDNotNil applies the NotNil predicate on the "uploaded_by_id" field.
+func UploadedByIDNotNil() predicate.Media {
+	return predicate.Media(sql.FieldNotNull(FieldUploadedByID))
+}
+
 // HasMessage applies the HasEdge predicate on the "message" edge.
 func HasMessage() predicate.Media {
 	return predicate.Media(func(s *sql.Selector) {

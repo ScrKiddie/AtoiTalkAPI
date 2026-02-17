@@ -22,7 +22,7 @@ func (Media) Fields() []ent.Field {
 		field.String("mime_type").MaxLen(100).NotEmpty(),
 		field.Enum("category").Values("user_avatar", "group_avatar", "message_attachment").Default("message_attachment"),
 		field.UUID("message_id", uuid.UUID{}).Optional().Nillable(),
-		field.UUID("uploaded_by_id", uuid.UUID{}),
+		field.UUID("uploaded_by_id", uuid.UUID{}).Optional().Nillable(),
 	}
 }
 func (Media) Edges() []ent.Edge {
@@ -41,8 +41,7 @@ func (Media) Edges() []ent.Edge {
 		edge.From("uploader", User.Type).
 			Ref("uploaded_media").
 			Field("uploaded_by_id").
-			Unique().
-			Required(),
+			Unique(),
 
 		edge.From("reports", Report.Type).
 			Ref("evidence_media"),

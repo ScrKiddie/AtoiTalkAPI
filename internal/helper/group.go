@@ -28,7 +28,7 @@ func ToGroupMemberDTO(m *ent.GroupMember, urlGen URLGenerator) model.GroupMember
 	}
 
 	isBanned := user.IsBanned
-	if isBanned && user.BannedUntil != nil && time.Now().After(*user.BannedUntil) {
+	if isBanned && user.BannedUntil != nil && time.Now().UTC().After(*user.BannedUntil) {
 		isBanned = false
 	}
 

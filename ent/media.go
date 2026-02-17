@@ -38,7 +38,7 @@ type Media struct {
 	// MessageID holds the value of the "message_id" field.
 	MessageID *uuid.UUID `json:"message_id,omitempty"`
 	// UploadedByID holds the value of the "uploaded_by_id" field.
-	UploadedByID uuid.UUID `json:"uploaded_by_id,omitempty"`
+	UploadedByID *uuid.UUID `json:"uploaded_by_id,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the MediaQuery when eager-loading is set.
 	Edges        MediaEdges `json:"edges"`
@@ -120,7 +120,7 @@ func (*Media) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case media.FieldMessageID:
+		case media.FieldMessageID, media.FieldUploadedByID:
 			values[i] = &sql.NullScanner{S: new(uuid.UUID)}
 		case media.FieldFileSize:
 			values[i] = new(sql.NullInt64)
@@ -128,7 +128,7 @@ func (*Media) scanValues(columns []string) ([]any, error) {
 			values[i] = new(sql.NullString)
 		case media.FieldCreatedAt, media.FieldUpdatedAt:
 			values[i] = new(sql.NullTime)
-		case media.FieldID, media.FieldUploadedByID:
+		case media.FieldID:
 			values[i] = new(uuid.UUID)
 		default:
 			values[i] = new(sql.UnknownType)
@@ -201,10 +201,11 @@ func (_m *Media) assignValues(columns []string, values []any) error {
 				*_m.MessageID = *value.S.(*uuid.UUID)
 			}
 		case media.FieldUploadedByID:
-			if value, ok := values[i].(*uuid.UUID); !ok {
+			if value, ok := values[i].(*sql.NullScanner); !ok {
 				return fmt.Errorf("unexpected type %T for field uploaded_by_id", values[i])
-			} else if value != nil {
-				_m.UploadedByID = *value
+			} else if value.Valid {
+				_m.UploadedByID = new(uuid.UUID)
+				*_m.UploadedByID = *value.S.(*uuid.UUID)
 			}
 		default:
 			_m.selectValues.Set(columns[i], values[i])
@@ -293,8 +294,10 @@ func (_m *Media) String() string {
 		builder.WriteString(fmt.Sprintf("%v", *v))
 	}
 	builder.WriteString(", ")
-	builder.WriteString("uploaded_by_id=")
-	builder.WriteString(fmt.Sprintf("%v", _m.UploadedByID))
+	if v := _m.UploadedByID; v != nil {
+		builder.WriteString("uploaded_by_id=")
+		builder.WriteString(fmt.Sprintf("%v", *v))
+	}
 	builder.WriteByte(')')
 	return builder.String()
 }

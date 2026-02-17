@@ -31,12 +31,13 @@ import (
 )
 
 var (
-	testClient   *ent.Client
-	testConfig   *config.AppConfig
-	testRouter   *chi.Mux
-	testHub      *websocket.Hub
-	redisAdapter *adapter.RedisAdapter
-	s3Client     *s3.Client
+	testClient         *ent.Client
+	testConfig         *config.AppConfig
+	testRouter         *chi.Mux
+	testHub            *websocket.Hub
+	redisAdapter       *adapter.RedisAdapter
+	s3Client           *s3.Client
+	testStorageAdapter *adapter.StorageAdapter
 )
 
 const (
@@ -124,38 +125,38 @@ func TestMain(m *testing.M) {
 	initS3Buckets(s3Client, testConfig.S3BucketPublic, testConfig.S3BucketPrivate)
 
 	captchaAdapter := adapter.NewCaptchaAdapter(testConfig, httpClient)
-	storageAdapter := adapter.NewStorageAdapter(testConfig, s3Client, httpClient)
+	testStorageAdapter = adapter.NewStorageAdapter(testConfig, s3Client, httpClient)
 
 	otpService := service.NewOTPService(testClient, testConfig, validator, emailAdapter, captchaAdapter, redisAdapter, repo.RateLimit)
 	otpController := controller.NewOTPController(otpService)
 
-	authService := service.NewAuthService(testClient, testConfig, validator, storageAdapter, captchaAdapter, otpService, repo, testHub)
+	authService := service.NewAuthService(testClient, testConfig, validator, testStorageAdapter, captchaAdapter, otpService, repo, testHub)
 	authController := controller.NewAuthController(authService)
 
-	userService := service.NewUserService(testClient, repo, testConfig, validator, storageAdapter, testHub, redisAdapter)
+	userService := service.NewUserService(testClient, repo, testConfig, validator, testStorageAdapter, testHub, redisAdapter)
 	userController := controller.NewUserController(userService)
 
 	accountService := service.NewAccountService(testClient, testConfig, validator, testHub, otpService, redisAdapter, repo)
 	accountController := controller.NewAccountController(accountService)
 
-	chatService := service.NewChatService(testClient, repo, testConfig, validator, testHub, storageAdapter, redisAdapter)
-	privateChatService := service.NewPrivateChatService(testClient, testConfig, validator, testHub, redisAdapter, storageAdapter)
-	groupChatService := service.NewGroupChatService(testClient, repo, testConfig, validator, testHub, storageAdapter, redisAdapter)
+	chatService := service.NewChatService(testClient, repo, testConfig, validator, testHub, testStorageAdapter, redisAdapter)
+	privateChatService := service.NewPrivateChatService(testClient, testConfig, validator, testHub, redisAdapter, testStorageAdapter)
+	groupChatService := service.NewGroupChatService(testClient, repo, testConfig, validator, testHub, testStorageAdapter, redisAdapter)
 
 	chatController := controller.NewChatController(chatService)
 	privateChatController := controller.NewPrivateChatController(privateChatService)
 	groupChatController := controller.NewGroupChatController(groupChatService)
 
-	messageService := service.NewMessageService(testClient, repo, testConfig, validator, storageAdapter, testHub)
+	messageService := service.NewMessageService(testClient, repo, testConfig, validator, testStorageAdapter, testHub)
 	messageController := controller.NewMessageController(messageService)
 
-	mediaService := service.NewMediaService(testClient, testConfig, validator, storageAdapter, captchaAdapter)
+	mediaService := service.NewMediaService(testClient, testConfig, validator, testStorageAdapter, captchaAdapter)
 	mediaController := controller.NewMediaController(mediaService)
 
-	reportService := service.NewReportService(testClient, testConfig, validator, storageAdapter)
+	reportService := service.NewReportService(testClient, testConfig, validator, testStorageAdapter)
 	reportController := controller.NewReportController(reportService)
 
-	adminService := service.NewAdminService(testClient, testConfig, validator, testHub, repo, storageAdapter)
+	adminService := service.NewAdminService(testClient, testConfig, validator, testHub, repo, testStorageAdapter)
 	adminController := controller.NewAdminController(adminService, groupChatService, validator)
 
 	wsController := controller.NewWebSocketController(testHub)

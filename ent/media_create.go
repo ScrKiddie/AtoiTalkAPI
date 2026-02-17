@@ -114,6 +114,14 @@ func (_c *MediaCreate) SetUploadedByID(v uuid.UUID) *MediaCreate {
 	return _c
 }
 
+// SetNillableUploadedByID sets the "uploaded_by_id" field if the given value is not nil.
+func (_c *MediaCreate) SetNillableUploadedByID(v *uuid.UUID) *MediaCreate {
+	if v != nil {
+		_c.SetUploadedByID(*v)
+	}
+	return _c
+}
+
 // SetID sets the "id" field.
 func (_c *MediaCreate) SetID(v uuid.UUID) *MediaCreate {
 	_c.mutation.SetID(v)
@@ -174,6 +182,14 @@ func (_c *MediaCreate) SetGroupAvatar(v *GroupChat) *MediaCreate {
 // SetUploaderID sets the "uploader" edge to the User entity by ID.
 func (_c *MediaCreate) SetUploaderID(id uuid.UUID) *MediaCreate {
 	_c.mutation.SetUploaderID(id)
+	return _c
+}
+
+// SetNillableUploaderID sets the "uploader" edge to the User entity by ID if the given value is not nil.
+func (_c *MediaCreate) SetNillableUploaderID(id *uuid.UUID) *MediaCreate {
+	if id != nil {
+		_c = _c.SetUploaderID(*id)
+	}
 	return _c
 }
 
@@ -297,12 +313,6 @@ func (_c *MediaCreate) check() error {
 		if err := media.CategoryValidator(v); err != nil {
 			return &ValidationError{Name: "category", err: fmt.Errorf(`ent: validator failed for field "Media.category": %w`, err)}
 		}
-	}
-	if _, ok := _c.mutation.UploadedByID(); !ok {
-		return &ValidationError{Name: "uploaded_by_id", err: errors.New(`ent: missing required field "Media.uploaded_by_id"`)}
-	}
-	if len(_c.mutation.UploaderIDs()) == 0 {
-		return &ValidationError{Name: "uploader", err: errors.New(`ent: missing required edge "Media.uploader"`)}
 	}
 	return nil
 }
@@ -431,7 +441,7 @@ func (_c *MediaCreate) createSpec() (*Media, *sqlgraph.CreateSpec) {
 		for _, k := range nodes {
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
-		_node.UploadedByID = nodes[0]
+		_node.UploadedByID = &nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
 	if nodes := _c.mutation.ReportsIDs(); len(nodes) > 0 {
@@ -610,6 +620,12 @@ func (u *MediaUpsert) UpdateUploadedByID() *MediaUpsert {
 	return u
 }
 
+// ClearUploadedByID clears the value of the "uploaded_by_id" field.
+func (u *MediaUpsert) ClearUploadedByID() *MediaUpsert {
+	u.SetNull(media.FieldUploadedByID)
+	return u
+}
+
 // UpdateNewValues updates the mutable fields using the new values that were set on create except the ID field.
 // Using this option is equivalent to using:
 //
@@ -784,6 +800,13 @@ func (u *MediaUpsertOne) SetUploadedByID(v uuid.UUID) *MediaUpsertOne {
 func (u *MediaUpsertOne) UpdateUploadedByID() *MediaUpsertOne {
 	return u.Update(func(s *MediaUpsert) {
 		s.UpdateUploadedByID()
+	})
+}
+
+// ClearUploadedByID clears the value of the "uploaded_by_id" field.
+func (u *MediaUpsertOne) ClearUploadedByID() *MediaUpsertOne {
+	return u.Update(func(s *MediaUpsert) {
+		s.ClearUploadedByID()
 	})
 }
 
@@ -1128,6 +1151,13 @@ func (u *MediaUpsertBulk) SetUploadedByID(v uuid.UUID) *MediaUpsertBulk {
 func (u *MediaUpsertBulk) UpdateUploadedByID() *MediaUpsertBulk {
 	return u.Update(func(s *MediaUpsert) {
 		s.UpdateUploadedByID()
+	})
+}
+
+// ClearUploadedByID clears the value of the "uploaded_by_id" field.
+func (u *MediaUpsertBulk) ClearUploadedByID() *MediaUpsertBulk {
+	return u.Update(func(s *MediaUpsert) {
+		s.ClearUploadedByID()
 	})
 }
 

@@ -82,7 +82,7 @@ func (s *GroupChatService) UpdateMemberRole(ctx context.Context, requestorID uui
 			return nil, helper.NewBadRequestError("Cannot change role of a deleted user")
 		}
 		if targetMember.Edges.User.IsBanned {
-			if targetMember.Edges.User.BannedUntil == nil || time.Now().Before(*targetMember.Edges.User.BannedUntil) {
+			if targetMember.Edges.User.BannedUntil == nil || time.Now().UTC().Before(*targetMember.Edges.User.BannedUntil) {
 				return nil, helper.NewForbiddenError("Cannot promote a suspended/banned user")
 			}
 		}
@@ -236,7 +236,7 @@ func (s *GroupChatService) TransferOwnership(ctx context.Context, requestorID uu
 			return nil, helper.NewBadRequestError("Cannot transfer ownership to a deleted user")
 		}
 		if targetMember.Edges.User.IsBanned {
-			if targetMember.Edges.User.BannedUntil == nil || time.Now().Before(*targetMember.Edges.User.BannedUntil) {
+			if targetMember.Edges.User.BannedUntil == nil || time.Now().UTC().Before(*targetMember.Edges.User.BannedUntil) {
 				return nil, helper.NewForbiddenError("Cannot transfer ownership to a suspended/banned user")
 			}
 		}

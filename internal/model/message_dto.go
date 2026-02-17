@@ -23,37 +23,38 @@ type GetMessagesRequest struct {
 }
 
 type MessageResponse struct {
-	ID           uuid.UUID  `json:"id"`
-	ChatID       uuid.UUID  `json:"chat_id"`
-	SenderID     *uuid.UUID `json:"sender_id,omitempty"`
-	SenderName   string     `json:"sender_name,omitempty"`
-	SenderAvatar string     `json:"sender_avatar,omitempty"`
-	SenderRole   string     `json:"sender_role,omitempty"`
-	Type         string     `json:"type"`
-	Content      string     `json:"content,omitempty"`
-	// ActionData contains metadata for system messages.
-	//
-	// Structure depends on Type:
-	// - system_create: { "initial_name": string }
-	// - system_rename: { "old_name": string, "new_name": string }
-	// - system_description: { "old_description": string, "new_description": string }
-	// - system_avatar: { "action": "updated" | "removed" }
-	// - system_add: { "target_id": uuid, "actor_id": uuid, "target_name": string }
-	// - system_join: (empty, relies on sender_id)
-	// - system_leave: (empty, relies on sender_id)
-	// - system_kick: { "target_id": uuid, "actor_id": uuid, "target_name": string }
-	// - system_promote: { "target_id": uuid, "actor_id": uuid, "new_role": "admin" | "owner", "target_name": string, "action": "ownership_transferred" (optional) }
-	// - system_demote: { "target_id": uuid, "actor_id": uuid, "new_role": "member", "target_name": string }
-	// - system_visibility: { "new_visibility": "public" | "private" }
-	//
-	// Note: "target_name" is injected dynamically by the backend for display convenience.
-	ActionData  map[string]interface{} `json:"action_data,omitempty"`
-	Attachments []MediaDTO             `json:"attachments,omitempty"`
-	ReplyTo     *ReplyPreviewDTO       `json:"reply_to,omitempty"`
-	CreatedAt   string                 `json:"created_at"`
-	DeletedAt   *string                `json:"deleted_at,omitempty"`
-	EditedAt    *string                `json:"edited_at,omitempty"`
-	MemberCount *int                   `json:"member_count,omitempty"`
+	ID     uuid.UUID `json:"id"`
+	ChatID uuid.UUID `json:"chat_id"`
+
+	// ID of the sender, null if it is a system message or deleted user
+	SenderID *uuid.UUID `json:"sender_id,omitempty"`
+
+	// Name of the sender or variable system message name
+	SenderName string `json:"sender_name,omitempty"`
+
+	// Avatar URL of the sender
+	SenderAvatar string `json:"sender_avatar,omitempty"`
+
+	// Role of the sender in the group (owner, admin, member)
+	SenderRole string `json:"sender_role,omitempty"`
+
+	Type    string `json:"type"`
+	Content string `json:"content,omitempty"`
+
+	// Metadata for system messages, structure depends on the message type (e.g., renamed group, added member)
+	ActionData map[string]interface{} `json:"action_data,omitempty"`
+
+	Attachments []MediaDTO `json:"attachments,omitempty"`
+
+	// Preview of the message this message is replying to
+	ReplyTo *ReplyPreviewDTO `json:"reply_to,omitempty"`
+
+	CreatedAt string  `json:"created_at"`
+	DeletedAt *string `json:"deleted_at,omitempty"`
+	EditedAt  *string `json:"edited_at,omitempty"`
+
+	// Total number of members in the group, only for group chats
+	MemberCount *int `json:"member_count,omitempty"`
 }
 
 type ReplyPreviewDTO struct {

@@ -104,14 +104,22 @@ func (s *MessageService) SendMessage(ctx context.Context, userID uuid.UUID, req 
 		var otherUserID uuid.UUID
 		var otherUser *ent.User
 
-		if pc.User1ID == userID {
-			otherUserID = pc.User2ID
-			otherUser = pc.Edges.User2
-		} else if pc.User2ID == userID {
-			otherUserID = pc.User1ID
-			otherUser = pc.Edges.User1
+		if pc.User1ID != nil && *pc.User1ID == userID {
+			if pc.User2ID != nil {
+				otherUserID = *pc.User2ID
+				otherUser = pc.Edges.User2
+			}
+		} else if pc.User2ID != nil && *pc.User2ID == userID {
+			if pc.User1ID != nil {
+				otherUserID = *pc.User1ID
+				otherUser = pc.Edges.User1
+			}
 		} else {
 			return nil, helper.NewForbiddenError("")
+		}
+
+		if otherUserID == uuid.Nil {
+			return nil, helper.NewForbiddenError("User does not exist")
 		}
 
 		if otherUser != nil && otherUser.DeletedAt != nil {
@@ -119,7 +127,7 @@ func (s *MessageService) SendMessage(ctx context.Context, userID uuid.UUID, req 
 		}
 
 		if otherUser != nil && otherUser.IsBanned {
-			if otherUser.BannedUntil == nil || time.Now().Before(*otherUser.BannedUntil) {
+			if otherUser.BannedUntil == nil || time.Now().UTC().Before(*otherUser.BannedUntil) {
 				return nil, helper.NewForbiddenError("User is currently suspended/banned")
 			}
 		}
@@ -227,7 +235,7 @@ func (s *MessageService) SendMessage(ctx context.Context, userID uuid.UUID, req 
 		pc := chatInfo.Edges.PrivateChat
 		update := tx.PrivateChat.UpdateOneID(pc.ID)
 
-		if pc.User1ID == userID {
+		if pc.User1ID != nil && *pc.User1ID == userID {
 			update.SetUser1LastReadAt(time.Now().UTC())
 			update.SetUser1UnreadCount(0)
 			update.AddUser2UnreadCount(1)
@@ -558,10 +566,10 @@ func (s *MessageService) GetMessages(ctx context.Context, userID uuid.UUID, req 
 
 	if chatInfo.Type == chat.TypePrivate && chatInfo.Edges.PrivateChat != nil {
 		pc := chatInfo.Edges.PrivateChat
-		if pc.User1ID == userID {
+		if pc.User1ID != nil && *pc.User1ID == userID {
 			isMember = true
 			hiddenAt = pc.User1HiddenAt
-		} else if pc.User2ID == userID {
+		} else if pc.User2ID != nil && *pc.User2ID == userID {
 			isMember = true
 			hiddenAt = pc.User2HiddenAt
 		}
@@ -740,7 +748,7 @@ func (s *MessageService) GetMessages(ctx context.Context, userID uuid.UUID, req 
 						if u, exists := userMap[id]; exists {
 							if u.DeletedAt != nil {
 								delete(resp.ActionData, "target_id")
-								resp.ActionData["target_name"] = ""
+								resp.ActionData["target_name"] = "Deleted User"
 							} else if u.FullName != nil {
 								resp.ActionData["target_name"] = *u.FullName
 							}
@@ -753,7 +761,7 @@ func (s *MessageService) GetMessages(ctx context.Context, userID uuid.UUID, req 
 						if u, exists := userMap[id]; exists {
 							if u.DeletedAt != nil {
 								delete(resp.ActionData, "actor_id")
-								resp.ActionData["actor_name"] = ""
+								resp.ActionData["actor_name"] = "Deleted User"
 							} else if u.FullName != nil {
 								resp.ActionData["actor_name"] = *u.FullName
 							}

@@ -175,7 +175,7 @@ func (s *UserService) GetUserProfile(ctx context.Context, currentUserID uuid.UUI
 	}
 
 	isBanned := u.IsBanned
-	if isBanned && u.BannedUntil != nil && time.Now().After(*u.BannedUntil) {
+	if isBanned && u.BannedUntil != nil && time.Now().UTC().After(*u.BannedUntil) {
 		isBanned = false
 	}
 
@@ -560,22 +560,24 @@ func (s *UserService) SearchUsers(ctx context.Context, currentUserID uuid.UUID, 
 		} else {
 			for _, pc := range chats {
 				var targetID uuid.UUID
-				if pc.User1ID == currentUserID {
-					targetID = pc.User2ID
+				if pc.User1ID != nil && *pc.User1ID == currentUserID {
+					if pc.User2ID != nil {
+						targetID = *pc.User2ID
+					}
 				} else {
-					targetID = pc.User1ID
+					if pc.User1ID != nil {
+						targetID = *pc.User1ID
+					}
 				}
-				privateChatMap[targetID] = pc.ChatID
+				if targetID != uuid.Nil {
+					privateChatMap[targetID] = pc.ChatID
+				}
 			}
 		}
 	}
 
 	userDTOs := make([]model.UserDTO, 0)
 	for _, u := range users {
-
-		if u.DeletedAt != nil {
-			continue
-		}
 
 		avatarURL := ""
 		if u.Edges.Avatar != nil {
@@ -636,10 +638,6 @@ func (s *UserService) GetBlockedUsers(ctx context.Context, currentUserID uuid.UU
 
 	userDTOs := make([]model.UserDTO, 0)
 	for _, u := range users {
-
-		if u.DeletedAt != nil {
-			continue
-		}
 
 		avatarURL := ""
 		if u.Edges.Avatar != nil {

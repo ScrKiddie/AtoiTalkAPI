@@ -130,46 +130,66 @@ definitions:
   model.ChatListResponse:
     properties:
       avatar:
+        description: Avatar URL of the group or the other user
         type: string
       description:
+        description: Description of the group
         type: string
       hidden_at:
+        description: Timestamp when the current user hid the chat
         type: string
       id:
         type: string
       invite_code:
+        description: Invite code for the group, available if public or for admins
         type: string
       invite_expires_at:
+        description: Expiration timestamp for the invite code
         type: string
       is_blocked_by_me:
+        description: Indicates if the current user has blocked the other user
         type: boolean
       is_blocked_by_other:
+        description: Indicates if the other user has blocked the current user
         type: boolean
       is_online:
+        description: Indicates if the other user is currently online
         type: boolean
       is_public:
+        description: Indicates if the group is public
         type: boolean
       last_message:
-        $ref: '#/definitions/model.MessageResponse'
+        allOf:
+        - $ref: '#/definitions/model.MessageResponse'
+        description: Preview of the last message in the chat
       last_read_at:
+        description: Timestamp when the current user last read the chat
         type: string
       member_count:
+        description: Total number of members in the group
         type: integer
       my_role:
+        description: Role of the current user in the group (owner, admin, member)
         type: string
       name:
+        description: Name of the group or the other user in a private chat
         type: string
       other_last_read_at:
+        description: Timestamp when the other user last read the chat
         type: string
       other_user_id:
+        description: ID of the other user in a private chat
         type: string
       other_user_is_banned:
+        description: Indicates if the other user is currently banned
         type: boolean
       other_user_is_deleted:
+        description: Indicates if the other user's account has been deleted
         type: boolean
       type:
         type: string
       unread_count:
+        description: Number of unread messages for the current user
         type: integer
     type: object
   model.ChatResponse:
@@ -329,23 +349,8 @@ definitions:
     properties:
       action_data:
         additionalProperties: true
-        description: |-
-          ActionData contains metadata for system messages.
-
-          Structure depends on Type:
-          - system_create: { "initial_name": string }
-          - system_rename: { "old_name": string, "new_name": string }
-          - system_description: { "old_description": string, "new_description": string }
-          - system_avatar: { "action": "updated" | "removed" }
-          - system_add: { "target_id": uuid, "actor_id": uuid, "target_name": string }
-          - system_join: (empty, relies on sender_id)
-          - system_leave: (empty, relies on sender_id)
-          - system_kick: { "target_id": uuid, "actor_id": uuid, "target_name": string }
-          - system_promote: { "target_id": uuid, "actor_id": uuid, "new_role": "admin" | "owner", "target_name": string, "action": "ownership_transferred" (optional) }
-          - system_demote: { "target_id": uuid, "actor_id": uuid, "new_role": "member", "target_name": string }
-          - system_visibility: { "new_visibility": "public" | "private" }
-
-          Note: "target_name" is injected dynamically by the backend for display convenience.
+        description: Metadata for system messages, structure depends on the message
+          type (e.g., renamed group, added member)
         type: object
       attachments:
         items:
@@ -364,16 +369,23 @@ definitions:
       id:
         type: string
       member_count:
+        description: Total number of members in the group, only for group chats
         type: integer
       reply_to:
-        $ref: '#/definitions/model.ReplyPreviewDTO'
+        allOf:
+        - $ref: '#/definitions/model.ReplyPreviewDTO'
+        description: Preview of the message this message is replying to
       sender_avatar:
+        description: Avatar URL of the sender
         type: string
       sender_id:
+        description: ID of the sender, null if it is a system message or deleted user
         type: string
       sender_name:
+        description: Name of the sender or variable system message name
         type: string
       sender_role:
+        description: Role of the sender in the group (owner, admin, member)
         type: string
       type:
         type: string
@@ -453,13 +465,7 @@ definitions:
         type: string
       evidence_snapshot:
         additionalProperties: true
-        description: |-
-          EvidenceSnapshot contains a snapshot of the reported entity at the time of reporting.
-
-          Structure depends on TargetType:
-          - message: { "content": string, "sender_id": uuid, "sender_username": string, "sender_name": string, "sent_at": time, "attachments": []object{id, file_name, original_name, file_size, mime_type, url}, "is_edited": bool, "chat_id": uuid, "chat_type": string, "group_id": uuid (optional) }
-          - group: { "group_id": uuid, "chat_id": uuid, "name": string, "description": string, "avatar": string, "created_by": uuid }
-          - user: { "user_id": uuid, "username": string, "full_name": string, "bio": string, "avatar": string }
+        description: Snapshot of the reported entity data at the time of reporting
         type: object
       id:
         type: string
@@ -470,20 +476,20 @@ definitions:
       reporter_id:
         type: string
       reporter_is_banned:
-        description: Indicates if the reporter user is banned
+        description: Indicates if the reporter is banned
         type: boolean
       reporter_is_deleted:
-        description: Indicates if the reporter user has been soft-deleted
+        description: Indicates if the reporter's account has been soft-deleted
         type: boolean
       reporter_name:
         type: string
       status:
         type: string
       target_id:
-        description: ID of the reported entity (User ID, Group ID, or Message ID)
+        description: ID of the reported entity (User, Group, or Message)
         type: string
       target_is_banned:
-        description: Indicates if the target user (or sender of message) is banned
+        description: Indicates if the target user (or sender of the message) is banned
         type: boolean
       target_is_deleted:
         description: Indicates if the target entity has been soft-deleted

@@ -108,6 +108,12 @@ func (_u *ReportUpdate) SetNillableReporterID(v *uuid.UUID) *ReportUpdate {
 	return _u
 }
 
+// ClearReporterID clears the value of the "reporter_id" field.
+func (_u *ReportUpdate) ClearReporterID() *ReportUpdate {
+	_u.mutation.ClearReporterID()
+	return _u
+}
+
 // SetMessageID sets the "message_id" field.
 func (_u *ReportUpdate) SetMessageID(v uuid.UUID) *ReportUpdate {
 	_u.mutation.SetMessageID(v)
@@ -377,9 +383,6 @@ func (_u *ReportUpdate) check() error {
 		if err := report.StatusValidator(v); err != nil {
 			return &ValidationError{Name: "status", err: fmt.Errorf(`ent: validator failed for field "Report.status": %w`, err)}
 		}
-	}
-	if _u.mutation.ReporterCleared() && len(_u.mutation.ReporterIDs()) > 0 {
-		return errors.New(`ent: clearing a required unique edge "Report.reporter"`)
 	}
 	return nil
 }
@@ -721,6 +724,12 @@ func (_u *ReportUpdateOne) SetNillableReporterID(v *uuid.UUID) *ReportUpdateOne 
 	return _u
 }
 
+// ClearReporterID clears the value of the "reporter_id" field.
+func (_u *ReportUpdateOne) ClearReporterID() *ReportUpdateOne {
+	_u.mutation.ClearReporterID()
+	return _u
+}
+
 // SetMessageID sets the "message_id" field.
 func (_u *ReportUpdateOne) SetMessageID(v uuid.UUID) *ReportUpdateOne {
 	_u.mutation.SetMessageID(v)
@@ -1003,9 +1012,6 @@ func (_u *ReportUpdateOne) check() error {
 		if err := report.StatusValidator(v); err != nil {
 			return &ValidationError{Name: "status", err: fmt.Errorf(`ent: validator failed for field "Report.status": %w`, err)}
 		}
-	}
-	if _u.mutation.ReporterCleared() && len(_u.mutation.ReporterIDs()) > 0 {
-		return errors.New(`ent: clearing a required unique edge "Report.reporter"`)
 	}
 	return nil
 }

@@ -38,9 +38,25 @@ func (_c *PrivateChatCreate) SetUser1ID(v uuid.UUID) *PrivateChatCreate {
 	return _c
 }
 
+// SetNillableUser1ID sets the "user1_id" field if the given value is not nil.
+func (_c *PrivateChatCreate) SetNillableUser1ID(v *uuid.UUID) *PrivateChatCreate {
+	if v != nil {
+		_c.SetUser1ID(*v)
+	}
+	return _c
+}
+
 // SetUser2ID sets the "user2_id" field.
 func (_c *PrivateChatCreate) SetUser2ID(v uuid.UUID) *PrivateChatCreate {
 	_c.mutation.SetUser2ID(v)
+	return _c
+}
+
+// SetNillableUser2ID sets the "user2_id" field if the given value is not nil.
+func (_c *PrivateChatCreate) SetNillableUser2ID(v *uuid.UUID) *PrivateChatCreate {
+	if v != nil {
+		_c.SetUser2ID(*v)
+	}
 	return _c
 }
 
@@ -217,12 +233,6 @@ func (_c *PrivateChatCreate) check() error {
 	if _, ok := _c.mutation.ChatID(); !ok {
 		return &ValidationError{Name: "chat_id", err: errors.New(`ent: missing required field "PrivateChat.chat_id"`)}
 	}
-	if _, ok := _c.mutation.User1ID(); !ok {
-		return &ValidationError{Name: "user1_id", err: errors.New(`ent: missing required field "PrivateChat.user1_id"`)}
-	}
-	if _, ok := _c.mutation.User2ID(); !ok {
-		return &ValidationError{Name: "user2_id", err: errors.New(`ent: missing required field "PrivateChat.user2_id"`)}
-	}
 	if _, ok := _c.mutation.User1UnreadCount(); !ok {
 		return &ValidationError{Name: "user1_unread_count", err: errors.New(`ent: missing required field "PrivateChat.user1_unread_count"`)}
 	}
@@ -231,12 +241,6 @@ func (_c *PrivateChatCreate) check() error {
 	}
 	if len(_c.mutation.ChatIDs()) == 0 {
 		return &ValidationError{Name: "chat", err: errors.New(`ent: missing required edge "PrivateChat.chat"`)}
-	}
-	if len(_c.mutation.User1IDs()) == 0 {
-		return &ValidationError{Name: "user1", err: errors.New(`ent: missing required edge "PrivateChat.user1"`)}
-	}
-	if len(_c.mutation.User2IDs()) == 0 {
-		return &ValidationError{Name: "user2", err: errors.New(`ent: missing required edge "PrivateChat.user2"`)}
 	}
 	return nil
 }
@@ -329,7 +333,7 @@ func (_c *PrivateChatCreate) createSpec() (*PrivateChat, *sqlgraph.CreateSpec) {
 		for _, k := range nodes {
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
-		_node.User1ID = nodes[0]
+		_node.User1ID = &nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
 	if nodes := _c.mutation.User2IDs(); len(nodes) > 0 {
@@ -346,7 +350,7 @@ func (_c *PrivateChatCreate) createSpec() (*PrivateChat, *sqlgraph.CreateSpec) {
 		for _, k := range nodes {
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
-		_node.User2ID = nodes[0]
+		_node.User2ID = &nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
 	return _node, _spec
@@ -425,6 +429,12 @@ func (u *PrivateChatUpsert) UpdateUser1ID() *PrivateChatUpsert {
 	return u
 }
 
+// ClearUser1ID clears the value of the "user1_id" field.
+func (u *PrivateChatUpsert) ClearUser1ID() *PrivateChatUpsert {
+	u.SetNull(privatechat.FieldUser1ID)
+	return u
+}
+
 // SetUser2ID sets the "user2_id" field.
 func (u *PrivateChatUpsert) SetUser2ID(v uuid.UUID) *PrivateChatUpsert {
 	u.Set(privatechat.FieldUser2ID, v)
@@ -434,6 +444,12 @@ func (u *PrivateChatUpsert) SetUser2ID(v uuid.UUID) *PrivateChatUpsert {
 // UpdateUser2ID sets the "user2_id" field to the value that was provided on create.
 func (u *PrivateChatUpsert) UpdateUser2ID() *PrivateChatUpsert {
 	u.SetExcluded(privatechat.FieldUser2ID)
+	return u
+}
+
+// ClearUser2ID clears the value of the "user2_id" field.
+func (u *PrivateChatUpsert) ClearUser2ID() *PrivateChatUpsert {
+	u.SetNull(privatechat.FieldUser2ID)
 	return u
 }
 
@@ -621,6 +637,13 @@ func (u *PrivateChatUpsertOne) UpdateUser1ID() *PrivateChatUpsertOne {
 	})
 }
 
+// ClearUser1ID clears the value of the "user1_id" field.
+func (u *PrivateChatUpsertOne) ClearUser1ID() *PrivateChatUpsertOne {
+	return u.Update(func(s *PrivateChatUpsert) {
+		s.ClearUser1ID()
+	})
+}
+
 // SetUser2ID sets the "user2_id" field.
 func (u *PrivateChatUpsertOne) SetUser2ID(v uuid.UUID) *PrivateChatUpsertOne {
 	return u.Update(func(s *PrivateChatUpsert) {
@@ -632,6 +655,13 @@ func (u *PrivateChatUpsertOne) SetUser2ID(v uuid.UUID) *PrivateChatUpsertOne {
 func (u *PrivateChatUpsertOne) UpdateUser2ID() *PrivateChatUpsertOne {
 	return u.Update(func(s *PrivateChatUpsert) {
 		s.UpdateUser2ID()
+	})
+}
+
+// ClearUser2ID clears the value of the "user2_id" field.
+func (u *PrivateChatUpsertOne) ClearUser2ID() *PrivateChatUpsertOne {
+	return u.Update(func(s *PrivateChatUpsert) {
+		s.ClearUser2ID()
 	})
 }
 
@@ -1004,6 +1034,13 @@ func (u *PrivateChatUpsertBulk) UpdateUser1ID() *PrivateChatUpsertBulk {
 	})
 }
 
+// ClearUser1ID clears the value of the "user1_id" field.
+func (u *PrivateChatUpsertBulk) ClearUser1ID() *PrivateChatUpsertBulk {
+	return u.Update(func(s *PrivateChatUpsert) {
+		s.ClearUser1ID()
+	})
+}
+
 // SetUser2ID sets the "user2_id" field.
 func (u *PrivateChatUpsertBulk) SetUser2ID(v uuid.UUID) *PrivateChatUpsertBulk {
 	return u.Update(func(s *PrivateChatUpsert) {
@@ -1015,6 +1052,13 @@ func (u *PrivateChatUpsertBulk) SetUser2ID(v uuid.UUID) *PrivateChatUpsertBulk {
 func (u *PrivateChatUpsertBulk) UpdateUser2ID() *PrivateChatUpsertBulk {
 	return u.Update(func(s *PrivateChatUpsert) {
 		s.UpdateUser2ID()
+	})
+}
+
+// ClearUser2ID clears the value of the "user2_id" field.
+func (u *PrivateChatUpsertBulk) ClearUser2ID() *PrivateChatUpsertBulk {
+	return u.Update(func(s *PrivateChatUpsert) {
+		s.ClearUser2ID()
 	})
 }
 

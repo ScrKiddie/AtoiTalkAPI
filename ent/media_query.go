@@ -677,7 +677,10 @@ func (_q *MediaQuery) loadUploader(ctx context.Context, query *UserQuery, nodes 
 	ids := make([]uuid.UUID, 0, len(nodes))
 	nodeids := make(map[uuid.UUID][]*Media)
 	for i := range nodes {
-		fk := nodes[i].UploadedByID
+		if nodes[i].UploadedByID == nil {
+			continue
+		}
+		fk := *nodes[i].UploadedByID
 		if _, ok := nodeids[fk]; !ok {
 			ids = append(ids, fk)
 		}

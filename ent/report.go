@@ -33,7 +33,7 @@ type Report struct {
 	// Status holds the value of the "status" field.
 	Status report.Status `json:"status,omitempty"`
 	// ReporterID holds the value of the "reporter_id" field.
-	ReporterID uuid.UUID `json:"reporter_id,omitempty"`
+	ReporterID *uuid.UUID `json:"reporter_id,omitempty"`
 	// MessageID holds the value of the "message_id" field.
 	MessageID *uuid.UUID `json:"message_id,omitempty"`
 	// GroupID holds the value of the "group_id" field.
@@ -145,7 +145,7 @@ func (*Report) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case report.FieldMessageID, report.FieldGroupID, report.FieldTargetUserID, report.FieldResolvedByID:
+		case report.FieldReporterID, report.FieldMessageID, report.FieldGroupID, report.FieldTargetUserID, report.FieldResolvedByID:
 			values[i] = &sql.NullScanner{S: new(uuid.UUID)}
 		case report.FieldEvidenceSnapshot:
 			values[i] = new([]byte)
@@ -153,7 +153,7 @@ func (*Report) scanValues(columns []string) ([]any, error) {
 			values[i] = new(sql.NullString)
 		case report.FieldResolvedAt, report.FieldCreatedAt, report.FieldUpdatedAt:
 			values[i] = new(sql.NullTime)
-		case report.FieldID, report.FieldReporterID:
+		case report.FieldID:
 			values[i] = new(uuid.UUID)
 		case report.ForeignKeys[0]: // user_reports_received
 			values[i] = &sql.NullScanner{S: new(uuid.UUID)}
@@ -212,10 +212,11 @@ func (_m *Report) assignValues(columns []string, values []any) error {
 				_m.Status = report.Status(value.String)
 			}
 		case report.FieldReporterID:
-			if value, ok := values[i].(*uuid.UUID); !ok {
+			if value, ok := values[i].(*sql.NullScanner); !ok {
 				return fmt.Errorf("unexpected type %T for field reporter_id", values[i])
-			} else if value != nil {
-				_m.ReporterID = *value
+			} else if value.Valid {
+				_m.ReporterID = new(uuid.UUID)
+				*_m.ReporterID = *value.S.(*uuid.UUID)
 			}
 		case report.FieldMessageID:
 			if value, ok := values[i].(*sql.NullScanner); !ok {
@@ -361,8 +362,10 @@ func (_m *Report) String() string {
 	builder.WriteString("status=")
 	builder.WriteString(fmt.Sprintf("%v", _m.Status))
 	builder.WriteString(", ")
-	builder.WriteString("reporter_id=")
-	builder.WriteString(fmt.Sprintf("%v", _m.ReporterID))
+	if v := _m.ReporterID; v != nil {
+		builder.WriteString("reporter_id=")
+		builder.WriteString(fmt.Sprintf("%v", *v))
+	}
 	builder.WriteString(", ")
 	if v := _m.MessageID; v != nil {
 		builder.WriteString("message_id=")

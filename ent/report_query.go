@@ -632,7 +632,10 @@ func (_q *ReportQuery) loadReporter(ctx context.Context, query *UserQuery, nodes
 	ids := make([]uuid.UUID, 0, len(nodes))
 	nodeids := make(map[uuid.UUID][]*Report)
 	for i := range nodes {
-		fk := nodes[i].ReporterID
+		if nodes[i].ReporterID == nil {
+			continue
+		}
+		fk := *nodes[i].ReporterID
 		if _, ok := nodeids[fk]; !ok {
 			ids = append(ids, fk)
 		}

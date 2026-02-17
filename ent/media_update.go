@@ -151,6 +151,12 @@ func (_u *MediaUpdate) SetNillableUploadedByID(v *uuid.UUID) *MediaUpdate {
 	return _u
 }
 
+// ClearUploadedByID clears the value of the "uploaded_by_id" field.
+func (_u *MediaUpdate) ClearUploadedByID() *MediaUpdate {
+	_u.mutation.ClearUploadedByID()
+	return _u
+}
+
 // SetMessage sets the "message" edge to the Message entity.
 func (_u *MediaUpdate) SetMessage(v *Message) *MediaUpdate {
 	return _u.SetMessageID(v.ID)
@@ -197,6 +203,14 @@ func (_u *MediaUpdate) SetGroupAvatar(v *GroupChat) *MediaUpdate {
 // SetUploaderID sets the "uploader" edge to the User entity by ID.
 func (_u *MediaUpdate) SetUploaderID(id uuid.UUID) *MediaUpdate {
 	_u.mutation.SetUploaderID(id)
+	return _u
+}
+
+// SetNillableUploaderID sets the "uploader" edge to the User entity by ID if the given value is not nil.
+func (_u *MediaUpdate) SetNillableUploaderID(id *uuid.UUID) *MediaUpdate {
+	if id != nil {
+		_u = _u.SetUploaderID(*id)
+	}
 	return _u
 }
 
@@ -332,9 +346,6 @@ func (_u *MediaUpdate) check() error {
 		if err := media.CategoryValidator(v); err != nil {
 			return &ValidationError{Name: "category", err: fmt.Errorf(`ent: validator failed for field "Media.category": %w`, err)}
 		}
-	}
-	if _u.mutation.UploaderCleared() && len(_u.mutation.UploaderIDs()) > 0 {
-		return errors.New(`ent: clearing a required unique edge "Media.uploader"`)
 	}
 	return nil
 }
@@ -678,6 +689,12 @@ func (_u *MediaUpdateOne) SetNillableUploadedByID(v *uuid.UUID) *MediaUpdateOne 
 	return _u
 }
 
+// ClearUploadedByID clears the value of the "uploaded_by_id" field.
+func (_u *MediaUpdateOne) ClearUploadedByID() *MediaUpdateOne {
+	_u.mutation.ClearUploadedByID()
+	return _u
+}
+
 // SetMessage sets the "message" edge to the Message entity.
 func (_u *MediaUpdateOne) SetMessage(v *Message) *MediaUpdateOne {
 	return _u.SetMessageID(v.ID)
@@ -724,6 +741,14 @@ func (_u *MediaUpdateOne) SetGroupAvatar(v *GroupChat) *MediaUpdateOne {
 // SetUploaderID sets the "uploader" edge to the User entity by ID.
 func (_u *MediaUpdateOne) SetUploaderID(id uuid.UUID) *MediaUpdateOne {
 	_u.mutation.SetUploaderID(id)
+	return _u
+}
+
+// SetNillableUploaderID sets the "uploader" edge to the User entity by ID if the given value is not nil.
+func (_u *MediaUpdateOne) SetNillableUploaderID(id *uuid.UUID) *MediaUpdateOne {
+	if id != nil {
+		_u = _u.SetUploaderID(*id)
+	}
 	return _u
 }
 
@@ -872,9 +897,6 @@ func (_u *MediaUpdateOne) check() error {
 		if err := media.CategoryValidator(v); err != nil {
 			return &ValidationError{Name: "category", err: fmt.Errorf(`ent: validator failed for field "Media.category": %w`, err)}
 		}
-	}
-	if _u.mutation.UploaderCleared() && len(_u.mutation.UploaderIDs()) > 0 {
-		return errors.New(`ent: clearing a required unique edge "Media.uploader"`)
 	}
 	return nil
 }

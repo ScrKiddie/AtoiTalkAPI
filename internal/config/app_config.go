@@ -54,9 +54,17 @@ type AppConfig struct {
 
 	OTPExp              int
 	OTPRateLimitSeconds int
-	OTPSecret           string
+
+	OTPSecret string
 
 	TurnstileSecretKey string
+
+	SoftDeleteRetentionDays int
+	MediaRetentionDays      float64
+
+	EntityCleanupCron      string
+	PrivateChatCleanupCron string
+	MediaCleanupCron       string
 }
 
 func LoadAppConfig() *AppConfig {
@@ -111,6 +119,13 @@ func LoadAppConfig() *AppConfig {
 		OTPSecret:           mustGetEnv("OTP_SECRET"),
 
 		TurnstileSecretKey: getEnv("TURNSTILE_SECRET_KEY", ""),
+
+		SoftDeleteRetentionDays: getEnvAsInt("SOFT_DELETE_RETENTION_DAYS", 30),
+		MediaRetentionDays:      getEnvAsFloat("MEDIA_RETENTION_DAYS", 7.0),
+
+		EntityCleanupCron:      getEnv("ENTITY_CLEANUP_CRON", "0 2 * * *"),
+		PrivateChatCleanupCron: getEnv("PRIVATE_CHAT_CLEANUP_CRON", "30 2 * * *"),
+		MediaCleanupCron:       getEnv("MEDIA_CLEANUP_CRON", "0 3 * * *"),
 	}
 }
 
@@ -144,6 +159,19 @@ func mustGetEnvAsInt(key string) int {
 	if err != nil {
 		slog.Error("Environment variable must be an integer", "key", key, "value", valStr)
 		os.Exit(1)
+	}
+	return val
+}
+
+func getEnvAsFloat(key string, fallback float64) float64 {
+	valStr, ok := os.LookupEnv(key)
+	if !ok {
+		return fallback
+	}
+	val, err := strconv.ParseFloat(valStr, 64)
+	if err != nil {
+		slog.Warn("Environment variable must be a float, using fallback", "key", key, "value", valStr, "fallback", fallback)
+		return fallback
 	}
 	return val
 }

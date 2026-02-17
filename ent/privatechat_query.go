@@ -526,7 +526,10 @@ func (_q *PrivateChatQuery) loadUser1(ctx context.Context, query *UserQuery, nod
 	ids := make([]uuid.UUID, 0, len(nodes))
 	nodeids := make(map[uuid.UUID][]*PrivateChat)
 	for i := range nodes {
-		fk := nodes[i].User1ID
+		if nodes[i].User1ID == nil {
+			continue
+		}
+		fk := *nodes[i].User1ID
 		if _, ok := nodeids[fk]; !ok {
 			ids = append(ids, fk)
 		}
@@ -555,7 +558,10 @@ func (_q *PrivateChatQuery) loadUser2(ctx context.Context, query *UserQuery, nod
 	ids := make([]uuid.UUID, 0, len(nodes))
 	nodeids := make(map[uuid.UUID][]*PrivateChat)
 	for i := range nodes {
-		fk := nodes[i].User2ID
+		if nodes[i].User2ID == nil {
+			continue
+		}
+		fk := *nodes[i].User2ID
 		if _, ok := nodeids[fk]; !ok {
 			ids = append(ids, fk)
 		}

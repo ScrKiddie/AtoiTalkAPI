@@ -217,7 +217,12 @@ func (h *Hub) fetchAndCacheMembers(chatID uuid.UUID) []uuid.UUID {
 			Select(privatechat.FieldUser1ID, privatechat.FieldUser2ID).
 			Only(ctx)
 		if err == nil {
-			userIDs = []uuid.UUID{pc.User1ID, pc.User2ID}
+			if pc.User1ID != nil {
+				userIDs = append(userIDs, *pc.User1ID)
+			}
+			if pc.User2ID != nil {
+				userIDs = append(userIDs, *pc.User2ID)
+			}
 		}
 	} else if c.Type == chat.TypeGroup {
 		gcID, err := h.db.GroupChat.Query().
@@ -272,8 +277,12 @@ func (h *Hub) broadcastHeavy(chatID uuid.UUID, event Event) {
 
 	if c.Type == chat.TypePrivate && c.Edges.PrivateChat != nil {
 		pc := c.Edges.PrivateChat
-		memberUnreadMap[pc.User1ID] = pc.User1UnreadCount
-		memberUnreadMap[pc.User2ID] = pc.User2UnreadCount
+		if pc.User1ID != nil {
+			memberUnreadMap[*pc.User1ID] = pc.User1UnreadCount
+		}
+		if pc.User2ID != nil {
+			memberUnreadMap[*pc.User2ID] = pc.User2UnreadCount
+		}
 	} else if c.Type == chat.TypeGroup && c.Edges.GroupChat != nil {
 		for _, m := range c.Edges.GroupChat.Edges.Members {
 			memberUnreadMap[m.UserID] = m.UnreadCount
@@ -363,10 +372,14 @@ func (h *Hub) fetchAndCacheContacts(userID uuid.UUID) []uuid.UUID {
 
 	targetUserIDs := make([]uuid.UUID, 0, len(chats))
 	for _, pc := range chats {
-		if pc.User1ID == userID {
-			targetUserIDs = append(targetUserIDs, pc.User2ID)
-		} else {
-			targetUserIDs = append(targetUserIDs, pc.User1ID)
+		if pc.User1ID != nil && *pc.User1ID == userID {
+			if pc.User2ID != nil {
+				targetUserIDs = append(targetUserIDs, *pc.User2ID)
+			}
+		} else if pc.User2ID != nil && *pc.User2ID == userID {
+			if pc.User1ID != nil {
+				targetUserIDs = append(targetUserIDs, *pc.User1ID)
+			}
 		}
 	}
 

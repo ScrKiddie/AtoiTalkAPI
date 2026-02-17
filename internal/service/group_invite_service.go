@@ -43,7 +43,7 @@ func (s *GroupChatService) JoinGroupByInvite(ctx context.Context, userID uuid.UU
 		return nil, helper.NewInternalServerError("")
 	}
 
-	if gc.InviteExpiresAt != nil && time.Now().After(*gc.InviteExpiresAt) {
+	if gc.InviteExpiresAt != nil && time.Now().UTC().After(*gc.InviteExpiresAt) {
 		return nil, helper.NewBadRequestError("Invite code has expired")
 	}
 
@@ -186,7 +186,7 @@ func (s *GroupChatService) GetGroupByInviteCode(ctx context.Context, inviteCode 
 		return nil, helper.NewInternalServerError("")
 	}
 
-	if gc.InviteExpiresAt != nil && time.Now().After(*gc.InviteExpiresAt) {
+	if gc.InviteExpiresAt != nil && time.Now().UTC().After(*gc.InviteExpiresAt) {
 		return nil, helper.NewBadRequestError("Invite code has expired")
 	}
 

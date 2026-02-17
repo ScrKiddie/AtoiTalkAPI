@@ -19,8 +19,8 @@ func (PrivateChat) Fields() []ent.Field {
 	return []ent.Field{
 		field.UUID("id", uuid.UUID{}).Default(newUUIDv7),
 		field.UUID("chat_id", uuid.UUID{}).Unique(),
-		field.UUID("user1_id", uuid.UUID{}),
-		field.UUID("user2_id", uuid.UUID{}),
+		field.UUID("user1_id", uuid.UUID{}).Optional().Nillable(),
+		field.UUID("user2_id", uuid.UUID{}).Optional().Nillable(),
 		field.Time("user1_last_read_at").Optional().Nillable(),
 		field.Time("user2_last_read_at").Optional().Nillable(),
 		field.Time("user1_hidden_at").Optional().Nillable(),
@@ -35,12 +35,15 @@ func (PrivateChat) Hooks() []ent.Hook {
 		func(next ent.Mutator) ent.Mutator {
 			return ent.MutateFunc(func(ctx context.Context, m ent.Mutation) (ent.Value, error) {
 				if m.Op().Is(ent.OpCreate) {
-					v1, _ := m.Field("user1_id")
-					v2, _ := m.Field("user2_id")
-					id1, id2 := v1.(uuid.UUID), v2.(uuid.UUID)
-					if id1.String() > id2.String() {
-						m.SetField("user1_id", id2)
-						m.SetField("user2_id", id1)
+					v1, exists1 := m.Field("user1_id")
+					v2, exists2 := m.Field("user2_id")
+					if exists1 && exists2 {
+						id1, ok1 := v1.(uuid.UUID)
+						id2, ok2 := v2.(uuid.UUID)
+						if ok1 && ok2 && id1.String() > id2.String() {
+							m.SetField("user1_id", id2)
+							m.SetField("user2_id", id1)
+						}
 					}
 				}
 				return next.Mutate(ctx, m)
@@ -53,10 +56,10 @@ func (PrivateChat) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.From("chat", Chat.Type).Ref("private_chat").Field("chat_id").Unique().Required().
 			Annotations(entsql.OnDelete(entsql.Cascade)),
-		edge.From("user1", User.Type).Ref("private_chats_as_user1").Field("user1_id").Unique().Required().
-			Annotations(entsql.OnDelete(entsql.Cascade)),
-		edge.From("user2", User.Type).Ref("private_chats_as_user2").Field("user2_id").Unique().Required().
-			Annotations(entsql.OnDelete(entsql.Cascade)),
+		edge.From("user1", User.Type).Ref("private_chats_as_user1").Field("user1_id").Unique().
+			Annotations(entsql.OnDelete(entsql.SetNull)),
+		edge.From("user2", User.Type).Ref("private_chats_as_user2").Field("user2_id").Unique().
+			Annotations(entsql.OnDelete(entsql.SetNull)),
 	}
 }
 

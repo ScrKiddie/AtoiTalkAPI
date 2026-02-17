@@ -59,10 +59,12 @@ func (s *ChatService) GetChatByID(ctx context.Context, userID, chatID uuid.UUID)
 	var otherUserID uuid.UUID
 
 	if c.Type == chat.TypePrivate && c.Edges.PrivateChat != nil {
-		if c.Edges.PrivateChat.User1ID == userID {
-			otherUserID = c.Edges.PrivateChat.User2ID
-		} else {
-			otherUserID = c.Edges.PrivateChat.User1ID
+		if c.Edges.PrivateChat.User1ID != nil && *c.Edges.PrivateChat.User1ID == userID {
+			if c.Edges.PrivateChat.User2ID != nil {
+				otherUserID = *c.Edges.PrivateChat.User2ID
+			}
+		} else if c.Edges.PrivateChat.User1ID != nil {
+			otherUserID = *c.Edges.PrivateChat.User1ID
 		}
 
 		blocks, err := s.client.UserBlock.Query().
@@ -132,7 +134,7 @@ func (s *ChatService) GetChatByID(ctx context.Context, userID, chatID uuid.UUID)
 							if u, exists := userMap[id]; exists {
 								if u.DeletedAt != nil {
 									delete(resp.LastMessage.ActionData, "target_id")
-									resp.LastMessage.ActionData["target_name"] = ""
+									resp.LastMessage.ActionData["target_name"] = "Deleted User"
 								} else if u.FullName != nil {
 									resp.LastMessage.ActionData["target_name"] = *u.FullName
 								}
@@ -144,7 +146,7 @@ func (s *ChatService) GetChatByID(ctx context.Context, userID, chatID uuid.UUID)
 							if u, exists := userMap[id]; exists {
 								if u.DeletedAt != nil {
 									delete(resp.LastMessage.ActionData, "actor_id")
-									resp.LastMessage.ActionData["actor_name"] = ""
+									resp.LastMessage.ActionData["actor_name"] = "Deleted User"
 								} else if u.FullName != nil {
 									resp.LastMessage.ActionData["actor_name"] = *u.FullName
 								}
@@ -193,10 +195,12 @@ func (s *ChatService) GetChats(ctx context.Context, userID uuid.UUID, req model.
 	otherUserIDs := make([]uuid.UUID, 0)
 	for _, c := range chats {
 		if c.Type == chat.TypePrivate && c.Edges.PrivateChat != nil {
-			if c.Edges.PrivateChat.User1ID == userID {
-				otherUserIDs = append(otherUserIDs, c.Edges.PrivateChat.User2ID)
-			} else {
-				otherUserIDs = append(otherUserIDs, c.Edges.PrivateChat.User1ID)
+			if c.Edges.PrivateChat.User1ID != nil && *c.Edges.PrivateChat.User1ID == userID {
+				if c.Edges.PrivateChat.User2ID != nil {
+					otherUserIDs = append(otherUserIDs, *c.Edges.PrivateChat.User2ID)
+				}
+			} else if c.Edges.PrivateChat.User1ID != nil {
+				otherUserIDs = append(otherUserIDs, *c.Edges.PrivateChat.User1ID)
 			}
 		}
 	}
@@ -289,7 +293,7 @@ func (s *ChatService) GetChats(ctx context.Context, userID uuid.UUID, req model.
 						if u, exists := userMap[id]; exists {
 							if u.DeletedAt != nil {
 								delete(resp.LastMessage.ActionData, "target_id")
-								resp.LastMessage.ActionData["target_name"] = ""
+								resp.LastMessage.ActionData["target_name"] = "Deleted User"
 							} else if u.FullName != nil {
 								resp.LastMessage.ActionData["target_name"] = *u.FullName
 							}
@@ -301,7 +305,7 @@ func (s *ChatService) GetChats(ctx context.Context, userID uuid.UUID, req model.
 						if u, exists := userMap[id]; exists {
 							if u.DeletedAt != nil {
 								delete(resp.LastMessage.ActionData, "actor_id")
-								resp.LastMessage.ActionData["actor_name"] = ""
+								resp.LastMessage.ActionData["actor_name"] = "Deleted User"
 							} else if u.FullName != nil {
 								resp.LastMessage.ActionData["actor_name"] = *u.FullName
 							}
@@ -348,17 +352,21 @@ func (s *ChatService) MarkAsRead(ctx context.Context, userID uuid.UUID, chatID u
 		pc := c.Edges.PrivateChat
 		update := tx.PrivateChat.UpdateOneID(pc.ID)
 
-		if pc.User1ID == userID {
+		if pc.User1ID != nil && *pc.User1ID == userID {
 			if pc.User1UnreadCount == 0 {
 				return nil
 			}
-			otherUserID = pc.User2ID
+			if pc.User2ID != nil {
+				otherUserID = *pc.User2ID
+			}
 			update.SetUser1UnreadCount(0)
-		} else if pc.User2ID == userID {
+		} else if pc.User2ID != nil && *pc.User2ID == userID {
 			if pc.User2UnreadCount == 0 {
 				return nil
 			}
-			otherUserID = pc.User1ID
+			if pc.User1ID != nil {
+				otherUserID = *pc.User1ID
+			}
 			update.SetUser2UnreadCount(0)
 		} else {
 			return helper.NewForbiddenError("")
@@ -380,7 +388,7 @@ func (s *ChatService) MarkAsRead(ctx context.Context, userID uuid.UUID, chatID u
 		isBlocked = blockExists
 
 		if !isBlocked {
-			if pc.User1ID == userID {
+			if pc.User1ID != nil && *pc.User1ID == userID {
 				update.SetUser1LastReadAt(time.Now().UTC())
 			} else {
 				update.SetUser2LastReadAt(time.Now().UTC())
@@ -472,9 +480,9 @@ func (s *ChatService) HideChat(ctx context.Context, userID uuid.UUID, chatID uui
 	pc := c.Edges.PrivateChat
 	update := s.client.PrivateChat.UpdateOneID(pc.ID)
 
-	if pc.User1ID == userID {
+	if pc.User1ID != nil && *pc.User1ID == userID {
 		update.SetUser1HiddenAt(time.Now().UTC()).SetUser1UnreadCount(0)
-	} else if pc.User2ID == userID {
+	} else if pc.User2ID != nil && *pc.User2ID == userID {
 		update.SetUser2HiddenAt(time.Now().UTC()).SetUser2UnreadCount(0)
 	} else {
 		return helper.NewForbiddenError("")

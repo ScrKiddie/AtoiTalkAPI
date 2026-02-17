@@ -232,9 +232,11 @@ func (s *AdminService) GetReports(ctx context.Context, req model.GetReportsReque
 
 	var response []model.ReportListResponse
 	for _, r := range reports {
-		reporterName := "Unknown"
-		if r.Edges.Reporter != nil && r.Edges.Reporter.FullName != nil {
-			reporterName = *r.Edges.Reporter.FullName
+		reporterName := "Deleted User"
+		if r.Edges.Reporter != nil {
+			if r.Edges.Reporter.FullName != nil {
+				reporterName = *r.Edges.Reporter.FullName
+			}
 		}
 
 		response = append(response, model.ReportListResponse{
@@ -267,7 +269,7 @@ func (s *AdminService) GetReportDetail(ctx context.Context, reportID uuid.UUID) 
 		return nil, helper.NewInternalServerError("")
 	}
 
-	reporterName := "Unknown"
+	reporterName := "Deleted User"
 	reporterAvatar := ""
 	reporterIsDeleted := true
 	reporterIsBanned := false
@@ -382,6 +384,11 @@ func (s *AdminService) GetReportDetail(ctx context.Context, reportID uuid.UUID) 
 		}
 	}
 
+	reporterID := uuid.Nil
+	if r.ReporterID != nil {
+		reporterID = *r.ReporterID
+	}
+
 	return &model.ReportDetailResponse{
 		ID:                r.ID,
 		TargetType:        string(r.TargetType),
@@ -391,7 +398,7 @@ func (s *AdminService) GetReportDetail(ctx context.Context, reportID uuid.UUID) 
 		Reason:            r.Reason,
 		Description:       r.Description,
 		Status:            string(r.Status),
-		ReporterID:        r.ReporterID,
+		ReporterID:        reporterID,
 		ReporterName:      reporterName,
 		ReporterAvatar:    reporterAvatar,
 		ReporterIsDeleted: reporterIsDeleted,

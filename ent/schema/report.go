@@ -32,7 +32,7 @@ func (Report) Fields() []ent.Field {
 			Values("pending", "reviewed", "resolved", "rejected").
 			Default("pending"),
 
-		field.UUID("reporter_id", uuid.UUID{}),
+		field.UUID("reporter_id", uuid.UUID{}).Optional().Nillable(),
 		field.UUID("message_id", uuid.UUID{}).Optional().Nillable(),
 		field.UUID("group_id", uuid.UUID{}).Optional().Nillable(),
 		field.UUID("target_user_id", uuid.UUID{}).Optional().Nillable(),
@@ -53,7 +53,7 @@ func (Report) Edges() []ent.Edge {
 			Ref("reports_made").
 			Field("reporter_id").
 			Unique().
-			Required(),
+			Annotations(entsql.OnDelete(entsql.SetNull)),
 
 		edge.To("message", Message.Type).
 			Field("message_id").
@@ -70,7 +70,8 @@ func (Report) Edges() []ent.Edge {
 			Unique().
 			Annotations(entsql.OnDelete(entsql.SetNull)),
 
-		edge.To("evidence_media", Media.Type),
+		edge.To("evidence_media", Media.Type).
+			Annotations(entsql.OnDelete(entsql.SetNull)),
 
 		edge.To("resolved_by", User.Type).
 			Field("resolved_by_id").

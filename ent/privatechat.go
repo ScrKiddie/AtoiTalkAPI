@@ -23,9 +23,9 @@ type PrivateChat struct {
 	// ChatID holds the value of the "chat_id" field.
 	ChatID uuid.UUID `json:"chat_id,omitempty"`
 	// User1ID holds the value of the "user1_id" field.
-	User1ID uuid.UUID `json:"user1_id,omitempty"`
+	User1ID *uuid.UUID `json:"user1_id,omitempty"`
 	// User2ID holds the value of the "user2_id" field.
-	User2ID uuid.UUID `json:"user2_id,omitempty"`
+	User2ID *uuid.UUID `json:"user2_id,omitempty"`
 	// User1LastReadAt holds the value of the "user1_last_read_at" field.
 	User1LastReadAt *time.Time `json:"user1_last_read_at,omitempty"`
 	// User2LastReadAt holds the value of the "user2_last_read_at" field.
@@ -95,11 +95,13 @@ func (*PrivateChat) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
+		case privatechat.FieldUser1ID, privatechat.FieldUser2ID:
+			values[i] = &sql.NullScanner{S: new(uuid.UUID)}
 		case privatechat.FieldUser1UnreadCount, privatechat.FieldUser2UnreadCount:
 			values[i] = new(sql.NullInt64)
 		case privatechat.FieldUser1LastReadAt, privatechat.FieldUser2LastReadAt, privatechat.FieldUser1HiddenAt, privatechat.FieldUser2HiddenAt:
 			values[i] = new(sql.NullTime)
-		case privatechat.FieldID, privatechat.FieldChatID, privatechat.FieldUser1ID, privatechat.FieldUser2ID:
+		case privatechat.FieldID, privatechat.FieldChatID:
 			values[i] = new(uuid.UUID)
 		default:
 			values[i] = new(sql.UnknownType)
@@ -129,16 +131,18 @@ func (_m *PrivateChat) assignValues(columns []string, values []any) error {
 				_m.ChatID = *value
 			}
 		case privatechat.FieldUser1ID:
-			if value, ok := values[i].(*uuid.UUID); !ok {
+			if value, ok := values[i].(*sql.NullScanner); !ok {
 				return fmt.Errorf("unexpected type %T for field user1_id", values[i])
-			} else if value != nil {
-				_m.User1ID = *value
+			} else if value.Valid {
+				_m.User1ID = new(uuid.UUID)
+				*_m.User1ID = *value.S.(*uuid.UUID)
 			}
 		case privatechat.FieldUser2ID:
-			if value, ok := values[i].(*uuid.UUID); !ok {
+			if value, ok := values[i].(*sql.NullScanner); !ok {
 				return fmt.Errorf("unexpected type %T for field user2_id", values[i])
-			} else if value != nil {
-				_m.User2ID = *value
+			} else if value.Valid {
+				_m.User2ID = new(uuid.UUID)
+				*_m.User2ID = *value.S.(*uuid.UUID)
 			}
 		case privatechat.FieldUser1LastReadAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
@@ -234,11 +238,15 @@ func (_m *PrivateChat) String() string {
 	builder.WriteString("chat_id=")
 	builder.WriteString(fmt.Sprintf("%v", _m.ChatID))
 	builder.WriteString(", ")
-	builder.WriteString("user1_id=")
-	builder.WriteString(fmt.Sprintf("%v", _m.User1ID))
+	if v := _m.User1ID; v != nil {
+		builder.WriteString("user1_id=")
+		builder.WriteString(fmt.Sprintf("%v", *v))
+	}
 	builder.WriteString(", ")
-	builder.WriteString("user2_id=")
-	builder.WriteString(fmt.Sprintf("%v", _m.User2ID))
+	if v := _m.User2ID; v != nil {
+		builder.WriteString("user2_id=")
+		builder.WriteString(fmt.Sprintf("%v", *v))
+	}
 	builder.WriteString(", ")
 	if v := _m.User1LastReadAt; v != nil {
 		builder.WriteString("user1_last_read_at=")

@@ -81,7 +81,7 @@ func (s *GroupChatService) CreateGroupChat(ctx context.Context, creatorID uuid.U
 		}
 
 		if u.IsBanned {
-			if u.BannedUntil == nil || time.Now().Before(*u.BannedUntil) {
+			if u.BannedUntil == nil || time.Now().UTC().Before(*u.BannedUntil) {
 				return nil, helper.NewForbiddenError("Cannot add suspended/banned user to group")
 			}
 		}

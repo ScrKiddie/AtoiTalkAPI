@@ -93,7 +93,7 @@ func (s *ReportService) CreateReport(ctx context.Context, reporterID uuid.UUID, 
 				return helper.NewInternalServerError("")
 			}
 			pc := chatInfo.Edges.PrivateChat
-			if pc.User1ID != reporterID && pc.User2ID != reporterID {
+			if (pc.User1ID == nil || *pc.User1ID != reporterID) && (pc.User2ID == nil || *pc.User2ID != reporterID) {
 				return helper.NewForbiddenError("You cannot report a message from a chat you are not part of")
 			}
 		} else if chatInfo.Type == chat.TypeGroup {
@@ -244,7 +244,8 @@ func (s *ReportService) CreateReport(ctx context.Context, reporterID uuid.UUID, 
 		SetTargetType(report.TargetType(req.TargetType)).
 		SetReason(req.Reason).
 		SetNillableDescription(&req.Description).
-		SetEvidenceSnapshot(evidenceData)
+		SetEvidenceSnapshot(evidenceData).
+		SetStatus(report.StatusPending)
 
 	if targetMessageID != nil {
 		create.SetMessageID(*targetMessageID)

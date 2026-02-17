@@ -131,6 +131,14 @@ func (s *AuthService) VerifyUser(ctx context.Context, tokenString string) (*mode
 				return nil, helper.NewForbiddenError("Account is temporarily suspended")
 			}
 
+			_, err := s.client.User.UpdateOne(u).
+				SetIsBanned(false).
+				ClearBannedUntil().
+				ClearBanReason().
+				Save(ctx)
+			if err != nil {
+				slog.Error("Failed to lift expired ban in VerifyUser", "error", err)
+			}
 		} else {
 			return nil, helper.NewForbiddenError("Account is permanently banned")
 		}

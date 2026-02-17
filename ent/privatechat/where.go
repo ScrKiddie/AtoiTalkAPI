@@ -141,6 +141,16 @@ func User1IDNotIn(vs ...uuid.UUID) predicate.PrivateChat {
 	return predicate.PrivateChat(sql.FieldNotIn(FieldUser1ID, vs...))
 }
 
+// User1IDIsNil applies the IsNil predicate on the "user1_id" field.
+func User1IDIsNil() predicate.PrivateChat {
+	return predicate.PrivateChat(sql.FieldIsNull(FieldUser1ID))
+}
+
+// User1IDNotNil applies the NotNil predicate on the "user1_id" field.
+func User1IDNotNil() predicate.PrivateChat {
+	return predicate.PrivateChat(sql.FieldNotNull(FieldUser1ID))
+}
+
 // User2IDEQ applies the EQ predicate on the "user2_id" field.
 func User2IDEQ(v uuid.UUID) predicate.PrivateChat {
 	return predicate.PrivateChat(sql.FieldEQ(FieldUser2ID, v))
@@ -159,6 +169,16 @@ func User2IDIn(vs ...uuid.UUID) predicate.PrivateChat {
 // User2IDNotIn applies the NotIn predicate on the "user2_id" field.
 func User2IDNotIn(vs ...uuid.UUID) predicate.PrivateChat {
 	return predicate.PrivateChat(sql.FieldNotIn(FieldUser2ID, vs...))
+}
+
+// User2IDIsNil applies the IsNil predicate on the "user2_id" field.
+func User2IDIsNil() predicate.PrivateChat {
+	return predicate.PrivateChat(sql.FieldIsNull(FieldUser2ID))
+}
+
+// User2IDNotNil applies the NotNil predicate on the "user2_id" field.
+func User2IDNotNil() predicate.PrivateChat {
+	return predicate.PrivateChat(sql.FieldNotNull(FieldUser2ID))
 }
 
 // User1LastReadAtEQ applies the EQ predicate on the "user1_last_read_at" field.

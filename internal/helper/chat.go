@@ -39,13 +39,13 @@ func MapChatToResponse(userID uuid.UUID, c *ent.Chat, blockedMap map[uuid.UUID]B
 		var myLastRead *time.Time
 		var otherUserLastRead *time.Time
 
-		if pc.User1ID == userID {
+		if pc.User1ID != nil && *pc.User1ID == userID {
 			otherUser = pc.Edges.User2
 			myLastRead = pc.User1LastReadAt
 			otherUserLastRead = pc.User2LastReadAt
 			unreadCount = pc.User1UnreadCount
 			hiddenAt = pc.User1HiddenAt
-		} else {
+		} else if pc.User2ID != nil && *pc.User2ID == userID {
 			otherUser = pc.Edges.User1
 			myLastRead = pc.User2LastReadAt
 			otherUserLastRead = pc.User1LastReadAt
@@ -59,14 +59,14 @@ func MapChatToResponse(userID uuid.UUID, c *ent.Chat, blockedMap map[uuid.UUID]B
 			if otherUser.DeletedAt != nil {
 				otherUserIsDeleted = true
 				isOnline = false
-				name = ""
+				name = "Deleted User"
 			} else {
 				if otherUser.FullName != nil {
 					name = *otherUser.FullName
 				}
 
 				if otherUser.IsBanned {
-					if otherUser.BannedUntil == nil || time.Now().Before(*otherUser.BannedUntil) {
+					if otherUser.BannedUntil == nil || time.Now().UTC().Before(*otherUser.BannedUntil) {
 						otherUserIsBanned = true
 						isOnline = false
 					}
@@ -89,6 +89,10 @@ func MapChatToResponse(userID uuid.UUID, c *ent.Chat, blockedMap map[uuid.UUID]B
 					}
 				}
 			}
+		} else {
+			otherUserIsDeleted = true
+			isOnline = false
+			name = "Deleted User"
 		}
 		if myLastRead != nil {
 			t := myLastRead.Format(time.RFC3339)

@@ -60,6 +60,12 @@ func (_u *PrivateChatUpdate) SetNillableUser1ID(v *uuid.UUID) *PrivateChatUpdate
 	return _u
 }
 
+// ClearUser1ID clears the value of the "user1_id" field.
+func (_u *PrivateChatUpdate) ClearUser1ID() *PrivateChatUpdate {
+	_u.mutation.ClearUser1ID()
+	return _u
+}
+
 // SetUser2ID sets the "user2_id" field.
 func (_u *PrivateChatUpdate) SetUser2ID(v uuid.UUID) *PrivateChatUpdate {
 	_u.mutation.SetUser2ID(v)
@@ -71,6 +77,12 @@ func (_u *PrivateChatUpdate) SetNillableUser2ID(v *uuid.UUID) *PrivateChatUpdate
 	if v != nil {
 		_u.SetUser2ID(*v)
 	}
+	return _u
+}
+
+// ClearUser2ID clears the value of the "user2_id" field.
+func (_u *PrivateChatUpdate) ClearUser2ID() *PrivateChatUpdate {
+	_u.mutation.ClearUser2ID()
 	return _u
 }
 
@@ -266,12 +278,6 @@ func (_u *PrivateChatUpdate) check() error {
 	if _u.mutation.ChatCleared() && len(_u.mutation.ChatIDs()) > 0 {
 		return errors.New(`ent: clearing a required unique edge "PrivateChat.chat"`)
 	}
-	if _u.mutation.User1Cleared() && len(_u.mutation.User1IDs()) > 0 {
-		return errors.New(`ent: clearing a required unique edge "PrivateChat.user1"`)
-	}
-	if _u.mutation.User2Cleared() && len(_u.mutation.User2IDs()) > 0 {
-		return errors.New(`ent: clearing a required unique edge "PrivateChat.user2"`)
-	}
 	return nil
 }
 
@@ -466,6 +472,12 @@ func (_u *PrivateChatUpdateOne) SetNillableUser1ID(v *uuid.UUID) *PrivateChatUpd
 	return _u
 }
 
+// ClearUser1ID clears the value of the "user1_id" field.
+func (_u *PrivateChatUpdateOne) ClearUser1ID() *PrivateChatUpdateOne {
+	_u.mutation.ClearUser1ID()
+	return _u
+}
+
 // SetUser2ID sets the "user2_id" field.
 func (_u *PrivateChatUpdateOne) SetUser2ID(v uuid.UUID) *PrivateChatUpdateOne {
 	_u.mutation.SetUser2ID(v)
@@ -477,6 +489,12 @@ func (_u *PrivateChatUpdateOne) SetNillableUser2ID(v *uuid.UUID) *PrivateChatUpd
 	if v != nil {
 		_u.SetUser2ID(*v)
 	}
+	return _u
+}
+
+// ClearUser2ID clears the value of the "user2_id" field.
+func (_u *PrivateChatUpdateOne) ClearUser2ID() *PrivateChatUpdateOne {
+	_u.mutation.ClearUser2ID()
 	return _u
 }
 
@@ -684,12 +702,6 @@ func (_u *PrivateChatUpdateOne) ExecX(ctx context.Context) {
 func (_u *PrivateChatUpdateOne) check() error {
 	if _u.mutation.ChatCleared() && len(_u.mutation.ChatIDs()) > 0 {
 		return errors.New(`ent: clearing a required unique edge "PrivateChat.chat"`)
-	}
-	if _u.mutation.User1Cleared() && len(_u.mutation.User1IDs()) > 0 {
-		return errors.New(`ent: clearing a required unique edge "PrivateChat.user1"`)
-	}
-	if _u.mutation.User2Cleared() && len(_u.mutation.User2IDs()) > 0 {
-		return errors.New(`ent: clearing a required unique edge "PrivateChat.user2"`)
 	}
 	return nil
 }

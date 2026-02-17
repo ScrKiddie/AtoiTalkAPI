@@ -50,11 +50,11 @@ func (User) Edges() []ent.Edge {
 		edge.To("group_memberships", GroupMember.Type).
 			Annotations(entsql.OnDelete(entsql.Cascade)),
 		edge.To("private_chats_as_user1", PrivateChat.Type).
-			Annotations(entsql.OnDelete(entsql.Cascade)),
+			Annotations(entsql.OnDelete(entsql.SetNull)),
 		edge.To("private_chats_as_user2", PrivateChat.Type).
-			Annotations(entsql.OnDelete(entsql.Cascade)),
+			Annotations(entsql.OnDelete(entsql.SetNull)),
 		edge.To("uploaded_media", Media.Type).
-			Annotations(entsql.OnDelete(entsql.Cascade)),
+			Annotations(entsql.OnDelete(entsql.SetNull)),
 		edge.To("blocked_users_rel", UserBlock.Type).
 			Annotations(entsql.OnDelete(entsql.Cascade)),
 		edge.To("blocked_by_rel", UserBlock.Type).

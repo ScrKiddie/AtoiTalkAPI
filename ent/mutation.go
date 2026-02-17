@@ -3314,7 +3314,7 @@ func (m *MediaMutation) UploadedByID() (r uuid.UUID, exists bool) {
 // OldUploadedByID returns the old "uploaded_by_id" field's value of the Media entity.
 // If the Media object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *MediaMutation) OldUploadedByID(ctx context.Context) (v uuid.UUID, err error) {
+func (m *MediaMutation) OldUploadedByID(ctx context.Context) (v *uuid.UUID, err error) {
 	if !m.op.Is(OpUpdateOne) {
 		return v, errors.New("OldUploadedByID is only allowed on UpdateOne operations")
 	}
@@ -3328,9 +3328,22 @@ func (m *MediaMutation) OldUploadedByID(ctx context.Context) (v uuid.UUID, err e
 	return oldValue.UploadedByID, nil
 }
 
+// ClearUploadedByID clears the value of the "uploaded_by_id" field.
+func (m *MediaMutation) ClearUploadedByID() {
+	m.uploader = nil
+	m.clearedFields[media.FieldUploadedByID] = struct{}{}
+}
+
+// UploadedByIDCleared returns if the "uploaded_by_id" field was cleared in this mutation.
+func (m *MediaMutation) UploadedByIDCleared() bool {
+	_, ok := m.clearedFields[media.FieldUploadedByID]
+	return ok
+}
+
 // ResetUploadedByID resets all changes to the "uploaded_by_id" field.
 func (m *MediaMutation) ResetUploadedByID() {
 	m.uploader = nil
+	delete(m.clearedFields, media.FieldUploadedByID)
 }
 
 // ClearMessage clears the "message" edge to the Message entity.
@@ -3451,7 +3464,7 @@ func (m *MediaMutation) ClearUploader() {
 
 // UploaderCleared reports if the "uploader" edge to the User entity was cleared.
 func (m *MediaMutation) UploaderCleared() bool {
-	return m.cleareduploader
+	return m.UploadedByIDCleared() || m.cleareduploader
 }
 
 // UploaderID returns the "uploader" edge ID in the mutation.
@@ -3767,6 +3780,9 @@ func (m *MediaMutation) ClearedFields() []string {
 	if m.FieldCleared(media.FieldMessageID) {
 		fields = append(fields, media.FieldMessageID)
 	}
+	if m.FieldCleared(media.FieldUploadedByID) {
+		fields = append(fields, media.FieldUploadedByID)
+	}
 	return fields
 }
 
@@ -3783,6 +3799,9 @@ func (m *MediaMutation) ClearField(name string) error {
 	switch name {
 	case media.FieldMessageID:
 		m.ClearMessageID()
+		return nil
+	case media.FieldUploadedByID:
+		m.ClearUploadedByID()
 		return nil
 	}
 	return fmt.Errorf("unknown Media nullable field %s", name)
@@ -5494,7 +5513,7 @@ func (m *PrivateChatMutation) User1ID() (r uuid.UUID, exists bool) {
 // OldUser1ID returns the old "user1_id" field's value of the PrivateChat entity.
 // If the PrivateChat object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *PrivateChatMutation) OldUser1ID(ctx context.Context) (v uuid.UUID, err error) {
+func (m *PrivateChatMutation) OldUser1ID(ctx context.Context) (v *uuid.UUID, err error) {
 	if !m.op.Is(OpUpdateOne) {
 		return v, errors.New("OldUser1ID is only allowed on UpdateOne operations")
 	}
@@ -5508,9 +5527,22 @@ func (m *PrivateChatMutation) OldUser1ID(ctx context.Context) (v uuid.UUID, err 
 	return oldValue.User1ID, nil
 }
 
+// ClearUser1ID clears the value of the "user1_id" field.
+func (m *PrivateChatMutation) ClearUser1ID() {
+	m.user1 = nil
+	m.clearedFields[privatechat.FieldUser1ID] = struct{}{}
+}
+
+// User1IDCleared returns if the "user1_id" field was cleared in this mutation.
+func (m *PrivateChatMutation) User1IDCleared() bool {
+	_, ok := m.clearedFields[privatechat.FieldUser1ID]
+	return ok
+}
+
 // ResetUser1ID resets all changes to the "user1_id" field.
 func (m *PrivateChatMutation) ResetUser1ID() {
 	m.user1 = nil
+	delete(m.clearedFields, privatechat.FieldUser1ID)
 }
 
 // SetUser2ID sets the "user2_id" field.
@@ -5530,7 +5562,7 @@ func (m *PrivateChatMutation) User2ID() (r uuid.UUID, exists bool) {
 // OldUser2ID returns the old "user2_id" field's value of the PrivateChat entity.
 // If the PrivateChat object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *PrivateChatMutation) OldUser2ID(ctx context.Context) (v uuid.UUID, err error) {
+func (m *PrivateChatMutation) OldUser2ID(ctx context.Context) (v *uuid.UUID, err error) {
 	if !m.op.Is(OpUpdateOne) {
 		return v, errors.New("OldUser2ID is only allowed on UpdateOne operations")
 	}
@@ -5544,9 +5576,22 @@ func (m *PrivateChatMutation) OldUser2ID(ctx context.Context) (v uuid.UUID, err 
 	return oldValue.User2ID, nil
 }
 
+// ClearUser2ID clears the value of the "user2_id" field.
+func (m *PrivateChatMutation) ClearUser2ID() {
+	m.user2 = nil
+	m.clearedFields[privatechat.FieldUser2ID] = struct{}{}
+}
+
+// User2IDCleared returns if the "user2_id" field was cleared in this mutation.
+func (m *PrivateChatMutation) User2IDCleared() bool {
+	_, ok := m.clearedFields[privatechat.FieldUser2ID]
+	return ok
+}
+
 // ResetUser2ID resets all changes to the "user2_id" field.
 func (m *PrivateChatMutation) ResetUser2ID() {
 	m.user2 = nil
+	delete(m.clearedFields, privatechat.FieldUser2ID)
 }
 
 // SetUser1LastReadAt sets the "user1_last_read_at" field.
@@ -5892,7 +5937,7 @@ func (m *PrivateChatMutation) ClearUser1() {
 
 // User1Cleared reports if the "user1" edge to the User entity was cleared.
 func (m *PrivateChatMutation) User1Cleared() bool {
-	return m.cleareduser1
+	return m.User1IDCleared() || m.cleareduser1
 }
 
 // User1IDs returns the "user1" edge IDs in the mutation.
@@ -5919,7 +5964,7 @@ func (m *PrivateChatMutation) ClearUser2() {
 
 // User2Cleared reports if the "user2" edge to the User entity was cleared.
 func (m *PrivateChatMutation) User2Cleared() bool {
-	return m.cleareduser2
+	return m.User2IDCleared() || m.cleareduser2
 }
 
 // User2IDs returns the "user2" edge IDs in the mutation.
@@ -6182,6 +6227,12 @@ func (m *PrivateChatMutation) AddField(name string, value ent.Value) error {
 // mutation.
 func (m *PrivateChatMutation) ClearedFields() []string {
 	var fields []string
+	if m.FieldCleared(privatechat.FieldUser1ID) {
+		fields = append(fields, privatechat.FieldUser1ID)
+	}
+	if m.FieldCleared(privatechat.FieldUser2ID) {
+		fields = append(fields, privatechat.FieldUser2ID)
+	}
 	if m.FieldCleared(privatechat.FieldUser1LastReadAt) {
 		fields = append(fields, privatechat.FieldUser1LastReadAt)
 	}
@@ -6208,6 +6259,12 @@ func (m *PrivateChatMutation) FieldCleared(name string) bool {
 // error if the field is not defined in the schema.
 func (m *PrivateChatMutation) ClearField(name string) error {
 	switch name {
+	case privatechat.FieldUser1ID:
+		m.ClearUser1ID()
+		return nil
+	case privatechat.FieldUser2ID:
+		m.ClearUser2ID()
+		return nil
 	case privatechat.FieldUser1LastReadAt:
 		m.ClearUser1LastReadAt()
 		return nil
@@ -6730,7 +6787,7 @@ func (m *ReportMutation) ReporterID() (r uuid.UUID, exists bool) {
 // OldReporterID returns the old "reporter_id" field's value of the Report entity.
 // If the Report object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *ReportMutation) OldReporterID(ctx context.Context) (v uuid.UUID, err error) {
+func (m *ReportMutation) OldReporterID(ctx context.Context) (v *uuid.UUID, err error) {
 	if !m.op.Is(OpUpdateOne) {
 		return v, errors.New("OldReporterID is only allowed on UpdateOne operations")
 	}
@@ -6744,9 +6801,22 @@ func (m *ReportMutation) OldReporterID(ctx context.Context) (v uuid.UUID, err er
 	return oldValue.ReporterID, nil
 }
 
+// ClearReporterID clears the value of the "reporter_id" field.
+func (m *ReportMutation) ClearReporterID() {
+	m.reporter = nil
+	m.clearedFields[report.FieldReporterID] = struct{}{}
+}
+
+// ReporterIDCleared returns if the "reporter_id" field was cleared in this mutation.
+func (m *ReportMutation) ReporterIDCleared() bool {
+	_, ok := m.clearedFields[report.FieldReporterID]
+	return ok
+}
+
 // ResetReporterID resets all changes to the "reporter_id" field.
 func (m *ReportMutation) ResetReporterID() {
 	m.reporter = nil
+	delete(m.clearedFields, report.FieldReporterID)
 }
 
 // SetMessageID sets the "message_id" field.
@@ -7123,7 +7193,7 @@ func (m *ReportMutation) ClearReporter() {
 
 // ReporterCleared reports if the "reporter" edge to the User entity was cleared.
 func (m *ReportMutation) ReporterCleared() bool {
-	return m.clearedreporter
+	return m.ReporterIDCleared() || m.clearedreporter
 }
 
 // ReporterIDs returns the "reporter" edge IDs in the mutation.
@@ -7597,6 +7667,9 @@ func (m *ReportMutation) ClearedFields() []string {
 	if m.FieldCleared(report.FieldEvidenceSnapshot) {
 		fields = append(fields, report.FieldEvidenceSnapshot)
 	}
+	if m.FieldCleared(report.FieldReporterID) {
+		fields = append(fields, report.FieldReporterID)
+	}
 	if m.FieldCleared(report.FieldMessageID) {
 		fields = append(fields, report.FieldMessageID)
 	}
@@ -7634,6 +7707,9 @@ func (m *ReportMutation) ClearField(name string) error {
 		return nil
 	case report.FieldEvidenceSnapshot:
 		m.ClearEvidenceSnapshot()
+		return nil
+	case report.FieldReporterID:
+		m.ClearReporterID()
 		return nil
 	case report.FieldMessageID:
 		m.ClearMessageID()

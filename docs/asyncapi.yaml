@@ -238,9 +238,7 @@ components:
           type: string
           format: date-time
           description: If present, the reply message has been deleted.
-        is_jumpable:
-          type: boolean
-          description: Indicates if the original message is accessible to the current user (not hidden/deleted for them).
+
 
     MessageResponse:
       type: object
