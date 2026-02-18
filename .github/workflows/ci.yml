@@ -1,0 +1,118 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: atoitalk_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 5
+
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 5
+
+      s3mock:
+        image: adobe/s3mock:latest
+        ports:
+          - 9090:9090
+        env:
+          initialBuckets: test-public-bucket,test-private-bucket
+
+      mailhog:
+        image: mailhog/mailhog:latest
+        ports:
+          - 1025:1025
+          - 8025:8025
+
+    env:
+      DB_HOST: localhost
+      DB_PORT: 5432
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+      DB_NAME: atoitalk_test
+      DB_SSLMODE: disable
+      DB_MIGRATE: true
+      REDIS_HOST: localhost
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ""
+      REDIS_DB: 1
+      S3_BUCKET_PUBLIC: test-public-bucket
+      S3_BUCKET_PRIVATE: test-private-bucket
+      S3_REGION: us-east-1
+      S3_ACCESS_KEY: test
+      S3_SECRET_KEY: test
+      S3_ENDPOINT: http://localhost:9090
+      S3_PUBLIC_DOMAIN: http://localhost:9090/test-public-bucket
+      SMTP_HOST: localhost
+      SMTP_PORT: 1025
+      SMTP_USER: ""
+      SMTP_PASSWORD: ""
+      SMTP_FROM_EMAIL: test@atoitalk.com
+      SMTP_FROM_NAME: AtoiTalk Test
+      SMTP_ASYNC: false
+      GOOGLE_CLIENT_ID: test
+      GOOGLE_CLIENT_SECRET: test
+      GOOGLE_REDIRECT_URL: test
+      JWT_SECRET: ci-test-secret
+      JWT_EXP: 86400
+      OTP_SECRET: ci-test-secret
+      OTP_EXP: 300
+      OTP_RATE_LIMIT_SECONDS: 2
+      TURNSTILE_SECRET_KEY: 1x0000000000000000000000000000000AA
+      APP_ENV: test
+      APP_PORT: 8080
+      APP_URL: http://localhost:8080
+      APP_CORS_ALLOWED_ORIGINS: "*"
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.25"
+
+      - name: Download dependencies
+        run: go mod download
+
+      - name: Run tests
+        run: go test ./test/... -v -count=1
+
+  build:
+    name: Build Docker Images
+    runs-on: ubuntu-latest
+    needs: test
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build API image
+        run: docker build -f Dockerfile.api -t atoitalk-api .
+
+      - name: Build Scheduler image
+        run: docker build -f Dockerfile.scheduler -t atoitalk-scheduler .
