@@ -428,7 +428,7 @@ func (s *GroupChatService) UpdateGroupChat(ctx context.Context, requestorID uuid
 	var fileContentType string
 	var newMediaID uuid.UUID
 
-	if req.DeleteAvatar {
+	if req.DeleteAvatar && gc.Edges.Avatar != nil {
 		update.ClearAvatar()
 		systemMessages = append(systemMessages, tx.Message.Create().
 			SetChatID(gc.ChatID).
@@ -508,14 +508,15 @@ func (s *GroupChatService) UpdateGroupChat(ctx context.Context, requestorID uuid
 		return nil, helper.NewInternalServerError("")
 	}
 
-	var lastSystemMsg *ent.Message
+	var createdSystemMessages []*ent.Message
 	if len(systemMessages) > 0 {
 		msgs, err := tx.Message.CreateBulk(systemMessages...).Save(ctx)
 		if err != nil {
 			slog.Error("Failed to create system messages", "error", err)
 			return nil, helper.NewInternalServerError("")
 		}
-		lastSystemMsg = msgs[len(msgs)-1]
+		createdSystemMessages = msgs
+		lastSystemMsg := msgs[len(msgs)-1]
 
 		err = tx.Chat.UpdateOne(gc.Edges.Chat).
 			SetLastMessage(lastSystemMsg).
@@ -556,25 +557,26 @@ func (s *GroupChatService) UpdateGroupChat(ctx context.Context, requestorID uuid
 		inviteExpiresAt = &t
 	}
 
-	if s.wsHub != nil && lastSystemMsg != nil {
+	if s.wsHub != nil && len(createdSystemMessages) > 0 {
 		go func() {
+			for _, sysMsg := range createdSystemMessages {
+				fullMsg, _ := s.client.Message.Query().
+					Where(message.ID(sysMsg.ID)).
+					WithSender().
+					Only(context.Background())
 
-			fullMsg, _ := s.client.Message.Query().
-				Where(message.ID(lastSystemMsg.ID)).
-				WithSender().
-				Only(context.Background())
+				msgResponse := helper.ToMessageResponse(fullMsg, s.storageAdapter, nil, string(requestorRole))
 
-			msgResponse := helper.ToMessageResponse(fullMsg, s.storageAdapter, nil, string(requestorRole))
-
-			s.wsHub.BroadcastToChat(gc.ChatID, websocket.Event{
-				Type:    websocket.EventMessageNew,
-				Payload: msgResponse,
-				Meta: &websocket.EventMeta{
-					Timestamp: time.Now().UTC().UnixMilli(),
-					ChatID:    gc.ChatID,
-					SenderID:  requestorID,
-				},
-			})
+				s.wsHub.BroadcastToChat(gc.ChatID, websocket.Event{
+					Type:    websocket.EventMessageNew,
+					Payload: msgResponse,
+					Meta: &websocket.EventMeta{
+						Timestamp: time.Now().UTC().UnixMilli(),
+						ChatID:    gc.ChatID,
+						SenderID:  requestorID,
+					},
+				})
+			}
 
 			updatedGroupWithAvatar, err := s.client.GroupChat.Query().
 				Where(groupchat.ID(updatedGroup.ID)).
@@ -598,7 +600,7 @@ func (s *GroupChatService) UpdateGroupChat(ctx context.Context, requestorID uuid
 				Description: updatedGroup.Description,
 				IsPublic:    &updatedGroup.IsPublic,
 				Avatar:      avatarURL,
-				LastMessage: msgResponse,
+				LastMessage: helper.ToMessageResponse(createdSystemMessages[len(createdSystemMessages)-1], s.storageAdapter, nil, string(requestorRole)),
 			}
 
 			if updatedGroup.IsPublic {

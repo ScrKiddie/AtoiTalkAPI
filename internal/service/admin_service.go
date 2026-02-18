@@ -699,20 +699,28 @@ func (s *AdminService) ResetUserInfo(ctx context.Context, req model.ResetUserInf
 	}
 
 	update := s.client.User.UpdateOne(u)
+	hasChanges := false
 
-	if req.ResetBio {
+	if req.ResetBio && u.Bio != nil {
 		update.ClearBio()
+		hasChanges = true
 	}
 
 	if req.ResetName {
-		update.SetFullName("User " + u.ID.String()[:8])
+		defaultName := "User " + u.ID.String()[:8]
+		if u.FullName == nil || *u.FullName != defaultName {
+			update.SetFullName(defaultName)
+			hasChanges = true
+		}
 	}
 
-	if req.ResetAvatar {
-		if u.Edges.Avatar != nil {
+	if req.ResetAvatar && u.Edges.Avatar != nil {
+		update.ClearAvatar()
+		hasChanges = true
+	}
 
-			update.ClearAvatar()
-		}
+	if !hasChanges {
+		return nil
 	}
 
 	if err := update.Exec(ctx); err != nil {
