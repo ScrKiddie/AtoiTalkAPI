@@ -1004,7 +1004,7 @@ func TestGetMessages(t *testing.T) {
 		assert.NotNil(t, targetMsg)
 		assert.Equal(t, "I will be deleted", targetMsg["content"])
 		assert.Nil(t, targetMsg["sender_id"])
-		assert.Nil(t, targetMsg["sender_name"])
+		assert.Equal(t, "Deleted User", targetMsg["sender_name"])
 	})
 }
 

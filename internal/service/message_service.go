@@ -825,6 +825,8 @@ func (s *MessageService) DeleteMessage(ctx context.Context, userID uuid.UUID, me
 
 	err = s.client.Message.UpdateOne(msg).
 		SetDeletedAt(time.Now().UTC()).
+		ClearContent().
+		ClearAttachments().
 		Exec(ctx)
 
 	if err != nil {
