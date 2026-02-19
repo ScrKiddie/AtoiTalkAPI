@@ -46,7 +46,13 @@ func (m *AuthMiddleware) VerifyToken(next http.Handler) http.Handler {
 
 		tokenString := parts[1]
 
-		if m.sessionRepo.IsTokenBlacklisted(r.Context(), tokenString) {
+		isBlacklisted, err := m.sessionRepo.IsTokenBlacklisted(r.Context(), tokenString)
+		if err != nil {
+			helper.WriteError(w, helper.NewServiceUnavailableError("Session service unavailable"))
+			return
+		}
+
+		if isBlacklisted {
 			helper.WriteError(w, helper.NewUnauthorizedError("Token has been revoked"))
 			return
 		}
@@ -71,7 +77,13 @@ func (m *AuthMiddleware) VerifyWSToken(next http.Handler) http.Handler {
 			return
 		}
 
-		if m.sessionRepo.IsTokenBlacklisted(r.Context(), tokenString) {
+		isBlacklisted, err := m.sessionRepo.IsTokenBlacklisted(r.Context(), tokenString)
+		if err != nil {
+			helper.WriteError(w, helper.NewServiceUnavailableError("Session service unavailable"))
+			return
+		}
+
+		if isBlacklisted {
 			helper.WriteError(w, helper.NewUnauthorizedError("Token has been revoked"))
 			return
 		}

@@ -9,7 +9,9 @@ import (
 	"AtoiTalkAPI/internal/repository"
 	"AtoiTalkAPI/internal/service"
 	"AtoiTalkAPI/internal/websocket"
+	"log/slog"
 	"net/http"
+	"os"
 
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/go-chi/chi/v5"
@@ -21,7 +23,11 @@ func Init(appConfig *config.AppConfig, client *ent.Client, validator *validator.
 	storageAdapter := adapter.NewStorageAdapter(appConfig, s3Client, httpClient)
 	emailAdapter := adapter.NewEmailAdapter(appConfig)
 	captchaAdapter := adapter.NewCaptchaAdapter(appConfig, httpClient)
-	redisAdapter := adapter.NewRedisAdapter(appConfig)
+	redisAdapter, err := adapter.NewRedisAdapter(appConfig)
+	if err != nil {
+		slog.Error("Failed to initialize Redis adapter", "error", err)
+		os.Exit(1)
+	}
 
 	wsHub := websocket.NewHub(client, redisAdapter)
 	go wsHub.Run()
@@ -55,10 +61,10 @@ func Init(appConfig *config.AppConfig, client *ent.Client, validator *validator.
 	mediaController := controller.NewMediaController(mediaService)
 	reportController := controller.NewReportController(reportService)
 	adminController := controller.NewAdminController(adminService, groupChatService, validator)
-	wsController := controller.NewWebSocketController(wsHub)
+	wsController := controller.NewWebSocketController(wsHub, appConfig)
 
 	authMiddleware := middleware.NewAuthMiddleware(authService, repo.Session)
-	rateLimitMiddleware := middleware.NewRateLimitMiddleware(repo.RateLimit)
+	rateLimitMiddleware := middleware.NewRateLimitMiddleware(repo.RateLimit, appConfig)
 
 	route := NewRoute(appConfig, chiMux, authController, otpController, userController, accountController, chatController, privateChatController, groupChatController, messageController, mediaController, wsController, reportController, adminController, authMiddleware, rateLimitMiddleware)
 	route.Register()

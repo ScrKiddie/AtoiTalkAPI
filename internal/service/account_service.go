@@ -50,7 +50,20 @@ func (s *AccountService) ChangePassword(ctx context.Context, userID uuid.UUID, r
 		return helper.NewBadRequestError("")
 	}
 
-	u, err := s.client.User.Query().
+	tx, err := s.client.Tx(ctx)
+	if err != nil {
+		slog.Error("Failed to start transaction", "error", err)
+		return helper.NewInternalServerError("")
+	}
+
+	defer func() {
+		_ = tx.Rollback()
+		if v := recover(); v != nil {
+			panic(v)
+		}
+	}()
+
+	u, err := tx.User.Query().
 		Where(user.ID(userID)).
 		Select(user.FieldID, user.FieldPasswordHash).
 		Only(ctx)
@@ -78,7 +91,7 @@ func (s *AccountService) ChangePassword(ctx context.Context, userID uuid.UUID, r
 		return helper.NewInternalServerError("")
 	}
 
-	err = s.client.User.UpdateOneID(userID).SetPasswordHash(hashedPassword).Exec(ctx)
+	err = tx.User.UpdateOneID(userID).SetPasswordHash(hashedPassword).Exec(ctx)
 	if err != nil {
 		slog.Error("Failed to update password", "error", err, "userID", userID)
 		return helper.NewInternalServerError("")
@@ -86,6 +99,12 @@ func (s *AccountService) ChangePassword(ctx context.Context, userID uuid.UUID, r
 
 	if err := s.repo.Session.RevokeAllSessions(ctx, userID); err != nil {
 		slog.Error("Failed to revoke sessions after password change", "error", err, "userID", userID)
+		return helper.NewServiceUnavailableError("Session service unavailable")
+	}
+
+	if err := tx.Commit(); err != nil {
+		slog.Error("Failed to commit transaction", "error", err, "userID", userID)
+		return helper.NewInternalServerError("")
 	}
 
 	return nil
@@ -161,13 +180,14 @@ func (s *AccountService) ChangeEmail(ctx context.Context, userID uuid.UUID, req 
 		return helper.NewInternalServerError("")
 	}
 
+	if err := s.repo.Session.RevokeAllSessions(ctx, userID); err != nil {
+		slog.Error("Failed to revoke sessions after email change", "error", err, "userID", userID)
+		return helper.NewServiceUnavailableError("Session service unavailable")
+	}
+
 	if err := tx.Commit(); err != nil {
 		slog.Error("Failed to commit transaction", "error", err)
 		return helper.NewInternalServerError("")
-	}
-
-	if err := s.repo.Session.RevokeAllSessions(ctx, userID); err != nil {
-		slog.Error("Failed to revoke sessions after email change", "error", err, "userID", userID)
 	}
 
 	return nil
@@ -250,13 +270,14 @@ func (s *AccountService) DeleteAccount(ctx context.Context, userID uuid.UUID, re
 		return helper.NewInternalServerError("")
 	}
 
+	if err := s.repo.Session.RevokeAllSessions(ctx, userID); err != nil {
+		slog.Error("Failed to revoke sessions after account deletion", "error", err, "userID", userID)
+		return helper.NewServiceUnavailableError("Session service unavailable")
+	}
+
 	if err := tx.Commit(); err != nil {
 		slog.Error("Failed to commit transaction", "error", err)
 		return helper.NewInternalServerError("")
-	}
-
-	if err := s.repo.Session.RevokeAllSessions(ctx, userID); err != nil {
-		slog.Error("Failed to revoke sessions after account deletion", "error", err, "userID", userID)
 	}
 
 	if s.wsHub != nil {

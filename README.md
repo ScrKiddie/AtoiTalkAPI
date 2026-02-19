@@ -278,6 +278,7 @@ Copy `.env.example` to `.env` and fill in the values. The scheduler ignores `DB_
 | `APP_PORT` | HTTP server port | `8080` |
 | `APP_URL` | Base URL of the API | `http://localhost:8080` |
 | `APP_CORS_ALLOWED_ORIGINS` | Allowed CORS origins | `*` |
+| `TRUSTED_PROXY_CIDRS` | Comma-separated trusted proxy CIDRs for client IP extraction (leave empty if API is not behind a proxy) | — |
 | `DB_MIGRATE` | Run schema migrations on startup | `true` |
 | `REDIS_HOST` | Redis host | `localhost` |
 | `REDIS_PORT` | Redis port | `6379` |

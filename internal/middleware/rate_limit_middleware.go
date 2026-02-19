@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"AtoiTalkAPI/internal/config"
 	"AtoiTalkAPI/internal/helper"
 	"AtoiTalkAPI/internal/model"
 	"AtoiTalkAPI/internal/repository"
@@ -14,12 +15,14 @@ import (
 )
 
 type RateLimitMiddleware struct {
-	repo *repository.RateLimitRepository
+	repo              *repository.RateLimitRepository
+	trustedProxyCIDRs []*net.IPNet
 }
 
-func NewRateLimitMiddleware(repo *repository.RateLimitRepository) *RateLimitMiddleware {
+func NewRateLimitMiddleware(repo *repository.RateLimitRepository, cfg *config.AppConfig) *RateLimitMiddleware {
 	return &RateLimitMiddleware{
-		repo: repo,
+		repo:              repo,
+		trustedProxyCIDRs: parseTrustedProxyCIDRs(cfg.TrustedProxyCIDRs),
 	}
 }
 
@@ -35,7 +38,7 @@ func (m *RateLimitMiddleware) Limit(keyName string, limit int, window time.Durat
 				keyPrefix = "ratelimit:user"
 			} else {
 
-				identifier = getIP(r)
+				identifier = m.getIP(r)
 				keyPrefix = "ratelimit:ip"
 			}
 
@@ -43,9 +46,8 @@ func (m *RateLimitMiddleware) Limit(keyName string, limit int, window time.Durat
 
 			allowed, ttl, err := m.repo.Allow(r.Context(), key, limit, window)
 			if err != nil {
-
 				slog.Error("Rate limit check failed", "error", err)
-				next.ServeHTTP(w, r)
+				helper.WriteError(w, helper.NewServiceUnavailableError("Rate limiting service unavailable"))
 				return
 			}
 
@@ -65,23 +67,113 @@ func (m *RateLimitMiddleware) Limit(keyName string, limit int, window time.Durat
 	}
 }
 
-func getIP(r *http.Request) string {
-
-	forwarded := r.Header.Get("X-Forwarded-For")
-	if forwarded != "" {
-
-		parts := strings.Split(forwarded, ",")
-		return strings.TrimSpace(parts[0])
-	}
-
-	realIP := r.Header.Get("X-Real-IP")
-	if realIP != "" {
-		return realIP
-	}
-
-	ip, _, err := net.SplitHostPort(r.RemoteAddr)
-	if err != nil {
+func (m *RateLimitMiddleware) getIP(r *http.Request) string {
+	remoteIP := parseIP(r.RemoteAddr)
+	if remoteIP == nil {
 		return r.RemoteAddr
 	}
-	return ip
+
+	if m.isTrustedProxy(remoteIP) {
+		if forwardedIP := m.clientIPFromXForwardedFor(r.Header.Get("X-Forwarded-For"), remoteIP); forwardedIP != "" {
+			return forwardedIP
+		}
+
+		if realIP := parseIPString(r.Header.Get("X-Real-IP")); realIP != "" {
+			parsedRealIP := parseIP(realIP)
+			if parsedRealIP != nil && !m.isTrustedProxy(parsedRealIP) {
+				return parsedRealIP.String()
+			}
+		}
+	}
+
+	return remoteIP.String()
+}
+
+func (m *RateLimitMiddleware) isTrustedProxy(ip net.IP) bool {
+	for _, network := range m.trustedProxyCIDRs {
+		if network.Contains(ip) {
+			return true
+		}
+	}
+	return false
+}
+
+func parseTrustedProxyCIDRs(cidrs []string) []*net.IPNet {
+	if len(cidrs) == 0 {
+		return nil
+	}
+
+	out := make([]*net.IPNet, 0, len(cidrs))
+	for _, cidr := range cidrs {
+		_, network, err := net.ParseCIDR(strings.TrimSpace(cidr))
+		if err != nil {
+			slog.Warn("Ignoring invalid trusted proxy CIDR", "cidr", cidr, "error", err)
+			continue
+		}
+		out = append(out, network)
+	}
+
+	return out
+}
+
+func (m *RateLimitMiddleware) clientIPFromXForwardedFor(xForwardedFor string, remoteIP net.IP) string {
+	forwardedIPs := parseForwardedIPs(xForwardedFor)
+	if len(forwardedIPs) == 0 {
+		return ""
+	}
+
+	chain := make([]net.IP, 0, len(forwardedIPs)+1)
+	chain = append(chain, forwardedIPs...)
+	chain = append(chain, remoteIP)
+
+	for i := len(chain) - 1; i >= 0; i-- {
+		if !m.isTrustedProxy(chain[i]) {
+			return chain[i].String()
+		}
+	}
+
+	return forwardedIPs[0].String()
+}
+
+func parseForwardedIPs(xForwardedFor string) []net.IP {
+	if xForwardedFor == "" {
+		return nil
+	}
+
+	parts := strings.Split(xForwardedFor, ",")
+	ips := make([]net.IP, 0, len(parts))
+	for _, part := range parts {
+		if ip := parseIP(strings.TrimSpace(part)); ip != nil {
+			ips = append(ips, ip)
+		}
+	}
+
+	return ips
+}
+
+func parseIP(remoteAddr string) net.IP {
+	if remoteAddr == "" {
+		return nil
+	}
+
+	host := remoteAddr
+	if parsedHost, _, err := net.SplitHostPort(remoteAddr); err == nil {
+		host = parsedHost
+	}
+
+	host = strings.Trim(host, "[]")
+	return net.ParseIP(host)
+}
+
+func parseIPString(value string) string {
+	trimmed := strings.TrimSpace(value)
+	if trimmed == "" {
+		return ""
+	}
+
+	if ip := parseIP(trimmed); ip != nil {
+		return ip.String()
+	}
+
+	return ""
 }

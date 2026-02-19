@@ -80,7 +80,14 @@ func (s *AdminService) BanUser(ctx context.Context, adminID uuid.UUID, req model
 		}
 	}
 
-	update := s.client.User.UpdateOneID(req.TargetUserID).
+	tx, err := s.client.Tx(ctx)
+	if err != nil {
+		slog.Error("Failed to start transaction", "error", err)
+		return helper.NewInternalServerError("")
+	}
+	defer tx.Rollback()
+
+	update := tx.User.UpdateOneID(req.TargetUserID).
 		SetIsBanned(true).
 		SetBanReason(req.Reason)
 
@@ -96,7 +103,13 @@ func (s *AdminService) BanUser(ctx context.Context, adminID uuid.UUID, req model
 	}
 
 	if err := s.repo.Session.RevokeAllSessions(ctx, req.TargetUserID); err != nil {
-		slog.Error("Failed to revoke sessions for banned user", "error", err)
+		slog.Error("Failed to revoke sessions for banned user", "error", err, "userID", req.TargetUserID)
+		return helper.NewServiceUnavailableError("Session service unavailable")
+	}
+
+	if err := tx.Commit(); err != nil {
+		slog.Error("Failed to commit transaction for banning user", "error", err)
+		return helper.NewInternalServerError("")
 	}
 
 	if s.wsHub != nil {

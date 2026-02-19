@@ -4,6 +4,7 @@ import "net/http"
 
 const (
 	MsgInternalServerError = "Internal Server Error"
+	MsgServiceUnavailable  = "Service Unavailable"
 	MsgBadRequest          = "Bad Request"
 	MsgNotFound            = "Not Found"
 	MsgUnauthorized        = "Unauthorized"
@@ -41,6 +42,13 @@ func NewInternalServerError(message string) *AppError {
 		message = MsgInternalServerError
 	}
 	return NewAppError(http.StatusInternalServerError, message)
+}
+
+func NewServiceUnavailableError(message string) *AppError {
+	if message == "" {
+		message = MsgServiceUnavailable
+	}
+	return NewAppError(http.StatusServiceUnavailable, message)
 }
 
 func NewNotFoundError(message string) *AppError {

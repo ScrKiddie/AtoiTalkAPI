@@ -10,14 +10,14 @@ type CreateGroupChatRequest struct {
 	Name        string                `form:"name" validate:"required,min=3,max=100"`
 	Description string                `form:"description" validate:"max=255"`
 	MemberIDs   []uuid.UUID           `form:"member_ids" validate:"required,min=1,dive"`
-	Avatar      *multipart.FileHeader `form:"avatar" validate:"omitempty"`
+	Avatar      *multipart.FileHeader `form:"avatar" validate:"omitempty,imagevalid=800_800_2"`
 	IsPublic    bool                  `form:"is_public"`
 }
 
 type UpdateGroupChatRequest struct {
 	Name         *string               `form:"name" validate:"omitempty,min=3,max=100"`
 	Description  *string               `form:"description" validate:"omitempty,max=255"`
-	Avatar       *multipart.FileHeader `form:"avatar" validate:"omitempty"`
+	Avatar       *multipart.FileHeader `form:"avatar" validate:"omitempty,imagevalid=800_800_2"`
 	IsPublic     *bool                 `form:"is_public"`
 	DeleteAvatar bool                  `form:"delete_avatar"`
 }

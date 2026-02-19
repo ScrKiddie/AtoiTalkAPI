@@ -14,7 +14,7 @@ type RedisAdapter struct {
 	client *redis.Client
 }
 
-func NewRedisAdapter(cfg *config.AppConfig) *RedisAdapter {
+func NewRedisAdapter(cfg *config.AppConfig) (*RedisAdapter, error) {
 	addr := fmt.Sprintf("%s:%s", cfg.RedisHost, cfg.RedisPort)
 	client := redis.NewClient(&redis.Options{
 		Addr:     addr,
@@ -27,13 +27,14 @@ func NewRedisAdapter(cfg *config.AppConfig) *RedisAdapter {
 
 	if err := client.Ping(ctx).Err(); err != nil {
 		slog.Error("Failed to connect to Redis", "error", err, "addr", addr)
-	} else {
-		slog.Info("Connected to Redis", "addr", addr)
+		return nil, err
 	}
+
+	slog.Info("Connected to Redis", "addr", addr)
 
 	return &RedisAdapter{
 		client: client,
-	}
+	}, nil
 }
 
 func (r *RedisAdapter) Set(ctx context.Context, key string, value interface{}, expiration time.Duration) error {

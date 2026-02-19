@@ -19,10 +19,13 @@ import (
 	"time"
 
 	"github.com/go-playground/validator/v10"
+	"github.com/redis/go-redis/v9"
 )
 
 //go:embed template/*.html
 var templateFS embed.FS
+
+const otpVerifyRateLimitCount = 5
 
 type OTPService struct {
 	client         *ent.Client
@@ -115,7 +118,9 @@ func (s *OTPService) SendOTP(ctx context.Context, req model.SendOTPRequest) erro
 	hashedCode := helper.HashOTP(code, s.cfg.OTPSecret)
 
 	key := fmt.Sprintf("otp:%s:%s", req.Mode, req.Email)
-	err = s.redisAdapter.Set(ctx, key, hashedCode, time.Duration(s.cfg.OTPExp)*time.Second)
+	otpTTL := time.Duration(s.cfg.OTPExp) * time.Second
+
+	err = s.redisAdapter.Set(ctx, key, hashedCode, otpTTL)
 	if err != nil {
 		slog.Error("Failed to save OTP to Redis", "error", err)
 		return helper.NewInternalServerError("")
@@ -156,16 +161,43 @@ func (s *OTPService) SendOTP(ctx context.Context, req model.SendOTPRequest) erro
 }
 
 func (s *OTPService) VerifyOTP(ctx context.Context, email, code, mode string) error {
+	email = helper.NormalizeEmail(email)
+
+	verifyRateLimitKey := fmt.Sprintf("ratelimit:otp_verify:%s:%s", mode, email)
+	verifyWindow := time.Duration(s.cfg.OTPRateLimitSeconds) * time.Second
+	if verifyWindow <= 0 {
+		verifyWindow = 60 * time.Second
+	}
+
+	allowed, ttl, err := s.rateLimitRepo.Allow(ctx, verifyRateLimitKey, otpVerifyRateLimitCount, verifyWindow)
+	if err != nil {
+		slog.Error("Failed to check OTP verify rate limit", "error", err, "email", email, "mode", mode)
+		return helper.NewServiceUnavailableError("OTP service unavailable")
+	}
+	if !allowed {
+		seconds := int(math.Ceil(ttl.Seconds()))
+		return helper.NewTooManyRequestsError(fmt.Sprintf("Please try again in %d seconds", seconds))
+	}
+
 	key := fmt.Sprintf("otp:%s:%s", mode, email)
+
 	hashedCode, err := s.redisAdapter.Get(ctx, key)
 	if err != nil {
-		return helper.NewBadRequestError("Invalid or expired OTP")
+		if err == redis.Nil {
+			return helper.NewBadRequestError("Invalid or expired OTP")
+		}
+		slog.Error("Failed to get OTP from Redis", "error", err, "email", email, "mode", mode)
+		return helper.NewServiceUnavailableError("OTP service unavailable")
 	}
 
 	if hashedCode != helper.HashOTP(code, s.cfg.OTPSecret) {
-		return helper.NewBadRequestError("Invalid OTP code")
+		return helper.NewBadRequestError("Invalid or expired OTP")
 	}
 
-	s.redisAdapter.Del(ctx, key)
+	if err := s.redisAdapter.Del(ctx, key); err != nil {
+		slog.Error("Failed to delete used OTP key", "error", err, "email", email, "mode", mode)
+		return helper.NewServiceUnavailableError("OTP service unavailable")
+	}
+
 	return nil
 }

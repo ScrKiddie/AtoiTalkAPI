@@ -26,10 +26,12 @@ type MessageResponse struct {
 	ID     uuid.UUID `json:"id"`
 	ChatID uuid.UUID `json:"chat_id"`
 
-	// ID of the sender, null if it is a system message or deleted user
+	// ID of the sender when available.
+	// Can be null when sender account is deleted or relation is unavailable.
 	SenderID *uuid.UUID `json:"sender_id,omitempty"`
 
-	// Name of the sender or variable system message name
+	// Display name of the sender.
+	// Can be "Deleted User" when sender account is deleted.
 	SenderName string `json:"sender_name,omitempty"`
 
 	// Avatar URL of the sender
@@ -41,7 +43,58 @@ type MessageResponse struct {
 	Type    string `json:"type"`
 	Content string `json:"content,omitempty"`
 
-	// Metadata for system messages, structure depends on the message type (e.g., renamed group, added member)
+	// Metadata for system messages (usually empty for regular messages).
+	//
+	// Common payload shapes by message type:
+	//
+	//	system_create:
+	//	{
+	//	  "initial_name": "My Group"
+	//	}
+	//
+	//	system_rename:
+	//	{
+	//	  "old_name": "Old Group Name",
+	//	  "new_name": "New Group Name"
+	//	}
+	//
+	//	system_description:
+	//	{
+	//	  "old_description": "Old Desc",
+	//	  "new_description": "New Desc"
+	//	}
+	//
+	//	system_avatar:
+	//	{
+	//	  "action": "updated" // or "removed"
+	//	}
+	//
+	//	system_visibility:
+	//	{
+	//	  "new_visibility": "public" // or "private"
+	//	}
+	//
+	//	system_add / system_kick:
+	//	{
+	//	  "target_id": "u1...",
+	//	  "actor_id": "u2...",
+	//	  "target_name": "Alice", // optional enrichment
+	//	  "actor_name": "Bob" // optional enrichment
+	//	}
+	//
+	//	system_promote / system_demote:
+	//	{
+	//	  "target_id": "u1...",
+	//	  "actor_id": "u2...",
+	//	  "new_role": "admin", // or "member", "owner"
+	//	  "action": "ownership_transferred", // optional
+	//	  "target_name": "Alice", // optional enrichment
+	//	  "actor_name": "Bob" // optional enrichment
+	//	}
+	//
+	// Notes:
+	// - target_name and actor_name are enrichment fields added by service layer.
+	// - target_id and actor_id can be removed when referenced users are deleted.
 	ActionData map[string]interface{} `json:"action_data,omitempty"`
 
 	Attachments []MediaDTO `json:"attachments,omitempty"`
@@ -58,11 +111,12 @@ type MessageResponse struct {
 }
 
 type ReplyPreviewDTO struct {
-	ID         uuid.UUID              `json:"id"`
-	SenderID   *uuid.UUID             `json:"sender_id,omitempty"`
-	SenderName string                 `json:"sender_name"`
-	Type       string                 `json:"type"`
-	Content    string                 `json:"content,omitempty"`
+	ID         uuid.UUID  `json:"id"`
+	SenderID   *uuid.UUID `json:"sender_id,omitempty"`
+	SenderName string     `json:"sender_name"`
+	Type       string     `json:"type"`
+	Content    string     `json:"content,omitempty"`
+	// Metadata for system messages, same structure and behavior as MessageResponse.ActionData.
 	ActionData map[string]interface{} `json:"action_data,omitempty"`
 	DeletedAt  *string                `json:"deleted_at,omitempty"`
 	CreatedAt  string                 `json:"created_at"`

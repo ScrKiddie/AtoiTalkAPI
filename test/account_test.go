@@ -376,6 +376,38 @@ func TestChangeEmail(t *testing.T) {
 		}
 	})
 
+	t.Run("Fail: OTP Verify Rate Limited", func(t *testing.T) {
+		currentEmail := generateUniqueEmail("current4limit")
+		newEmail := generateUniqueEmail("new4limit")
+		token, _ := setupUser(currentEmail, true)
+		createEmailOTP(newEmail, validCode)
+
+		reqBody := model.ChangeEmailRequest{
+			Email: newEmail,
+			Code:  "000000",
+		}
+		body, _ := json.Marshal(reqBody)
+
+		for i := 0; i < 5; i++ {
+			req, _ := http.NewRequest("PUT", "/api/account/email", bytes.NewBuffer(body))
+			req.Header.Set("Content-Type", "application/json")
+			req.Header.Set("Authorization", "Bearer "+token)
+			rr := executeRequest(req)
+			if !assert.Equal(t, http.StatusBadRequest, rr.Code) {
+				printBody(t, rr)
+			}
+		}
+
+		req, _ := http.NewRequest("PUT", "/api/account/email", bytes.NewBuffer(body))
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Authorization", "Bearer "+token)
+		rr := executeRequest(req)
+
+		if !assert.Equal(t, http.StatusTooManyRequests, rr.Code) {
+			printBody(t, rr)
+		}
+	})
+
 	t.Run("Fail: Email Already Registered", func(t *testing.T) {
 		currentEmail := generateUniqueEmail("current5")
 		newEmail := generateUniqueEmail("new5")

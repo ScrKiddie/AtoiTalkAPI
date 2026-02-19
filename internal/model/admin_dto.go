@@ -60,7 +60,55 @@ type ReportDetailResponse struct {
 	// Indicates if the reporter is banned
 	ReporterIsBanned bool `json:"reporter_is_banned"`
 
-	// Snapshot of the reported entity data at the time of reporting
+	// Snapshot of reported entity data at report creation time.
+	// Shape depends on target_type.
+	//
+	// target_type = "message":
+	//
+	//	{
+	//	  "content": "Offensive content...", // can be null
+	//	  "sender_id": "u1...", // empty string when sender ID unavailable
+	//	  "sender_username": "alice",
+	//	  "sender_name": "Alice Wonderland",
+	//	  "sent_at": "2026-02-19T21:14:13Z",
+	//	  "chat_id": "c1...",
+	//	  "chat_type": "group", // or "private"
+	//	  "is_edited": false,
+	//	  "attachments": [
+	//	    {
+	//	      "id": "m1...",
+	//	      "file_name": "abc.jpg",
+	//	      "original_name": "photo.jpg",
+	//	      "file_size": 12345,
+	//	      "mime_type": "image/jpeg",
+	//	      "url": "https://..."
+	//	    }
+	//	  ],
+	//	  "group_id": "g1..." // only when chat_type is "group"
+	//	}
+	//
+	// target_type = "group":
+	//
+	//	{
+	//	  "group_id": "g1...",
+	//	  "chat_id": "c1...",
+	//	  "name": "Bad Group",
+	//	  "description": "...", // can be null
+	//	  "avatar": "https://...", // can be empty string
+	//	  "created_by": "u2..." // can be null
+	//	}
+	//
+	// target_type = "user":
+	//
+	//	{
+	//	  "user_id": "u3...",
+	//	  "username": "baduser", // can be null
+	//	  "full_name": "Bad User", // can be null
+	//	  "bio": "...", // can be null
+	//	  "avatar": "https://..." // can be empty string
+	//	}
+	//
+	// Note: attachment URLs may be refreshed when admin fetches report detail.
 	EvidenceSnapshot map[string]interface{} `json:"evidence_snapshot"`
 
 	AdminNotes *string `json:"admin_notes,omitempty"`

@@ -55,7 +55,10 @@ func (route *Route) Register() {
 		w.Write([]byte("Welcome to AtoiTalkAPI"))
 	})
 
-	route.chi.With(route.authMiddleware.VerifyWSToken).Get("/ws", route.wsController.ServeWS)
+	route.chi.With(
+		route.rateLimitMiddleware.Limit("ws_connect", 300, time.Minute),
+		route.authMiddleware.VerifyWSToken,
+	).Get("/ws", route.wsController.ServeWS)
 
 	route.chi.Route("/api", func(r chi.Router) {
 
@@ -73,6 +76,7 @@ func (route *Route) Register() {
 		})
 
 		r.Group(func(r chi.Router) {
+			r.Use(route.rateLimitMiddleware.Limit("auth_verify", 1000, time.Minute))
 			r.Use(route.authMiddleware.VerifyToken)
 
 			r.Group(func(r chi.Router) {

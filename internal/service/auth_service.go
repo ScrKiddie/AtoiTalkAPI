@@ -109,7 +109,17 @@ func (s *AuthService) VerifyUser(ctx context.Context, tokenString string) (*mode
 		return nil, helper.NewUnauthorizedError("")
 	}
 
-	if s.repo.Session.IsUserRevoked(ctx, claims.UserID, claims.IssuedAt.Time.Unix()) {
+	if claims.IssuedAt == nil {
+		return nil, helper.NewUnauthorizedError("")
+	}
+
+	isRevoked, err := s.repo.Session.IsUserRevoked(ctx, claims.UserID, claims.IssuedAt.Time.Unix())
+	if err != nil {
+		slog.Error("Failed to check user revoked session", "error", err, "userID", claims.UserID)
+		return nil, helper.NewServiceUnavailableError("Session service unavailable")
+	}
+
+	if isRevoked {
 		return nil, helper.NewUnauthorizedError("")
 	}
 
@@ -690,12 +700,15 @@ func (s *AuthService) ResetPassword(ctx context.Context, req model.ResetPassword
 		return helper.NewInternalServerError("")
 	}
 
+	if err := s.repo.Session.RevokeAllSessions(ctx, u.ID); err != nil {
+		slog.Error("Failed to revoke sessions after password reset", "error", err, "userID", u.ID)
+		return helper.NewServiceUnavailableError("Session service unavailable")
+	}
+
 	if err := tx.Commit(); err != nil {
 		slog.Error("Failed to commit transaction", "error", err)
 		return helper.NewInternalServerError("")
 	}
-
-	s.RevokeAllSessions(ctx, u.ID)
 
 	return nil
 }

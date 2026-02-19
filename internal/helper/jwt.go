@@ -17,7 +17,7 @@ func GenerateJWT(jwtSecret string, jwtExp int, userID uuid.UUID) (string, error)
 	claims := JWTClaims{
 		UserID: userID,
 		RegisteredClaims: jwt.RegisteredClaims{
-			ExpiresAt: jwt.NewNumericDate(time.Now().UTC().Add(time.Duration(jwtExp) * time.Hour)),
+			ExpiresAt: jwt.NewNumericDate(time.Now().UTC().Add(time.Duration(jwtExp) * time.Second)),
 			IssuedAt:  jwt.NewNumericDate(time.Now().UTC()),
 			Issuer:    "AtoiTalkAPI",
 		},

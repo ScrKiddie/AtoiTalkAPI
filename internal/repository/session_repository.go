@@ -3,7 +3,6 @@ package repository
 import (
 	"AtoiTalkAPI/internal/adapter"
 	"AtoiTalkAPI/internal/config"
-	"AtoiTalkAPI/internal/helper"
 	"context"
 	"fmt"
 	"log/slog"
@@ -11,6 +10,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/redis/go-redis/v9"
 )
 
 type SessionRepository struct {
@@ -32,7 +32,7 @@ func (r *SessionRepository) RevokeAllSessions(ctx context.Context, userID uuid.U
 	err := r.redisAdapter.Set(ctx, key, time.Now().Unix(), ttl)
 	if err != nil {
 		slog.Error("Failed to revoke all sessions in repository", "error", err, "userID", userID)
-		return helper.NewInternalServerError("Failed to revoke sessions")
+		return fmt.Errorf("failed to revoke sessions: %w", err)
 	}
 	return nil
 }
@@ -42,21 +42,37 @@ func (r *SessionRepository) BlacklistToken(ctx context.Context, tokenString stri
 	return r.redisAdapter.Set(ctx, key, "revoked", ttl)
 }
 
-func (r *SessionRepository) IsTokenBlacklisted(ctx context.Context, tokenString string) bool {
+func (r *SessionRepository) IsTokenBlacklisted(ctx context.Context, tokenString string) (bool, error) {
 	key := fmt.Sprintf("blacklist:%s", tokenString)
 	val, err := r.redisAdapter.Get(ctx, key)
-	return err == nil && val != ""
+	if err != nil {
+		if err == redis.Nil {
+			return false, nil
+		}
+		return false, err
+	}
+	return val != "", nil
 }
 
-func (r *SessionRepository) IsUserRevoked(ctx context.Context, userID uuid.UUID, tokenIssuedAt int64) bool {
+func (r *SessionRepository) IsUserRevoked(ctx context.Context, userID uuid.UUID, tokenIssuedAt int64) (bool, error) {
 	key := fmt.Sprintf("revoked_user:%s", userID)
 	revokedAtStr, err := r.redisAdapter.Get(ctx, key)
 
-	if err != nil || revokedAtStr == "" {
-		return false
+	if err != nil {
+		if err == redis.Nil {
+			return false, nil
+		}
+		return false, err
 	}
 
-	revokedAt, _ := strconv.ParseInt(revokedAtStr, 10, 64)
+	if revokedAtStr == "" {
+		return false, nil
+	}
 
-	return tokenIssuedAt <= revokedAt
+	revokedAt, err := strconv.ParseInt(revokedAtStr, 10, 64)
+	if err != nil {
+		return false, fmt.Errorf("invalid revoked timestamp for user %s: %w", userID, err)
+	}
+
+	return tokenIssuedAt <= revokedAt, nil
 }

@@ -15,6 +15,7 @@ type AppConfig struct {
 	AppEnv                string
 	AppURL                string
 	AppCorsAllowedOrigins []string
+	TrustedProxyCIDRs     []string
 
 	DBHost     string
 	DBPort     string
@@ -72,11 +73,12 @@ func LoadAppConfig() *AppConfig {
 		slog.Info("No .env file found, reading from system environment variables")
 	}
 
-	return &AppConfig{
+	cfg := &AppConfig{
 		AppPort:               mustGetEnv("APP_PORT"),
 		AppEnv:                mustGetEnv("APP_ENV"),
 		AppURL:                getEnv("APP_URL", "http://localhost:8080"),
 		AppCorsAllowedOrigins: strings.Split(getEnv("APP_CORS_ALLOWED_ORIGINS", "*"), ","),
+		TrustedProxyCIDRs:     splitCSV(getEnv("TRUSTED_PROXY_CIDRS", "")),
 
 		DBHost:     mustGetEnv("DB_HOST"),
 		DBPort:     mustGetEnv("DB_PORT"),
@@ -127,6 +129,13 @@ func LoadAppConfig() *AppConfig {
 		PrivateChatCleanupCron: getEnv("PRIVATE_CHAT_CLEANUP_CRON", "30 2 * * *"),
 		MediaCleanupCron:       getEnv("MEDIA_CLEANUP_CRON", "0 3 * * *"),
 	}
+
+	if cfg.JWTExp <= 0 {
+		slog.Error("JWT_EXP must be greater than 0", "value", cfg.JWTExp)
+		os.Exit(1)
+	}
+
+	return cfg
 }
 
 func (c *AppConfig) DBConnectionString() string {
@@ -207,4 +216,21 @@ func getEnvAsBool(key string, fallback bool) bool {
 		return fallback
 	}
 	return val
+}
+
+func splitCSV(value string) []string {
+	if strings.TrimSpace(value) == "" {
+		return nil
+	}
+
+	parts := strings.Split(value, ",")
+	out := make([]string, 0, len(parts))
+	for _, p := range parts {
+		trimmed := strings.TrimSpace(p)
+		if trimmed != "" {
+			out = append(out, trimmed)
+		}
+	}
+
+	return out
 }

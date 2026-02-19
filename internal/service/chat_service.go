@@ -55,6 +55,10 @@ func (s *ChatService) GetChatByID(ctx context.Context, userID, chatID uuid.UUID)
 		return nil, helper.NewInternalServerError("")
 	}
 
+	if c.Type == chat.TypeGroup && c.Edges.GroupChat != nil && c.Edges.GroupChat.IsPublic && len(c.Edges.GroupChat.Edges.Members) == 0 {
+		c.Edges.LastMessage = nil
+	}
+
 	blockedMap := make(map[uuid.UUID]helper.BlockStatus)
 	var otherUserID uuid.UUID
 

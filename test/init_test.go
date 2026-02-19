@@ -109,7 +109,10 @@ func TestMain(m *testing.M) {
 		log.Fatalf("failed creating schema resources: %v", err)
 	}
 
-	redisAdapter = adapter.NewRedisAdapter(testConfig)
+	redisAdapter, err = adapter.NewRedisAdapter(testConfig)
+	if err != nil {
+		log.Fatalf("failed to connect Redis for tests: %v", err)
+	}
 	testHub = websocket.NewHub(testClient, redisAdapter)
 	go testHub.Run()
 
@@ -159,10 +162,10 @@ func TestMain(m *testing.M) {
 	adminService := service.NewAdminService(testClient, testConfig, validator, testHub, repo, testStorageAdapter)
 	adminController := controller.NewAdminController(adminService, groupChatService, validator)
 
-	wsController := controller.NewWebSocketController(testHub)
+	wsController := controller.NewWebSocketController(testHub, testConfig)
 
 	authMiddleware := middleware.NewAuthMiddleware(authService, repo.Session)
-	rateLimitMiddleware := middleware.NewRateLimitMiddleware(repo.RateLimit)
+	rateLimitMiddleware := middleware.NewRateLimitMiddleware(repo.RateLimit, testConfig)
 
 	route := bootstrap.NewRoute(testConfig, testRouter, authController, otpController, userController, accountController, chatController, privateChatController, groupChatController, messageController, mediaController, wsController, reportController, adminController, authMiddleware, rateLimitMiddleware)
 	route.Register()

@@ -20,6 +20,8 @@ import (
 
 const cacheTTL = 5 * time.Minute
 const typingThrottle = 2 * time.Second
+const typingUserThrottle = 300 * time.Millisecond
+const emptyMembersCacheTTL = 30 * time.Second
 const pubSubChannel = "events:broadcast"
 const onlineUserTTL = 70 * time.Second
 
@@ -158,20 +160,45 @@ func (h *Hub) BroadcastToChat(chatID uuid.UUID, event Event) {
 }
 
 func (h *Hub) broadcastTyping(chatID uuid.UUID, event Event) {
+	ctx := context.Background()
+
 	senderID := uuid.Nil
 	if event.Meta != nil {
 		senderID = event.Meta.SenderID
 	}
 
-	if senderID != uuid.Nil {
-		key := fmt.Sprintf("typing:%s:%s", senderID, chatID)
-		ok, err := h.redis.Client().SetNX(context.Background(), key, 1, typingThrottle).Result()
-		if err != nil || !ok {
-			return
-		}
+	if senderID == uuid.Nil {
+		return
+	}
+
+	userThrottleKey := fmt.Sprintf("typing_user:%s", senderID)
+	userAllowed, err := h.redis.Client().SetNX(ctx, userThrottleKey, 1, typingUserThrottle).Result()
+	if err != nil || !userAllowed {
+		return
+	}
+
+	chatThrottleKey := fmt.Sprintf("typing:%s:%s", senderID, chatID)
+	chatAllowed, err := h.redis.Client().SetNX(ctx, chatThrottleKey, 1, typingThrottle).Result()
+	if err != nil || !chatAllowed {
+		return
 	}
 
 	targetUserIDs := h.getChatMembers(chatID)
+	if len(targetUserIDs) == 0 {
+		return
+	}
+
+	isMember := false
+	for _, uid := range targetUserIDs {
+		if uid == senderID {
+			isMember = true
+			break
+		}
+	}
+
+	if !isMember {
+		return
+	}
 
 	for _, uid := range targetUserIDs {
 		if uid == senderID {
@@ -201,11 +228,15 @@ func (h *Hub) fetchAndCacheMembers(chatID uuid.UUID) []uuid.UUID {
 	defer cancel()
 
 	c, err := h.db.Chat.Query().
-		Where(chat.ID(chatID)).
+		Where(
+			chat.ID(chatID),
+			chat.DeletedAtIsNil(),
+		).
 		Select(chat.FieldType).
 		Only(ctx)
 
 	if err != nil {
+		h.cacheChatMembers(ctx, chatID, nil, emptyMembersCacheTTL)
 		return nil
 	}
 
@@ -241,13 +272,22 @@ func (h *Hub) fetchAndCacheMembers(chatID uuid.UUID) []uuid.UUID {
 		}
 	}
 
-	if len(userIDs) > 0 {
-		key := fmt.Sprintf("chat_members:%s", chatID)
-		data, _ := json.Marshal(userIDs)
-		h.redis.Set(ctx, key, data, cacheTTL)
+	cacheTTLToUse := cacheTTL
+	if len(userIDs) == 0 {
+		cacheTTLToUse = emptyMembersCacheTTL
 	}
+	h.cacheChatMembers(ctx, chatID, userIDs, cacheTTLToUse)
 
 	return userIDs
+}
+
+func (h *Hub) cacheChatMembers(ctx context.Context, chatID uuid.UUID, userIDs []uuid.UUID, ttl time.Duration) {
+	key := fmt.Sprintf("chat_members:%s", chatID)
+	data, err := json.Marshal(userIDs)
+	if err != nil {
+		return
+	}
+	_ = h.redis.Set(ctx, key, data, ttl)
 }
 
 func (h *Hub) broadcastRead(chatID uuid.UUID, event Event) {
