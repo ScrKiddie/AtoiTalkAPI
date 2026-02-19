@@ -109,6 +109,10 @@ func (s *AuthService) VerifyUser(ctx context.Context, tokenString string) (*mode
 		return nil, helper.NewUnauthorizedError("")
 	}
 
+	if s.repo.Session.IsUserRevoked(ctx, claims.UserID, claims.IssuedAt.Time.Unix()) {
+		return nil, helper.NewUnauthorizedError("")
+	}
+
 	u, err := s.client.User.Query().
 		Where(
 			user.ID(claims.UserID),

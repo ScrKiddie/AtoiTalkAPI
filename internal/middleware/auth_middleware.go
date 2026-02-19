@@ -9,8 +9,6 @@ import (
 	"context"
 	"net/http"
 	"strings"
-
-	"github.com/golang-jwt/jwt/v5"
 )
 
 type contextKey string
@@ -53,16 +51,6 @@ func (m *AuthMiddleware) VerifyToken(next http.Handler) http.Handler {
 			return
 		}
 
-		token, _, err := new(jwt.Parser).ParseUnverified(tokenString, &helper.JWTClaims{})
-		if err == nil {
-			if claims, ok := token.Claims.(*helper.JWTClaims); ok {
-				if m.sessionRepo.IsUserRevoked(r.Context(), claims.UserID, claims.IssuedAt.Time.Unix()) {
-					helper.WriteError(w, helper.NewUnauthorizedError("Session expired (revoked)"))
-					return
-				}
-			}
-		}
-
 		userContext, err := m.authService.VerifyUser(r.Context(), tokenString)
 		if err != nil {
 			helper.WriteError(w, err)
@@ -86,16 +74,6 @@ func (m *AuthMiddleware) VerifyWSToken(next http.Handler) http.Handler {
 		if m.sessionRepo.IsTokenBlacklisted(r.Context(), tokenString) {
 			helper.WriteError(w, helper.NewUnauthorizedError("Token has been revoked"))
 			return
-		}
-
-		token, _, err := new(jwt.Parser).ParseUnverified(tokenString, &helper.JWTClaims{})
-		if err == nil {
-			if claims, ok := token.Claims.(*helper.JWTClaims); ok {
-				if m.sessionRepo.IsUserRevoked(r.Context(), claims.UserID, claims.IssuedAt.Time.Unix()) {
-					helper.WriteError(w, helper.NewUnauthorizedError("Session expired (revoked)"))
-					return
-				}
-			}
 		}
 
 		userContext, err := m.authService.VerifyUser(r.Context(), tokenString)
