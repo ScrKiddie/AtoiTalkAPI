@@ -567,34 +567,6 @@ func (s *AuthService) Register(ctx context.Context, req model.RegisterUserReques
 		}
 	}()
 
-	exists, err := tx.User.Query().
-		Where(
-			user.Email(req.Email),
-			user.DeletedAtIsNil(),
-		).
-		Exist(ctx)
-	if err != nil {
-		slog.Error("Failed to check user existence", "error", err)
-		return nil, helper.NewInternalServerError("")
-	}
-	if exists {
-		return nil, helper.NewConflictError("Email already registered")
-	}
-
-	usernameExists, err := tx.User.Query().
-		Where(
-			user.UsernameEQ(req.Username),
-			user.DeletedAtIsNil(),
-		).
-		Exist(ctx)
-	if err != nil {
-		slog.Error("Failed to check username existence", "error", err)
-		return nil, helper.NewInternalServerError("")
-	}
-	if usernameExists {
-		return nil, helper.NewConflictError("Username already taken")
-	}
-
 	hashedPassword, err := helper.HashPassword(req.Password)
 	if err != nil {
 		slog.Error("Failed to hash password", "error", err)
@@ -607,7 +579,26 @@ func (s *AuthService) Register(ctx context.Context, req model.RegisterUserReques
 		SetFullName(req.FullName).
 		SetPasswordHash(hashedPassword).
 		Save(ctx)
+
 	if err != nil {
+		if ent.IsConstraintError(err) {
+
+			emailExists, _ := s.client.User.Query().
+				Where(user.Email(req.Email), user.DeletedAtIsNil()).
+				Exist(ctx)
+			if emailExists {
+				return nil, helper.NewConflictError("Email already registered")
+			}
+
+			usernameExists, _ := s.client.User.Query().
+				Where(user.UsernameEQ(req.Username), user.DeletedAtIsNil()).
+				Exist(ctx)
+			if usernameExists {
+				return nil, helper.NewConflictError("Username already taken")
+			}
+
+			return nil, helper.NewConflictError("Email or Username already taken")
+		}
 		slog.Error("Failed to create user", "error", err)
 		return nil, helper.NewInternalServerError("")
 	}
