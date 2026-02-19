@@ -83,7 +83,7 @@ type ChatListResponse struct {
 }
 
 type GetChatsRequest struct {
-	Query  string `json:"query" validate:"omitempty"`
+	Query  string `json:"query" validate:"omitempty,max=100"`
 	Cursor string `json:"cursor" validate:"omitempty"`
 	Limit  int    `json:"limit" validate:"omitempty,gt=0,max=50"`
 }

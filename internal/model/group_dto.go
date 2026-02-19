@@ -24,13 +24,13 @@ type UpdateGroupChatRequest struct {
 
 type SearchGroupMembersRequest struct {
 	GroupID uuid.UUID `json:"group_id" validate:"required"`
-	Query   string    `json:"query" validate:"omitempty,min=1"`
+	Query   string    `json:"query" validate:"omitempty,min=1,max=100"`
 	Cursor  string    `json:"cursor" validate:"omitempty"`
 	Limit   int       `json:"limit" validate:"omitempty,gt=0,max=50"`
 }
 
 type SearchPublicGroupsRequest struct {
-	Query  string `json:"query" validate:"omitempty,min=1"`
+	Query  string `json:"query" validate:"omitempty,min=1,max=100"`
 	Cursor string `json:"cursor" validate:"omitempty"`
 	Limit  int    `json:"limit" validate:"omitempty,gt=0,max=50"`
 }
