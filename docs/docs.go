@@ -4755,7 +4755,8 @@ const docTemplate = `{
                     }
                 },
                 "content": {
-                    "type": "string"
+                    "type": "string",
+                    "maxLength": 4000
                 }
             }
         },
@@ -4900,7 +4901,7 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "action_data": {
-                    "description": "Metadata for system messages, structure depends on the message type (e.g., renamed group, added member)",
+                    "description": "Metadata for system messages (usually empty for regular messages).\n\nCommon payload shapes by message type:\n\n\tsystem_create:\n\t{\n\t  \"initial_name\": \"My Group\"\n\t}\n\n\tsystem_rename:\n\t{\n\t  \"old_name\": \"Old Group Name\",\n\t  \"new_name\": \"New Group Name\"\n\t}\n\n\tsystem_description:\n\t{\n\t  \"old_description\": \"Old Desc\",\n\t  \"new_description\": \"New Desc\"\n\t}\n\n\tsystem_avatar:\n\t{\n\t  \"action\": \"updated\" // or \"removed\"\n\t}\n\n\tsystem_visibility:\n\t{\n\t  \"new_visibility\": \"public\" // or \"private\"\n\t}\n\n\tsystem_add / system_kick:\n\t{\n\t  \"target_id\": \"u1...\",\n\t  \"actor_id\": \"u2...\",\n\t  \"target_name\": \"Alice\", // optional enrichment\n\t  \"actor_name\": \"Bob\" // optional enrichment\n\t}\n\n\tsystem_promote / system_demote:\n\t{\n\t  \"target_id\": \"u1...\",\n\t  \"actor_id\": \"u2...\",\n\t  \"new_role\": \"admin\", // or \"member\", \"owner\"\n\t  \"action\": \"ownership_transferred\", // optional\n\t  \"target_name\": \"Alice\", // optional enrichment\n\t  \"actor_name\": \"Bob\" // optional enrichment\n\t}\n\nNotes:\n- target_name and actor_name are enrichment fields added by service layer.\n- target_id and actor_id can be removed when referenced users are deleted.",
                     "type": "object",
                     "additionalProperties": true
                 },
@@ -4945,11 +4946,11 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "sender_id": {
-                    "description": "ID of the sender, null if it is a system message or deleted user",
+                    "description": "ID of the sender when available.\nCan be null when sender account is deleted or relation is unavailable.",
                     "type": "string"
                 },
                 "sender_name": {
-                    "description": "Name of the sender or variable system message name",
+                    "description": "Display name of the sender.\nCan be \"Deleted User\" when sender account is deleted.",
                     "type": "string"
                 },
                 "sender_role": {
@@ -5028,6 +5029,7 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "action_data": {
+                    "description": "Metadata for system messages, same structure and behavior as MessageResponse.ActionData.",
                     "type": "object",
                     "additionalProperties": true
                 },
@@ -5067,7 +5069,7 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "evidence_snapshot": {
-                    "description": "Snapshot of the reported entity data at the time of reporting",
+                    "description": "Snapshot of reported entity data at report creation time.\nShape depends on target_type.\n\ntarget_type = \"message\":\n\n\t{\n\t  \"content\": \"Offensive content...\", // can be null\n\t  \"sender_id\": \"u1...\", // empty string when sender ID unavailable\n\t  \"sender_username\": \"alice\",\n\t  \"sender_name\": \"Alice Wonderland\",\n\t  \"sent_at\": \"2026-02-19T21:14:13Z\",\n\t  \"chat_id\": \"c1...\",\n\t  \"chat_type\": \"group\", // or \"private\"\n\t  \"is_edited\": false,\n\t  \"attachments\": [\n\t    {\n\t      \"id\": \"m1...\",\n\t      \"file_name\": \"abc.jpg\",\n\t      \"original_name\": \"photo.jpg\",\n\t      \"file_size\": 12345,\n\t      \"mime_type\": \"image/jpeg\",\n\t      \"url\": \"https://...\"\n\t    }\n\t  ],\n\t  \"group_id\": \"g1...\" // only when chat_type is \"group\"\n\t}\n\ntarget_type = \"group\":\n\n\t{\n\t  \"group_id\": \"g1...\",\n\t  \"chat_id\": \"c1...\",\n\t  \"name\": \"Bad Group\",\n\t  \"description\": \"...\", // can be null\n\t  \"avatar\": \"https://...\", // can be empty string\n\t  \"created_by\": \"u2...\" // can be null\n\t}\n\ntarget_type = \"user\":\n\n\t{\n\t  \"user_id\": \"u3...\",\n\t  \"username\": \"baduser\", // can be null\n\t  \"full_name\": \"Bad User\", // can be null\n\t  \"bio\": \"...\", // can be null\n\t  \"avatar\": \"https://...\" // can be empty string\n\t}\n\nNote: attachment URLs may be refreshed when admin fetches report detail.",
                     "type": "object",
                     "additionalProperties": true
                 },
@@ -5237,7 +5239,8 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "content": {
-                    "type": "string"
+                    "type": "string",
+                    "maxLength": 4000
                 },
                 "reply_to_id": {
                     "type": "string"

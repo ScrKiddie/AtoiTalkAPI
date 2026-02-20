@@ -116,6 +116,7 @@ components:
   schemas:
     EventMeta:
       type: object
+      required: [timestamp, unread_count]
       properties:
         timestamp:
           type: integer
@@ -130,15 +131,16 @@ components:
           description: ID of the user who triggered the event
         unread_count:
           type: integer
-          description: Current unread count for the receiving user (specific to message.new)
+          description: Per-recipient unread count (set on chat broadcasts; can be 0 for non-chat events)
 
     BaseEvent:
       type: object
-      required: [type, meta]
+      required: [type, payload, meta]
       properties:
         type:
           type: string
           description: The unique identifier for the event type.
+        payload: {}
         meta:
           $ref: '#/components/schemas/EventMeta'
     
@@ -224,6 +226,9 @@ components:
         id:
           type: string
           format: uuid
+        sender_id:
+          type: string
+          format: uuid
         sender_name:
           type: string
         type:
@@ -238,6 +243,9 @@ components:
           type: string
           format: date-time
           description: If present, the reply message has been deleted.
+        created_at:
+          type: string
+          format: date-time
 
 
     MessageResponse:
@@ -254,9 +262,9 @@ components:
           format: uuid
         sender_name:
           type: string
-        sender_username:
+        sender_role:
           type: string
-          description: Username of the sender
+          description: Role of the sender in group context (owner, admin, member)
         sender_avatar:
           type: string
           format: uri
@@ -319,12 +327,18 @@ components:
           type: string
           format: uri
         last_message:
-          $ref: '#/components/schemas/MessageResponse'
-          description: Omitted if null (e.g. new chat)
+          oneOf:
+            - $ref: '#/components/schemas/MessageResponse'
+            - type: 'null'
+          description: Can be null (e.g. new chat)
         unread_count:
           type: integer
           description: Omitted if 0
         last_read_at:
+          type: string
+          format: date-time
+          description: Omitted if null
+        hidden_at:
           type: string
           format: date-time
           description: Omitted if null
@@ -346,7 +360,10 @@ components:
           description: True if the other user in a private chat has been banned.
         is_blocked_by_me:
           type: boolean
-          description: Omitted if false
+          description: Current user's block status towards other user.
+        is_blocked_by_other:
+          type: boolean
+          description: Whether the other user has blocked current user.
         my_role:
           type: string
           enum: [owner, admin, member]
@@ -354,6 +371,21 @@ components:
         member_count:
           type: integer
           description: Total number of active members in a group chat.
+
+    ChatInviteCodeUpdatePayload:
+      type: object
+      required: [id, invite_code, invite_expires_at]
+      properties:
+        id:
+          type: string
+          format: uuid
+        invite_code:
+          type: string
+        invite_expires_at:
+          anyOf:
+            - type: string
+              format: date-time
+            - type: 'null'
 
     GroupMemberDTO:
       type: object
@@ -376,8 +408,7 @@ components:
           enum: [owner, admin, member]
         joined_at:
           type: string
-          format: date-time
-        is_online:
+        is_banned:
           type: boolean
 
   messages:
@@ -387,11 +418,14 @@ components:
       summary: Sent by client when user starts typing in a chat.
       payload:
         type: object
+        required: [type, meta]
         properties:
           type:
             const: chat.typing
+          payload: {}
           meta:
             type: object
+            required: [chat_id]
             properties:
               chat_id:
                 type: string
@@ -408,6 +442,8 @@ components:
             properties:
               type:
                 const: chat.typing
+              payload:
+                description: Echoed client payload (if any). Usually null.
 
     ServerMessageNew:
       name: message.new
@@ -530,7 +566,7 @@ components:
     ServerChatUpdate:
       name: chat.update
       title: Chat Updated
-      summary: Broadcasted when chat info is updated. This includes changes to Group Name, Description, Avatar, Visibility (Public/Private), and Invite Code reset (sent to admins).
+      summary: Broadcasted when chat info is updated. Payload can be full chat snapshot or minimal invite code update.
       payload:
         allOf:
           - $ref: '#/components/schemas/BaseEvent'
@@ -539,7 +575,9 @@ components:
               type:
                 const: chat.update
               payload:
-                $ref: '#/components/schemas/ChatListResponse'
+                oneOf:
+                  - $ref: '#/components/schemas/ChatListResponse'
+                  - $ref: '#/components/schemas/ChatInviteCodeUpdatePayload'
 
     ServerUserOnline:
       name: user.online
@@ -586,7 +624,7 @@ components:
     ServerUserBlock:
       name: user.block
       title: User Blocked
-      summary: Sent to the blocked user immediately
+      summary: Sent to blocked user and blocker for multi-device sync.
       payload:
         allOf:
           - $ref: '#/components/schemas/BaseEvent'
@@ -607,7 +645,7 @@ components:
     ServerUserUnblock:
       name: user.unblock
       title: User Unblocked
-      summary: Sent to the unblocked user immediately
+      summary: Sent to unblocked user and unblocker for multi-device sync.
       payload:
         allOf:
           - $ref: '#/components/schemas/BaseEvent'
