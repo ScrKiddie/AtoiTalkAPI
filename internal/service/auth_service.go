@@ -15,6 +15,9 @@ import (
 	"AtoiTalkAPI/internal/websocket"
 	"bytes"
 	"context"
+	"crypto/sha256"
+	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"log/slog"
 	"math/rand"
@@ -25,11 +28,22 @@ import (
 	"github.com/go-playground/validator/v10"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
+	"github.com/redis/go-redis/v9"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
 	googleOAuth2 "google.golang.org/api/oauth2/v2"
 	"google.golang.org/api/option"
 )
+
+const (
+	googleOAuthStateKeyPrefix = "oauth:google:state:"
+	googleOAuthStateTTL       = 10 * time.Minute
+)
+
+type googleOAuthStatePayload struct {
+	CodeVerifier    string `json:"code_verifier"`
+	FingerprintHash string `json:"fingerprint_hash,omitempty"`
+}
 
 type AuthService struct {
 	client         *ent.Client
@@ -37,22 +51,86 @@ type AuthService struct {
 	validator      *validator.Validate
 	storageAdapter *adapter.StorageAdapter
 	captchaAdapter *adapter.CaptchaAdapter
+	redisAdapter   *adapter.RedisAdapter
 	otpService     *OTPService
 	repo           *repository.Repository
 	wsHub          *websocket.Hub
 }
 
-func NewAuthService(client *ent.Client, cfg *config.AppConfig, validator *validator.Validate, storageAdapter *adapter.StorageAdapter, captchaAdapter *adapter.CaptchaAdapter, otpService *OTPService, repo *repository.Repository, wsHub *websocket.Hub) *AuthService {
+func NewAuthService(client *ent.Client, cfg *config.AppConfig, validator *validator.Validate, storageAdapter *adapter.StorageAdapter, captchaAdapter *adapter.CaptchaAdapter, redisAdapter *adapter.RedisAdapter, otpService *OTPService, repo *repository.Repository, wsHub *websocket.Hub) *AuthService {
 	return &AuthService{
 		client:         client,
 		cfg:            cfg,
 		validator:      validator,
 		storageAdapter: storageAdapter,
 		captchaAdapter: captchaAdapter,
+		redisAdapter:   redisAdapter,
 		otpService:     otpService,
 		repo:           repo,
 		wsHub:          wsHub,
 	}
+}
+
+func (s *AuthService) googleOAuthConfig() *oauth2.Config {
+	return &oauth2.Config{
+		ClientID:     s.cfg.GoogleClientID,
+		ClientSecret: s.cfg.GoogleClientSecret,
+		RedirectURL:  s.cfg.GoogleRedirectURL,
+		Scopes: []string{
+			"https://www.googleapis.com/auth/userinfo.email",
+			"https://www.googleapis.com/auth/userinfo.profile",
+		},
+		Endpoint: google.Endpoint,
+	}
+}
+
+func codeChallengeS256(verifier string) string {
+	sum := sha256.Sum256([]byte(verifier))
+	return base64.RawURLEncoding.EncodeToString(sum[:])
+}
+
+func (s *AuthService) BeginGoogleAuth(ctx context.Context) (*model.GoogleAuthInitResponse, error) {
+	state, err := helper.GenerateRandomString(48)
+	if err != nil {
+		slog.Error("Failed to generate Google OAuth state", "error", err)
+		return nil, helper.NewInternalServerError("")
+	}
+
+	codeVerifier, err := helper.GenerateRandomString(64)
+	if err != nil {
+		slog.Error("Failed to generate Google OAuth PKCE verifier", "error", err)
+		return nil, helper.NewInternalServerError("")
+	}
+
+	payload := googleOAuthStatePayload{CodeVerifier: codeVerifier}
+	if fingerprint := helper.ClientFingerprintFromContext(ctx); fingerprint != "" {
+		payload.FingerprintHash = helper.HashOTP(fingerprint, s.cfg.OTPSecret)
+	}
+
+	payloadBytes, err := json.Marshal(payload)
+	if err != nil {
+		slog.Error("Failed to marshal Google OAuth state payload", "error", err)
+		return nil, helper.NewInternalServerError("")
+	}
+
+	stateKey := fmt.Sprintf("%s%s", googleOAuthStateKeyPrefix, state)
+	if err := s.redisAdapter.Set(ctx, stateKey, payloadBytes, googleOAuthStateTTL); err != nil {
+		slog.Error("Failed to persist Google OAuth state", "error", err)
+		return nil, helper.NewServiceUnavailableError("Session service unavailable")
+	}
+
+	conf := s.googleOAuthConfig()
+	authURL := conf.AuthCodeURL(
+		state,
+		oauth2.SetAuthURLParam("code_challenge", codeChallengeS256(codeVerifier)),
+		oauth2.SetAuthURLParam("code_challenge_method", "S256"),
+	)
+
+	return &model.GoogleAuthInitResponse{
+		AuthURL:          authURL,
+		State:            state,
+		ExpiresInSeconds: int(googleOAuthStateTTL.Seconds()),
+	}, nil
 }
 
 func (s *AuthService) Logout(ctx context.Context, tokenString string) error {
@@ -265,18 +343,32 @@ func (s *AuthService) GoogleExchange(ctx context.Context, req model.GoogleLoginR
 		return nil, helper.NewBadRequestError("")
 	}
 
-	conf := &oauth2.Config{
-		ClientID:     s.cfg.GoogleClientID,
-		ClientSecret: s.cfg.GoogleClientSecret,
-		RedirectURL:  s.cfg.GoogleRedirectURL,
-		Scopes: []string{
-			"https://www.googleapis.com/auth/userinfo.email",
-			"https://www.googleapis.com/auth/userinfo.profile",
-		},
-		Endpoint: google.Endpoint,
+	stateKey := fmt.Sprintf("%s%s", googleOAuthStateKeyPrefix, req.State)
+	payloadRaw, err := s.redisAdapter.Client().GetDel(ctx, stateKey).Result()
+	if err != nil {
+		if err == redis.Nil {
+			return nil, helper.NewUnauthorizedError("Invalid or expired Google auth state")
+		}
+		slog.Error("Failed to load Google OAuth state", "error", err)
+		return nil, helper.NewServiceUnavailableError("Session service unavailable")
 	}
 
-	oauthToken, err := conf.Exchange(ctx, req.Code)
+	var statePayload googleOAuthStatePayload
+	if err := json.Unmarshal([]byte(payloadRaw), &statePayload); err != nil || statePayload.CodeVerifier == "" {
+		slog.Warn("Invalid Google OAuth state payload", "error", err)
+		return nil, helper.NewUnauthorizedError("Invalid or expired Google auth state")
+	}
+
+	if statePayload.FingerprintHash != "" {
+		currentFingerprint := helper.ClientFingerprintFromContext(ctx)
+		if currentFingerprint == "" || helper.HashOTP(currentFingerprint, s.cfg.OTPSecret) != statePayload.FingerprintHash {
+			return nil, helper.NewUnauthorizedError("Invalid Google auth state")
+		}
+	}
+
+	conf := s.googleOAuthConfig()
+
+	oauthToken, err := conf.Exchange(ctx, req.Code, oauth2.SetAuthURLParam("code_verifier", statePayload.CodeVerifier))
 	if err != nil {
 		slog.Error("Failed to exchange authorization code", "error", err)
 		return nil, helper.NewUnauthorizedError("Invalid authorization code")

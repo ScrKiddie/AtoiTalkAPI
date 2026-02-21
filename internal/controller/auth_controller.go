@@ -84,9 +84,29 @@ func (c *AuthController) Logout(w http.ResponseWriter, r *http.Request) {
 	helper.WriteSuccess(w, nil)
 }
 
+// GoogleAuthInit godoc
+// @Summary      Google OAuth Init
+// @Description  Generate Google OAuth URL with one-time state and PKCE challenge.
+// @Tags         auth
+// @Accept       json
+// @Produce      json
+// @Success      200  {object}  helper.ResponseSuccess{data=model.GoogleAuthInitResponse}
+// @Failure      429  {object}  helper.ResponseError
+// @Failure      500  {object}  helper.ResponseError
+// @Router       /api/auth/google/init [get]
+func (c *AuthController) GoogleAuthInit(w http.ResponseWriter, r *http.Request) {
+	resp, err := c.authService.BeginGoogleAuth(r.Context())
+	if err != nil {
+		helper.WriteError(w, err)
+		return
+	}
+
+	helper.WriteSuccess(w, resp)
+}
+
 // GoogleExchange godoc
 // @Summary      Google Exchange
-// @Description  Exchange Google ID Token for App Token and User Info
+// @Description  Exchange Google authorization code + state for App Token and User Info
 // @Tags         auth
 // @Accept       json
 // @Produce      json

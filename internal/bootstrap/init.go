@@ -36,7 +36,7 @@ func Init(appConfig *config.AppConfig, client *ent.Client, validator *validator.
 
 	otpService := service.NewOTPService(client, appConfig, validator, emailAdapter, captchaAdapter, redisAdapter, repo.RateLimit)
 
-	authService := service.NewAuthService(client, appConfig, validator, storageAdapter, captchaAdapter, otpService, repo, wsHub)
+	authService := service.NewAuthService(client, appConfig, validator, storageAdapter, captchaAdapter, redisAdapter, otpService, repo, wsHub)
 
 	accountService := service.NewAccountService(client, appConfig, validator, wsHub, otpService, redisAdapter, repo)
 

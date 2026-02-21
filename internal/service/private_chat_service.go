@@ -40,6 +40,36 @@ func NewPrivateChatService(client *ent.Client, cfg *config.AppConfig, validator 
 	}
 }
 
+func (s *PrivateChatService) findExistingPrivateChat(ctx context.Context, userID uuid.UUID, targetUserID uuid.UUID) (*ent.PrivateChat, error) {
+	return s.client.PrivateChat.Query().
+		Where(
+			privatechat.Or(
+				privatechat.And(
+					privatechat.User1ID(userID),
+					privatechat.User2ID(targetUserID),
+				),
+				privatechat.And(
+					privatechat.User1ID(targetUserID),
+					privatechat.User2ID(userID),
+				),
+			),
+		).
+		WithChat().
+		Only(ctx)
+}
+
+func privateChatToResponse(pc *ent.PrivateChat) *model.ChatResponse {
+	if pc == nil || pc.Edges.Chat == nil {
+		return nil
+	}
+
+	return &model.ChatResponse{
+		ID:        pc.Edges.Chat.ID,
+		Type:      string(pc.Edges.Chat.Type),
+		CreatedAt: pc.Edges.Chat.CreatedAt.Format(time.RFC3339),
+	}
+}
+
 func (s *PrivateChatService) CreatePrivateChat(ctx context.Context, userID uuid.UUID, req model.CreatePrivateChatRequest) (*model.ChatResponse, error) {
 	if err := s.validator.Struct(req); err != nil {
 		slog.Warn("Validation failed", "error", err, "userID", userID)
@@ -107,28 +137,10 @@ func (s *PrivateChatService) CreatePrivateChat(ctx context.Context, userID uuid.
 		return nil, helper.NewForbiddenError("Cannot create chat with blocked user")
 	}
 
-	existingChat, err := s.client.PrivateChat.Query().
-		Where(
-			privatechat.Or(
-				privatechat.And(
-					privatechat.User1ID(userID),
-					privatechat.User2ID(req.TargetUserID),
-				),
-				privatechat.And(
-					privatechat.User1ID(req.TargetUserID),
-					privatechat.User2ID(userID),
-				),
-			),
-		).
-		WithChat().
-		Only(ctx)
+	existingChat, err := s.findExistingPrivateChat(ctx, userID, req.TargetUserID)
 
 	if err == nil {
-		return &model.ChatResponse{
-			ID:        existingChat.Edges.Chat.ID,
-			Type:      string(existingChat.Edges.Chat.Type),
-			CreatedAt: existingChat.Edges.Chat.CreatedAt.Format(time.RFC3339),
-		}, nil
+		return privateChatToResponse(existingChat), nil
 	} else if !ent.IsNotFound(err) {
 		slog.Error("Failed to check existing private chat", "error", err)
 		return nil, helper.NewInternalServerError("")
@@ -161,6 +173,15 @@ func (s *PrivateChatService) CreatePrivateChat(ctx context.Context, userID uuid.
 		SetUser2ID(req.TargetUserID).
 		Save(ctx)
 	if err != nil {
+		if ent.IsConstraintError(err) {
+			for i := 0; i < 3; i++ {
+				if existing, findErr := s.findExistingPrivateChat(ctx, userID, req.TargetUserID); findErr == nil {
+					return privateChatToResponse(existing), nil
+				}
+				time.Sleep(20 * time.Millisecond)
+			}
+			return nil, helper.NewConflictError("Private chat already exists")
+		}
 		slog.Error("Failed to create private chat", "error", err)
 		return nil, helper.NewInternalServerError("")
 	}

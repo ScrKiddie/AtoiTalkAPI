@@ -387,7 +387,7 @@ func (s *ChatService) MarkAsRead(ctx context.Context, userID uuid.UUID, chatID u
 
 		if err != nil {
 			slog.Error("Failed to check block status in MarkAsRead", "error", err)
-
+			return helper.NewServiceUnavailableError("Unable to verify block status")
 		}
 		isBlocked = blockExists
 

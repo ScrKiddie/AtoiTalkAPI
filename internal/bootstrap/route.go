@@ -67,6 +67,7 @@ func (route *Route) Register() {
 			r.Use(route.rateLimitMiddleware.Limit("auth_public", 10, time.Minute))
 
 			r.Post("/auth/login", route.authController.Login)
+			r.Get("/auth/google/init", route.authController.GoogleAuthInit)
 			r.Post("/auth/google", route.authController.GoogleExchange)
 			r.Post("/auth/register", route.authController.Register)
 			r.Post("/auth/reset-password", route.authController.ResetPassword)

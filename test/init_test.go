@@ -133,7 +133,7 @@ func TestMain(m *testing.M) {
 	otpService := service.NewOTPService(testClient, testConfig, validator, emailAdapter, captchaAdapter, redisAdapter, repo.RateLimit)
 	otpController := controller.NewOTPController(otpService)
 
-	authService := service.NewAuthService(testClient, testConfig, validator, testStorageAdapter, captchaAdapter, otpService, repo, testHub)
+	authService := service.NewAuthService(testClient, testConfig, validator, testStorageAdapter, captchaAdapter, redisAdapter, otpService, repo, testHub)
 	authController := controller.NewAuthController(authService)
 
 	userService := service.NewUserService(testClient, repo, testConfig, validator, testStorageAdapter, testHub, redisAdapter)

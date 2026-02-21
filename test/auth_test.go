@@ -211,7 +211,10 @@ func TestGoogleExchange(t *testing.T) {
 	})
 
 	t.Run("Invalid Code", func(t *testing.T) {
-		reqBody := model.GoogleLoginRequest{Code: "invalid-auth-code"}
+		reqBody := model.GoogleLoginRequest{
+			Code:  "invalid-auth-code",
+			State: "invalidstate123456",
+		}
 		body, _ := json.Marshal(reqBody)
 		req, _ := http.NewRequest("POST", "/api/auth/google", bytes.NewBuffer(body))
 		req.Header.Set("Content-Type", "application/json")
@@ -228,12 +231,16 @@ func TestGoogleExchange(t *testing.T) {
 
 	t.Run("Valid Code", func(t *testing.T) {
 		validCode := os.Getenv("TEST_GOOGLE_AUTH_CODE")
-		if validCode == "" {
-			t.Skip("Skipping Valid Code test: TEST_GOOGLE_AUTH_CODE not set")
+		validState := os.Getenv("TEST_GOOGLE_AUTH_STATE")
+		if validCode == "" || validState == "" {
+			t.Skip("Skipping Valid Code test: TEST_GOOGLE_AUTH_CODE or TEST_GOOGLE_AUTH_STATE not set")
 		}
 
 		makeRequest := func() *httptest.ResponseRecorder {
-			reqBody := model.GoogleLoginRequest{Code: validCode}
+			reqBody := model.GoogleLoginRequest{
+				Code:  validCode,
+				State: validState,
+			}
 			body, _ := json.Marshal(reqBody)
 			req, _ := http.NewRequest("POST", "/api/auth/google", bytes.NewBuffer(body))
 			req.Header.Set("Content-Type", "application/json")
@@ -282,6 +289,31 @@ func TestGoogleExchange(t *testing.T) {
 			}
 		})
 	})
+}
+
+func TestGoogleAuthInit(t *testing.T) {
+	clearDatabase(context.Background())
+
+	req, _ := http.NewRequest("GET", "/api/auth/google/init", nil)
+	rr := executeRequest(req)
+
+	if !assert.Equal(t, http.StatusOK, rr.Code) {
+		printBody(t, rr)
+	}
+
+	var resp helper.ResponseSuccess
+	err := json.Unmarshal(rr.Body.Bytes(), &resp)
+	assert.NoError(t, err)
+
+	dataMap, ok := resp.Data.(map[string]interface{})
+	assert.True(t, ok, "Expected data to be a map")
+	assert.NotEmpty(t, dataMap["auth_url"])
+	assert.NotEmpty(t, dataMap["state"])
+	assert.Greater(t, int(dataMap["expires_in_seconds"].(float64)), 0)
+
+	authURL, _ := dataMap["auth_url"].(string)
+	state, _ := dataMap["state"].(string)
+	assert.Contains(t, authURL, "state="+state)
 }
 
 func TestRegister(t *testing.T) {

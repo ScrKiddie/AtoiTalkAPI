@@ -1,7 +1,14 @@
 package model
 
 type GoogleLoginRequest struct {
-	Code string `json:"code" validate:"required"`
+	Code  string `json:"code" validate:"required"`
+	State string `json:"state" validate:"required,min=16,max=128"`
+}
+
+type GoogleAuthInitResponse struct {
+	AuthURL          string `json:"auth_url"`
+	State            string `json:"state"`
+	ExpiresInSeconds int    `json:"expires_in_seconds"`
 }
 
 type LoginRequest struct {
