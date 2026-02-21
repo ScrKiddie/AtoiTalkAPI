@@ -102,13 +102,15 @@ func (s *AdminService) BanUser(ctx context.Context, adminID uuid.UUID, req model
 		return helper.NewInternalServerError("")
 	}
 
-	if err := s.repo.Session.RevokeAllSessions(ctx, req.TargetUserID); err != nil {
+	revokeExpected, revokeSnapshot, err := helper.RevokeSessionsForTransaction(ctx, s.repo.Session, req.TargetUserID)
+	if err != nil {
 		slog.Error("Failed to revoke sessions for banned user", "error", err, "userID", req.TargetUserID)
 		return helper.NewServiceUnavailableError("Session service unavailable")
 	}
 
 	if err := tx.Commit(); err != nil {
 		slog.Error("Failed to commit transaction for banning user", "error", err)
+		helper.RollbackSessionRevokeIfNeeded(s.repo.Session, req.TargetUserID, revokeExpected, revokeSnapshot)
 		return helper.NewInternalServerError("")
 	}
 
@@ -651,8 +653,17 @@ func (s *AdminService) GetUserDetail(ctx context.Context, userID uuid.UUID) (*mo
 		return nil, helper.NewInternalServerError("")
 	}
 
-	msgCount, _ := s.client.Message.Query().Where(message.SenderID(u.ID)).Count(ctx)
-	groupCount, _ := s.client.GroupMember.Query().Where(groupmember.UserID(u.ID)).Count(ctx)
+	msgCount, err := s.client.Message.Query().Where(message.SenderID(u.ID)).Count(ctx)
+	if err != nil {
+		slog.Error("Failed to count user messages", "error", err, "userID", u.ID)
+		return nil, helper.NewInternalServerError("")
+	}
+
+	groupCount, err := s.client.GroupMember.Query().Where(groupmember.UserID(u.ID)).Count(ctx)
+	if err != nil {
+		slog.Error("Failed to count user groups", "error", err, "userID", u.ID)
+		return nil, helper.NewInternalServerError("")
+	}
 
 	var username, email, fullName, bio string
 	if u.Username != nil {
@@ -869,15 +880,23 @@ func (s *AdminService) GetGroupDetail(ctx context.Context, groupID uuid.UUID) (*
 		return nil, helper.NewInternalServerError("")
 	}
 
-	memberCount, _ := g.QueryMembers().
+	memberCount, err := g.QueryMembers().
 		Where(groupmember.HasUserWith(user.DeletedAtIsNil())).
 		Count(ctx)
+	if err != nil {
+		slog.Error("Failed to count group members", "error", err, "groupID", g.ID)
+		return nil, helper.NewInternalServerError("")
+	}
 
 	messageCount := 0
 	if g.Edges.Chat != nil {
-		messageCount, _ = s.client.Message.Query().
+		messageCount, err = s.client.Message.Query().
 			Where(message.ChatID(g.Edges.Chat.ID)).
 			Count(ctx)
+		if err != nil {
+			slog.Error("Failed to count group messages", "error", err, "groupID", g.ID, "chatID", g.Edges.Chat.ID)
+			return nil, helper.NewInternalServerError("")
+		}
 	}
 
 	resp := &model.AdminGroupDetailResponse{

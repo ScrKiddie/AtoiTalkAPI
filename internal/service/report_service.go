@@ -180,9 +180,13 @@ func (s *ReportService) CreateReport(ctx context.Context, reporterID uuid.UUID, 
 			return helper.NewInternalServerError("")
 		}
 
-		isMember, _ := s.client.GroupMember.Query().
+		isMember, err := s.client.GroupMember.Query().
 			Where(groupmember.GroupChatID(group.ID), groupmember.UserID(reporterID)).
 			Exist(ctx)
+		if err != nil {
+			slog.Error("Failed to check group membership for group report", "error", err, "groupID", group.ID, "reporterID", reporterID)
+			return helper.NewInternalServerError("")
+		}
 		if !isMember {
 			return helper.NewForbiddenError("You must be a member of the group to report it")
 		}

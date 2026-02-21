@@ -708,13 +708,15 @@ func (s *AuthService) ResetPassword(ctx context.Context, req model.ResetPassword
 		return helper.NewInternalServerError("")
 	}
 
-	if err := s.repo.Session.RevokeAllSessions(ctx, u.ID); err != nil {
+	revokeExpected, revokeSnapshot, err := helper.RevokeSessionsForTransaction(ctx, s.repo.Session, u.ID)
+	if err != nil {
 		slog.Error("Failed to revoke sessions after password reset", "error", err, "userID", u.ID)
 		return helper.NewServiceUnavailableError("Session service unavailable")
 	}
 
 	if err := tx.Commit(); err != nil {
 		slog.Error("Failed to commit transaction", "error", err)
+		helper.RollbackSessionRevokeIfNeeded(s.repo.Session, u.ID, revokeExpected, revokeSnapshot)
 		return helper.NewInternalServerError("")
 	}
 

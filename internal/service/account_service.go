@@ -97,13 +97,15 @@ func (s *AccountService) ChangePassword(ctx context.Context, userID uuid.UUID, r
 		return helper.NewInternalServerError("")
 	}
 
-	if err := s.repo.Session.RevokeAllSessions(ctx, userID); err != nil {
+	revokeExpected, revokeSnapshot, err := helper.RevokeSessionsForTransaction(ctx, s.repo.Session, userID)
+	if err != nil {
 		slog.Error("Failed to revoke sessions after password change", "error", err, "userID", userID)
 		return helper.NewServiceUnavailableError("Session service unavailable")
 	}
 
 	if err := tx.Commit(); err != nil {
 		slog.Error("Failed to commit transaction", "error", err, "userID", userID)
+		helper.RollbackSessionRevokeIfNeeded(s.repo.Session, userID, revokeExpected, revokeSnapshot)
 		return helper.NewInternalServerError("")
 	}
 
@@ -180,13 +182,15 @@ func (s *AccountService) ChangeEmail(ctx context.Context, userID uuid.UUID, req 
 		return helper.NewInternalServerError("")
 	}
 
-	if err := s.repo.Session.RevokeAllSessions(ctx, userID); err != nil {
+	revokeExpected, revokeSnapshot, err := helper.RevokeSessionsForTransaction(ctx, s.repo.Session, userID)
+	if err != nil {
 		slog.Error("Failed to revoke sessions after email change", "error", err, "userID", userID)
 		return helper.NewServiceUnavailableError("Session service unavailable")
 	}
 
 	if err := tx.Commit(); err != nil {
 		slog.Error("Failed to commit transaction", "error", err)
+		helper.RollbackSessionRevokeIfNeeded(s.repo.Session, userID, revokeExpected, revokeSnapshot)
 		return helper.NewInternalServerError("")
 	}
 
@@ -270,13 +274,15 @@ func (s *AccountService) DeleteAccount(ctx context.Context, userID uuid.UUID, re
 		return helper.NewInternalServerError("")
 	}
 
-	if err := s.repo.Session.RevokeAllSessions(ctx, userID); err != nil {
+	revokeExpected, revokeSnapshot, err := helper.RevokeSessionsForTransaction(ctx, s.repo.Session, userID)
+	if err != nil {
 		slog.Error("Failed to revoke sessions after account deletion", "error", err, "userID", userID)
 		return helper.NewServiceUnavailableError("Session service unavailable")
 	}
 
 	if err := tx.Commit(); err != nil {
 		slog.Error("Failed to commit transaction", "error", err)
+		helper.RollbackSessionRevokeIfNeeded(s.repo.Session, userID, revokeExpected, revokeSnapshot)
 		return helper.NewInternalServerError("")
 	}
 

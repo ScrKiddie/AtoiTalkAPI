@@ -150,7 +150,11 @@ func (s *MediaService) GetMediaURL(ctx context.Context, userID, mediaID uuid.UUI
 				groupmember.GroupChatID(c.Edges.GroupChat.ID),
 				groupmember.UserID(userID),
 			).Exist(ctx)
-		if err == nil && exists {
+		if err != nil {
+			slog.Error("Failed to check group membership for media access", "error", err, "mediaID", mediaID, "groupID", c.Edges.GroupChat.ID, "userID", userID)
+			return nil, helper.NewInternalServerError("")
+		}
+		if exists {
 			isMember = true
 		}
 	}
