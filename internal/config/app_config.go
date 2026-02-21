@@ -134,6 +134,10 @@ func LoadAppConfig() *AppConfig {
 		slog.Error("JWT_EXP must be greater than 0", "value", cfg.JWTExp)
 		os.Exit(1)
 	}
+	if cfg.OTPExp <= 0 {
+		slog.Error("OTP_EXP must be greater than 0", "value", cfg.OTPExp)
+		os.Exit(1)
+	}
 
 	return cfg
 }

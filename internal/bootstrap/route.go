@@ -77,8 +77,8 @@ func (route *Route) Register() {
 		})
 
 		r.Group(func(r chi.Router) {
-			r.Use(route.rateLimitMiddleware.Limit("auth_verify", 1000, time.Minute))
 			r.Use(route.authMiddleware.VerifyToken)
+			r.Use(route.rateLimitMiddleware.Limit("auth_verify", 1000, time.Minute))
 
 			r.Group(func(r chi.Router) {
 				r.Use(middleware.MaxBodySize(100 * 1024))

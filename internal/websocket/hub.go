@@ -145,7 +145,10 @@ func (h *Hub) BroadcastToUser(userID uuid.UUID, event Event) {
 		return
 	}
 
-	h.redis.Client().Publish(context.Background(), pubSubChannel, payloadData)
+	if err := h.redis.Client().Publish(context.Background(), pubSubChannel, payloadData).Err(); err != nil {
+		slog.Error("Failed to publish websocket event to redis, falling back to local delivery", "error", err, "targetUserID", userID)
+		h.deliverToLocalClients(userID, eventData)
+	}
 }
 
 func (h *Hub) BroadcastToChat(chatID uuid.UUID, event Event) {

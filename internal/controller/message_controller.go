@@ -143,7 +143,16 @@ func (c *MessageController) GetMessages(w http.ResponseWriter, r *http.Request) 
 	}
 
 	cursor := r.URL.Query().Get("cursor")
-	limit, _ := strconv.Atoi(r.URL.Query().Get("limit"))
+	limit := 0
+	limitRaw := r.URL.Query().Get("limit")
+	if limitRaw != "" {
+		parsedLimit, parseErr := strconv.Atoi(limitRaw)
+		if parseErr != nil {
+			helper.WriteError(w, helper.NewBadRequestError("Invalid limit"))
+			return
+		}
+		limit = parsedLimit
+	}
 	direction := r.URL.Query().Get("direction")
 	aroundMessageIDStr := r.URL.Query().Get("around_message_id")
 

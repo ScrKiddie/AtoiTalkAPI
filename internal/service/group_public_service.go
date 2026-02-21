@@ -52,13 +52,31 @@ func (s *GroupChatService) SearchPublicGroups(ctx context.Context, userID uuid.U
 			).
 			Select(groupmember.FieldGroupChatID).
 			All(ctx)
-		
+
 		if err == nil {
 			for _, m := range memberships {
 				joinedGroups[m.GroupChatID] = true
 			}
 		} else {
 			slog.Error("Failed to batch check group memberships", "error", err)
+		}
+	}
+
+	memberCounts := make(map[uuid.UUID]int)
+	if len(groupIDs) > 0 {
+		members, err := s.client.GroupMember.Query().
+			Where(
+				groupmember.GroupChatIDIn(groupIDs...),
+				groupmember.HasUserWith(user.DeletedAtIsNil()),
+			).
+			Select(groupmember.FieldGroupChatID).
+			All(ctx)
+		if err == nil {
+			for _, m := range members {
+				memberCounts[m.GroupChatID]++
+			}
+		} else {
+			slog.Error("Failed to batch count group members", "error", err)
 		}
 	}
 
@@ -80,6 +98,7 @@ func (s *GroupChatService) SearchPublicGroups(ctx context.Context, userID uuid.U
 			Name:        g.Name,
 			Description: description,
 			Avatar:      avatarURL,
+			MemberCount: memberCounts[g.ID],
 			IsMember:    joinedGroups[g.ID],
 		})
 	}

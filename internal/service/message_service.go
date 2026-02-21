@@ -718,7 +718,11 @@ func (s *MessageService) GetMessages(ctx context.Context, userID uuid.UUID, req 
 		if hiddenAt != nil {
 			nextQuery = nextQuery.Where(message.CreatedAtGT(*hiddenAt))
 		}
-		hasNext, _ = nextQuery.Exist(ctx)
+		hasNext, err = nextQuery.Exist(ctx)
+		if err != nil {
+			slog.Error("Failed to evaluate next page availability", "error", err, "chatID", req.ChatID)
+			return nil, "", false, "", false, helper.NewInternalServerError("")
+		}
 
 		prevQuery := s.client.Message.Query().
 			Where(
@@ -729,7 +733,11 @@ func (s *MessageService) GetMessages(ctx context.Context, userID uuid.UUID, req 
 		if hiddenAt != nil {
 			prevQuery = prevQuery.Where(message.CreatedAtGT(*hiddenAt))
 		}
-		hasPrev, _ = prevQuery.Exist(ctx)
+		hasPrev, err = prevQuery.Exist(ctx)
+		if err != nil {
+			slog.Error("Failed to evaluate previous page availability", "error", err, "chatID", req.ChatID)
+			return nil, "", false, "", false, helper.NewInternalServerError("")
+		}
 	}
 
 	var response []model.MessageResponse

@@ -365,12 +365,15 @@ func (s *AdminService) GetReportDetail(ctx context.Context, reportID uuid.UUID) 
 		if r.GroupID != nil {
 			targetID = r.GroupID
 
-			exists, _ := s.client.GroupChat.Query().
+			exists, existsErr := s.client.GroupChat.Query().
 				Where(
 					groupchat.ID(*r.GroupID),
 					groupchat.HasChatWith(chat.DeletedAtIsNil()),
 				).
 				Exist(ctx)
+			if existsErr != nil {
+				slog.Error("Failed to check group existence for report detail", "error", existsErr, "groupID", *r.GroupID)
+			}
 			if exists {
 				targetIsDeleted = false
 			}
@@ -687,6 +690,10 @@ func (s *AdminService) GetUserDetail(ctx context.Context, userID uuid.UUID) (*mo
 	if u.Bio != nil {
 		bio = *u.Bio
 	}
+	isBanned := u.IsBanned
+	if isBanned && u.BannedUntil != nil && time.Now().UTC().After(*u.BannedUntil) {
+		isBanned = false
+	}
 
 	resp := &model.AdminUserDetailResponse{
 		ID:            u.ID,
@@ -695,7 +702,7 @@ func (s *AdminService) GetUserDetail(ctx context.Context, userID uuid.UUID) (*mo
 		FullName:      &fullName,
 		Bio:           &bio,
 		Role:          string(u.Role),
-		IsBanned:      u.BannedUntil != nil && u.BannedUntil.After(time.Now().UTC()),
+		IsBanned:      isBanned,
 		BanReason:     u.BanReason,
 		CreatedAt:     u.CreatedAt.Format(time.RFC3339),
 		TotalMessages: msgCount,

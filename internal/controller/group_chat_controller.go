@@ -60,24 +60,39 @@ func (c *GroupChatController) CreateGroupChat(w http.ResponseWriter, r *http.Req
 		var idStrings []string
 		if err := json.Unmarshal([]byte(memberIDsStr), &idStrings); err == nil {
 			for _, s := range idStrings {
-				if id, err := uuid.Parse(s); err == nil {
-					memberIDs = append(memberIDs, id)
+				id, parseErr := uuid.Parse(strings.TrimSpace(s))
+				if parseErr != nil {
+					helper.WriteError(w, helper.NewBadRequestError("Invalid member_ids format"))
+					return
 				}
+				memberIDs = append(memberIDs, id)
 			}
 		} else {
 			parts := strings.Split(memberIDsStr, ",")
 			for _, p := range parts {
-				id, err := uuid.Parse(strings.TrimSpace(p))
-				if err == nil {
-					memberIDs = append(memberIDs, id)
+				trimmed := strings.TrimSpace(p)
+				if trimmed == "" {
+					helper.WriteError(w, helper.NewBadRequestError("Invalid member_ids format"))
+					return
 				}
+				id, parseErr := uuid.Parse(trimmed)
+				if parseErr != nil {
+					helper.WriteError(w, helper.NewBadRequestError("Invalid member_ids format"))
+					return
+				}
+				memberIDs = append(memberIDs, id)
 			}
 		}
 	}
 
 	isPublic := false
 	if isPublicStr != "" {
-		isPublic, _ = strconv.ParseBool(isPublicStr)
+		parsed, parseErr := strconv.ParseBool(isPublicStr)
+		if parseErr != nil {
+			helper.WriteError(w, helper.NewBadRequestError("Invalid is_public value"))
+			return
+		}
+		isPublic = parsed
 	}
 
 	_, header, err := r.FormFile("avatar")
@@ -154,11 +169,19 @@ func (c *GroupChatController) UpdateGroupChat(w http.ResponseWriter, r *http.Req
 		req.Description = &desc
 	}
 	if _, ok := r.MultipartForm.Value["is_public"]; ok {
-		isPublic, _ := strconv.ParseBool(r.FormValue("is_public"))
+		isPublic, parseErr := strconv.ParseBool(r.FormValue("is_public"))
+		if parseErr != nil {
+			helper.WriteError(w, helper.NewBadRequestError("Invalid is_public value"))
+			return
+		}
 		req.IsPublic = &isPublic
 	}
 	if _, ok := r.MultipartForm.Value["delete_avatar"]; ok {
-		deleteAvatar, _ := strconv.ParseBool(r.FormValue("delete_avatar"))
+		deleteAvatar, parseErr := strconv.ParseBool(r.FormValue("delete_avatar"))
+		if parseErr != nil {
+			helper.WriteError(w, helper.NewBadRequestError("Invalid delete_avatar value"))
+			return
+		}
 		req.DeleteAvatar = deleteAvatar
 	}
 
@@ -218,9 +241,12 @@ func (c *GroupChatController) SearchGroupMembers(w http.ResponseWriter, r *http.
 
 	limit := 20
 	if limitStr != "" {
-		if l, err := strconv.Atoi(limitStr); err == nil {
-			limit = l
+		l, err := strconv.Atoi(limitStr)
+		if err != nil {
+			helper.WriteError(w, helper.NewBadRequestError("Invalid limit"))
+			return
 		}
+		limit = l
 	}
 
 	req := model.SearchGroupMembersRequest{
@@ -539,9 +565,12 @@ func (c *GroupChatController) SearchPublicGroups(w http.ResponseWriter, r *http.
 
 	limit := 20
 	if limitStr != "" {
-		if l, err := strconv.Atoi(limitStr); err == nil {
-			limit = l
+		l, err := strconv.Atoi(limitStr)
+		if err != nil {
+			helper.WriteError(w, helper.NewBadRequestError("Invalid limit"))
+			return
 		}
+		limit = l
 	}
 
 	req := model.SearchPublicGroupsRequest{

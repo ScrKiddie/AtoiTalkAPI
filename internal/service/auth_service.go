@@ -199,7 +199,12 @@ func (s *AuthService) VerifyUser(ctx context.Context, tokenString string) (*mode
 		return nil, helper.NewUnauthorizedError("")
 	}
 
-	isRevoked, err := s.repo.Session.IsUserRevoked(ctx, claims.UserID, claims.IssuedAt.Time.UnixMilli())
+	tokenIssuedAt := claims.IssuedAt.Time.UnixMilli()
+	if claims.IssuedAtMillis > 0 {
+		tokenIssuedAt = claims.IssuedAtMillis
+	}
+
+	isRevoked, err := s.repo.Session.IsUserRevoked(ctx, claims.UserID, tokenIssuedAt)
 	if err != nil {
 		slog.Error("Failed to check user revoked session", "error", err, "userID", claims.UserID)
 		return nil, helper.NewServiceUnavailableError("Session service unavailable")
@@ -454,6 +459,7 @@ func (s *AuthService) GoogleExchange(ctx context.Context, req model.GoogleLoginR
 	var fileUploadPath string
 	var fileContentType string
 	var mediaID uuid.UUID
+	avatarUploadSucceeded := true
 
 	if u == nil {
 
@@ -506,7 +512,11 @@ func (s *AuthService) GoogleExchange(ctx context.Context, req model.GoogleLoginR
 			randNum := rand.Intn(10000)
 			candidate := fmt.Sprintf("%s%04d", baseUsername, randNum)
 
-			exists, _ := tx.User.Query().Where(user.UsernameEQ(candidate)).Exist(ctx)
+			exists, existsErr := tx.User.Query().Where(user.UsernameEQ(candidate)).Exist(ctx)
+			if existsErr != nil {
+				slog.Error("Failed to check generated username availability", "error", existsErr)
+				return nil, helper.NewInternalServerError("")
+			}
 			if !exists {
 				finalUsername = candidate
 				break
@@ -540,10 +550,12 @@ func (s *AuthService) GoogleExchange(ctx context.Context, req model.GoogleLoginR
 			if err != nil {
 				slog.Error("Failed to create media record for google avatar", "error", err)
 				fileData = nil
+				avatarFileName = ""
 			} else {
 				err = tx.User.UpdateOne(u).SetAvatar(media).Exec(ctx)
 				if err != nil {
 					slog.Error("Failed to link avatar to user", "error", err)
+					avatarFileName = ""
 				} else {
 					mediaID = media.ID
 				}
@@ -571,6 +583,7 @@ func (s *AuthService) GoogleExchange(ctx context.Context, req model.GoogleLoginR
 
 			err = s.storageAdapter.StoreFromReader(bytes.NewReader(fileData), fileContentType, fileUploadPath, true)
 			if err != nil {
+				avatarUploadSucceeded = false
 				slog.Error("Failed to store profile picture after db commit", "error", err)
 
 				if mediaID != uuid.Nil {
@@ -578,6 +591,7 @@ func (s *AuthService) GoogleExchange(ctx context.Context, req model.GoogleLoginR
 						slog.Error("Failed to delete orphan media record after file upload failure", "error", delErr, "mediaID", mediaID)
 					}
 				}
+				avatarFileName = ""
 			}
 		}
 
@@ -618,7 +632,7 @@ func (s *AuthService) GoogleExchange(ctx context.Context, req model.GoogleLoginR
 	}
 
 	avatarURL := ""
-	if avatarFileName != "" {
+	if avatarUploadSucceeded && avatarFileName != "" {
 		avatarURL = s.storageAdapter.GetPublicURL(avatarFileName)
 	}
 
@@ -693,16 +707,24 @@ func (s *AuthService) Register(ctx context.Context, req model.RegisterUserReques
 	if err != nil {
 		if ent.IsConstraintError(err) {
 
-			emailExists, _ := s.client.User.Query().
+			emailExists, existsErr := s.client.User.Query().
 				Where(user.Email(req.Email), user.DeletedAtIsNil()).
 				Exist(ctx)
+			if existsErr != nil {
+				slog.Error("Failed to check email existence after register constraint error", "error", existsErr)
+				return nil, helper.NewInternalServerError("")
+			}
 			if emailExists {
 				return nil, helper.NewConflictError("Email already registered")
 			}
 
-			usernameExists, _ := s.client.User.Query().
+			usernameExists, usernameExistsErr := s.client.User.Query().
 				Where(user.UsernameEQ(req.Username), user.DeletedAtIsNil()).
 				Exist(ctx)
+			if usernameExistsErr != nil {
+				slog.Error("Failed to check username existence after register constraint error", "error", usernameExistsErr)
+				return nil, helper.NewInternalServerError("")
+			}
 			if usernameExists {
 				return nil, helper.NewConflictError("Username already taken")
 			}

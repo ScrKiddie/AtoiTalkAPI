@@ -114,6 +114,7 @@ func (s *GroupChatService) CreateGroupChat(ctx context.Context, creatorID uuid.U
 	var fileToUpload multipart.File
 	var fileUploadPath string
 	var fileContentType string
+	avatarUploadSucceeded := true
 
 	if req.Avatar != nil {
 		file, err := req.Avatar.Open()
@@ -231,6 +232,7 @@ func (s *GroupChatService) CreateGroupChat(ctx context.Context, creatorID uuid.U
 
 	if fileToUpload != nil {
 		if err := s.storageAdapter.StoreFromReader(fileToUpload, fileContentType, fileUploadPath, true); err != nil {
+			avatarUploadSucceeded = false
 			slog.Error("Failed to store group avatar after db commit", "error", err)
 
 			if avatarMedia != nil {
@@ -244,11 +246,13 @@ func (s *GroupChatService) CreateGroupChat(ctx context.Context, creatorID uuid.U
 					}
 				}
 			}
+
+			avatarMedia = nil
 		}
 	}
 
 	avatarURL := ""
-	if avatarMedia != nil {
+	if avatarMedia != nil && avatarUploadSucceeded {
 		avatarURL = s.storageAdapter.GetPublicURL(avatarMedia.FileName)
 	}
 
@@ -435,6 +439,7 @@ func (s *GroupChatService) UpdateGroupChat(ctx context.Context, requestorID uuid
 	var fileUploadPath string
 	var fileContentType string
 	var newMediaID uuid.UUID
+	avatarUploadSucceeded := true
 
 	if req.DeleteAvatar && gc.Edges.Avatar != nil {
 		update.ClearAvatar()
@@ -543,6 +548,7 @@ func (s *GroupChatService) UpdateGroupChat(ctx context.Context, requestorID uuid
 
 	if fileToUpload != nil {
 		if err := s.storageAdapter.StoreFromReader(fileToUpload, fileContentType, fileUploadPath, true); err != nil {
+			avatarUploadSucceeded = false
 			slog.Error("Failed to store group avatar after db commit", "error", err)
 
 			if newMediaID != uuid.Nil {
@@ -568,10 +574,14 @@ func (s *GroupChatService) UpdateGroupChat(ctx context.Context, requestorID uuid
 	if s.wsHub != nil && len(createdSystemMessages) > 0 {
 		go func() {
 			for _, sysMsg := range createdSystemMessages {
-				fullMsg, _ := s.client.Message.Query().
+				fullMsg, err := s.client.Message.Query().
 					Where(message.ID(sysMsg.ID)).
 					WithSender().
 					Only(context.Background())
+				if err != nil {
+					slog.Error("Failed to fetch system message for broadcast", "error", err, "messageID", sysMsg.ID)
+					continue
+				}
 
 				msgResponse := helper.ToMessageResponse(fullMsg, s.storageAdapter, nil, string(requestorRole))
 
@@ -597,7 +607,7 @@ func (s *GroupChatService) UpdateGroupChat(ctx context.Context, requestorID uuid
 			}
 
 			avatarURL := ""
-			if updatedGroupWithAvatar != nil && updatedGroupWithAvatar.Edges.Avatar != nil {
+			if avatarUploadSucceeded && updatedGroupWithAvatar != nil && updatedGroupWithAvatar.Edges.Avatar != nil {
 				avatarURL = s.storageAdapter.GetPublicURL(updatedGroupWithAvatar.Edges.Avatar.FileName)
 			}
 
@@ -629,24 +639,27 @@ func (s *GroupChatService) UpdateGroupChat(ctx context.Context, requestorID uuid
 					Select(groupmember.FieldUserID, groupmember.FieldRole).
 					All(context.Background())
 
-				if err == nil {
-					for _, m := range members {
-						payload := chatPayload
-						if m.Role == groupmember.RoleOwner || m.Role == groupmember.RoleAdmin {
-							payload.InviteCode = &updatedGroup.InviteCode
-							payload.InviteExpiresAt = inviteExpiresAt
-						}
+				if err != nil {
+					slog.Error("Failed to fetch group members for chat update broadcast", "error", err, "groupID", gc.ID)
+					return
+				}
 
-						s.wsHub.BroadcastToUser(m.UserID, websocket.Event{
-							Type:    websocket.EventChatUpdate,
-							Payload: payload,
-							Meta: &websocket.EventMeta{
-								Timestamp: time.Now().UTC().UnixMilli(),
-								ChatID:    gc.ChatID,
-								SenderID:  requestorID,
-							},
-						})
+				for _, m := range members {
+					payload := chatPayload
+					if m.Role == groupmember.RoleOwner || m.Role == groupmember.RoleAdmin {
+						payload.InviteCode = &updatedGroup.InviteCode
+						payload.InviteExpiresAt = inviteExpiresAt
 					}
+
+					s.wsHub.BroadcastToUser(m.UserID, websocket.Event{
+						Type:    websocket.EventChatUpdate,
+						Payload: payload,
+						Meta: &websocket.EventMeta{
+							Timestamp: time.Now().UTC().UnixMilli(),
+							ChatID:    gc.ChatID,
+							SenderID:  requestorID,
+						},
+					})
 				}
 			}
 		}()
@@ -657,14 +670,16 @@ func (s *GroupChatService) UpdateGroupChat(ctx context.Context, requestorID uuid
 	if req.DeleteAvatar {
 		avatarURL = ""
 	} else if req.Avatar != nil {
-		updatedGroupWithAvatar, avatarErr := s.client.GroupChat.Query().
-			Where(groupchat.ID(updatedGroup.ID)).
-			WithAvatar().
-			Only(context.Background())
-		if avatarErr != nil {
-			slog.Error("Failed to fetch updated group avatar for response", "error", avatarErr, "groupID", updatedGroup.ID)
-		} else if updatedGroupWithAvatar.Edges.Avatar != nil {
-			avatarURL = s.storageAdapter.GetPublicURL(updatedGroupWithAvatar.Edges.Avatar.FileName)
+		if avatarUploadSucceeded {
+			updatedGroupWithAvatar, avatarErr := s.client.GroupChat.Query().
+				Where(groupchat.ID(updatedGroup.ID)).
+				WithAvatar().
+				Only(context.Background())
+			if avatarErr != nil {
+				slog.Error("Failed to fetch updated group avatar for response", "error", avatarErr, "groupID", updatedGroup.ID)
+			} else if updatedGroupWithAvatar.Edges.Avatar != nil {
+				avatarURL = s.storageAdapter.GetPublicURL(updatedGroupWithAvatar.Edges.Avatar.FileName)
+			}
 		}
 	} else if gc.Edges.Avatar != nil {
 		avatarURL = s.storageAdapter.GetPublicURL(gc.Edges.Avatar.FileName)
@@ -743,9 +758,13 @@ func (s *GroupChatService) DeleteGroup(ctx context.Context, userID, groupID uuid
 		s.redisAdapter.Del(context.Background(), fmt.Sprintf("chat_members:%s", groupID))
 	}
 
-	members, _ := s.client.GroupMember.Query().
+	members, err := s.client.GroupMember.Query().
 		Where(groupmember.GroupChatID(gc.ID)).
 		All(context.Background())
+	if err != nil {
+		slog.Error("Failed to fetch group members after delete", "error", err, "groupID", groupID)
+		return nil
+	}
 
 	for _, m := range members {
 		if s.wsHub != nil {

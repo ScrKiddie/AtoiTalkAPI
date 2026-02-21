@@ -119,7 +119,14 @@ func (c *UserController) UpdateProfile(w http.ResponseWriter, r *http.Request) {
 	req.Username = r.FormValue("username")
 	req.FullName = r.FormValue("full_name")
 	req.Bio = r.FormValue("bio")
-	req.DeleteAvatar, _ = strconv.ParseBool(r.FormValue("delete_avatar"))
+	if deleteAvatarRaw := r.FormValue("delete_avatar"); deleteAvatarRaw != "" {
+		deleteAvatar, parseErr := strconv.ParseBool(deleteAvatarRaw)
+		if parseErr != nil {
+			helper.WriteError(w, helper.NewBadRequestError("Invalid delete_avatar value"))
+			return
+		}
+		req.DeleteAvatar = deleteAvatar
+	}
 
 	file, header, err := r.FormFile("avatar")
 	if err == nil {
@@ -173,16 +180,22 @@ func (c *UserController) SearchUsers(w http.ResponseWriter, r *http.Request) {
 
 	limit := 10
 	if limitStr != "" {
-		if l, err := strconv.Atoi(limitStr); err == nil {
-			limit = l
+		l, err := strconv.Atoi(limitStr)
+		if err != nil {
+			helper.WriteError(w, helper.NewBadRequestError("Invalid limit"))
+			return
 		}
+		limit = l
 	}
 
 	includeChatID := false
 	if includeChatIDStr != "" {
-		if b, err := strconv.ParseBool(includeChatIDStr); err == nil {
-			includeChatID = b
+		b, err := strconv.ParseBool(includeChatIDStr)
+		if err != nil {
+			helper.WriteError(w, helper.NewBadRequestError("Invalid include_chat_id"))
+			return
 		}
+		includeChatID = b
 	}
 
 	var excludeChatID *uuid.UUID
@@ -241,9 +254,12 @@ func (c *UserController) GetBlockedUsers(w http.ResponseWriter, r *http.Request)
 
 	limit := 10
 	if limitStr != "" {
-		if l, err := strconv.Atoi(limitStr); err == nil {
-			limit = l
+		l, err := strconv.Atoi(limitStr)
+		if err != nil {
+			helper.WriteError(w, helper.NewBadRequestError("Invalid limit"))
+			return
 		}
+		limit = l
 	}
 
 	req := model.GetBlockedUsersRequest{

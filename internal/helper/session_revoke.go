@@ -3,7 +3,6 @@ package helper
 import (
 	"context"
 	"log/slog"
-	"strconv"
 	"time"
 
 	"github.com/google/uuid"
@@ -17,7 +16,7 @@ type SessionRevokeSnapshot struct {
 
 type SessionRevoker interface {
 	SnapshotUserRevoke(ctx context.Context, userID uuid.UUID) (SessionRevokeSnapshot, error)
-	RevokeAllSessionsAt(ctx context.Context, userID uuid.UUID, revokedAt int64) error
+	RevokeAllSessionsAt(ctx context.Context, userID uuid.UUID, revokedAt int64) (string, error)
 	RollbackUserRevoke(ctx context.Context, userID uuid.UUID, expectedValue string, snapshot SessionRevokeSnapshot) error
 }
 
@@ -28,11 +27,12 @@ func RevokeSessionsForTransaction(ctx context.Context, sessionRepo SessionRevoke
 	}
 
 	revokedAt := time.Now().UTC().UnixMilli()
-	if err := sessionRepo.RevokeAllSessionsAt(ctx, userID, revokedAt); err != nil {
+	revokeMarker, err := sessionRepo.RevokeAllSessionsAt(ctx, userID, revokedAt)
+	if err != nil {
 		return "", snapshot, err
 	}
 
-	return strconv.FormatInt(revokedAt, 10), snapshot, nil
+	return revokeMarker, snapshot, nil
 }
 
 func RollbackSessionRevokeIfNeeded(sessionRepo SessionRevoker, userID uuid.UUID, expectedValue string, snapshot SessionRevokeSnapshot) {

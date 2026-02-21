@@ -51,9 +51,12 @@ func (c *ChatController) GetChats(w http.ResponseWriter, r *http.Request) {
 
 	limit := 20
 	if limitStr != "" {
-		if l, err := strconv.Atoi(limitStr); err == nil {
-			limit = l
+		l, err := strconv.Atoi(limitStr)
+		if err != nil {
+			helper.WriteError(w, helper.NewBadRequestError("Invalid limit"))
+			return
 		}
+		limit = l
 	}
 
 	req := model.GetChatsRequest{

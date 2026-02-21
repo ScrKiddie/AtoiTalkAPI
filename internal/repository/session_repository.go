@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"log/slog"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -27,19 +28,21 @@ func NewSessionRepository(redisAdapter *adapter.RedisAdapter, cfg *config.AppCon
 }
 
 func (r *SessionRepository) RevokeAllSessions(ctx context.Context, userID uuid.UUID) error {
-	return r.RevokeAllSessionsAt(ctx, userID, time.Now().UTC().UnixMilli())
+	_, err := r.RevokeAllSessionsAt(ctx, userID, time.Now().UTC().UnixMilli())
+	return err
 }
 
-func (r *SessionRepository) RevokeAllSessionsAt(ctx context.Context, userID uuid.UUID, revokedAt int64) error {
+func (r *SessionRepository) RevokeAllSessionsAt(ctx context.Context, userID uuid.UUID, revokedAt int64) (string, error) {
 	ttl := time.Duration(r.cfg.JWTExp) * time.Second
 	key := fmt.Sprintf("revoked_user:%s", userID)
+	marker := fmt.Sprintf("%d:%s", revokedAt, uuid.NewString())
 
-	err := r.redisAdapter.Set(ctx, key, revokedAt, ttl)
+	err := r.redisAdapter.Set(ctx, key, marker, ttl)
 	if err != nil {
 		slog.Error("Failed to revoke all sessions in repository", "error", err, "userID", userID)
-		return fmt.Errorf("failed to revoke sessions: %w", err)
+		return "", fmt.Errorf("failed to revoke sessions: %w", err)
 	}
-	return nil
+	return marker, nil
 }
 
 func (r *SessionRepository) SnapshotUserRevoke(ctx context.Context, userID uuid.UUID) (helper.SessionRevokeSnapshot, error) {
@@ -134,7 +137,12 @@ func (r *SessionRepository) IsUserRevoked(ctx context.Context, userID uuid.UUID,
 		return false, nil
 	}
 
-	revokedAt, err := strconv.ParseInt(revokedAtStr, 10, 64)
+	revokedAtValue := revokedAtStr
+	if sep := strings.IndexByte(revokedAtStr, ':'); sep > 0 {
+		revokedAtValue = revokedAtStr[:sep]
+	}
+
+	revokedAt, err := strconv.ParseInt(revokedAtValue, 10, 64)
 	if err != nil {
 		return false, fmt.Errorf("invalid revoked timestamp for user %s: %w", userID, err)
 	}

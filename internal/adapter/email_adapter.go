@@ -3,8 +3,11 @@ package adapter
 import (
 	"AtoiTalkAPI/internal/config"
 	"AtoiTalkAPI/internal/helper"
+	"crypto/tls"
 	"fmt"
+	"net"
 	"net/smtp"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -30,9 +33,6 @@ func NewEmailAdapter(cfg *config.AppConfig) *EmailAdapter {
 }
 
 func (e *EmailAdapter) Send(to []string, subject string, body string) error {
-	addr := fmt.Sprintf("%s:%d", e.host, e.port)
-	auth := smtp.PlainAuth("", e.user, e.password, e.host)
-
 	msg := []byte(fmt.Sprintf("From: %s <%s>\r\n"+
 		"To: %s\r\n"+
 		"Subject: %s\r\n"+
@@ -42,23 +42,10 @@ func (e *EmailAdapter) Send(to []string, subject string, body string) error {
 		"%s\r\n", e.fromName, e.fromEmail, strings.Join(to, ","), subject, body))
 
 	operation := func() (struct{}, bool, error) {
-		errChan := make(chan error, 1)
 		timeout := 10 * time.Second
-
-		go func() {
-			errChan <- smtp.SendMail(addr, auth, e.fromEmail, to, msg)
-		}()
-
-		var err error
-		select {
-		case sendErr := <-errChan:
-			err = sendErr
-		case <-time.After(timeout):
-			err = fmt.Errorf("email sending timed out after %v", timeout)
-		}
+		err := e.sendWithTimeout(to, msg, timeout)
 
 		if err != nil {
-
 			return struct{}{}, true, err
 		}
 
@@ -67,4 +54,68 @@ func (e *EmailAdapter) Send(to []string, subject string, body string) error {
 
 	_, err := helper.RetryWithBackoff(operation, 3, 1*time.Second)
 	return err
+}
+
+func (e *EmailAdapter) sendWithTimeout(to []string, msg []byte, timeout time.Duration) error {
+	addr := net.JoinHostPort(e.host, strconv.Itoa(e.port))
+
+	conn, err := net.DialTimeout("tcp", addr, timeout)
+	if err != nil {
+		return err
+	}
+
+	if err := conn.SetDeadline(time.Now().Add(timeout)); err != nil {
+		conn.Close()
+		return err
+	}
+
+	client, err := smtp.NewClient(conn, e.host)
+	if err != nil {
+		conn.Close()
+		return err
+	}
+	defer client.Close()
+
+	if ok, _ := client.Extension("STARTTLS"); ok {
+		if err := client.StartTLS(&tls.Config{ServerName: e.host}); err != nil {
+			return err
+		}
+	}
+
+	if e.user != "" || e.password != "" {
+		if ok, _ := client.Extension("AUTH"); !ok {
+			return fmt.Errorf("smtp server does not support AUTH")
+		}
+
+		auth := smtp.PlainAuth("", e.user, e.password, e.host)
+		if err := client.Auth(auth); err != nil {
+			return err
+		}
+	}
+
+	if err := client.Mail(e.fromEmail); err != nil {
+		return err
+	}
+
+	for _, recipient := range to {
+		if err := client.Rcpt(recipient); err != nil {
+			return err
+		}
+	}
+
+	writer, err := client.Data()
+	if err != nil {
+		return err
+	}
+
+	if _, err := writer.Write(msg); err != nil {
+		_ = writer.Close()
+		return err
+	}
+
+	if err := writer.Close(); err != nil {
+		return err
+	}
+
+	return client.Quit()
 }

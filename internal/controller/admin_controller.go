@@ -132,9 +132,12 @@ func (c *AdminController) GetReports(w http.ResponseWriter, r *http.Request) {
 
 	limit := 20
 	if limitStr != "" {
-		if l, err := strconv.Atoi(limitStr); err == nil {
-			limit = l
+		l, err := strconv.Atoi(limitStr)
+		if err != nil {
+			helper.WriteError(w, helper.NewBadRequestError("Invalid limit"))
+			return
 		}
+		limit = l
 	}
 
 	req := model.GetReportsRequest{
@@ -326,9 +329,12 @@ func (c *AdminController) GetUsers(w http.ResponseWriter, r *http.Request) {
 	req.Cursor = r.URL.Query().Get("cursor")
 
 	if limitStr := r.URL.Query().Get("limit"); limitStr != "" {
-		if limit, err := strconv.Atoi(limitStr); err == nil {
-			req.Limit = limit
+		limit, err := strconv.Atoi(limitStr)
+		if err != nil {
+			helper.WriteError(w, helper.NewBadRequestError("Invalid limit"))
+			return
 		}
+		req.Limit = limit
 	}
 
 	data, nextCursor, hasNext, err := c.adminService.GetUsers(r.Context(), req)
@@ -445,9 +451,12 @@ func (c *AdminController) GetGroups(w http.ResponseWriter, r *http.Request) {
 	req.Query = r.URL.Query().Get("query")
 	req.Cursor = r.URL.Query().Get("cursor")
 	if limitStr := r.URL.Query().Get("limit"); limitStr != "" {
-		if limit, err := strconv.Atoi(limitStr); err == nil {
-			req.Limit = limit
+		limit, err := strconv.Atoi(limitStr)
+		if err != nil {
+			helper.WriteError(w, helper.NewBadRequestError("Invalid limit"))
+			return
 		}
+		req.Limit = limit
 	}
 
 	data, nextCursor, hasNext, err := c.adminService.GetGroups(r.Context(), req)
@@ -616,9 +625,12 @@ func (c *AdminController) GetGroupMembers(w http.ResponseWriter, r *http.Request
 
 	limit := 20
 	if limitStr != "" {
-		if l, err := strconv.Atoi(limitStr); err == nil {
-			limit = l
+		l, err := strconv.Atoi(limitStr)
+		if err != nil {
+			helper.WriteError(w, helper.NewBadRequestError("Invalid limit"))
+			return
 		}
+		limit = l
 	}
 
 	req := model.SearchGroupMembersRequest{

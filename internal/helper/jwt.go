@@ -9,16 +9,20 @@ import (
 )
 
 type JWTClaims struct {
-	UserID uuid.UUID `json:"user_id"`
+	UserID         uuid.UUID `json:"user_id"`
+	IssuedAtMillis int64     `json:"iat_ms,omitempty"`
 	jwt.RegisteredClaims
 }
 
 func GenerateJWT(jwtSecret string, jwtExp int, userID uuid.UUID) (string, error) {
+	now := time.Now().UTC()
+
 	claims := JWTClaims{
-		UserID: userID,
+		UserID:         userID,
+		IssuedAtMillis: now.UnixMilli(),
 		RegisteredClaims: jwt.RegisteredClaims{
-			ExpiresAt: jwt.NewNumericDate(time.Now().UTC().Add(time.Duration(jwtExp) * time.Second)),
-			IssuedAt:  jwt.NewNumericDate(time.Now().UTC()),
+			ExpiresAt: jwt.NewNumericDate(now.Add(time.Duration(jwtExp) * time.Second)),
+			IssuedAt:  jwt.NewNumericDate(now),
 			Issuer:    "AtoiTalkAPI",
 		},
 	}

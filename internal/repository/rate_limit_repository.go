@@ -3,6 +3,7 @@ package repository
 import (
 	"AtoiTalkAPI/internal/adapter"
 	"context"
+	"fmt"
 	"time"
 )
 
@@ -30,8 +31,14 @@ func (r *RateLimitRepository) Allow(ctx context.Context, key string, limit int, 
 	count := incr.Val()
 	ttl := ttlCmd.Val()
 
-	if count == 1 || ttl == -1 {
-		client.Expire(ctx, key, window)
+	if count == 1 || ttl <= 0 {
+		expireSet, err := client.Expire(ctx, key, window).Result()
+		if err != nil {
+			return false, 0, fmt.Errorf("failed to set rate limit expiry: %w", err)
+		}
+		if !expireSet {
+			return false, 0, fmt.Errorf("failed to set rate limit expiry: key missing")
+		}
 		ttl = window
 	}
 

@@ -356,6 +356,7 @@ func (s *UserService) UpdateProfile(ctx context.Context, userID uuid.UUID, req m
 	var fileUploadPath string
 	var fileContentType string
 	var mediaID uuid.UUID
+	avatarUploadSucceeded := true
 
 	if req.DeleteAvatar {
 		update.ClearAvatar().ClearAvatarID()
@@ -416,6 +417,7 @@ func (s *UserService) UpdateProfile(ctx context.Context, userID uuid.UUID, req m
 	if fileToUpload != nil {
 
 		if err := s.storageAdapter.StoreFromReader(fileToUpload, fileContentType, fileUploadPath, true); err != nil {
+			avatarUploadSucceeded = false
 			slog.Error("Failed to store avatar to storage after db commit", "error", err, "userID", userID)
 
 			if mediaID != uuid.Nil {
@@ -436,7 +438,11 @@ func (s *UserService) UpdateProfile(ctx context.Context, userID uuid.UUID, req m
 
 	var avatarFileName string
 	if isAvatarUpdated {
-		avatarFileName = newAvatarFileName
+		if req.Avatar != nil {
+			if avatarUploadSucceeded {
+				avatarFileName = newAvatarFileName
+			}
+		}
 	} else if u.Edges.Avatar != nil {
 		avatarFileName = u.Edges.Avatar.FileName
 	}
