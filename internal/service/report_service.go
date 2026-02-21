@@ -163,13 +163,13 @@ func (s *ReportService) CreateReport(ctx context.Context, reporterID uuid.UUID, 
 		}
 
 	case "group":
-		if req.GroupID == nil {
-			return helper.NewBadRequestError("Group ID is required")
+		if req.ChatID == nil {
+			return helper.NewBadRequestError("Chat ID is required for group report")
 		}
-		targetGroupID = req.GroupID
+		targetGroupID = req.ChatID
 
 		group, err := s.client.GroupChat.Query().
-			Where(groupchat.ChatID(*req.GroupID)).
+			Where(groupchat.ChatID(*req.ChatID)).
 			WithAvatar().
 			Only(ctx)
 

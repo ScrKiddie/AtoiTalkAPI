@@ -362,7 +362,7 @@ func TestReportSystem(t *testing.T) {
 
 		reqBody := model.CreateReportRequest{
 			TargetType: "group",
-			GroupID:    &chatEntity.ID,
+			ChatID:     &chatEntity.ID,
 			Reason:     "violence",
 		}
 		body, _ := json.Marshal(reqBody)
@@ -394,7 +394,7 @@ func TestReportSystem(t *testing.T) {
 
 		reqBody := model.CreateReportRequest{
 			TargetType: "group",
-			GroupID:    &chatEntity.ID,
+			ChatID:     &chatEntity.ID,
 			Reason:     "violence",
 		}
 		body, _ := json.Marshal(reqBody)

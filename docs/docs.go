@@ -4742,10 +4742,11 @@ const docTemplate = `{
                 "target_type"
             ],
             "properties": {
-                "description": {
+                "chat_id": {
+                    "description": "Chat entity UUID of the group to report. Required when target_type is \"group\".\nThis is the ID visible in chat lists, not the internal GroupChat entity ID.",
                     "type": "string"
                 },
-                "group_id": {
+                "description": {
                     "type": "string"
                 },
                 "message_id": {
@@ -5136,7 +5137,7 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "evidence_snapshot": {
-                    "description": "Snapshot of reported entity data at report creation time.\nShape depends on target_type.\n\ntarget_type = \"message\":\n\n\t{\n\t  \"content\": \"Offensive content...\", // can be null\n\t  \"sender_id\": \"u1...\", // empty string when sender ID unavailable\n\t  \"sender_username\": \"alice\",\n\t  \"sender_name\": \"Alice Wonderland\",\n\t  \"sent_at\": \"2026-02-19T21:14:13Z\",\n\t  \"chat_id\": \"c1...\",\n\t  \"chat_type\": \"group\", // or \"private\"\n\t  \"is_edited\": false,\n\t  \"attachments\": [\n\t    {\n\t      \"id\": \"m1...\",\n\t      \"file_name\": \"abc.jpg\",\n\t      \"original_name\": \"photo.jpg\",\n\t      \"file_size\": 12345,\n\t      \"mime_type\": \"image/jpeg\",\n\t      \"url\": \"https://...\"\n\t    }\n\t  ],\n\t  \"group_id\": \"g1...\" // only when chat_type is \"group\"\n\t}\n\ntarget_type = \"group\":\n\n\t{\n\t  \"group_id\": \"g1...\",\n\t  \"chat_id\": \"c1...\",\n\t  \"name\": \"Bad Group\",\n\t  \"description\": \"...\", // can be null\n\t  \"avatar\": \"https://...\", // can be empty string\n\t  \"created_by\": \"u2...\" // can be null\n\t}\n\ntarget_type = \"user\":\n\n\t{\n\t  \"user_id\": \"u3...\",\n\t  \"username\": \"baduser\", // can be null\n\t  \"full_name\": \"Bad User\", // can be null\n\t  \"bio\": \"...\", // can be null\n\t  \"avatar\": \"https://...\" // can be empty string\n\t}\n\nNote: attachment URLs may be refreshed when admin fetches report detail.",
+                    "description": "Snapshot of reported entity data at report creation time.\nShape depends on target_type.\n\nIn shapes below, chat_id is the Chat entity UUID used by frontend.\ngroup_id is the internal GroupChat entity UUID for backend reference only.\n\ntarget_type = \"message\":\n\n\t{\n\t  \"content\": \"Offensive content...\", // can be null\n\t  \"sender_id\": \"u1...\", // empty string when sender ID unavailable\n\t  \"sender_username\": \"alice\",\n\t  \"sender_name\": \"Alice Wonderland\",\n\t  \"sent_at\": \"2026-02-19T21:14:13Z\",\n\t  \"chat_id\": \"c1...\", // frontend-facing Chat UUID\n\t  \"chat_type\": \"group\", // or \"private\"\n\t  \"is_edited\": false,\n\t  \"attachments\": [\n\t    {\n\t      \"id\": \"m1...\",\n\t      \"file_name\": \"abc.jpg\",\n\t      \"original_name\": \"photo.jpg\",\n\t      \"file_size\": 12345,\n\t      \"mime_type\": \"image/jpeg\",\n\t      \"url\": \"https://...\"\n\t    }\n\t  ],\n\t  \"group_id\": \"g1...\" // internal GroupChat UUID, only when chat_type is \"group\"\n\t}\n\ntarget_type = \"group\":\n\n\t{\n\t  \"group_id\": \"g1...\", // internal GroupChat UUID\n\t  \"chat_id\": \"c1...\",  // frontend-facing Chat UUID\n\t  \"name\": \"Bad Group\",\n\t  \"description\": \"...\", // can be null\n\t  \"avatar\": \"https://...\", // can be empty string\n\t  \"created_by\": \"u2...\" // can be null\n\t}\n\ntarget_type = \"user\":\n\n\t{\n\t  \"user_id\": \"u3...\",\n\t  \"username\": \"baduser\", // can be null\n\t  \"full_name\": \"Bad User\", // can be null\n\t  \"bio\": \"...\", // can be null\n\t  \"avatar\": \"https://...\" // can be empty string\n\t}\n\nNote: attachment URLs may be refreshed when admin fetches report detail.",
                     "type": "object",
                     "additionalProperties": true
                 },
@@ -5167,7 +5168,7 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "target_id": {
-                    "description": "ID of the reported entity (User, Group, or Message)",
+                    "description": "ID of the reported entity.\nFor target_type \"user\" this is the user UUID.\nFor target_type \"message\" this is the message UUID.\nFor target_type \"group\" this is the internal GroupChat UUID (not the chat_id).\nTo navigate to the group in the frontend, use evidence_snapshot.chat_id instead.",
                     "type": "string"
                 },
                 "target_is_banned": {

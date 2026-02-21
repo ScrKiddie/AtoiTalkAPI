@@ -5,11 +5,14 @@ import (
 )
 
 type CreateReportRequest struct {
-	TargetType   string     `json:"target_type" validate:"required,oneof=message group user"`
-	Reason       string     `json:"reason" validate:"required"`
-	Description  string     `json:"description"`
-	MessageID    *uuid.UUID `json:"message_id,omitempty"`
-	GroupID      *uuid.UUID `json:"group_id,omitempty"`
+	TargetType  string     `json:"target_type" validate:"required,oneof=message group user"`
+	Reason      string     `json:"reason" validate:"required"`
+	Description string     `json:"description"`
+	MessageID   *uuid.UUID `json:"message_id,omitempty"`
+	// Chat entity UUID of the group to report. Required when target_type is "group".
+	// This is the ID visible in chat lists, not the internal GroupChat entity ID.
+	ChatID *uuid.UUID `json:"chat_id,omitempty"`
+
 	TargetUserID *uuid.UUID `json:"target_user_id,omitempty"`
 }
 
@@ -37,7 +40,11 @@ type ReportDetailResponse struct {
 	ID         uuid.UUID `json:"id"`
 	TargetType string    `json:"target_type"`
 
-	// ID of the reported entity (User, Group, or Message)
+	// ID of the reported entity.
+	// For target_type "user" this is the user UUID.
+	// For target_type "message" this is the message UUID.
+	// For target_type "group" this is the internal GroupChat UUID (not the chat_id).
+	// To navigate to the group in the frontend, use evidence_snapshot.chat_id instead.
 	TargetID *uuid.UUID `json:"target_id,omitempty"`
 
 	// Indicates if the target entity has been soft-deleted
@@ -63,6 +70,9 @@ type ReportDetailResponse struct {
 	// Snapshot of reported entity data at report creation time.
 	// Shape depends on target_type.
 	//
+	// In shapes below, chat_id is the Chat entity UUID used by frontend.
+	// group_id is the internal GroupChat entity UUID for backend reference only.
+	//
 	// target_type = "message":
 	//
 	//	{
@@ -71,7 +81,7 @@ type ReportDetailResponse struct {
 	//	  "sender_username": "alice",
 	//	  "sender_name": "Alice Wonderland",
 	//	  "sent_at": "2026-02-19T21:14:13Z",
-	//	  "chat_id": "c1...",
+	//	  "chat_id": "c1...", // frontend-facing Chat UUID
 	//	  "chat_type": "group", // or "private"
 	//	  "is_edited": false,
 	//	  "attachments": [
@@ -84,14 +94,14 @@ type ReportDetailResponse struct {
 	//	      "url": "https://..."
 	//	    }
 	//	  ],
-	//	  "group_id": "g1..." // only when chat_type is "group"
+	//	  "group_id": "g1..." // internal GroupChat UUID, only when chat_type is "group"
 	//	}
 	//
 	// target_type = "group":
 	//
 	//	{
-	//	  "group_id": "g1...",
-	//	  "chat_id": "c1...",
+	//	  "group_id": "g1...", // internal GroupChat UUID
+	//	  "chat_id": "c1...",  // frontend-facing Chat UUID
 	//	  "name": "Bad Group",
 	//	  "description": "...", // can be null
 	//	  "avatar": "https://...", // can be empty string
