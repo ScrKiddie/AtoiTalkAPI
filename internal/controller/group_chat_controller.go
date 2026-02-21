@@ -109,7 +109,7 @@ func (c *GroupChatController) CreateGroupChat(w http.ResponseWriter, r *http.Req
 // @Tags         chat
 // @Accept       multipart/form-data
 // @Produce      json
-// @Param        groupID path string true "Group Chat ID (UUID)"
+// @Param        chatID path string true "Group Chat ID (UUID)"
 // @Param        name formData string false "Group Name"
 // @Param        description formData string false "Group Description"
 // @Param        avatar formData file false "Group Avatar Image"
@@ -123,7 +123,7 @@ func (c *GroupChatController) CreateGroupChat(w http.ResponseWriter, r *http.Req
 // @Failure      429  {object}  helper.ResponseError
 // @Failure      500  {object}  helper.ResponseError
 // @Security     BearerAuth
-// @Router       /api/chats/group/{groupID} [put]
+// @Router       /api/chats/group/{chatID} [put]
 func (c *GroupChatController) UpdateGroupChat(w http.ResponseWriter, r *http.Request) {
 	userContext, ok := r.Context().Value(middleware.UserContextKey).(*model.UserDTO)
 	if !ok {
@@ -131,7 +131,7 @@ func (c *GroupChatController) UpdateGroupChat(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	groupIDStr := chi.URLParam(r, "groupID")
+	groupIDStr := chi.URLParam(r, "chatID")
 	groupID, err := uuid.Parse(groupIDStr)
 	if err != nil {
 		helper.WriteError(w, helper.NewBadRequestError("Invalid Group ID"))
@@ -185,7 +185,7 @@ func (c *GroupChatController) UpdateGroupChat(w http.ResponseWriter, r *http.Req
 // @Tags         chat
 // @Accept       json
 // @Produce      json
-// @Param        groupID path string true "Group Chat ID (UUID)"
+// @Param        chatID path string true "Group Chat ID (UUID)"
 // @Param        query query string false "Search query"
 // @Param        cursor query string false "Pagination cursor"
 // @Param        limit query int false "Number of items per page (default 20, max 50)"
@@ -197,7 +197,7 @@ func (c *GroupChatController) UpdateGroupChat(w http.ResponseWriter, r *http.Req
 // @Failure      429  {object}  helper.ResponseError
 // @Failure      500  {object}  helper.ResponseError
 // @Security     BearerAuth
-// @Router       /api/chats/group/{groupID}/members [get]
+// @Router       /api/chats/group/{chatID}/members [get]
 func (c *GroupChatController) SearchGroupMembers(w http.ResponseWriter, r *http.Request) {
 	userContext, ok := r.Context().Value(middleware.UserContextKey).(*model.UserDTO)
 	if !ok {
@@ -205,7 +205,7 @@ func (c *GroupChatController) SearchGroupMembers(w http.ResponseWriter, r *http.
 		return
 	}
 
-	groupIDStr := chi.URLParam(r, "groupID")
+	groupIDStr := chi.URLParam(r, "chatID")
 	groupID, err := uuid.Parse(groupIDStr)
 	if err != nil {
 		helper.WriteError(w, helper.NewBadRequestError("Invalid Group ID"))
@@ -245,7 +245,7 @@ func (c *GroupChatController) SearchGroupMembers(w http.ResponseWriter, r *http.
 // @Tags         chat
 // @Accept       json
 // @Produce      json
-// @Param        groupID path string true "Group Chat ID (UUID)"
+// @Param        chatID path string true "Group Chat ID (UUID)"
 // @Param        request body model.AddGroupMemberRequest true "Add Member Request"
 // @Success      200  {object}  helper.ResponseSuccess{data=[]model.MessageResponse}
 // @Failure      400  {object}  helper.ResponseError
@@ -256,7 +256,7 @@ func (c *GroupChatController) SearchGroupMembers(w http.ResponseWriter, r *http.
 // @Failure      429  {object}  helper.ResponseError
 // @Failure      500  {object}  helper.ResponseError
 // @Security     BearerAuth
-// @Router       /api/chats/group/{groupID}/members [post]
+// @Router       /api/chats/group/{chatID}/members [post]
 func (c *GroupChatController) AddMember(w http.ResponseWriter, r *http.Request) {
 	userContext, ok := r.Context().Value(middleware.UserContextKey).(*model.UserDTO)
 	if !ok {
@@ -264,7 +264,7 @@ func (c *GroupChatController) AddMember(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	groupIDStr := chi.URLParam(r, "groupID")
+	groupIDStr := chi.URLParam(r, "chatID")
 	groupID, err := uuid.Parse(groupIDStr)
 	if err != nil {
 		helper.WriteError(w, helper.NewBadRequestError("Invalid Group ID"))
@@ -292,7 +292,7 @@ func (c *GroupChatController) AddMember(w http.ResponseWriter, r *http.Request) 
 // @Tags         chat
 // @Accept       json
 // @Produce      json
-// @Param        groupID path string true "Group Chat ID (UUID)"
+// @Param        chatID path string true "Group Chat ID (UUID)"
 // @Success      200  {object}  helper.ResponseSuccess{data=model.MessageResponse}
 // @Failure      400  {object}  helper.ResponseError
 // @Failure      401  {object}  helper.ResponseError
@@ -300,7 +300,7 @@ func (c *GroupChatController) AddMember(w http.ResponseWriter, r *http.Request) 
 // @Failure      429  {object}  helper.ResponseError
 // @Failure      500  {object}  helper.ResponseError
 // @Security     BearerAuth
-// @Router       /api/chats/group/{groupID}/leave [post]
+// @Router       /api/chats/group/{chatID}/leave [post]
 func (c *GroupChatController) LeaveGroup(w http.ResponseWriter, r *http.Request) {
 	userContext, ok := r.Context().Value(middleware.UserContextKey).(*model.UserDTO)
 	if !ok {
@@ -308,7 +308,7 @@ func (c *GroupChatController) LeaveGroup(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	groupIDStr := chi.URLParam(r, "groupID")
+	groupIDStr := chi.URLParam(r, "chatID")
 	groupID, err := uuid.Parse(groupIDStr)
 	if err != nil {
 		helper.WriteError(w, helper.NewBadRequestError("Invalid Group ID"))
@@ -330,7 +330,7 @@ func (c *GroupChatController) LeaveGroup(w http.ResponseWriter, r *http.Request)
 // @Tags         chat
 // @Accept       json
 // @Produce      json
-// @Param        groupID path string true "Group Chat ID (UUID)"
+// @Param        chatID path string true "Group Chat ID (UUID)"
 // @Param        userID path string true "Target User ID (UUID)"
 // @Success      200  {object}  helper.ResponseSuccess{data=model.MessageResponse}
 // @Failure      400  {object}  helper.ResponseError
@@ -340,7 +340,7 @@ func (c *GroupChatController) LeaveGroup(w http.ResponseWriter, r *http.Request)
 // @Failure      429  {object}  helper.ResponseError
 // @Failure      500  {object}  helper.ResponseError
 // @Security     BearerAuth
-// @Router       /api/chats/group/{groupID}/members/{userID}/kick [post]
+// @Router       /api/chats/group/{chatID}/members/{userID}/kick [post]
 func (c *GroupChatController) KickMember(w http.ResponseWriter, r *http.Request) {
 	userContext, ok := r.Context().Value(middleware.UserContextKey).(*model.UserDTO)
 	if !ok {
@@ -348,7 +348,7 @@ func (c *GroupChatController) KickMember(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	groupIDStr := chi.URLParam(r, "groupID")
+	groupIDStr := chi.URLParam(r, "chatID")
 	groupID, err := uuid.Parse(groupIDStr)
 	if err != nil {
 		helper.WriteError(w, helper.NewBadRequestError("Invalid Group ID"))
@@ -377,7 +377,7 @@ func (c *GroupChatController) KickMember(w http.ResponseWriter, r *http.Request)
 // @Tags         chat
 // @Accept       json
 // @Produce      json
-// @Param        groupID path string true "Group Chat ID (UUID)"
+// @Param        chatID path string true "Group Chat ID (UUID)"
 // @Param        userID path string true "Target User ID (UUID)"
 // @Param        request body model.UpdateGroupMemberRoleRequest true "Update Role Request"
 // @Success      200  {object}  helper.ResponseSuccess{data=model.MessageResponse}
@@ -388,7 +388,7 @@ func (c *GroupChatController) KickMember(w http.ResponseWriter, r *http.Request)
 // @Failure      429  {object}  helper.ResponseError
 // @Failure      500  {object}  helper.ResponseError
 // @Security     BearerAuth
-// @Router       /api/chats/group/{groupID}/members/{userID}/role [put]
+// @Router       /api/chats/group/{chatID}/members/{userID}/role [put]
 func (c *GroupChatController) UpdateMemberRole(w http.ResponseWriter, r *http.Request) {
 	userContext, ok := r.Context().Value(middleware.UserContextKey).(*model.UserDTO)
 	if !ok {
@@ -396,7 +396,7 @@ func (c *GroupChatController) UpdateMemberRole(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	groupIDStr := chi.URLParam(r, "groupID")
+	groupIDStr := chi.URLParam(r, "chatID")
 	groupID, err := uuid.Parse(groupIDStr)
 	if err != nil {
 		helper.WriteError(w, helper.NewBadRequestError("Invalid Group ID"))
@@ -431,7 +431,7 @@ func (c *GroupChatController) UpdateMemberRole(w http.ResponseWriter, r *http.Re
 // @Tags         chat
 // @Accept       json
 // @Produce      json
-// @Param        groupID path string true "Group Chat ID (UUID)"
+// @Param        chatID path string true "Group Chat ID (UUID)"
 // @Param        request body model.TransferGroupOwnershipRequest true "Transfer Ownership Request"
 // @Success      200  {object}  helper.ResponseSuccess{data=model.MessageResponse}
 // @Failure      400  {object}  helper.ResponseError
@@ -441,7 +441,7 @@ func (c *GroupChatController) UpdateMemberRole(w http.ResponseWriter, r *http.Re
 // @Failure      429  {object}  helper.ResponseError
 // @Failure      500  {object}  helper.ResponseError
 // @Security     BearerAuth
-// @Router       /api/chats/group/{groupID}/transfer [post]
+// @Router       /api/chats/group/{chatID}/transfer [post]
 func (c *GroupChatController) TransferOwnership(w http.ResponseWriter, r *http.Request) {
 	userContext, ok := r.Context().Value(middleware.UserContextKey).(*model.UserDTO)
 	if !ok {
@@ -449,7 +449,7 @@ func (c *GroupChatController) TransferOwnership(w http.ResponseWriter, r *http.R
 		return
 	}
 
-	groupIDStr := chi.URLParam(r, "groupID")
+	groupIDStr := chi.URLParam(r, "chatID")
 	groupID, err := uuid.Parse(groupIDStr)
 	if err != nil {
 		helper.WriteError(w, helper.NewBadRequestError("Invalid Group ID"))
@@ -477,7 +477,7 @@ func (c *GroupChatController) TransferOwnership(w http.ResponseWriter, r *http.R
 // @Tags         chat
 // @Accept       json
 // @Produce      json
-// @Param        groupID path string true "Group Chat ID (UUID)"
+// @Param        chatID path string true "Group Chat ID (UUID)"
 // @Success      200  {object}  helper.ResponseSuccess
 // @Failure      400  {object}  helper.ResponseError
 // @Failure      401  {object}  helper.ResponseError
@@ -486,7 +486,7 @@ func (c *GroupChatController) TransferOwnership(w http.ResponseWriter, r *http.R
 // @Failure      429  {object}  helper.ResponseError
 // @Failure      500  {object}  helper.ResponseError
 // @Security     BearerAuth
-// @Router       /api/chats/group/{groupID} [delete]
+// @Router       /api/chats/group/{chatID} [delete]
 func (c *GroupChatController) DeleteGroup(w http.ResponseWriter, r *http.Request) {
 	userContext, ok := r.Context().Value(middleware.UserContextKey).(*model.UserDTO)
 	if !ok {
@@ -494,7 +494,7 @@ func (c *GroupChatController) DeleteGroup(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	groupIDStr := chi.URLParam(r, "groupID")
+	groupIDStr := chi.URLParam(r, "chatID")
 	groupID, err := uuid.Parse(groupIDStr)
 	if err != nil {
 		helper.WriteError(w, helper.NewBadRequestError("Invalid Group ID"))
@@ -565,7 +565,7 @@ func (c *GroupChatController) SearchPublicGroups(w http.ResponseWriter, r *http.
 // @Tags         chat
 // @Accept       json
 // @Produce      json
-// @Param        groupID path string true "Group Chat ID (UUID)"
+// @Param        chatID path string true "Group Chat ID (UUID)"
 // @Success      200  {object}  helper.ResponseSuccess{data=model.ChatListResponse}
 // @Failure      400  {object}  helper.ResponseError
 // @Failure      401  {object}  helper.ResponseError
@@ -575,7 +575,7 @@ func (c *GroupChatController) SearchPublicGroups(w http.ResponseWriter, r *http.
 // @Failure      429  {object}  helper.ResponseError
 // @Failure      500  {object}  helper.ResponseError
 // @Security     BearerAuth
-// @Router       /api/chats/group/{groupID}/join [post]
+// @Router       /api/chats/group/{chatID}/join [post]
 func (c *GroupChatController) JoinPublicGroup(w http.ResponseWriter, r *http.Request) {
 	userContext, ok := r.Context().Value(middleware.UserContextKey).(*model.UserDTO)
 	if !ok {
@@ -583,7 +583,7 @@ func (c *GroupChatController) JoinPublicGroup(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	groupIDStr := chi.URLParam(r, "groupID")
+	groupIDStr := chi.URLParam(r, "chatID")
 	groupID, err := uuid.Parse(groupIDStr)
 	if err != nil {
 		helper.WriteError(w, helper.NewBadRequestError("Invalid Group ID"))
@@ -671,7 +671,7 @@ func (c *GroupChatController) GetGroupByInviteCode(w http.ResponseWriter, r *htt
 // @Tags         chat
 // @Accept       json
 // @Produce      json
-// @Param        groupID path string true "Group Chat ID (UUID)"
+// @Param        chatID path string true "Group Chat ID (UUID)"
 // @Success      200  {object}  helper.ResponseSuccess{data=model.GroupInviteResponse}
 // @Failure      400  {object}  helper.ResponseError
 // @Failure      401  {object}  helper.ResponseError
@@ -680,7 +680,7 @@ func (c *GroupChatController) GetGroupByInviteCode(w http.ResponseWriter, r *htt
 // @Failure      429  {object}  helper.ResponseError
 // @Failure      500  {object}  helper.ResponseError
 // @Security     BearerAuth
-// @Router       /api/chats/group/{groupID}/invite [put]
+// @Router       /api/chats/group/{chatID}/invite [put]
 func (c *GroupChatController) ResetInviteCode(w http.ResponseWriter, r *http.Request) {
 	userContext, ok := r.Context().Value(middleware.UserContextKey).(*model.UserDTO)
 	if !ok {
@@ -688,7 +688,7 @@ func (c *GroupChatController) ResetInviteCode(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	groupIDStr := chi.URLParam(r, "groupID")
+	groupIDStr := chi.URLParam(r, "chatID")
 	groupID, err := uuid.Parse(groupIDStr)
 	if err != nil {
 		helper.WriteError(w, helper.NewBadRequestError("Invalid Group ID"))

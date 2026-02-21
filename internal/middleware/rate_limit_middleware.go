@@ -62,7 +62,8 @@ func (m *RateLimitMiddleware) Limit(keyName string, limit int, window time.Durat
 				return
 			}
 
-			next.ServeHTTP(w, r)
+			ctx := helper.WithClientFingerprint(r.Context(), identifier)
+			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}
 }

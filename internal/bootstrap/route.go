@@ -97,7 +97,7 @@ func (route *Route) Register() {
 
 				r.Put("/user/profile", route.userController.UpdateProfile)
 				r.Post("/chats/group", route.groupChatController.CreateGroupChat)
-				r.Put("/chats/group/{groupID}", route.groupChatController.UpdateGroupChat)
+				r.Put("/chats/group/{chatID}", route.groupChatController.UpdateGroupChat)
 			})
 
 			r.Group(func(r chi.Router) {
@@ -116,10 +116,10 @@ func (route *Route) Register() {
 				r.Delete("/admin/reports/{reportID}", route.adminController.DeleteReport)
 
 				r.Get("/admin/groups", route.adminController.GetGroups)
-				r.Get("/admin/groups/{groupID}", route.adminController.GetGroupDetail)
-				r.Get("/admin/groups/{groupID}/members", route.adminController.GetGroupMembers)
-				r.Delete("/admin/groups/{groupID}", route.adminController.DissolveGroup)
-				r.Post("/admin/groups/{groupID}/reset", route.adminController.ResetGroupInfo)
+				r.Get("/admin/groups/{chatID}", route.adminController.GetGroupDetail)
+				r.Get("/admin/groups/{chatID}/members", route.adminController.GetGroupMembers)
+				r.Delete("/admin/groups/{chatID}", route.adminController.DissolveGroup)
+				r.Post("/admin/groups/{chatID}/reset", route.adminController.ResetGroupInfo)
 			})
 
 			r.Group(func(r chi.Router) {
@@ -146,17 +146,17 @@ func (route *Route) Register() {
 				r.Post("/chats/private", route.privateChatController.CreatePrivateChat)
 
 				r.Get("/chats/group/public", route.groupChatController.SearchPublicGroups)
-				r.Get("/chats/group/{groupID}/members", route.groupChatController.SearchGroupMembers)
-				r.Post("/chats/group/{groupID}/members", route.groupChatController.AddMember)
-				r.Post("/chats/group/{groupID}/leave", route.groupChatController.LeaveGroup)
-				r.Post("/chats/group/{groupID}/join", route.groupChatController.JoinPublicGroup)
+				r.Get("/chats/group/{chatID}/members", route.groupChatController.SearchGroupMembers)
+				r.Post("/chats/group/{chatID}/members", route.groupChatController.AddMember)
+				r.Post("/chats/group/{chatID}/leave", route.groupChatController.LeaveGroup)
+				r.Post("/chats/group/{chatID}/join", route.groupChatController.JoinPublicGroup)
 				r.Post("/chats/group/join/invite", route.groupChatController.JoinGroupByInvite)
 
-				r.Put("/chats/group/{groupID}/invite", route.groupChatController.ResetInviteCode)
-				r.Post("/chats/group/{groupID}/members/{userID}/kick", route.groupChatController.KickMember)
-				r.Put("/chats/group/{groupID}/members/{userID}/role", route.groupChatController.UpdateMemberRole)
-				r.Post("/chats/group/{groupID}/transfer", route.groupChatController.TransferOwnership)
-				r.Delete("/chats/group/{groupID}", route.groupChatController.DeleteGroup)
+				r.Put("/chats/group/{chatID}/invite", route.groupChatController.ResetInviteCode)
+				r.Post("/chats/group/{chatID}/members/{userID}/kick", route.groupChatController.KickMember)
+				r.Put("/chats/group/{chatID}/members/{userID}/role", route.groupChatController.UpdateMemberRole)
+				r.Post("/chats/group/{chatID}/transfer", route.groupChatController.TransferOwnership)
+				r.Delete("/chats/group/{chatID}", route.groupChatController.DeleteGroup)
 
 				r.Post("/messages", route.messageController.SendMessage)
 				r.Put("/messages/{messageID}", route.messageController.EditMessage)

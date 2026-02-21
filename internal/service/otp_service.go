@@ -62,7 +62,8 @@ func (s *OTPService) SendOTP(ctx context.Context, req model.SendOTPRequest) erro
 		return helper.NewBadRequestError("")
 	}
 
-	rateLimitKey := fmt.Sprintf("ratelimit:otp:%s", req.Email)
+	rateLimitScope := s.clientRateLimitScope(ctx)
+	rateLimitKey := fmt.Sprintf("ratelimit:otp:%s:%s:%s", req.Mode, req.Email, rateLimitScope)
 
 	limit := 1
 	window := time.Duration(s.cfg.OTPRateLimitSeconds) * time.Second
@@ -163,7 +164,8 @@ func (s *OTPService) SendOTP(ctx context.Context, req model.SendOTPRequest) erro
 func (s *OTPService) VerifyOTP(ctx context.Context, email, code, mode string) error {
 	email = helper.NormalizeEmail(email)
 
-	verifyRateLimitKey := fmt.Sprintf("ratelimit:otp_verify:%s:%s", mode, email)
+	rateLimitScope := s.clientRateLimitScope(ctx)
+	verifyRateLimitKey := fmt.Sprintf("ratelimit:otp_verify:%s:%s:%s", mode, email, rateLimitScope)
 	verifyWindow := time.Duration(s.cfg.OTPRateLimitSeconds) * time.Second
 	if verifyWindow <= 0 {
 		verifyWindow = 60 * time.Second
@@ -200,4 +202,13 @@ func (s *OTPService) VerifyOTP(ctx context.Context, email, code, mode string) er
 	}
 
 	return nil
+}
+
+func (s *OTPService) clientRateLimitScope(ctx context.Context) string {
+	fingerprint := helper.ClientFingerprintFromContext(ctx)
+	if fingerprint == "" {
+		return "global"
+	}
+
+	return helper.HashOTP(fingerprint, s.cfg.OTPSecret)
 }

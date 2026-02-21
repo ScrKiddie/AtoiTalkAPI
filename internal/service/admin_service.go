@@ -477,17 +477,26 @@ func (s *AdminService) ResolveReport(ctx context.Context, adminID uuid.UUID, rep
 				WithChat().
 				Only(ctx)
 
-			if err == nil && msg.DeletedAt == nil {
+			if err == nil {
+				now := time.Now().UTC()
+				shouldBroadcastDelete := msg.DeletedAt == nil
+				updateMsg := s.client.Message.UpdateOne(msg).
+					ClearContent().
+					ClearAttachments()
 
-				err = s.client.Message.UpdateOne(msg).SetDeletedAt(time.Now().UTC()).Exec(ctx)
-				if err == nil && s.wsHub != nil {
+				if shouldBroadcastDelete {
+					updateMsg.SetDeletedAt(now)
+				}
+
+				err = updateMsg.Exec(ctx)
+				if err == nil && shouldBroadcastDelete && s.wsHub != nil {
 					go s.wsHub.BroadcastToChat(msg.ChatID, websocket.Event{
 						Type: websocket.EventMessageDelete,
 						Payload: map[string]uuid.UUID{
 							"message_id": msgID,
 						},
 						Meta: &websocket.EventMeta{
-							Timestamp: time.Now().UTC().UnixMilli(),
+							Timestamp: now.UnixMilli(),
 							ChatID:    msg.ChatID,
 						},
 					})
@@ -867,7 +876,7 @@ func (s *AdminService) GetGroups(ctx context.Context, req model.AdminGetGroupLis
 
 func (s *AdminService) GetGroupDetail(ctx context.Context, groupID uuid.UUID) (*model.AdminGroupDetailResponse, error) {
 	g, err := s.client.GroupChat.Query().
-		Where(groupchat.ID(groupID)).
+		Where(groupchat.ChatID(groupID)).
 		WithChat().
 		WithCreator().
 		WithAvatar().

@@ -464,11 +464,11 @@ func (c *AdminController) GetGroups(w http.ResponseWriter, r *http.Request) {
 // @Description  Get detailed group information. Requires Admin.
 // @Tags         admin
 // @Produce      json
-// @Param        groupID  path      string  true  "Group ID"
+// @Param        chatID  path      string  true  "Group Chat ID (chat_id)"
 // @Success      200      {object}  helper.ResponseSuccess
 // @Failure      404      {object}  helper.ResponseError
 // @Security     BearerAuth
-// @Router       /api/admin/groups/{groupID} [get]
+// @Router       /api/admin/groups/{chatID} [get]
 func (c *AdminController) GetGroupDetail(w http.ResponseWriter, r *http.Request) {
 	_, ok := r.Context().Value(middleware.UserContextKey).(*model.UserDTO)
 	if !ok {
@@ -476,7 +476,7 @@ func (c *AdminController) GetGroupDetail(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	groupIDStr := chi.URLParam(r, "groupID")
+	groupIDStr := chi.URLParam(r, "chatID")
 	groupID, err := uuid.Parse(groupIDStr)
 	if err != nil {
 		helper.WriteError(w, helper.NewBadRequestError("Invalid group ID"))
@@ -497,11 +497,11 @@ func (c *AdminController) GetGroupDetail(w http.ResponseWriter, r *http.Request)
 // @Description  Soft delete a group. Requires Admin.
 // @Tags         admin
 // @Produce      json
-// @Param        groupID  path      string  true  "Group ID"
+// @Param        chatID  path      string  true  "Group Chat ID (chat_id)"
 // @Success      200      {object}  helper.ResponseSuccess
 // @Failure      404      {object}  helper.ResponseError
 // @Security     BearerAuth
-// @Router       /api/admin/groups/{groupID} [delete]
+// @Router       /api/admin/groups/{chatID} [delete]
 func (c *AdminController) DissolveGroup(w http.ResponseWriter, r *http.Request) {
 	userContext, ok := r.Context().Value(middleware.UserContextKey).(*model.UserDTO)
 	if !ok {
@@ -509,7 +509,7 @@ func (c *AdminController) DissolveGroup(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	groupIDStr := chi.URLParam(r, "groupID")
+	groupIDStr := chi.URLParam(r, "chatID")
 	groupID, err := uuid.Parse(groupIDStr)
 	if err != nil {
 		helper.WriteError(w, helper.NewBadRequestError("Invalid group ID"))
@@ -530,12 +530,12 @@ func (c *AdminController) DissolveGroup(w http.ResponseWriter, r *http.Request) 
 // @Tags         admin
 // @Accept       json
 // @Produce      json
-// @Param        groupID  path      string                      true  "Group ID"
+// @Param        chatID  path      string                      true  "Group Chat ID (chat_id)"
 // @Param        req      body      model.ResetGroupInfoRequest true  "Reset Request"
 // @Success      200      {object}  helper.ResponseSuccess
 // @Failure      400      {object}  helper.ResponseError
 // @Security     BearerAuth
-// @Router       /api/admin/groups/{groupID}/reset [post]
+// @Router       /api/admin/groups/{chatID}/reset [post]
 func (c *AdminController) ResetGroupInfo(w http.ResponseWriter, r *http.Request) {
 	userContext, ok := r.Context().Value(middleware.UserContextKey).(*model.UserDTO)
 	if !ok {
@@ -543,7 +543,7 @@ func (c *AdminController) ResetGroupInfo(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	groupIDStr := chi.URLParam(r, "groupID")
+	groupIDStr := chi.URLParam(r, "chatID")
 	groupID, err := uuid.Parse(groupIDStr)
 	if err != nil {
 		helper.WriteError(w, helper.NewBadRequestError("Invalid group ID"))
@@ -586,7 +586,7 @@ func (c *AdminController) ResetGroupInfo(w http.ResponseWriter, r *http.Request)
 // @Tags         admin
 // @Accept       json
 // @Produce      json
-// @Param        groupID path string true "Group Chat ID (UUID)"
+// @Param        chatID path string true "Group Chat ID (chat_id UUID)"
 // @Param        query query string false "Search query"
 // @Param        cursor query string false "Pagination cursor"
 // @Param        limit query int false "Number of items per page (default 20, max 50)"
@@ -595,7 +595,7 @@ func (c *AdminController) ResetGroupInfo(w http.ResponseWriter, r *http.Request)
 // @Failure      403  {object}  helper.ResponseError
 // @Failure      404  {object}  helper.ResponseError
 // @Security     BearerAuth
-// @Router       /api/admin/groups/{groupID}/members [get]
+// @Router       /api/admin/groups/{chatID}/members [get]
 func (c *AdminController) GetGroupMembers(w http.ResponseWriter, r *http.Request) {
 	requestorID, ok := r.Context().Value(middleware.UserContextKey).(*model.UserDTO)
 	if !ok {
@@ -603,7 +603,7 @@ func (c *AdminController) GetGroupMembers(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	groupIDStr := chi.URLParam(r, "groupID")
+	groupIDStr := chi.URLParam(r, "chatID")
 	groupID, err := uuid.Parse(groupIDStr)
 	if err != nil {
 		helper.WriteError(w, helper.NewBadRequestError("Invalid Group ID"))

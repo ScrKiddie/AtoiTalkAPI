@@ -144,7 +144,7 @@ func TestAdminGetGroupDetail(t *testing.T) {
 	regularToken, _ := helper.GenerateJWT(testConfig.JWTSecret, testConfig.JWTExp, regularUser.ID)
 
 	t.Run("Success - Get Group Detail", func(t *testing.T) {
-		req, _ := http.NewRequest("GET", fmt.Sprintf("/api/admin/groups/%s", gc.ID), nil)
+		req, _ := http.NewRequest("GET", fmt.Sprintf("/api/admin/groups/%s", gc.ChatID), nil)
 		req.Header.Set("Authorization", "Bearer "+adminToken)
 
 		rr := executeRequest(req)
@@ -170,7 +170,7 @@ func TestAdminGetGroupDetail(t *testing.T) {
 	})
 
 	t.Run("Fail - Forbidden for Regular User", func(t *testing.T) {
-		req, _ := http.NewRequest("GET", fmt.Sprintf("/api/admin/groups/%s", gc.ID), nil)
+		req, _ := http.NewRequest("GET", fmt.Sprintf("/api/admin/groups/%s", gc.ChatID), nil)
 		req.Header.Set("Authorization", "Bearer "+regularToken)
 
 		rr := executeRequest(req)

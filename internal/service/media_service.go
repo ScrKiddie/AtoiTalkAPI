@@ -112,7 +112,7 @@ func (s *MediaService) GetMediaURL(ctx context.Context, userID, mediaID uuid.UUI
 		Where(media.ID(mediaID)).
 		Select(media.FieldID, media.FieldFileName).
 		WithMessage(func(q *ent.MessageQuery) {
-			q.Select(message.FieldID, message.FieldChatID)
+			q.Select(message.FieldID, message.FieldChatID, message.FieldDeletedAt)
 			q.WithChat(func(cq *ent.ChatQuery) {
 				cq.Select(chat.FieldID, chat.FieldType)
 				cq.WithPrivateChat(func(pq *ent.PrivateChatQuery) {
@@ -135,6 +135,9 @@ func (s *MediaService) GetMediaURL(ctx context.Context, userID, mediaID uuid.UUI
 
 	if m.Edges.Message == nil || m.Edges.Message.Edges.Chat == nil {
 		return nil, helper.NewForbiddenError("Media is not associated with a chat")
+	}
+	if m.Edges.Message.DeletedAt != nil {
+		return nil, helper.NewForbiddenError("Media is no longer available")
 	}
 
 	c := m.Edges.Message.Edges.Chat

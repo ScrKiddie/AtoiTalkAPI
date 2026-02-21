@@ -90,7 +90,7 @@ func (s *GroupChatService) UpdateMemberRole(ctx context.Context, requestorID uui
 
 	newRole := groupmember.Role(req.Role)
 	if targetMember.Role == newRole {
-		return nil, nil
+		return nil, helper.NewBadRequestError("Target user already has that role")
 	}
 
 	err = tx.GroupMember.UpdateOne(targetMember).SetRole(newRole).Exec(ctx)
@@ -228,7 +228,7 @@ func (s *GroupChatService) TransferOwnership(ctx context.Context, requestorID uu
 	}
 
 	if targetMember.Role == groupmember.RoleOwner {
-		return nil, nil
+		return nil, helper.NewBadRequestError("Target user is already the owner")
 	}
 
 	if targetMember.Edges.User != nil {
