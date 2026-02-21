@@ -56,17 +56,25 @@ func NewAuthService(client *ent.Client, cfg *config.AppConfig, validator *valida
 }
 
 func (s *AuthService) Logout(ctx context.Context, tokenString string) error {
-	token, _ := jwt.ParseWithClaims(tokenString, &helper.JWTClaims{}, func(token *jwt.Token) (interface{}, error) {
+	parsedToken, err := jwt.ParseWithClaims(tokenString, &helper.JWTClaims{}, func(token *jwt.Token) (interface{}, error) {
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
+		}
 		return []byte(s.cfg.JWTSecret), nil
 	})
+	if err != nil {
+		slog.Warn("Failed to parse JWT token on logout, using default TTL", "error", err)
+	}
 
 	var ttl time.Duration
 	var userID uuid.UUID
 
-	if claims, ok := token.Claims.(*helper.JWTClaims); ok {
-		userID = claims.UserID
-		if claims.ExpiresAt != nil {
-			ttl = time.Until(claims.ExpiresAt.Time)
+	if err == nil && parsedToken != nil {
+		if claims, ok := parsedToken.Claims.(*helper.JWTClaims); ok {
+			userID = claims.UserID
+			if claims.ExpiresAt != nil {
+				ttl = time.Until(claims.ExpiresAt.Time)
+			}
 		}
 	}
 
@@ -74,7 +82,7 @@ func (s *AuthService) Logout(ctx context.Context, tokenString string) error {
 		ttl = time.Duration(s.cfg.JWTExp) * time.Second
 	}
 
-	err := s.repo.Session.BlacklistToken(ctx, tokenString, ttl)
+	err = s.repo.Session.BlacklistToken(ctx, tokenString, ttl)
 	if err != nil {
 		slog.Error("Failed to blacklist token on logout", "error", err)
 		return helper.NewInternalServerError("")

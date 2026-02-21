@@ -39,21 +39,13 @@ func RunMediaCleanup(ctx context.Context, client *ent.Client, storage *adapter.S
 	slog.Info("Found orphan media candidates", "count", len(orphans))
 
 	for _, m := range orphans {
-		err := storage.Delete(m.FileName, true)
-		if err != nil {
-			isPublic := m.Category == media.CategoryUserAvatar || m.Category == media.CategoryGroupAvatar
-
-			deleteErr := storage.Delete(m.FileName, isPublic)
-			if deleteErr != nil {
-				slog.Error("Failed to delete S3 file", "mediaID", m.ID, "key", m.FileName, "error", deleteErr)
-				continue
-			}
-		}
-
 		isPublic := m.Category == media.CategoryUserAvatar || m.Category == media.CategoryGroupAvatar
 		if err := storage.Delete(m.FileName, isPublic); err != nil {
-			slog.Error("Failed to delete S3 file", "mediaID", m.ID, "error", err)
-			continue
+			if fallbackErr := storage.Delete(m.FileName, !isPublic); fallbackErr != nil {
+				slog.Error("Failed to delete S3 file", "mediaID", m.ID, "key", m.FileName, "error", err, "fallback_error", fallbackErr)
+				continue
+			}
+			slog.Warn("Deleted S3 file using fallback bucket", "mediaID", m.ID, "key", m.FileName)
 		}
 
 		err = client.Media.DeleteOneID(m.ID).Exec(ctx)

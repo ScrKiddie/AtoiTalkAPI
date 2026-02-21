@@ -646,13 +646,20 @@ func (s *GroupChatService) UpdateGroupChat(ctx context.Context, requestorID uuid
 
 	avatarURL := ""
 
-	if req.Avatar == nil && !req.DeleteAvatar && gc.Edges.Avatar != nil {
-		avatarURL = s.storageAdapter.GetPublicURL(gc.Edges.Avatar.FileName)
+	if req.DeleteAvatar {
+		avatarURL = ""
 	} else if req.Avatar != nil {
-		updatedGroupWithAvatar, _ := s.client.GroupChat.Query().Where(groupchat.ID(updatedGroup.ID)).WithAvatar().Only(context.Background())
-		if updatedGroupWithAvatar.Edges.Avatar != nil {
+		updatedGroupWithAvatar, avatarErr := s.client.GroupChat.Query().
+			Where(groupchat.ID(updatedGroup.ID)).
+			WithAvatar().
+			Only(context.Background())
+		if avatarErr != nil {
+			slog.Error("Failed to fetch updated group avatar for response", "error", avatarErr, "groupID", updatedGroup.ID)
+		} else if updatedGroupWithAvatar.Edges.Avatar != nil {
 			avatarURL = s.storageAdapter.GetPublicURL(updatedGroupWithAvatar.Edges.Avatar.FileName)
 		}
+	} else if gc.Edges.Avatar != nil {
+		avatarURL = s.storageAdapter.GetPublicURL(gc.Edges.Avatar.FileName)
 	}
 
 	myRole := string(requestorRole)

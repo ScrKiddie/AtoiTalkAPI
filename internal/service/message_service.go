@@ -229,6 +229,7 @@ func (s *MessageService) SendMessage(ctx context.Context, userID uuid.UUID, req 
 		Exec(ctx)
 	if err != nil {
 		slog.Error("Failed to update chat last message", "error", err)
+		return nil, helper.NewInternalServerError("")
 	}
 
 	if chatInfo.Type == chat.TypePrivate && chatInfo.Edges.PrivateChat != nil {
@@ -247,34 +248,33 @@ func (s *MessageService) SendMessage(ctx context.Context, userID uuid.UUID, req 
 
 		if err := update.Exec(ctx); err != nil {
 			slog.Error("Failed to update private chat counters", "error", err)
+			return nil, helper.NewInternalServerError("")
 		}
 	}
 
 	if chatInfo.Type == chat.TypeGroup && chatInfo.Edges.GroupChat != nil {
 		gc := chatInfo.Edges.GroupChat
-		err := tx.GroupMember.Update().
+		if err := tx.GroupMember.Update().
 			Where(
 				groupmember.GroupChatID(gc.ID),
 				groupmember.UserIDNEQ(userID),
 			).
 			AddUnreadCount(1).
-			Exec(ctx)
-
-		if err != nil {
+			Exec(ctx); err != nil {
 			slog.Error("Failed to update group member counters", "error", err)
+			return nil, helper.NewInternalServerError("")
 		}
 
-		err = tx.GroupMember.Update().
+		if err := tx.GroupMember.Update().
 			Where(
 				groupmember.GroupChatID(gc.ID),
 				groupmember.UserID(userID),
 			).
 			SetUnreadCount(0).
 			SetLastReadAt(time.Now().UTC()).
-			Exec(ctx)
-
-		if err != nil {
+			Exec(ctx); err != nil {
 			slog.Error("Failed to reset sender group member counter", "error", err)
+			return nil, helper.NewInternalServerError("")
 		}
 	}
 
