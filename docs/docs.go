@@ -332,7 +332,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/admin/groups/{groupID}": {
+        "/api/admin/groups/{chatID}": {
             "get": {
                 "security": [
                     {
@@ -350,8 +350,8 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Group ID",
-                        "name": "groupID",
+                        "description": "Group Chat ID (chat_id)",
+                        "name": "chatID",
                         "in": "path",
                         "required": true
                     }
@@ -388,8 +388,8 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Group ID",
-                        "name": "groupID",
+                        "description": "Group Chat ID (chat_id)",
+                        "name": "chatID",
                         "in": "path",
                         "required": true
                     }
@@ -410,7 +410,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/admin/groups/{groupID}/members": {
+        "/api/admin/groups/{chatID}/members": {
             "get": {
                 "security": [
                     {
@@ -431,8 +431,8 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Group Chat ID (UUID)",
-                        "name": "groupID",
+                        "description": "Group Chat ID (chat_id UUID)",
+                        "name": "chatID",
                         "in": "path",
                         "required": true
                     },
@@ -498,7 +498,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/admin/groups/{groupID}/reset": {
+        "/api/admin/groups/{chatID}/reset": {
             "post": {
                 "security": [
                     {
@@ -519,8 +519,8 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Group ID",
-                        "name": "groupID",
+                        "description": "Group Chat ID (chat_id)",
+                        "name": "chatID",
                         "in": "path",
                         "required": true
                     },
@@ -1189,7 +1189,7 @@ const docTemplate = `{
         },
         "/api/auth/google": {
             "post": {
-                "description": "Exchange Google ID Token for App Token and User Info",
+                "description": "Exchange Google authorization code + state for App Token and User Info",
                 "consumes": [
                     "application/json"
                 ],
@@ -1234,6 +1234,53 @@ const docTemplate = `{
                         "description": "Bad Request",
                         "schema": {
                             "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "429": {
+                        "description": "Too Many Requests",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/helper.ResponseError"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/auth/google/init": {
+            "get": {
+                "description": "Generate Google OAuth URL with one-time state and PKCE challenge.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Google OAuth Init",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/helper.ResponseSuccess"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/model.GoogleAuthInitResponse"
+                                        }
+                                    }
+                                }
+                            ]
                         }
                     },
                     "429": {
@@ -1922,7 +1969,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/chats/group/{groupID}": {
+        "/api/chats/group/{chatID}": {
             "put": {
                 "security": [
                     {
@@ -1944,7 +1991,7 @@ const docTemplate = `{
                     {
                         "type": "string",
                         "description": "Group Chat ID (UUID)",
-                        "name": "groupID",
+                        "name": "chatID",
                         "in": "path",
                         "required": true
                     },
@@ -2057,7 +2104,7 @@ const docTemplate = `{
                     {
                         "type": "string",
                         "description": "Group Chat ID (UUID)",
-                        "name": "groupID",
+                        "name": "chatID",
                         "in": "path",
                         "required": true
                     }
@@ -2108,7 +2155,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/chats/group/{groupID}/invite": {
+        "/api/chats/group/{chatID}/invite": {
             "put": {
                 "security": [
                     {
@@ -2130,7 +2177,7 @@ const docTemplate = `{
                     {
                         "type": "string",
                         "description": "Group Chat ID (UUID)",
-                        "name": "groupID",
+                        "name": "chatID",
                         "in": "path",
                         "required": true
                     }
@@ -2193,7 +2240,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/chats/group/{groupID}/join": {
+        "/api/chats/group/{chatID}/join": {
             "post": {
                 "security": [
                     {
@@ -2215,7 +2262,7 @@ const docTemplate = `{
                     {
                         "type": "string",
                         "description": "Group Chat ID (UUID)",
-                        "name": "groupID",
+                        "name": "chatID",
                         "in": "path",
                         "required": true
                     }
@@ -2284,7 +2331,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/chats/group/{groupID}/leave": {
+        "/api/chats/group/{chatID}/leave": {
             "post": {
                 "security": [
                     {
@@ -2306,7 +2353,7 @@ const docTemplate = `{
                     {
                         "type": "string",
                         "description": "Group Chat ID (UUID)",
-                        "name": "groupID",
+                        "name": "chatID",
                         "in": "path",
                         "required": true
                     }
@@ -2363,7 +2410,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/chats/group/{groupID}/members": {
+        "/api/chats/group/{chatID}/members": {
             "get": {
                 "security": [
                     {
@@ -2385,7 +2432,7 @@ const docTemplate = `{
                     {
                         "type": "string",
                         "description": "Group Chat ID (UUID)",
-                        "name": "groupID",
+                        "name": "chatID",
                         "in": "path",
                         "required": true
                     },
@@ -2489,7 +2536,7 @@ const docTemplate = `{
                     {
                         "type": "string",
                         "description": "Group Chat ID (UUID)",
-                        "name": "groupID",
+                        "name": "chatID",
                         "in": "path",
                         "required": true
                     },
@@ -2570,7 +2617,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/chats/group/{groupID}/members/{userID}/kick": {
+        "/api/chats/group/{chatID}/members/{userID}/kick": {
             "post": {
                 "security": [
                     {
@@ -2592,7 +2639,7 @@ const docTemplate = `{
                     {
                         "type": "string",
                         "description": "Group Chat ID (UUID)",
-                        "name": "groupID",
+                        "name": "chatID",
                         "in": "path",
                         "required": true
                     },
@@ -2662,7 +2709,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/chats/group/{groupID}/members/{userID}/role": {
+        "/api/chats/group/{chatID}/members/{userID}/role": {
             "put": {
                 "security": [
                     {
@@ -2684,7 +2731,7 @@ const docTemplate = `{
                     {
                         "type": "string",
                         "description": "Group Chat ID (UUID)",
-                        "name": "groupID",
+                        "name": "chatID",
                         "in": "path",
                         "required": true
                     },
@@ -2763,7 +2810,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/chats/group/{groupID}/transfer": {
+        "/api/chats/group/{chatID}/transfer": {
             "post": {
                 "security": [
                     {
@@ -2785,7 +2832,7 @@ const docTemplate = `{
                     {
                         "type": "string",
                         "description": "Group Chat ID (UUID)",
-                        "name": "groupID",
+                        "name": "chatID",
                         "in": "path",
                         "required": true
                     },
@@ -4001,8 +4048,8 @@ const docTemplate = `{
                     },
                     {
                         "type": "string",
-                        "description": "Exclude users who are members of this group ID",
-                        "name": "exclude_group_id",
+                        "description": "Exclude users who are members of this group chat ID",
+                        "name": "exclude_chat_id",
                         "in": "query"
                     }
                 ],
@@ -4760,14 +4807,34 @@ const docTemplate = `{
                 }
             }
         },
+        "model.GoogleAuthInitResponse": {
+            "type": "object",
+            "properties": {
+                "auth_url": {
+                    "type": "string"
+                },
+                "expires_in_seconds": {
+                    "type": "integer"
+                },
+                "state": {
+                    "type": "string"
+                }
+            }
+        },
         "model.GoogleLoginRequest": {
             "type": "object",
             "required": [
-                "code"
+                "code",
+                "state"
             ],
             "properties": {
                 "code": {
                     "type": "string"
+                },
+                "state": {
+                    "type": "string",
+                    "maxLength": 128,
+                    "minLength": 16
                 }
             }
         },

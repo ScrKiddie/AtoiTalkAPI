@@ -256,12 +256,26 @@ definitions:
         maxLength: 4000
         type: string
     type: object
+  model.GoogleAuthInitResponse:
+    properties:
+      auth_url:
+        type: string
+      expires_in_seconds:
+        type: integer
+      state:
+        type: string
+    type: object
   model.GoogleLoginRequest:
     properties:
       code:
         type: string
+      state:
+        maxLength: 128
+        minLength: 16
+        type: string
     required:
     - code
+    - state
     type: object
   model.GroupInviteResponse:
     properties:
@@ -892,13 +906,13 @@ paths:
       summary: List Groups
       tags:
       - admin
-  /api/admin/groups/{groupID}:
+  /api/admin/groups/{chatID}:
     delete:
       description: Soft delete a group. Requires Admin.
       parameters:
-      - description: Group ID
+      - description: Group Chat ID (chat_id)
         in: path
-        name: groupID
+        name: chatID
         required: true
         type: string
       produces:
@@ -920,9 +934,9 @@ paths:
     get:
       description: Get detailed group information. Requires Admin.
       parameters:
-      - description: Group ID
+      - description: Group Chat ID (chat_id)
         in: path
-        name: groupID
+        name: chatID
         required: true
         type: string
       produces:
@@ -941,15 +955,15 @@ paths:
       summary: Get Group Detail
       tags:
       - admin
-  /api/admin/groups/{groupID}/members:
+  /api/admin/groups/{chatID}/members:
     get:
       consumes:
       - application/json
       description: Get list of members in a group. Requires Admin.
       parameters:
-      - description: Group Chat ID (UUID)
+      - description: Group Chat ID (chat_id UUID)
         in: path
-        name: groupID
+        name: chatID
         required: true
         type: string
       - description: Search query
@@ -995,15 +1009,15 @@ paths:
       summary: Get Group Members
       tags:
       - admin
-  /api/admin/groups/{groupID}/reset:
+  /api/admin/groups/{chatID}/reset:
     post:
       consumes:
       - application/json
       description: Reset group's avatar, description, or name. Requires Admin.
       parameters:
-      - description: Group ID
+      - description: Group Chat ID (chat_id)
         in: path
-        name: groupID
+        name: chatID
         required: true
         type: string
       - description: Reset Request
@@ -1431,7 +1445,8 @@ paths:
     post:
       consumes:
       - application/json
-      description: Exchange Google ID Token for App Token and User Info
+      description: Exchange Google authorization code + state for App Token and User
+        Info
       parameters:
       - description: Google Login Request
         in: body
@@ -1464,6 +1479,34 @@ paths:
           schema:
             $ref: '#/definitions/helper.ResponseError'
       summary: Google Exchange
+      tags:
+      - auth
+  /api/auth/google/init:
+    get:
+      consumes:
+      - application/json
+      description: Generate Google OAuth URL with one-time state and PKCE challenge.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/helper.ResponseSuccess'
+            - properties:
+                data:
+                  $ref: '#/definitions/model.GoogleAuthInitResponse'
+              type: object
+        "429":
+          description: Too Many Requests
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/helper.ResponseError'
+      summary: Google OAuth Init
       tags:
       - auth
   /api/auth/login:
@@ -1940,7 +1983,7 @@ paths:
       summary: Create Group Chat
       tags:
       - chat
-  /api/chats/group/{groupID}:
+  /api/chats/group/{chatID}:
     delete:
       consumes:
       - application/json
@@ -1948,7 +1991,7 @@ paths:
       parameters:
       - description: Group Chat ID (UUID)
         in: path
-        name: groupID
+        name: chatID
         required: true
         type: string
       produces:
@@ -1995,7 +2038,7 @@ paths:
       parameters:
       - description: Group Chat ID (UUID)
         in: path
-        name: groupID
+        name: chatID
         required: true
         type: string
       - description: Group Name
@@ -2059,7 +2102,7 @@ paths:
       summary: Update Group Chat Info
       tags:
       - chat
-  /api/chats/group/{groupID}/invite:
+  /api/chats/group/{chatID}/invite:
     put:
       consumes:
       - application/json
@@ -2068,7 +2111,7 @@ paths:
       parameters:
       - description: Group Chat ID (UUID)
         in: path
-        name: groupID
+        name: chatID
         required: true
         type: string
       produces:
@@ -2112,7 +2155,7 @@ paths:
       summary: Reset Group Invite Code
       tags:
       - chat
-  /api/chats/group/{groupID}/join:
+  /api/chats/group/{chatID}/join:
     post:
       consumes:
       - application/json
@@ -2120,7 +2163,7 @@ paths:
       parameters:
       - description: Group Chat ID (UUID)
         in: path
-        name: groupID
+        name: chatID
         required: true
         type: string
       produces:
@@ -2168,7 +2211,7 @@ paths:
       summary: Join Public Group
       tags:
       - chat
-  /api/chats/group/{groupID}/leave:
+  /api/chats/group/{chatID}/leave:
     post:
       consumes:
       - application/json
@@ -2177,7 +2220,7 @@ paths:
       parameters:
       - description: Group Chat ID (UUID)
         in: path
-        name: groupID
+        name: chatID
         required: true
         type: string
       produces:
@@ -2217,7 +2260,7 @@ paths:
       summary: Leave Group
       tags:
       - chat
-  /api/chats/group/{groupID}/members:
+  /api/chats/group/{chatID}/members:
     get:
       consumes:
       - application/json
@@ -2225,7 +2268,7 @@ paths:
       parameters:
       - description: Group Chat ID (UUID)
         in: path
-        name: groupID
+        name: chatID
         required: true
         type: string
       - description: Search query
@@ -2291,7 +2334,7 @@ paths:
       parameters:
       - description: Group Chat ID (UUID)
         in: path
-        name: groupID
+        name: chatID
         required: true
         type: string
       - description: Add Member Request
@@ -2347,7 +2390,7 @@ paths:
       summary: Add Member to Group
       tags:
       - chat
-  /api/chats/group/{groupID}/members/{userID}/kick:
+  /api/chats/group/{chatID}/members/{userID}/kick:
     post:
       consumes:
       - application/json
@@ -2356,7 +2399,7 @@ paths:
       parameters:
       - description: Group Chat ID (UUID)
         in: path
-        name: groupID
+        name: chatID
         required: true
         type: string
       - description: Target User ID (UUID)
@@ -2405,7 +2448,7 @@ paths:
       summary: Kick Member from Group
       tags:
       - chat
-  /api/chats/group/{groupID}/members/{userID}/role:
+  /api/chats/group/{chatID}/members/{userID}/role:
     put:
       consumes:
       - application/json
@@ -2413,7 +2456,7 @@ paths:
       parameters:
       - description: Group Chat ID (UUID)
         in: path
-        name: groupID
+        name: chatID
         required: true
         type: string
       - description: Target User ID (UUID)
@@ -2468,7 +2511,7 @@ paths:
       summary: Update Member Role
       tags:
       - chat
-  /api/chats/group/{groupID}/transfer:
+  /api/chats/group/{chatID}/transfer:
     post:
       consumes:
       - application/json
@@ -2477,7 +2520,7 @@ paths:
       parameters:
       - description: Group Chat ID (UUID)
         in: path
-        name: groupID
+        name: chatID
         required: true
         type: string
       - description: Transfer Ownership Request
@@ -3182,9 +3225,9 @@ paths:
         in: query
         name: include_chat_id
         type: boolean
-      - description: Exclude users who are members of this group ID
+      - description: Exclude users who are members of this group chat ID
         in: query
-        name: exclude_group_id
+        name: exclude_chat_id
         type: string
       produces:
       - application/json
