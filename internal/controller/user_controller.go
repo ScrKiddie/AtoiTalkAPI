@@ -150,7 +150,7 @@ func (c *UserController) UpdateProfile(w http.ResponseWriter, r *http.Request) {
 // @Param        cursor query string false "Pagination cursor"
 // @Param        limit query int false "Number of items per page (default 10, max 50)"
 // @Param        include_chat_id query boolean false "Include private chat ID if exists"
-// @Param        exclude_group_id query string false "Exclude users who are members of this group ID"
+// @Param        exclude_chat_id query string false "Exclude users who are members of this group chat ID"
 // @Success      200  {object}  helper.ResponseWithPagination{data=[]model.UserDTO}
 // @Failure      400  {object}  helper.ResponseError
 // @Failure      401  {object}  helper.ResponseError
@@ -169,7 +169,7 @@ func (c *UserController) SearchUsers(w http.ResponseWriter, r *http.Request) {
 	cursor := r.URL.Query().Get("cursor")
 	limitStr := r.URL.Query().Get("limit")
 	includeChatIDStr := r.URL.Query().Get("include_chat_id")
-	excludeGroupIDStr := r.URL.Query().Get("exclude_group_id")
+	excludeChatIDStr := r.URL.Query().Get("exclude_chat_id")
 
 	limit := 10
 	if limitStr != "" {
@@ -185,22 +185,22 @@ func (c *UserController) SearchUsers(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	var excludeGroupID *uuid.UUID
-	if excludeGroupIDStr != "" {
-		if id, err := uuid.Parse(excludeGroupIDStr); err == nil {
-			excludeGroupID = &id
+	var excludeChatID *uuid.UUID
+	if excludeChatIDStr != "" {
+		if id, err := uuid.Parse(excludeChatIDStr); err == nil {
+			excludeChatID = &id
 		} else {
-			helper.WriteError(w, helper.NewBadRequestError("Invalid exclude_group_id"))
+			helper.WriteError(w, helper.NewBadRequestError("Invalid exclude_chat_id"))
 			return
 		}
 	}
 
 	req := model.SearchUserRequest{
-		Query:          query,
-		Cursor:         cursor,
-		Limit:          limit,
-		IncludeChatID:  includeChatID,
-		ExcludeGroupID: excludeGroupID,
+		Query:         query,
+		Cursor:        cursor,
+		Limit:         limit,
+		IncludeChatID: includeChatID,
+		ExcludeChatID: excludeChatID,
 	}
 
 	users, nextCursor, hasNext, err := c.userService.SearchUsers(r.Context(), userContext.ID, req)

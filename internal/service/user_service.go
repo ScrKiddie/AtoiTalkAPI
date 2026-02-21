@@ -522,7 +522,7 @@ func (s *UserService) SearchUsers(ctx context.Context, currentUserID uuid.UUID, 
 		req.Limit = 10
 	}
 
-	users, nextCursor, hasNext, err := s.repo.User.SearchUsers(ctx, currentUserID, req.Query, req.Cursor, req.Limit, req.ExcludeGroupID)
+	users, nextCursor, hasNext, err := s.repo.User.SearchUsers(ctx, currentUserID, req.Query, req.Cursor, req.Limit, req.ExcludeChatID)
 	if err != nil {
 		if strings.Contains(err.Error(), "invalid cursor format") {
 			slog.Warn("Invalid cursor format in SearchUsers", "error", err)

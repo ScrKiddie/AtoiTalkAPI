@@ -219,10 +219,13 @@ func createOTP(email, code string, expiresAt time.Time) {
 		return
 	}
 
+	normalizedEmail := helper.NormalizeEmail(email)
 	hashedCode := helper.HashOTP(code, testConfig.OTPSecret)
 
-	key := fmt.Sprintf("otp:%s:%s", "register", email)
-	redisAdapter.Set(context.Background(), key, hashedCode, duration)
+	key := fmt.Sprintf("otp:%s:%s", "register", normalizedEmail)
+	if err := redisAdapter.Set(context.Background(), key, hashedCode, duration); err != nil {
+		panic(fmt.Sprintf("failed to seed OTP for test: %v", err))
+	}
 }
 
 func printBody(t *testing.T, rr *httptest.ResponseRecorder) {

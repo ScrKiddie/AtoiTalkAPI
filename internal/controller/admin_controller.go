@@ -476,14 +476,14 @@ func (c *AdminController) GetGroupDetail(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	groupIDStr := chi.URLParam(r, "chatID")
-	groupID, err := uuid.Parse(groupIDStr)
+	chatIDStr := chi.URLParam(r, "chatID")
+	chatID, err := uuid.Parse(chatIDStr)
 	if err != nil {
-		helper.WriteError(w, helper.NewBadRequestError("Invalid group ID"))
+		helper.WriteError(w, helper.NewBadRequestError("Invalid Chat ID"))
 		return
 	}
 
-	resp, err := c.adminService.GetGroupDetail(r.Context(), groupID)
+	resp, err := c.adminService.GetGroupDetail(r.Context(), chatID)
 	if err != nil {
 		helper.WriteError(w, err)
 		return
@@ -509,14 +509,14 @@ func (c *AdminController) DissolveGroup(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	groupIDStr := chi.URLParam(r, "chatID")
-	groupID, err := uuid.Parse(groupIDStr)
+	chatIDStr := chi.URLParam(r, "chatID")
+	chatID, err := uuid.Parse(chatIDStr)
 	if err != nil {
-		helper.WriteError(w, helper.NewBadRequestError("Invalid group ID"))
+		helper.WriteError(w, helper.NewBadRequestError("Invalid Chat ID"))
 		return
 	}
 
-	if err := c.groupChatService.DeleteGroup(r.Context(), userContext.ID, groupID, true); err != nil {
+	if err := c.groupChatService.DeleteGroup(r.Context(), userContext.ID, chatID, true); err != nil {
 		helper.WriteError(w, err)
 		return
 	}
@@ -543,10 +543,10 @@ func (c *AdminController) ResetGroupInfo(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	groupIDStr := chi.URLParam(r, "chatID")
-	groupID, err := uuid.Parse(groupIDStr)
+	chatIDStr := chi.URLParam(r, "chatID")
+	chatID, err := uuid.Parse(chatIDStr)
 	if err != nil {
-		helper.WriteError(w, helper.NewBadRequestError("Invalid group ID"))
+		helper.WriteError(w, helper.NewBadRequestError("Invalid Chat ID"))
 		return
 	}
 
@@ -559,7 +559,7 @@ func (c *AdminController) ResetGroupInfo(w http.ResponseWriter, r *http.Request)
 	updateReq := model.UpdateGroupChatRequest{}
 
 	if req.ResetName {
-		defaultName := "Group " + groupID.String()[:8]
+		defaultName := "Group " + chatID.String()[:8]
 		updateReq.Name = &defaultName
 	}
 	if req.ResetDescription {
@@ -571,7 +571,7 @@ func (c *AdminController) ResetGroupInfo(w http.ResponseWriter, r *http.Request)
 	}
 
 	if updateReq.Name != nil || updateReq.Description != nil || updateReq.DeleteAvatar {
-		if _, err := c.groupChatService.UpdateGroupChat(r.Context(), userContext.ID, groupID, updateReq, true); err != nil {
+		if _, err := c.groupChatService.UpdateGroupChat(r.Context(), userContext.ID, chatID, updateReq, true); err != nil {
 			helper.WriteError(w, err)
 			return
 		}
@@ -603,10 +603,10 @@ func (c *AdminController) GetGroupMembers(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	groupIDStr := chi.URLParam(r, "chatID")
-	groupID, err := uuid.Parse(groupIDStr)
+	chatIDStr := chi.URLParam(r, "chatID")
+	chatID, err := uuid.Parse(chatIDStr)
 	if err != nil {
-		helper.WriteError(w, helper.NewBadRequestError("Invalid Group ID"))
+		helper.WriteError(w, helper.NewBadRequestError("Invalid Chat ID"))
 		return
 	}
 
@@ -622,7 +622,7 @@ func (c *AdminController) GetGroupMembers(w http.ResponseWriter, r *http.Request
 	}
 
 	req := model.SearchGroupMembersRequest{
-		GroupID: groupID,
+		GroupID: chatID,
 		Query:   query,
 		Cursor:  cursor,
 		Limit:   limit,

@@ -48,11 +48,11 @@ type UpdateProfileRequest struct {
 }
 
 type SearchUserRequest struct {
-	Query          string     `json:"query" validate:"omitempty,min=1,max=100"`
-	Cursor         string     `json:"cursor"`
-	Limit          int        `json:"limit" validate:"min=1,max=50"`
-	IncludeChatID  bool       `json:"include_chat_id"`
-	ExcludeGroupID *uuid.UUID `json:"exclude_group_id"`
+	Query         string     `json:"query" validate:"omitempty,min=1,max=100"`
+	Cursor        string     `json:"cursor"`
+	Limit         int        `json:"limit" validate:"min=1,max=50"`
+	IncludeChatID bool       `json:"include_chat_id"`
+	ExcludeChatID *uuid.UUID `json:"exclude_chat_id"`
 }
 
 type GetBlockedUsersRequest struct {

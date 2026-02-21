@@ -26,7 +26,7 @@ func NewUserRepository(client *ent.Client) *UserRepository {
 	}
 }
 
-func (r *UserRepository) SearchUsers(ctx context.Context, currentUserID uuid.UUID, queryStr string, cursor string, limit int, excludeGroupID *uuid.UUID) ([]*ent.User, string, bool, error) {
+func (r *UserRepository) SearchUsers(ctx context.Context, currentUserID uuid.UUID, queryStr string, cursor string, limit int, excludeChatID *uuid.UUID) ([]*ent.User, string, bool, error) {
 	queryStr = strings.TrimSpace(queryStr)
 
 	if len(queryStr) < 3 {
@@ -69,7 +69,7 @@ func (r *UserRepository) SearchUsers(ctx context.Context, currentUserID uuid.UUI
 			},
 		)
 
-	if excludeGroupID != nil {
+	if excludeChatID != nil {
 		query = query.Where(
 			func(s *sql.Selector) {
 				gm := sql.Table(groupmember.Table)
@@ -82,7 +82,7 @@ func (r *UserRepository) SearchUsers(ctx context.Context, currentUserID uuid.UUI
 								Join(gc).On(gm.C(groupmember.FieldGroupChatID), gc.C(groupchat.FieldID)).
 								Where(
 									sql.And(
-										sql.EQ(gc.C(groupchat.FieldChatID), *excludeGroupID),
+										sql.EQ(gc.C(groupchat.FieldChatID), *excludeChatID),
 										sql.ColumnsEQ(gm.C(groupmember.FieldUserID), s.C(user.FieldID)),
 									),
 								),

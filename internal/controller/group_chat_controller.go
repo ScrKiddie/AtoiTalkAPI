@@ -131,10 +131,10 @@ func (c *GroupChatController) UpdateGroupChat(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	groupIDStr := chi.URLParam(r, "chatID")
-	groupID, err := uuid.Parse(groupIDStr)
+	chatIDStr := chi.URLParam(r, "chatID")
+	chatID, err := uuid.Parse(chatIDStr)
 	if err != nil {
-		helper.WriteError(w, helper.NewBadRequestError("Invalid Group ID"))
+		helper.WriteError(w, helper.NewBadRequestError("Invalid Chat ID"))
 		return
 	}
 
@@ -170,7 +170,7 @@ func (c *GroupChatController) UpdateGroupChat(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	resp, err := c.groupChatService.UpdateGroupChat(r.Context(), userContext.ID, groupID, req, false)
+	resp, err := c.groupChatService.UpdateGroupChat(r.Context(), userContext.ID, chatID, req, false)
 	if err != nil {
 		helper.WriteError(w, err)
 		return
@@ -205,10 +205,10 @@ func (c *GroupChatController) SearchGroupMembers(w http.ResponseWriter, r *http.
 		return
 	}
 
-	groupIDStr := chi.URLParam(r, "chatID")
-	groupID, err := uuid.Parse(groupIDStr)
+	chatIDStr := chi.URLParam(r, "chatID")
+	chatID, err := uuid.Parse(chatIDStr)
 	if err != nil {
-		helper.WriteError(w, helper.NewBadRequestError("Invalid Group ID"))
+		helper.WriteError(w, helper.NewBadRequestError("Invalid Chat ID"))
 		return
 	}
 
@@ -224,7 +224,7 @@ func (c *GroupChatController) SearchGroupMembers(w http.ResponseWriter, r *http.
 	}
 
 	req := model.SearchGroupMembersRequest{
-		GroupID: groupID,
+		GroupID: chatID,
 		Query:   query,
 		Cursor:  cursor,
 		Limit:   limit,
@@ -264,10 +264,10 @@ func (c *GroupChatController) AddMember(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	groupIDStr := chi.URLParam(r, "chatID")
-	groupID, err := uuid.Parse(groupIDStr)
+	chatIDStr := chi.URLParam(r, "chatID")
+	chatID, err := uuid.Parse(chatIDStr)
 	if err != nil {
-		helper.WriteError(w, helper.NewBadRequestError("Invalid Group ID"))
+		helper.WriteError(w, helper.NewBadRequestError("Invalid Chat ID"))
 		return
 	}
 
@@ -277,7 +277,7 @@ func (c *GroupChatController) AddMember(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	resp, err := c.groupChatService.AddMember(r.Context(), userContext.ID, groupID, req)
+	resp, err := c.groupChatService.AddMember(r.Context(), userContext.ID, chatID, req)
 	if err != nil {
 		helper.WriteError(w, err)
 		return
@@ -308,14 +308,14 @@ func (c *GroupChatController) LeaveGroup(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	groupIDStr := chi.URLParam(r, "chatID")
-	groupID, err := uuid.Parse(groupIDStr)
+	chatIDStr := chi.URLParam(r, "chatID")
+	chatID, err := uuid.Parse(chatIDStr)
 	if err != nil {
-		helper.WriteError(w, helper.NewBadRequestError("Invalid Group ID"))
+		helper.WriteError(w, helper.NewBadRequestError("Invalid Chat ID"))
 		return
 	}
 
-	resp, err := c.groupChatService.LeaveGroup(r.Context(), userContext.ID, groupID)
+	resp, err := c.groupChatService.LeaveGroup(r.Context(), userContext.ID, chatID)
 	if err != nil {
 		helper.WriteError(w, err)
 		return
@@ -348,10 +348,10 @@ func (c *GroupChatController) KickMember(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	groupIDStr := chi.URLParam(r, "chatID")
-	groupID, err := uuid.Parse(groupIDStr)
+	chatIDStr := chi.URLParam(r, "chatID")
+	chatID, err := uuid.Parse(chatIDStr)
 	if err != nil {
-		helper.WriteError(w, helper.NewBadRequestError("Invalid Group ID"))
+		helper.WriteError(w, helper.NewBadRequestError("Invalid Chat ID"))
 		return
 	}
 
@@ -362,7 +362,7 @@ func (c *GroupChatController) KickMember(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	resp, err := c.groupChatService.KickMember(r.Context(), userContext.ID, groupID, targetUserID)
+	resp, err := c.groupChatService.KickMember(r.Context(), userContext.ID, chatID, targetUserID)
 	if err != nil {
 		helper.WriteError(w, err)
 		return
@@ -396,10 +396,10 @@ func (c *GroupChatController) UpdateMemberRole(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	groupIDStr := chi.URLParam(r, "chatID")
-	groupID, err := uuid.Parse(groupIDStr)
+	chatIDStr := chi.URLParam(r, "chatID")
+	chatID, err := uuid.Parse(chatIDStr)
 	if err != nil {
-		helper.WriteError(w, helper.NewBadRequestError("Invalid Group ID"))
+		helper.WriteError(w, helper.NewBadRequestError("Invalid Chat ID"))
 		return
 	}
 
@@ -416,7 +416,7 @@ func (c *GroupChatController) UpdateMemberRole(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	resp, err := c.groupChatService.UpdateMemberRole(r.Context(), userContext.ID, groupID, targetUserID, req)
+	resp, err := c.groupChatService.UpdateMemberRole(r.Context(), userContext.ID, chatID, targetUserID, req)
 	if err != nil {
 		helper.WriteError(w, err)
 		return
@@ -449,10 +449,10 @@ func (c *GroupChatController) TransferOwnership(w http.ResponseWriter, r *http.R
 		return
 	}
 
-	groupIDStr := chi.URLParam(r, "chatID")
-	groupID, err := uuid.Parse(groupIDStr)
+	chatIDStr := chi.URLParam(r, "chatID")
+	chatID, err := uuid.Parse(chatIDStr)
 	if err != nil {
-		helper.WriteError(w, helper.NewBadRequestError("Invalid Group ID"))
+		helper.WriteError(w, helper.NewBadRequestError("Invalid Chat ID"))
 		return
 	}
 
@@ -462,7 +462,7 @@ func (c *GroupChatController) TransferOwnership(w http.ResponseWriter, r *http.R
 		return
 	}
 
-	resp, err := c.groupChatService.TransferOwnership(r.Context(), userContext.ID, groupID, req)
+	resp, err := c.groupChatService.TransferOwnership(r.Context(), userContext.ID, chatID, req)
 	if err != nil {
 		helper.WriteError(w, err)
 		return
@@ -494,14 +494,14 @@ func (c *GroupChatController) DeleteGroup(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	groupIDStr := chi.URLParam(r, "chatID")
-	groupID, err := uuid.Parse(groupIDStr)
+	chatIDStr := chi.URLParam(r, "chatID")
+	chatID, err := uuid.Parse(chatIDStr)
 	if err != nil {
-		helper.WriteError(w, helper.NewBadRequestError("Invalid Group ID"))
+		helper.WriteError(w, helper.NewBadRequestError("Invalid Chat ID"))
 		return
 	}
 
-	err = c.groupChatService.DeleteGroup(r.Context(), userContext.ID, groupID, false)
+	err = c.groupChatService.DeleteGroup(r.Context(), userContext.ID, chatID, false)
 	if err != nil {
 		helper.WriteError(w, err)
 		return
@@ -583,14 +583,14 @@ func (c *GroupChatController) JoinPublicGroup(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	groupIDStr := chi.URLParam(r, "chatID")
-	groupID, err := uuid.Parse(groupIDStr)
+	chatIDStr := chi.URLParam(r, "chatID")
+	chatID, err := uuid.Parse(chatIDStr)
 	if err != nil {
-		helper.WriteError(w, helper.NewBadRequestError("Invalid Group ID"))
+		helper.WriteError(w, helper.NewBadRequestError("Invalid Chat ID"))
 		return
 	}
 
-	resp, err := c.groupChatService.JoinPublicGroup(r.Context(), userContext.ID, groupID)
+	resp, err := c.groupChatService.JoinPublicGroup(r.Context(), userContext.ID, chatID)
 	if err != nil {
 		helper.WriteError(w, err)
 		return
@@ -688,14 +688,14 @@ func (c *GroupChatController) ResetInviteCode(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	groupIDStr := chi.URLParam(r, "chatID")
-	groupID, err := uuid.Parse(groupIDStr)
+	chatIDStr := chi.URLParam(r, "chatID")
+	chatID, err := uuid.Parse(chatIDStr)
 	if err != nil {
-		helper.WriteError(w, helper.NewBadRequestError("Invalid Group ID"))
+		helper.WriteError(w, helper.NewBadRequestError("Invalid Chat ID"))
 		return
 	}
 
-	resp, err := c.groupChatService.ResetInviteCode(r.Context(), userContext.ID, groupID)
+	resp, err := c.groupChatService.ResetInviteCode(r.Context(), userContext.ID, chatID)
 	if err != nil {
 		helper.WriteError(w, err)
 		return

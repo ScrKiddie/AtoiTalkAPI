@@ -861,14 +861,14 @@ func TestSearchUsers(t *testing.T) {
 		assert.Len(t, dataList, 0, "Deleted user should not appear in search")
 	})
 
-	t.Run("Success - Exclude Group Members", func(t *testing.T) {
+	t.Run("Success - Exclude Chat Members", func(t *testing.T) {
 
 		chatGroup := testClient.Chat.Create().SetType(chat.TypeGroup).SaveX(context.Background())
 		gc := testClient.GroupChat.Create().SetChat(chatGroup).SetCreator(searcher).SetName("Exclude Test Group").SetInviteCode("exclude").SaveX(context.Background())
 		testClient.GroupMember.Create().SetGroupChat(gc).SetUser(searcher).SetRole(groupmember.RoleOwner).SaveX(context.Background())
 		testClient.GroupMember.Create().SetGroupChat(gc).SetUser(users["User Alice"]).SetRole(groupmember.RoleMember).SaveX(context.Background())
 
-		req, _ := http.NewRequest("GET", fmt.Sprintf("/api/users?query=User&exclude_group_id=%s", gc.ChatID), nil)
+		req, _ := http.NewRequest("GET", fmt.Sprintf("/api/users?query=User&exclude_chat_id=%s", gc.ChatID), nil)
 		req.Header.Set("Authorization", "Bearer "+token)
 		rr := executeRequest(req)
 
@@ -893,8 +893,8 @@ func TestSearchUsers(t *testing.T) {
 		assert.True(t, foundBob, "User Bob (non-member) should be included")
 	})
 
-	t.Run("Fail - Invalid Exclude Group ID", func(t *testing.T) {
-		req, _ := http.NewRequest("GET", "/api/users?query=User&exclude_group_id=invalid-uuid", nil)
+	t.Run("Fail - Invalid Exclude Chat ID", func(t *testing.T) {
+		req, _ := http.NewRequest("GET", "/api/users?query=User&exclude_chat_id=invalid-uuid", nil)
 		req.Header.Set("Authorization", "Bearer "+token)
 		rr := executeRequest(req)
 
