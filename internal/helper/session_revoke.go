@@ -27,7 +27,7 @@ func RevokeSessionsForTransaction(ctx context.Context, sessionRepo SessionRevoke
 		return "", snapshot, err
 	}
 
-	revokedAt := time.Now().Unix()
+	revokedAt := time.Now().UTC().UnixMilli()
 	if err := sessionRepo.RevokeAllSessionsAt(ctx, userID, revokedAt); err != nil {
 		return "", snapshot, err
 	}

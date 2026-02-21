@@ -27,7 +27,7 @@ func NewSessionRepository(redisAdapter *adapter.RedisAdapter, cfg *config.AppCon
 }
 
 func (r *SessionRepository) RevokeAllSessions(ctx context.Context, userID uuid.UUID) error {
-	return r.RevokeAllSessionsAt(ctx, userID, time.Now().Unix())
+	return r.RevokeAllSessionsAt(ctx, userID, time.Now().UTC().UnixMilli())
 }
 
 func (r *SessionRepository) RevokeAllSessionsAt(ctx context.Context, userID uuid.UUID, revokedAt int64) error {
@@ -137,6 +137,10 @@ func (r *SessionRepository) IsUserRevoked(ctx context.Context, userID uuid.UUID,
 	revokedAt, err := strconv.ParseInt(revokedAtStr, 10, 64)
 	if err != nil {
 		return false, fmt.Errorf("invalid revoked timestamp for user %s: %w", userID, err)
+	}
+
+	if revokedAt < 1_000_000_000_000 {
+		revokedAt *= 1000
 	}
 
 	return tokenIssuedAt <= revokedAt, nil

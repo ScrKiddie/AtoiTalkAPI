@@ -109,6 +109,10 @@ func (s *AccountService) ChangePassword(ctx context.Context, userID uuid.UUID, r
 		return helper.NewInternalServerError("")
 	}
 
+	if s.wsHub != nil {
+		go s.wsHub.DisconnectUser(userID)
+	}
+
 	return nil
 }
 
@@ -192,6 +196,10 @@ func (s *AccountService) ChangeEmail(ctx context.Context, userID uuid.UUID, req 
 		slog.Error("Failed to commit transaction", "error", err)
 		helper.RollbackSessionRevokeIfNeeded(s.repo.Session, userID, revokeExpected, revokeSnapshot)
 		return helper.NewInternalServerError("")
+	}
+
+	if s.wsHub != nil {
+		go s.wsHub.DisconnectUser(userID)
 	}
 
 	return nil

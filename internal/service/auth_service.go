@@ -121,7 +121,7 @@ func (s *AuthService) VerifyUser(ctx context.Context, tokenString string) (*mode
 		return nil, helper.NewUnauthorizedError("")
 	}
 
-	isRevoked, err := s.repo.Session.IsUserRevoked(ctx, claims.UserID, claims.IssuedAt.Time.Unix())
+	isRevoked, err := s.repo.Session.IsUserRevoked(ctx, claims.UserID, claims.IssuedAt.Time.UnixMilli())
 	if err != nil {
 		slog.Error("Failed to check user revoked session", "error", err, "userID", claims.UserID)
 		return nil, helper.NewServiceUnavailableError("Session service unavailable")
@@ -718,6 +718,10 @@ func (s *AuthService) ResetPassword(ctx context.Context, req model.ResetPassword
 		slog.Error("Failed to commit transaction", "error", err)
 		helper.RollbackSessionRevokeIfNeeded(s.repo.Session, u.ID, revokeExpected, revokeSnapshot)
 		return helper.NewInternalServerError("")
+	}
+
+	if s.wsHub != nil {
+		go s.wsHub.DisconnectUser(u.ID)
 	}
 
 	return nil

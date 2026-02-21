@@ -156,7 +156,11 @@ func (s *GroupChatService) CreateGroupChat(ctx context.Context, creatorID uuid.U
 		return nil, helper.NewInternalServerError("")
 	}
 
-	inviteCode, _ := helper.GenerateRandomString(12)
+	inviteCode, err := helper.GenerateRandomString(12)
+	if err != nil {
+		slog.Error("Failed to generate invite code for group creation", "error", err)
+		return nil, helper.NewInternalServerError("")
+	}
 
 	groupCreate := tx.GroupChat.Create().
 		SetChat(newChat).
@@ -408,7 +412,11 @@ func (s *GroupChatService) UpdateGroupChat(ctx context.Context, requestorID uuid
 			update.ClearInviteExpiresAt()
 		} else {
 
-			newCode, _ := helper.GenerateRandomString(12)
+			newCode, err := helper.GenerateRandomString(12)
+			if err != nil {
+				slog.Error("Failed to generate invite code while switching group to private", "error", err)
+				return nil, helper.NewInternalServerError("")
+			}
 			update.SetInviteCode(newCode)
 			update.SetInviteExpiresAt(time.Now().UTC().Add(7 * 24 * time.Hour))
 		}

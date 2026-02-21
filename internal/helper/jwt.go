@@ -13,6 +13,10 @@ type JWTClaims struct {
 	jwt.RegisteredClaims
 }
 
+func init() {
+	jwt.TimePrecision = time.Millisecond
+}
+
 func GenerateJWT(jwtSecret string, jwtExp int, userID uuid.UUID) (string, error) {
 	claims := JWTClaims{
 		UserID: userID,

@@ -249,7 +249,11 @@ func (s *GroupChatService) ResetInviteCode(ctx context.Context, userID, groupID 
 		return nil, helper.NewForbiddenError("Only admins can reset invite code")
 	}
 
-	newCode, _ := helper.GenerateRandomString(12)
+	newCode, err := helper.GenerateRandomString(12)
+	if err != nil {
+		slog.Error("Failed to generate new invite code", "error", err, "groupID", gc.ID)
+		return nil, helper.NewInternalServerError("")
+	}
 
 	var expiresAt *time.Time
 	if !gc.IsPublic {

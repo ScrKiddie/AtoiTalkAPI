@@ -4,6 +4,7 @@ import (
 	"image"
 	_ "image/jpeg"
 	_ "image/png"
+	"io"
 	"log/slog"
 	"mime/multipart"
 	"net/http"
@@ -112,12 +113,17 @@ func validateImage(fl validator.FieldLevel) bool {
 	defer fileOpened.Close()
 
 	fileHeader := make([]byte, 512)
-	if _, err := fileOpened.Read(fileHeader); err != nil {
+	n, err := fileOpened.Read(fileHeader)
+	if err != nil && err != io.EOF {
 		slog.Error("Failed to read file header", "err", err)
 		return false
 	}
+	if n == 0 {
+		slog.Info("Image validation failed: empty file")
+		return false
+	}
 
-	contentType := http.DetectContentType(fileHeader)
+	contentType := http.DetectContentType(fileHeader[:n])
 	isValidType := false
 	for _, allowedContentType := range allowedContentTypes {
 		if contentType == allowedContentType {
