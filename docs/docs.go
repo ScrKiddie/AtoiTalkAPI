@@ -1889,7 +1889,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Search for public groups by name or description.",
+                "description": "Search for public groups by name or description. Supports sorting by name or member count.",
                 "consumes": [
                     "application/json"
                 ],
@@ -1917,6 +1917,12 @@ const docTemplate = `{
                         "type": "integer",
                         "description": "Number of items per page (default 20, max 50)",
                         "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Sort order: 'name' (default, A-Z) or 'member_count' (most members first)",
+                        "name": "sort_by",
                         "in": "query"
                     }
                 ],

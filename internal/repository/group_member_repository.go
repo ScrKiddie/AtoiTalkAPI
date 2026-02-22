@@ -27,10 +27,6 @@ func NewGroupMemberRepository(client *ent.Client) *GroupMemberRepository {
 func (r *GroupMemberRepository) SearchGroupMembers(ctx context.Context, groupID uuid.UUID, query, cursor string, limit int) ([]*ent.GroupMember, string, bool, error) {
 	query = strings.TrimSpace(query)
 
-	if query != "" && len(query) < 3 {
-		return []*ent.GroupMember{}, "", false, nil
-	}
-
 	queryBuilder := r.client.GroupMember.Query().
 		Where(
 			groupmember.GroupChatID(groupID),

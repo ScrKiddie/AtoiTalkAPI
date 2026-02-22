@@ -1286,16 +1286,27 @@ func TestDeleteGroup(t *testing.T) {
 func TestSearchPublicGroups(t *testing.T) {
 	clearDatabase(context.Background())
 	u1 := testClient.User.Create().SetEmail("u1@test.com").SetUsername("user1").SetFullName("User 1").SaveX(context.Background())
+	u2 := testClient.User.Create().SetEmail("u2@test.com").SetUsername("user2").SetFullName("User 2").SaveX(context.Background())
+	u3 := testClient.User.Create().SetEmail("u3@test.com").SetUsername("user3").SetFullName("User 3").SaveX(context.Background())
 	token1, _ := helper.GenerateJWT(testConfig.JWTSecret, testConfig.JWTExp, u1.ID)
 
 	chat1 := testClient.Chat.Create().SetType("group").SaveX(context.Background())
-	testClient.GroupChat.Create().SetChat(chat1).SetCreator(u1).SetName("Public Group 1").SetIsPublic(true).SetInviteCode("pub1").SaveX(context.Background())
+	gc1 := testClient.GroupChat.Create().SetChat(chat1).SetCreator(u1).SetName("Public Group 1").SetIsPublic(true).SetInviteCode("pub1").SaveX(context.Background())
+	testClient.GroupMember.Create().SetGroupChat(gc1).SetUser(u1).SetRole("owner").SaveX(context.Background())
+	testClient.GroupMember.Create().SetGroupChat(gc1).SetUser(u2).SetRole("member").SaveX(context.Background())
+	testClient.GroupMember.Create().SetGroupChat(gc1).SetUser(u3).SetRole("member").SaveX(context.Background())
 
 	chat2 := testClient.Chat.Create().SetType("group").SaveX(context.Background())
 	testClient.GroupChat.Create().SetChat(chat2).SetCreator(u1).SetName("Private Group").SetIsPublic(false).SetInviteCode("priv1").SaveX(context.Background())
 
 	chat3 := testClient.Chat.Create().SetType("group").SaveX(context.Background())
-	testClient.GroupChat.Create().SetChat(chat3).SetCreator(u1).SetName("Public Group 2").SetIsPublic(true).SetInviteCode("pub2").SaveX(context.Background())
+	gc3 := testClient.GroupChat.Create().SetChat(chat3).SetCreator(u1).SetName("Public Group 2").SetIsPublic(true).SetInviteCode("pub2").SaveX(context.Background())
+	testClient.GroupMember.Create().SetGroupChat(gc3).SetUser(u1).SetRole("owner").SaveX(context.Background())
+
+	chat4 := testClient.Chat.Create().SetType("group").SaveX(context.Background())
+	gc4 := testClient.GroupChat.Create().SetChat(chat4).SetCreator(u1).SetName("Public Group 3").SetIsPublic(true).SetInviteCode("pub3").SaveX(context.Background())
+	testClient.GroupMember.Create().SetGroupChat(gc4).SetUser(u1).SetRole("owner").SaveX(context.Background())
+	testClient.GroupMember.Create().SetGroupChat(gc4).SetUser(u2).SetRole("member").SaveX(context.Background())
 
 	t.Run("Success - List Public Groups", func(t *testing.T) {
 		req, _ := http.NewRequest("GET", "/api/chats/group/public", nil)
@@ -1308,7 +1319,7 @@ func TestSearchPublicGroups(t *testing.T) {
 		json.Unmarshal(rr.Body.Bytes(), &resp)
 		dataList := resp.Data.([]interface{})
 
-		assert.Len(t, dataList, 2)
+		assert.Len(t, dataList, 3)
 		names := make(map[string]bool)
 		for _, item := range dataList {
 			g := item.(map[string]interface{})
@@ -1316,11 +1327,12 @@ func TestSearchPublicGroups(t *testing.T) {
 		}
 		assert.True(t, names["Public Group 1"])
 		assert.True(t, names["Public Group 2"])
+		assert.True(t, names["Public Group 3"])
 		assert.False(t, names["Private Group"])
 	})
 
 	t.Run("Success - Search Public Groups", func(t *testing.T) {
-		req, _ := http.NewRequest("GET", "/api/chats/group/public?query=Group%201", nil)
+		req, _ := http.NewRequest("GET", "/api/chats/group/public?query=Public%20Group%201", nil)
 		req.Header.Set("Authorization", "Bearer "+token1)
 
 		rr := executeRequest(req)
@@ -1345,6 +1357,79 @@ func TestSearchPublicGroups(t *testing.T) {
 			g := dataList[0].(map[string]interface{})
 			assert.Equal(t, "Public Group 1", g["name"])
 		}
+	})
+
+	t.Run("Success - Sort by Member Count", func(t *testing.T) {
+		req, _ := http.NewRequest("GET", "/api/chats/group/public?sort_by=member_count", nil)
+		req.Header.Set("Authorization", "Bearer "+token1)
+
+		rr := executeRequest(req)
+		assert.Equal(t, http.StatusOK, rr.Code)
+
+		var resp helper.ResponseWithPagination
+		json.Unmarshal(rr.Body.Bytes(), &resp)
+		dataList := resp.Data.([]interface{})
+
+		assert.Len(t, dataList, 3)
+
+		g1 := dataList[0].(map[string]interface{})
+		g2 := dataList[1].(map[string]interface{})
+		g3 := dataList[2].(map[string]interface{})
+
+		assert.Equal(t, "Public Group 1", g1["name"])
+		assert.Equal(t, float64(3), g1["member_count"])
+
+		assert.Equal(t, "Public Group 3", g2["name"])
+		assert.Equal(t, float64(2), g2["member_count"])
+
+		assert.Equal(t, "Public Group 2", g3["name"])
+		assert.Equal(t, float64(1), g3["member_count"])
+	})
+
+	t.Run("Success - Sort by Member Count with Pagination", func(t *testing.T) {
+		req, _ := http.NewRequest("GET", "/api/chats/group/public?sort_by=member_count&limit=2", nil)
+		req.Header.Set("Authorization", "Bearer "+token1)
+
+		rr := executeRequest(req)
+		assert.Equal(t, http.StatusOK, rr.Code)
+
+		var resp helper.ResponseWithPagination
+		json.Unmarshal(rr.Body.Bytes(), &resp)
+		dataList := resp.Data.([]interface{})
+
+		assert.Len(t, dataList, 2)
+		assert.True(t, resp.Meta.HasNext)
+		assert.NotEmpty(t, resp.Meta.NextCursor)
+
+		g1 := dataList[0].(map[string]interface{})
+		g2 := dataList[1].(map[string]interface{})
+		assert.Equal(t, "Public Group 1", g1["name"])
+		assert.Equal(t, "Public Group 3", g2["name"])
+
+		req2, _ := http.NewRequest("GET", fmt.Sprintf("/api/chats/group/public?sort_by=member_count&limit=2&cursor=%s", resp.Meta.NextCursor), nil)
+		req2.Header.Set("Authorization", "Bearer "+token1)
+
+		rr2 := executeRequest(req2)
+		assert.Equal(t, http.StatusOK, rr2.Code)
+
+		var resp2 helper.ResponseWithPagination
+		json.Unmarshal(rr2.Body.Bytes(), &resp2)
+		dataList2 := resp2.Data.([]interface{})
+
+		assert.Len(t, dataList2, 1)
+		assert.False(t, resp2.Meta.HasNext)
+
+		g3 := dataList2[0].(map[string]interface{})
+		assert.Equal(t, "Public Group 2", g3["name"])
+		assert.Equal(t, float64(1), g3["member_count"])
+	})
+
+	t.Run("Fail - Invalid Sort By", func(t *testing.T) {
+		req, _ := http.NewRequest("GET", "/api/chats/group/public?sort_by=invalid", nil)
+		req.Header.Set("Authorization", "Bearer "+token1)
+
+		rr := executeRequest(req)
+		assert.Equal(t, http.StatusBadRequest, rr.Code)
 	})
 }
 

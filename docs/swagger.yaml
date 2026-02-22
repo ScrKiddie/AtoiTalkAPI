@@ -2677,7 +2677,8 @@ paths:
     get:
       consumes:
       - application/json
-      description: Search for public groups by name or description.
+      description: Search for public groups by name or description. Supports sorting
+        by name or member count.
       parameters:
       - description: Search query
         in: query
@@ -2691,6 +2692,11 @@ paths:
         in: query
         name: limit
         type: integer
+      - description: 'Sort order: ''name'' (default, A-Z) or ''member_count'' (most
+          members first)'
+        in: query
+        name: sort_by
+        type: string
       produces:
       - application/json
       responses:

@@ -33,6 +33,7 @@ type SearchPublicGroupsRequest struct {
 	Query  string `json:"query" validate:"omitempty,min=1,max=100"`
 	Cursor string `json:"cursor" validate:"omitempty"`
 	Limit  int    `json:"limit" validate:"omitempty,gt=0,max=50"`
+	SortBy string `json:"sort_by" validate:"omitempty,oneof=name member_count"`
 }
 
 type AddGroupMemberRequest struct {

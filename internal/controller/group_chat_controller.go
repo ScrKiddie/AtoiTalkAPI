@@ -538,13 +538,14 @@ func (c *GroupChatController) DeleteGroup(w http.ResponseWriter, r *http.Request
 
 // SearchPublicGroups godoc
 // @Summary      Search Public Groups
-// @Description  Search for public groups by name or description.
+// @Description  Search for public groups by name or description. Supports sorting by name or member count.
 // @Tags         chat
 // @Accept       json
 // @Produce      json
 // @Param        query query string false "Search query"
 // @Param        cursor query string false "Pagination cursor"
 // @Param        limit query int false "Number of items per page (default 20, max 50)"
+// @Param        sort_by query string false "Sort order: 'name' (default, A-Z) or 'member_count' (most members first)"
 // @Success      200  {object}  helper.ResponseWithPagination{data=[]model.PublicGroupDTO}
 // @Failure      400  {object}  helper.ResponseError
 // @Failure      401  {object}  helper.ResponseError
@@ -562,6 +563,11 @@ func (c *GroupChatController) SearchPublicGroups(w http.ResponseWriter, r *http.
 	query := r.URL.Query().Get("query")
 	cursor := r.URL.Query().Get("cursor")
 	limitStr := r.URL.Query().Get("limit")
+	sortBy := r.URL.Query().Get("sort_by")
+
+	if sortBy == "" {
+		sortBy = "name"
+	}
 
 	limit := 20
 	if limitStr != "" {
@@ -577,6 +583,7 @@ func (c *GroupChatController) SearchPublicGroups(w http.ResponseWriter, r *http.
 		Query:  query,
 		Cursor: cursor,
 		Limit:  limit,
+		SortBy: sortBy,
 	}
 
 	groups, nextCursor, hasNext, err := c.groupChatService.SearchPublicGroups(r.Context(), userContext.ID, req)

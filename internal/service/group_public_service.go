@@ -28,7 +28,11 @@ func (s *GroupChatService) SearchPublicGroups(ctx context.Context, userID uuid.U
 		req.Limit = 20
 	}
 
-	groups, nextCursor, hasNext, err := s.repo.GroupChat.SearchPublicGroups(ctx, req.Query, req.Cursor, req.Limit)
+	if req.SortBy == "" {
+		req.SortBy = "name"
+	}
+
+	groups, nextCursor, hasNext, err := s.repo.GroupChat.SearchPublicGroups(ctx, req.Query, req.Cursor, req.Limit, req.SortBy)
 	if err != nil {
 		if strings.Contains(err.Error(), "invalid cursor format") {
 			slog.Warn("Invalid cursor format in SearchPublicGroups", "error", err)

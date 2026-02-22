@@ -29,10 +29,6 @@ func NewUserRepository(client *ent.Client) *UserRepository {
 func (r *UserRepository) SearchUsers(ctx context.Context, currentUserID uuid.UUID, queryStr string, cursor string, limit int, excludeChatID *uuid.UUID) ([]*ent.User, string, bool, error) {
 	queryStr = strings.TrimSpace(queryStr)
 
-	if len(queryStr) < 3 {
-		return []*ent.User{}, "", false, nil
-	}
-
 	query := r.client.User.Query().
 		Where(
 			user.IDNEQ(currentUserID),
